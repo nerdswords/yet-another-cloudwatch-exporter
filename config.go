@@ -11,12 +11,16 @@ type conf struct {
 }
 
 type job struct {
-	Name          string         `yaml:"name"`
-	Region        string         `yaml:"region"`
-	Type          string         `yaml:"type"`
-	DiscoveryTags []discoveryTag `yaml:"discoveryTags"`
-	ExportedTags  []string       `yaml:"exportedTags"`
-	Metrics       []metric       `yaml:"metrics"`
+	Name      string    `yaml:"name"`
+	Region    string    `yaml:"region"`
+	Type      string    `yaml:"type"`
+	Discovery discovery `yaml:"discovery"`
+	Metrics   []metric  `yaml:"metrics"`
+}
+
+type discovery struct {
+	SearchTags   []searchTag `yaml:"searchTags"`
+	ExportedTags []string    `yaml:"exportedTags"`
 }
 
 type metric struct {
@@ -26,7 +30,7 @@ type metric struct {
 	Length     int    `yaml:"length"`
 }
 
-type discoveryTag struct {
+type searchTag struct {
 	Key   string `yaml:"Key"`
 	Value string `yaml:"Value"`
 }
