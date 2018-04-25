@@ -11,29 +11,10 @@ import (
 	"time"
 )
 
-type ElbWrapper struct {
-	Elb  *elb.LoadBalancerDescription
-	Tags []*elb.Tag
-}
-
-func FilterELBThroughTags(elbTags []*elb.Tag, searchTags []searchTag) bool {
-	tagMatches := 0
-
-	for _, elbTag := range elbTags {
-		for _, searchTag := range searchTags {
-			if searchTag.Key == *elbTag.Key {
-				if searchTag.Value == *elbTag.Value {
-					tagMatches += 1
-				}
-			}
-		}
-	}
-
-	if tagMatches == len(searchTags) {
-		return true
-	} else {
-		return false
-	}
+type resourceWrapper struct {
+	Id      *string
+	Tags    []*searchTag
+	Service *string
 }
 
 func createEC2Session(region string) *ec2.EC2 {
@@ -62,12 +43,23 @@ func createELBSession(region string) *elb.ELB {
 	return elb.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeInstances(tags []searchTag) (instances []*ec2.Instance) {
+func describeResources(discovery discovery) (resources []*resourceWrapper) {
+	if discovery.Type == "ec2" {
+		resources = describeInstances(discovery)
+	} else if discovery.Type == "elb" {
+		resources = describeLoadBalancers(discovery)
+	} else {
+		fmt.Println("Not implemented yet :(")
+	}
+	return resources
+}
+
+func describeInstances(discovery discovery) (resources []*resourceWrapper) {
 	c := createEC2Session("eu-west-1")
 
 	filters := []*ec2.Filter{}
 
-	for _, tag := range tags {
+	for _, tag := range discovery.SearchTags {
 		filter := ec2.Filter{
 			Name: aws.String("tag:" + tag.Key),
 			Values: []*string{
@@ -89,15 +81,29 @@ func describeInstances(tags []searchTag) (instances []*ec2.Instance) {
 
 	for idx, _ := range resp.Reservations {
 		for _, i := range resp.Reservations[idx].Instances {
-			instances = append(instances, i)
+			resource := resourceWrapper{Id: i.InstanceId}
+			resource.Service = aws.String("ec2")
+			fmt.Println("Add tags here.. to struct")
+			resources = append(resources, &resource)
 		}
 	}
 
-	return instances
+	return resources
 }
 
-func getCloudwatchMetric(dimensionName string, dimensionValue *string, namespace string, metric metric) float64 {
+func getCloudwatchMetric(resource *resourceWrapper, metric metric) float64 {
 	c := createCloudwatchSession()
+
+	var dimensionName string
+	var namespace string
+
+	if *resource.Service == "ec2" {
+		dimensionName = "InstanceId"
+		namespace = "AWS/EC2"
+	} else if *resource.Service == "elb" {
+		dimensionName = "LoadBalancerName"
+		namespace = "AWS/ELB"
+	}
 
 	period := int64(metric.Length)
 	length := metric.Length
@@ -109,7 +115,7 @@ func getCloudwatchMetric(dimensionName string, dimensionValue *string, namespace
 		Dimensions: []*cloudwatch.Dimension{
 			&cloudwatch.Dimension{
 				Name:  &dimensionName,
-				Value: dimensionValue,
+				Value: resource.Id,
 			},
 		},
 		Namespace:  &namespace,
@@ -153,7 +159,7 @@ func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (point
 	return points
 }
 
-func describeLoadBalancers() (output []ElbWrapper) {
+func describeLoadBalancers(discovery discovery) (resources []*resourceWrapper) {
 	c := createELBSession("eu-west-1")
 	resp, err := c.DescribeLoadBalancers(nil)
 	if err != nil {
@@ -161,16 +167,19 @@ func describeLoadBalancers() (output []ElbWrapper) {
 	}
 
 	for _, elb := range resp.LoadBalancerDescriptions {
-		add := ElbWrapper{}
-		add.Elb = elb
-		add.Tags = describeELBTags(add.Elb.LoadBalancerName)
-		output = append(output, add)
+		resource := resourceWrapper{}
+		resource.Id = elb.LoadBalancerName
+		resource.Service = aws.String("elb")
+		resource.Tags = describeELBTags(resource.Id)
+		if filterElbThroughTags(resource.Tags, discovery.SearchTags) {
+			resources = append(resources, &resource)
+		}
 	}
 
-	return output
+	return resources
 }
 
-func describeELBTags(name *string) []*elb.Tag {
+func describeELBTags(name *string) (tags []*searchTag) {
 	c := createELBSession("eu-west-1")
 
 	input := &elb.DescribeTagsInput{LoadBalancerNames: []*string{name}}
@@ -181,5 +190,30 @@ func describeELBTags(name *string) []*elb.Tag {
 		panic(err)
 	}
 
-	return tagDescription.TagDescriptions[0].Tags
+	for _, elbTag := range tagDescription.TagDescriptions[0].Tags {
+		tag := searchTag{Key: *elbTag.Key, Value: *elbTag.Value}
+		tags = append(tags, &tag)
+	}
+
+	return tags
+}
+
+func filterElbThroughTags(elbTags []*searchTag, searchTags []searchTag) bool {
+	tagMatches := 0
+
+	for _, elbTag := range elbTags {
+		for _, searchTag := range searchTags {
+			if searchTag.Key == elbTag.Key {
+				if searchTag.Value == elbTag.Value {
+					tagMatches += 1
+				}
+			}
+		}
+	}
+
+	if tagMatches == len(searchTags) {
+		return true
+	} else {
+		return false
+	}
 }
