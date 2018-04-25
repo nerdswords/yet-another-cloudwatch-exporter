@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	_ "fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
@@ -33,7 +33,6 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	fmt.Println("Started..")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
             <head><title>Yet another cloudwatch exporter</title></head>
