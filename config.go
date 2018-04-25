@@ -23,6 +23,7 @@ type metric struct {
 	Name       string `yaml:"name"`
 	Statistics string `yaml:"statistics"`
 	Period     int    `yaml:"period"`
+	Length     int    `yaml:"length"`
 }
 
 type discoveryTag struct {
