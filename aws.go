@@ -117,7 +117,7 @@ func getCloudwatchMetric(dimensionName string, dimensionValue *string, namespace
 		panic(err)
 	}
 
-	points := sortDatapoints(resp.Datapoints)
+	points := sortDatapoints(resp.Datapoints, metric.Statistics)
 
 	if len(points) == 0 {
 		fmt.Println("Did not found any data points..")
@@ -128,12 +128,20 @@ func getCloudwatchMetric(dimensionName string, dimensionValue *string, namespace
 
 }
 
-func sortDatapoints(datapoints []*cloudwatch.Datapoint) (points []*float64) {
+func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
 	for _, point := range datapoints {
-		points = append(points, point.Average)
+		if statistic == "Sum" {
+			points = append(points, point.Sum)
+		} else if statistic == "Average" {
+			points = append(points, point.Average)
+		} else if statistic == "Maximum" {
+			points = append(points, point.Maximum)
+		} else if statistic == "Minimum" {
+			points = append(points, point.Minimum)
+		}
 	}
 
-	sort.Slice(points, func(i, j int) bool { return *points[i] < *points[j] })
+	sort.Slice(points, func(i, j int) bool { return *points[i] > *points[j] })
 
 	return points
 }
