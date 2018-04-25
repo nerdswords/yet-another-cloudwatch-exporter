@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -13,6 +13,7 @@ func metrics(registry *prometheus.Registry, job job) {
 		registry.MustRegister(metric)
 
 		for _, metric := range job.Metrics {
+			fmt.Println(metric)
 			metric := createCloudwatchMetric(resource, metric)
 			registry.MustRegister(metric)
 		}
@@ -43,17 +44,18 @@ func createInfoMetric(resource *resourceWrapper, jobName string, exportedTags []
 	//promLabels := prometheus.Labels{"yace_aws_id": *resource.Id, "yace_aws_service": *resource.Service}
 
 	for _, exportedTag := range exportedTags {
+		escapedKey := ConvertTagToLabel(exportedTag)
+		promLabels[escapedKey] = ""
 		for _, resourceTag := range resource.Tags {
-			escapedKey := ConvertTagToLabel(exportedTag)
 			if exportedTag == resourceTag.Key {
 				promLabels[escapedKey] = resourceTag.Value
-			} else {
-				promLabels[escapedKey] = ""
 			}
 		}
 	}
 
-	promLabels["yace_name"] = jobName
+	promLabels["name"] = jobName
+	promLabels["id"] = *resource.Id
+
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "yace_" + *resource.Service + "_info",
 		Help:        "Help is not implemented yet.",
