@@ -22,12 +22,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	registry := prometheus.NewRegistry()
 
 	for _, job := range c.Jobs {
-		if job.Type == "EC2" {
-			ec2Metrics(registry, job)
-		}
-		if job.Type == "ELB" {
-			elbMetrics(registry, job)
-		}
+		metrics(registry, job)
 	}
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{

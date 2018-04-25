@@ -12,13 +12,13 @@ type conf struct {
 
 type job struct {
 	Name      string    `yaml:"name"`
-	Region    string    `yaml:"region"`
-	Type      string    `yaml:"type"`
 	Discovery discovery `yaml:"discovery"`
 	Metrics   []metric  `yaml:"metrics"`
 }
 
 type discovery struct {
+	Region       string      `yaml:"region"`
+	Type         string      `yaml:"type"`
 	SearchTags   []searchTag `yaml:"searchTags"`
 	ExportedTags []string    `yaml:"exportedTags"`
 }
