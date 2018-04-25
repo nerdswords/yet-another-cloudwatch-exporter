@@ -7,11 +7,10 @@ import (
 )
 
 func ec2Metrics(registry *prometheus.Registry, job job) {
-	tags := job.DiscoveryTags
-	instances := describeInstances(tags)
+	instances := describeInstances(job.Discovery.SearchTags)
 
 	for _, instance := range instances {
-		metric := createEC2InfoMetric(instance, job.Name, job.ExportedTags)
+		metric := createEC2InfoMetric(instance, job.Name, job.Discovery.ExportedTags)
 		registry.MustRegister(metric)
 
 		for _, metric := range job.Metrics {

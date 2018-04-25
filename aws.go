@@ -16,17 +16,24 @@ type ElbWrapper struct {
 	Tags []*elb.Tag
 }
 
-func FilterELBThroughTags(elbTags []*elb.Tag, discoveryTags []discoveryTag) bool {
+func FilterELBThroughTags(elbTags []*elb.Tag, searchTags []searchTag) bool {
+	tagMatches := 0
+
 	for _, elbTag := range elbTags {
-		for _, discoveryTag := range discoveryTags {
-			if discoveryTag.Key == *elbTag.Key {
-				if discoveryTag.Value == *elbTag.Value {
-					return true
+		for _, searchTag := range searchTags {
+			if searchTag.Key == *elbTag.Key {
+				if searchTag.Value == *elbTag.Value {
+					tagMatches += 1
 				}
 			}
 		}
 	}
-	return false
+
+	if tagMatches == len(searchTags) {
+		return true
+	} else {
+		return false
+	}
 }
 
 func createEC2Session(region string) *ec2.EC2 {
@@ -55,7 +62,7 @@ func createELBSession(region string) *elb.ELB {
 	return elb.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeInstances(tags []discoveryTag) (instances []*ec2.Instance) {
+func describeInstances(tags []searchTag) (instances []*ec2.Instance) {
 	c := createEC2Session("eu-west-1")
 
 	filters := []*ec2.Filter{}

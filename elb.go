@@ -1,17 +1,17 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 func elbMetrics(registry *prometheus.Registry, job job) {
-	//tags := check.discoveryTags
+	fmt.Println("Started an elb job")
 	elbs := describeLoadBalancers() //tags)
 
 	for _, elb := range elbs {
-		if FilterELBThroughTags(elb.Tags, job.DiscoveryTags) {
-			metric := createELBInfoMetric(elb, job.Name, job.ExportedTags)
+		if FilterELBThroughTags(elb.Tags, job.Discovery.SearchTags) {
+			metric := createELBInfoMetric(elb, job.Name, job.Discovery.ExportedTags)
 			registry.MustRegister(metric)
 
 			for _, metric := range job.Metrics {
@@ -30,7 +30,7 @@ func createELBCloudwatchMetric(loadBalancerName *string, metric metric) promethe
 	}
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "yace_ec2_" + metric.Name,
+		Name:        "yace_elb_" + metric.Name,
 		Help:        "Help is not implemented yet.",
 		ConstLabels: labels,
 	})

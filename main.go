@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "encoding/json"
 	"flag"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,8 +30,6 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	//prometheus.DefaultGatherer = registry //- Do i need this? :D
-
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
 	})
@@ -41,6 +38,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	fmt.Println("Started..")
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
             <head><title>Yet another cloudwatch exporter</title></head>
