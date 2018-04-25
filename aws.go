@@ -1,13 +1,33 @@
 package main
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"sort"
 	"time"
 )
+
+type ElbWrapper struct {
+	Elb  *elb.LoadBalancerDescription
+	Tags []*elb.Tag
+}
+
+func FilterELBThroughTags(elbTags []*elb.Tag, discoveryTags []discoveryTag) bool {
+	for _, elbTag := range elbTags {
+		for _, discoveryTag := range discoveryTags {
+			if discoveryTag.Key == *elbTag.Key {
+				if discoveryTag.Value == *elbTag.Value {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
 
 func createEC2Session(region string) *ec2.EC2 {
 	sess, err := session.NewSession()
@@ -26,16 +46,25 @@ func createCloudwatchSession() *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess)
 }
 
-func describeInstances(tags []Tag) (instances []*ec2.Instance) {
+func createELBSession(region string) *elb.ELB {
+	sess, err := session.NewSession()
+	if err != nil {
+		panic(err)
+	}
+
+	return elb.New(sess, &aws.Config{Region: aws.String(region)})
+}
+
+func describeInstances(tags []discoveryTag) (instances []*ec2.Instance) {
 	c := createEC2Session("eu-west-1")
 
 	filters := []*ec2.Filter{}
 
 	for _, tag := range tags {
 		filter := ec2.Filter{
-			Name: aws.String("tag:" + tag.key),
+			Name: aws.String("tag:" + tag.Key),
 			Values: []*string{
-				aws.String(tag.value),
+				aws.String(tag.Value),
 			},
 		}
 
@@ -60,26 +89,27 @@ func describeInstances(tags []Tag) (instances []*ec2.Instance) {
 	return instances
 }
 
-func getCloudwatchMetricEC2(instance *ec2.Instance, metric Metric) float64 {
+func getCloudwatchMetric(dimensionName string, dimensionValue *string, namespace string, metric metric) float64 {
 	c := createCloudwatchSession()
 
-	period := int64(60)
+	period := int64(metric.Length)
+	length := metric.Length
 	endTime := time.Now()
-	startTime := time.Now().Add(-24 * time.Hour)
-	statistics := []*string{&metric.statistics}
+	startTime := time.Now().Add(-time.Duration(length) * time.Minute)
+	statistics := []*string{&metric.Statistics}
 
 	resp, err := c.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
 		Dimensions: []*cloudwatch.Dimension{
 			&cloudwatch.Dimension{
-				Name:  aws.String("InstanceId"),
-				Value: instance.InstanceId,
+				Name:  &dimensionName,
+				Value: dimensionValue,
 			},
 		},
-		Namespace:  aws.String("AWS/EC2"),
+		Namespace:  &namespace,
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,
-		MetricName: aws.String(metric.name),
+		MetricName: aws.String(metric.Name),
 		Statistics: statistics,
 	})
 
@@ -89,7 +119,13 @@ func getCloudwatchMetricEC2(instance *ec2.Instance, metric Metric) float64 {
 
 	points := sortDatapoints(resp.Datapoints)
 
-	return float64(*points[0])
+	if len(points) == 0 {
+		fmt.Println("Did not found any data points..")
+		return float64(-1)
+	} else {
+		return float64(*points[0])
+	}
+
 }
 
 func sortDatapoints(datapoints []*cloudwatch.Datapoint) (points []*float64) {
@@ -100,4 +136,35 @@ func sortDatapoints(datapoints []*cloudwatch.Datapoint) (points []*float64) {
 	sort.Slice(points, func(i, j int) bool { return *points[i] < *points[j] })
 
 	return points
+}
+
+func describeLoadBalancers() (output []ElbWrapper) {
+	c := createELBSession("eu-west-1")
+	resp, err := c.DescribeLoadBalancers(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, elb := range resp.LoadBalancerDescriptions {
+		add := ElbWrapper{}
+		add.Elb = elb
+		add.Tags = describeELBTags(add.Elb.LoadBalancerName)
+		output = append(output, add)
+	}
+
+	return output
+}
+
+func describeELBTags(name *string) []*elb.Tag {
+	c := createELBSession("eu-west-1")
+
+	input := &elb.DescribeTagsInput{LoadBalancerNames: []*string{name}}
+
+	tagDescription, err := c.DescribeTags(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return tagDescription.TagDescriptions[0].Tags
 }

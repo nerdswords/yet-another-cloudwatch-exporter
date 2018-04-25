@@ -22,10 +22,16 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := prometheus.NewRegistry()
 
-	//ec2Metrics(registry, checks, labelConfig)
-	//elbMetrics(registry, checks, labelConfig)
+	for _, job := range c.Jobs {
+		if job.Type == "EC2" {
+			ec2Metrics(registry, job)
+		}
+		if job.Type == "ELB" {
+			elbMetrics(registry, job)
+		}
+	}
 
-	prometheus.DefaultGatherer = registry //- Do i need this? :D
+	//prometheus.DefaultGatherer = registry //- Do i need this? :D
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
