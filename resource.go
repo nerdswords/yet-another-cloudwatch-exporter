@@ -10,16 +10,46 @@ type resourceWrapper struct {
 	Service *string
 }
 
-func describeResources(discovery discovery) (resources []*resourceWrapper) {
-	if discovery.Type == "ec2" {
-		resources = describeInstances(discovery)
-	} else if discovery.Type == "elb" {
-		resources = describeLoadBalancers(discovery)
-	} else if discovery.Type == "rds" {
-		resources = describeDatabases(discovery)
-	} else {
-		fmt.Println("Not implemented yet :(")
+func createPrometheusExportedTags(jobs []job) map[string][]string {
+	exportedTags := map[string]map[string]bool{
+		"rds": map[string]bool{},
+		"ec2": map[string]bool{},
+		"elb": map[string]bool{},
 	}
+
+	output := map[string][]string{
+		"rds": []string{},
+		"ec2": []string{},
+		"elb": []string{},
+	}
+
+	for _, job := range jobs {
+		for _, tag := range job.Discovery.ExportedTags {
+			exportedTags[job.Discovery.Type][tag] = true
+		}
+	}
+
+	for k, v := range exportedTags {
+		for kk, _ := range v {
+			output[k] = append(output[k], kk)
+		}
+	}
+
+	return output
+}
+
+func describeResources(discovery discovery) (resources []*resourceWrapper) {
+	switch discovery.Type {
+	case "ec2":
+		resources = describeInstances(discovery)
+	case "elb":
+		resources = describeLoadBalancers(discovery)
+	case "rds":
+		resources = describeDatabases(discovery)
+	default:
+		fmt.Println("Not implemented resources:" + discovery.Type)
+	}
+
 	return resources
 }
 
