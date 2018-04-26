@@ -17,21 +17,22 @@ func createCloudwatchSession() *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess)
 }
 
-func getCloudwatchMetric(resource *resourceWrapper, metric metric) float64 {
+func getCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, metric metric) float64 {
 	c := createCloudwatchSession()
 
-	var dimensionName string
-	var namespace string
+	dimensions := []*cloudwatch.Dimension{
+		&cloudwatch.Dimension{
+			Name:  cloudwatchInfo.DimensionName,
+			Value: resource.Id,
+		},
+	}
 
-	if *resource.Service == "ec2" {
-		dimensionName = "InstanceId"
-		namespace = "AWS/EC2"
-	} else if *resource.Service == "elb" {
-		dimensionName = "LoadBalancerName"
-		namespace = "AWS/ELB"
-	} else if *resource.Service == "rds" {
-		dimensionName = "DBInstanceIdentifier"
-		namespace = "AWS/RDS"
+	for _, dim := range cloudwatchInfo.CustomDimension {
+		dimension := &cloudwatch.Dimension{
+			Name:  &dim.Key,
+			Value: &dim.Value,
+		}
+		dimensions = append(dimensions, dimension)
 	}
 
 	period := int64(metric.Length)
@@ -41,13 +42,8 @@ func getCloudwatchMetric(resource *resourceWrapper, metric metric) float64 {
 	statistics := []*string{&metric.Statistics}
 
 	resp, err := c.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
-		Dimensions: []*cloudwatch.Dimension{
-			&cloudwatch.Dimension{
-				Name:  &dimensionName,
-				Value: resource.Id,
-			},
-		},
-		Namespace:  &namespace,
+		Dimensions: dimensions,
+		Namespace:  cloudwatchInfo.Namespace,
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,

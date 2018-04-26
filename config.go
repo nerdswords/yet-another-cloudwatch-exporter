@@ -17,10 +17,10 @@ type job struct {
 }
 
 type discovery struct {
-	Region       string      `yaml:"region"`
-	Type         string      `yaml:"type"`
-	SearchTags   []searchTag `yaml:"searchTags"`
-	ExportedTags []string    `yaml:"exportedTags"`
+	Region       string   `yaml:"region"`
+	Type         string   `yaml:"type"`
+	SearchTags   []tag    `yaml:"searchTags"`
+	ExportedTags []string `yaml:"exportedTags"`
 }
 
 type metric struct {
@@ -30,7 +30,7 @@ type metric struct {
 	Length     int    `yaml:"length"`
 }
 
-type searchTag struct {
+type tag struct {
 	Key   string `yaml:"Key"`
 	Value string `yaml:"Value"`
 }

@@ -5,10 +5,21 @@ import (
 	"regexp"
 )
 
-type resourceWrapper struct {
+type awsResources struct {
+	Resources      []*awsResource
+	CloudwatchInfo *cloudwatchInfo
+}
+
+type awsResource struct {
 	Id      *string
-	Tags    []*searchTag
+	Tags    []*tag
 	Service *string
+}
+
+type cloudwatchInfo struct {
+	DimensionName   *string
+	Namespace       *string
+	CustomDimension []*tag
 }
 
 func createPrometheusExportedTags(jobs []job) map[string][]string {
@@ -16,15 +27,18 @@ func createPrometheusExportedTags(jobs []job) map[string][]string {
 		"rds": map[string]bool{},
 		"ec2": map[string]bool{},
 		"elb": map[string]bool{},
+		"es":  map[string]bool{},
 	}
 
 	output := map[string][]string{
 		"rds": []string{},
 		"ec2": []string{},
 		"elb": []string{},
+		"es":  []string{},
 	}
 
 	for _, job := range jobs {
+		fmt.Println(job)
 		for _, tag := range job.Discovery.ExportedTags {
 			exportedTags[job.Discovery.Type][tag] = true
 		}
@@ -39,7 +53,7 @@ func createPrometheusExportedTags(jobs []job) map[string][]string {
 	return output
 }
 
-func describeResources(discovery discovery) (resources []*resourceWrapper) {
+func describeResources(discovery discovery) (resources awsResources) {
 	switch discovery.Type {
 	case "ec2":
 		resources = describeInstances(discovery)
@@ -47,6 +61,8 @@ func describeResources(discovery discovery) (resources []*resourceWrapper) {
 		resources = describeLoadBalancers(discovery)
 	case "rds":
 		resources = describeDatabases(discovery)
+	case "es":
+		resources = describeElasticsearchServices(discovery)
 	default:
 		fmt.Println("Not implemented resources:" + discovery.Type)
 	}
@@ -54,7 +70,7 @@ func describeResources(discovery discovery) (resources []*resourceWrapper) {
 	return resources
 }
 
-func (r resourceWrapper) filterThroughTags(filterTags []searchTag) bool {
+func (r awsResource) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {

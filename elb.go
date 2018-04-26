@@ -15,7 +15,7 @@ func createELBSession(region string) *elb.ELB {
 	return elb.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeLoadBalancers(discovery discovery) (resources []*resourceWrapper) {
+func describeLoadBalancers(discovery discovery) (resources awsResources) {
 	c := createELBSession("eu-west-1")
 	resp, err := c.DescribeLoadBalancers(nil)
 	if err != nil {
@@ -23,19 +23,21 @@ func describeLoadBalancers(discovery discovery) (resources []*resourceWrapper) {
 	}
 
 	for _, elb := range resp.LoadBalancerDescriptions {
-		resource := resourceWrapper{}
+		resource := awsResource{}
 		resource.Id = elb.LoadBalancerName
 		resource.Service = aws.String("elb")
 		resource.Tags = describeELBTags(resource.Id)
 		if resource.filterThroughTags(discovery.SearchTags) {
-			resources = append(resources, &resource)
+			resources.Resources = append(resources.Resources, &resource)
 		}
 	}
+
+	resources.CloudwatchInfo = getElbCloudwatchInfo()
 
 	return resources
 }
 
-func describeELBTags(name *string) (tags []*searchTag) {
+func describeELBTags(name *string) (tags []*tag) {
 	c := createELBSession("eu-west-1")
 
 	input := &elb.DescribeTagsInput{LoadBalancerNames: []*string{name}}
@@ -47,9 +49,17 @@ func describeELBTags(name *string) (tags []*searchTag) {
 	}
 
 	for _, elbTag := range tagDescription.TagDescriptions[0].Tags {
-		tag := searchTag{Key: *elbTag.Key, Value: *elbTag.Value}
+		tag := tag{Key: *elbTag.Key, Value: *elbTag.Value}
 		tags = append(tags, &tag)
 	}
 
 	return tags
+}
+
+func getElbCloudwatchInfo() *cloudwatchInfo {
+	output := cloudwatchInfo{}
+	output.DimensionName = aws.String("LoadBalancerName")
+	output.Namespace = aws.String("AWS/ELB")
+	output.CustomDimension = []*tag{}
+	return &output
 }
