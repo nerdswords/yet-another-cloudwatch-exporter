@@ -45,10 +45,18 @@ func describeInstances(discovery discovery) (resources []*resourceWrapper) {
 		for _, i := range resp.Reservations[idx].Instances {
 			resource := resourceWrapper{Id: i.InstanceId}
 			resource.Service = aws.String("ec2")
-			fmt.Println("Add tags here.. to struct")
+			resource.Tags = getInstanceTags(i.Tags)
 			resources = append(resources, &resource)
 		}
 	}
 
 	return resources
+}
+
+func getInstanceTags(awsTags []*ec2.Tag) (output []*searchTag) {
+	for _, awsTag := range awsTags {
+		tag := searchTag{Key: *awsTag.Key, Value: *awsTag.Value}
+		output = append(output, &tag)
+	}
+	return output
 }
