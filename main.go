@@ -46,12 +46,12 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
-            <head><title>Yet another cloudwatch exporter</title></head>
-            <body>
-            <h1>Exporter with benefits</h1>
-            <p><a href="/metrics">Metrics</a></p>
-            </body>
-            </html>`))
+		<head><title>Yet another cloudwatch exporter</title></head>
+		<body>
+		<h1>Thanks for using our product :)</h1>
+		<p><a href="/metrics">Metrics</a></p>
+		</body>
+		</html>`))
 	})
 
 	flag.Parse()
