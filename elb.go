@@ -27,7 +27,7 @@ func describeLoadBalancers(discovery discovery) (resources []*resourceWrapper) {
 		resource.Id = elb.LoadBalancerName
 		resource.Service = aws.String("elb")
 		resource.Tags = describeELBTags(resource.Id)
-		if filterElbThroughTags(resource.Tags, discovery.SearchTags) {
+		if resource.filterThroughTags(discovery.SearchTags) {
 			resources = append(resources, &resource)
 		}
 	}
@@ -52,24 +52,4 @@ func describeELBTags(name *string) (tags []*searchTag) {
 	}
 
 	return tags
-}
-
-func filterElbThroughTags(elbTags []*searchTag, searchTags []searchTag) bool {
-	tagMatches := 0
-
-	for _, elbTag := range elbTags {
-		for _, searchTag := range searchTags {
-			if searchTag.Key == elbTag.Key {
-				if searchTag.Value == elbTag.Value {
-					tagMatches += 1
-				}
-			}
-		}
-	}
-
-	if tagMatches == len(searchTags) {
-		return true
-	} else {
-		return false
-	}
 }
