@@ -15,7 +15,7 @@ func createEC2Session(region string) *ec2.EC2 {
 	return ec2.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeInstances(discovery discovery) (resources []*resourceWrapper) {
+func describeInstances(discovery discovery) (resources awsResources) {
 	c := createEC2Session("eu-west-1")
 
 	filters := []*ec2.Filter{}
@@ -42,20 +42,30 @@ func describeInstances(discovery discovery) (resources []*resourceWrapper) {
 
 	for idx, _ := range resp.Reservations {
 		for _, i := range resp.Reservations[idx].Instances {
-			resource := resourceWrapper{Id: i.InstanceId}
+			resource := awsResource{Id: i.InstanceId}
 			resource.Service = aws.String("ec2")
 			resource.Tags = getInstanceTags(i.Tags)
-			resources = append(resources, &resource)
+			resources.Resources = append(resources.Resources, &resource)
 		}
 	}
+
+	resources.CloudwatchInfo = getEc2CloudwatchInfo()
 
 	return resources
 }
 
-func getInstanceTags(awsTags []*ec2.Tag) (output []*searchTag) {
+func getInstanceTags(awsTags []*ec2.Tag) (output []*tag) {
 	for _, awsTag := range awsTags {
-		tag := searchTag{Key: *awsTag.Key, Value: *awsTag.Value}
+		tag := tag{Key: *awsTag.Key, Value: *awsTag.Value}
 		output = append(output, &tag)
 	}
 	return output
+}
+
+func getEc2CloudwatchInfo() *cloudwatchInfo {
+	output := cloudwatchInfo{}
+	output.DimensionName = aws.String("InstanceId")
+	output.Namespace = aws.String("AWS/EC2")
+	output.CustomDimension = []*tag{}
+	return &output
 }

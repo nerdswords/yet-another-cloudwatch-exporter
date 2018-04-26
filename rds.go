@@ -16,7 +16,7 @@ func createDatabaseSession(region string) *rds.RDS {
 	return rds.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeDatabases(discovery discovery) (resources []*resourceWrapper) {
+func describeDatabases(discovery discovery) (resources awsResources) {
 	c := createDatabaseSession("eu-west-1")
 
 	params := &rds.DescribeDBInstancesInput{}
@@ -27,18 +27,20 @@ func describeDatabases(discovery discovery) (resources []*resourceWrapper) {
 	}
 
 	for _, i := range resp.DBInstances {
-		resource := resourceWrapper{Id: i.DBInstanceIdentifier}
+		resource := awsResource{Id: i.DBInstanceIdentifier}
 		resource.Service = aws.String("rds")
 		resource.Tags = getDatabaseTags(i.DBInstanceArn)
 		if resource.filterThroughTags(discovery.SearchTags) {
-			resources = append(resources, &resource)
+			resources.Resources = append(resources.Resources, &resource)
 		}
 	}
+
+	resources.CloudwatchInfo = getRdsCloudwatchInfo()
 
 	return resources
 }
 
-func getDatabaseTags(arn *string) (output []*searchTag) {
+func getDatabaseTags(arn *string) (output []*tag) {
 	c := createDatabaseSession("eu-west-1")
 
 	input := rds.ListTagsForResourceInput{ResourceName: arn}
@@ -49,8 +51,16 @@ func getDatabaseTags(arn *string) (output []*searchTag) {
 	}
 
 	for _, awsTag := range awsTags.TagList {
-		tag := searchTag{Key: *awsTag.Key, Value: *awsTag.Value}
+		tag := tag{Key: *awsTag.Key, Value: *awsTag.Value}
 		output = append(output, &tag)
 	}
 	return output
+}
+
+func getRdsCloudwatchInfo() *cloudwatchInfo {
+	output := cloudwatchInfo{}
+	output.DimensionName = aws.String("DBInstanceIdentifier")
+	output.Namespace = aws.String("AWS/RDS")
+	output.CustomDimension = []*tag{}
+	return &output
 }

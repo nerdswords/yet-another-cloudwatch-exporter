@@ -9,27 +9,29 @@ import (
 func metrics(registry *prometheus.Registry, job job, exportedTags []string) {
 	resources := describeResources(job.Discovery)
 
-	for _, resource := range resources {
+	for _, resource := range resources.Resources {
 		metric := createInfoMetric(resource, &job.Name, exportedTags)
 		registry.MustRegister(metric)
 
 		for _, metric := range job.Metrics {
-			metric := createCloudwatchMetric(resource, &job.Name, metric)
+			metric := createCloudwatchMetric(resource, resources.CloudwatchInfo, &job.Name, metric)
 			registry.MustRegister(metric)
 		}
 	}
 }
 
-func createCloudwatchMetric(resource *resourceWrapper, jobName *string, metric metric) prometheus.Gauge {
-	value := getCloudwatchMetric(resource, metric)
+func createCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, jobName *string, metric metric) prometheus.Gauge {
+	value := getCloudwatchMetric(resource, cloudwatchInfo, metric)
 
 	labels := prometheus.Labels{
 		"yace_name": *resource.Id,
 		"yace_job":  *jobName,
 	}
 
+	name := "yace_" + *resource.Service + "_" + promString(metric.Name)
+
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "yace_" + *resource.Service + "_" + metric.Name,
+		Name:        name,
 		Help:        "Help is not implemented yet.",
 		ConstLabels: labels,
 	})
@@ -39,11 +41,11 @@ func createCloudwatchMetric(resource *resourceWrapper, jobName *string, metric m
 	return gauge
 }
 
-func createInfoMetric(resource *resourceWrapper, jobName *string, exportedTags []string) prometheus.Gauge {
+func createInfoMetric(resource *awsResource, jobName *string, exportedTags []string) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
 	for _, exportedTag := range exportedTags {
-		escapedKey := convertTagToLabel(exportedTag)
+		escapedKey := "tag_" + promString(exportedTag)
 		promLabels[escapedKey] = ""
 		for _, resourceTag := range resource.Tags {
 			if exportedTag == resourceTag.Key {
@@ -55,8 +57,10 @@ func createInfoMetric(resource *resourceWrapper, jobName *string, exportedTags [
 	promLabels["yace_name"] = *jobName
 	promLabels["id"] = *resource.Id
 
+	name := "yace_" + *resource.Service + "_info"
+
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "yace_" + *resource.Service + "_info",
+		Name:        name,
 		Help:        "Help is not implemented yet.",
 		ConstLabels: promLabels,
 	})
@@ -64,8 +68,7 @@ func createInfoMetric(resource *resourceWrapper, jobName *string, exportedTags [
 	return gauge
 }
 
-func convertTagToLabel(label string) string {
+func promString(text string) string {
 	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_")
-	saveLabel := replacer.Replace(label)
-	return "tag_" + saveLabel
+	return replacer.Replace(text)
 }
