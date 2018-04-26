@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 )
 
 type resourceWrapper struct {
@@ -59,7 +60,8 @@ func (r resourceWrapper) filterThroughTags(filterTags []searchTag) bool {
 	for _, resourceTag := range r.Tags {
 		for _, filterTag := range filterTags {
 			if resourceTag.Key == filterTag.Key {
-				if resourceTag.Value == filterTag.Value {
+				r, _ := regexp.Compile(filterTag.Value)
+				if r.MatchString(resourceTag.Value) {
 					tagMatches += 1
 				}
 			}
