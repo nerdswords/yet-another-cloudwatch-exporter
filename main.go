@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	_ "strings"
+	"sync"
 )
 
 var (
@@ -21,9 +22,19 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := prometheus.NewRegistry()
 
-	for _, job := range c.Jobs {
-		metrics(registry, job)
+	exportedTags := createPrometheusExportedTags(c.Jobs)
+
+	var wg sync.WaitGroup
+	wg.Add(len(c.Jobs))
+
+	for i, _ := range c.Jobs {
+		job := c.Jobs[i]
+		go func() {
+			metrics(registry, job, exportedTags[job.Discovery.Type])
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
