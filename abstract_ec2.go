@@ -16,7 +16,7 @@ func createEC2Session(region string) *ec2.EC2 {
 }
 
 func describeInstances(discovery discovery) (resources awsResources) {
-	c := createEC2Session("eu-west-1")
+	c := createEC2Session(discovery.Region)
 
 	filters := []*ec2.Filter{}
 
