@@ -17,7 +17,7 @@ func createDatabaseSession(region string) *rds.RDS {
 }
 
 func describeDatabases(discovery discovery) (resources awsResources) {
-	c := createDatabaseSession("eu-west-1")
+	c := createDatabaseSession(discovery.Region)
 
 	params := &rds.DescribeDBInstancesInput{}
 
@@ -29,7 +29,7 @@ func describeDatabases(discovery discovery) (resources awsResources) {
 	for _, i := range resp.DBInstances {
 		resource := awsResource{Id: i.DBInstanceIdentifier}
 		resource.Service = aws.String("rds")
-		resource.Tags = getDatabaseTags(i.DBInstanceArn)
+		resource.Tags = getDatabaseTags(c, i.DBInstanceArn)
 		if resource.filterThroughTags(discovery.SearchTags) {
 			resources.Resources = append(resources.Resources, &resource)
 		}
@@ -40,9 +40,7 @@ func describeDatabases(discovery discovery) (resources awsResources) {
 	return resources
 }
 
-func getDatabaseTags(arn *string) (output []*tag) {
-	c := createDatabaseSession("eu-west-1")
-
+func getDatabaseTags(c *rds.RDS, arn *string) (output []*tag) {
 	input := rds.ListTagsForResourceInput{ResourceName: arn}
 
 	awsTags, err := c.ListTagsForResource(&input)

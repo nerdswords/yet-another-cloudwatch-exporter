@@ -17,8 +17,7 @@ func createElasticacheSession(region string) *elasticache.ElastiCache {
 }
 
 func describeElasticacheDomains(discovery discovery) (resources awsResources) {
-	c := createElasticacheSession("eu-west-1")
-
+	c := createElasticacheSession(discovery.Region)
 	resp, err := c.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{})
 	if err != nil {
 		panic(err)
@@ -29,7 +28,7 @@ func describeElasticacheDomains(discovery discovery) (resources awsResources) {
 		resource.Id = ec.CacheClusterId
 		resource.Service = aws.String("elasticache")
 		resource.Attributes = getElasticacheAttributes(discovery.ExportedAttributes, ec)
-		resource.Tags = getElasticacheTags(resource.Id)
+		resource.Tags = getElasticacheTags(c, resource.Id, discovery.Region)
 		if resource.filterThroughTags(discovery.SearchTags) {
 			resources.Resources = append(resources.Resources, &resource)
 		}
@@ -40,10 +39,8 @@ func describeElasticacheDomains(discovery discovery) (resources awsResources) {
 	return resources
 }
 
-func getElasticacheTags(resourceId *string) (output []*tag) {
-	c := createElasticacheSession("eu-west-1")
-
-	arn := "arn:aws:elasticache:eu-west-1:" + *getAwsArn() + ":cluster:" + *resourceId
+func getElasticacheTags(c *elasticache.ElastiCache, resourceId *string, region string) (output []*tag) {
+	arn := "arn:aws:elasticache:" + region + ":" + *getAwsArn() + ":cluster:" + *resourceId
 
 	input := elasticache.ListTagsForResourceInput{ResourceName: &arn}
 

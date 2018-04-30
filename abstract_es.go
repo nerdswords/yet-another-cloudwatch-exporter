@@ -17,7 +17,7 @@ func createEsSession(region string) *elasticsearchservice.ElasticsearchService {
 }
 
 func describeElasticsearchDomains(discovery discovery) (resources awsResources) {
-	c := createEsSession("eu-west-1")
+	c := createEsSession(discovery.Region)
 
 	listResp, err := c.ListDomainNames(&elasticsearchservice.ListDomainNamesInput{})
 	if err != nil {
@@ -41,7 +41,7 @@ func describeElasticsearchDomains(discovery discovery) (resources awsResources) 
 		resource := awsResource{}
 		resource.Id = es.DomainName
 		resource.Service = aws.String("es")
-		resource.Tags = getEsTags(es.ARN)
+		resource.Tags = getEsTags(c, es.ARN)
 		resource.Attributes = getElasticsearchAttributes(discovery.ExportedAttributes, es)
 		if resource.filterThroughTags(discovery.SearchTags) {
 			resources.Resources = append(resources.Resources, &resource)
@@ -53,9 +53,7 @@ func describeElasticsearchDomains(discovery discovery) (resources awsResources) 
 	return resources
 }
 
-func getEsTags(arn *string) (output []*tag) {
-	c := createEsSession("eu-west-1")
-
+func getEsTags(c *elasticsearchservice.ElasticsearchService, arn *string) (output []*tag) {
 	input := elasticsearchservice.ListTagsInput{ARN: arn}
 
 	awsTags, err := c.ListTags(&input)
