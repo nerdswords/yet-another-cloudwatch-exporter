@@ -1,21 +1,21 @@
 # YACE - yet another cloudwatch exporter
 
 *[EXPERIMENTAL STATE]*  - Not sure if this project makes sense
-and/or helps prometheus/aws community. Currently in quick iterrations mode
+and/or helps prometheus/aws community. Currently in quick iteration mode
 which will probably break things in next versions.
 
 Written without much golang experience. Would love to get feedback :))
 
 # Features
 * Stop worrying about your aws IDs - Discovery of ec2, elb, rds, elasticsearch, elasticache
-resources automatically through tags.
-* Filtering through Regex of tags.
-* Easy adding tag labels to metrics
+resources automatically through tags
+* Filtering tags through regex
+* Easy adding of tag labels to metrics
 * One prometheus metric with resource information (e.g. elasticsearch version or elb tags)
-which is easy groupable with cloudwatch metrics.
+which is easy groupable with cloudwatch metrics
 ```
-yace_ec2_CPUUtilization{yace_job="us",yace_name="i-0b363d2627188ac63"} -1
-yace_ec2_info{id="i-0c363d3627288a363",tag_Environment="production",tag_Name="Some Instance",yace_job="us",yace_name="us"} 0
+yace_ec2_CPUUtilization{yace_job="us",yace_name="i-0b363d2627188ac63"} 33
+yace_ec2_info{id="i-0b363d2627188ac63",tag_Environment="production",tag_Name="Some Instance",yace_job="us",yace_name="us"} 0
 ```
 
 ## Configuration File
