@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func metrics(registry *prometheus.Registry, job job, exportedTags []string) {
+func metrics(registry *prometheus.Registry, job job, exportedTags []string, exportedAttributes []string) {
 	resources := describeResources(job.Discovery)
 
 	for _, resource := range resources.Resources {
-		metric := createInfoMetric(resource, &job.Name, exportedTags)
+		metric := createInfoMetric(resource, &job.Name, exportedTags, exportedAttributes)
 		registry.MustRegister(metric)
 
 		for _, metric := range job.Metrics {
@@ -41,7 +41,7 @@ func createCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInf
 	return gauge
 }
 
-func createInfoMetric(resource *awsResource, jobName *string, exportedTags []string) prometheus.Gauge {
+func createInfoMetric(resource *awsResource, jobName *string, exportedTags []string, exportedAttributes []string) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
 	for _, exportedTag := range exportedTags {
@@ -54,8 +54,14 @@ func createInfoMetric(resource *awsResource, jobName *string, exportedTags []str
 		}
 	}
 
-	promLabels["yace_name"] = *jobName
+	for _, exportedAttribute := range exportedAttributes {
+		escapedKey := "attribute_" + promString(exportedAttribute)
+		promLabels[escapedKey] = *resource.Attributes[exportedAttribute]
+	}
+
 	promLabels["id"] = *resource.Id
+	promLabels["yace_job"] = *jobName
+	promLabels["yace_name"] = *jobName
 
 	name := "yace_" + *resource.Service + "_info"
 
