@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	addr       = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile = flag.String("config.file", "config.yml", "Path to configuration file.")
-	//supportedServices = []string{"rds", "ec2", "elb", "es"}
+	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec"}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
@@ -24,6 +24,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	registry := prometheus.NewRegistry()
 
 	exportedTags := createPrometheusExportedTags(c.Jobs)
+	exportedAttributes := createPrometheusExportedAttributes(c.Jobs)
 
 	var wg sync.WaitGroup
 	wg.Add(len(c.Jobs))
@@ -31,7 +32,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	for i, _ := range c.Jobs {
 		job := c.Jobs[i]
 		go func() {
-			metrics(registry, job, exportedTags[job.Discovery.Type])
+			metrics(registry, job, exportedTags[job.Discovery.Type], exportedAttributes[job.Discovery.Type])
 			wg.Done()
 		}()
 	}
