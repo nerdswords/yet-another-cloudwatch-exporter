@@ -6,16 +6,16 @@ which will probably break things in next versions.
 
 Written without much golang experience. Would love to get feedback :))
 
-## Features
-* Auto Discovery of aws resources through tags
-* Abstract aws things a little bit to make it easier for users
-* Allow easy adding of tag labels to instances
-
-## Why did you not add instance labels to every metric?
-This was my first thought but acutally i learned it is an anti-pattern.
-This metrics are build for easy grouping. Here is an example:
-
-```Example of grouping query```
+# Features
+* Stop worrying about your aws IDs - Discovery of ec2, elb, rds, elasticsearch, elasticache
+resources automatically through tags.
+* Filtering through Regex of tags.
+* Easy adding tag labels to metrics
+* One prometheus metric with resource information (e.g. elasticsearch version or elb tags)
+which is easy groupable with cloudwatch metrics.
+```
+yace_ec2_CPUUtilization{yace_job="us",yace_name="i-0b363d2627188ac63"} -1
+yace_ec2_info{id="i-0c363d3627288a363",tag_Environment="production",tag_Name="Some Instance",yace_job="us",yace_name="us"} 0
 ```
 
 ## Configuration File
@@ -27,6 +27,7 @@ Currently supported aws services:
 * rds => Relation Database Service
 * elb => Elastic Load Balancers
 
+Example of config File
 ```
 jobs:
   - name: elasticsearch
@@ -35,7 +36,7 @@ jobs:
       type: "es"
       searchTags:
         - Key: type
-          Value: ^(iwfm|k8s)$
+          Value: ^(easteregg|k8s)$
       exportedTags:
         - type
       exportedAttributes:
@@ -73,3 +74,6 @@ Elasticsearch:
 Elasticache:
 * Engine
 * EngineVersion
+
+## Contribution
+Create Issue, get assigned, write pull request, get it merged, shipped :)
