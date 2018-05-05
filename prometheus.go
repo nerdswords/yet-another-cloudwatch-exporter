@@ -59,9 +59,8 @@ func createInfoMetric(resource *awsResource, jobName *string, exportedTags []str
 		promLabels[escapedKey] = *resource.Attributes[exportedAttribute]
 	}
 
-	promLabels["id"] = *resource.Id
 	promLabels["yace_job"] = *jobName
-	promLabels["yace_name"] = *jobName
+	promLabels["yace_name"] = *resource.Id
 
 	name := "yace_" + *resource.Service + "_info"
 
