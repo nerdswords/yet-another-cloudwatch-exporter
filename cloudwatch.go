@@ -103,19 +103,14 @@ func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) 
 
 func (c *cloudwatchInfo) buildInfo(identifier string, namespace string, dimensionKey string, prefix string) *cloudwatchInfo {
 	c.Namespace = aws.String(namespace)
-	helper := removePrefix(identifier, prefix)
-	c.Dimensions = append(c.Dimensions, buildDimension(&dimensionKey, helper))
+	helper := strings.TrimPrefix(identifier, prefix)
+	c.Dimensions = append(c.Dimensions, buildDimension(&dimensionKey, &helper))
 	return c
 }
 
 func (c *cloudwatchInfo) addDimension(key string, value string) *cloudwatchInfo {
 	c.Dimensions = append(c.Dimensions, buildDimension(&key, &value))
 	return c
-}
-
-func removePrefix(value string, prefix string) *string {
-	strings.TrimPrefix(value, prefix)
-	return &value
 }
 
 func buildDimension(key *string, value *string) *cloudwatch.Dimension {
