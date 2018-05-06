@@ -14,21 +14,21 @@ func metrics(registry *prometheus.Registry, job job, exportedTags []string, expo
 		registry.MustRegister(metric)
 
 		for _, metric := range job.Metrics {
-			metric := createCloudwatchMetric(resource, resources.CloudwatchInfo, &job.Name, metric)
+			metric := createCloudwatchMetric(resource, &job.Name, metric)
 			registry.MustRegister(metric)
 		}
 	}
 }
 
-func createCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, jobName *string, metric metric) prometheus.Gauge {
-	value := getCloudwatchMetric(resource, cloudwatchInfo, metric)
+func createCloudwatchMetric(resource *awsResource, jobName *string, metric metric) prometheus.Gauge {
+	value := getCloudwatchMetric(resource, metric)
 
 	labels := prometheus.Labels{
-		"yace_name": *resource.Id,
-		"yace_job":  *jobName,
+		"name": *resource.Id,
+		"job":  *jobName,
 	}
 
-	name := "yace_" + *resource.Service + "_" + promString(metric.Name)
+	name := *resource.Service + "_" + promString(metric.Name)
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,
@@ -59,10 +59,10 @@ func createInfoMetric(resource *awsResource, jobName *string, exportedTags []str
 		promLabels[escapedKey] = *resource.Attributes[exportedAttribute]
 	}
 
-	promLabels["yace_job"] = *jobName
-	promLabels["yace_name"] = *resource.Id
+	promLabels["job"] = *jobName
+	promLabels["name"] = *resource.Id
 
-	name := "yace_" + *resource.Service + "_info"
+	name := *resource.Service + "_info"
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,

@@ -1,13 +1,20 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"sort"
+	"strings"
 	"time"
 )
+
+type cloudwatchInfo struct {
+	Dimensions []*cloudwatch.Dimension
+	Namespace  *string
+}
 
 func createCloudwatchSession() *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -17,23 +24,10 @@ func createCloudwatchSession() *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess)
 }
 
-func getCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, metric metric) float64 {
+func getCloudwatchMetric(resource *awsResource, metric metric) float64 {
 	c := createCloudwatchSession()
 
-	dimensions := []*cloudwatch.Dimension{
-		&cloudwatch.Dimension{
-			Name:  cloudwatchInfo.DimensionName,
-			Value: resource.Id,
-		},
-	}
-
-	for _, dim := range cloudwatchInfo.CustomDimension {
-		dimension := &cloudwatch.Dimension{
-			Name:  &dim.Key,
-			Value: &dim.Value,
-		}
-		dimensions = append(dimensions, dimension)
-	}
+	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
 
 	period := int64(metric.Length)
 	length := metric.Length
@@ -42,7 +36,7 @@ func getCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, 
 	statistics := []*string{&metric.Statistics}
 
 	resp, err := c.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
-		Dimensions: dimensions,
+		Dimensions: cloudwatchInfo.Dimensions,
 		Namespace:  cloudwatchInfo.Namespace,
 		StartTime:  &startTime,
 		EndTime:    &endTime,
@@ -62,7 +56,6 @@ func getCloudwatchMetric(resource *awsResource, cloudwatchInfo *cloudwatchInfo, 
 	} else {
 		return float64(*points[0])
 	}
-
 }
 
 func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
@@ -81,4 +74,54 @@ func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (point
 	sort.Slice(points, func(i, j int) bool { return *points[i] > *points[j] })
 
 	return points
+}
+
+func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) {
+	arnParsed, err := arn.Parse(*resourceArn)
+
+	if err != nil {
+		panic(err)
+	}
+
+	switch *service {
+	case "ec2":
+		c.buildInfo(arnParsed.Resource, "AWS/EC2", "InstanceId", "instance/")
+	case "elb":
+		c.buildInfo(arnParsed.Resource, "AWS/ELB", "LoadBalancerName", "loadbalancer/")
+	case "rds":
+		c.buildInfo(arnParsed.Resource, "AWS/RDS", "DBInstanceIdentifier", "db:")
+	case "ec":
+		c.buildInfo(arnParsed.Resource, "AWS/ElastiCache", "CacheClusterId", "cluster:")
+	case "es":
+		c.buildInfo(arnParsed.Resource, "AWS/ES", "DomainName", "domain/")
+		c.addDimension("ClientId", arnParsed.AccountID)
+	default:
+		fmt.Println("Not implemented cloudwatch metric:" + *service)
+	}
+	return c
+}
+
+func (c *cloudwatchInfo) buildInfo(identifier string, namespace string, dimensionKey string, prefix string) *cloudwatchInfo {
+	c.Namespace = aws.String(namespace)
+	helper := removePrefix(identifier, prefix)
+	c.Dimensions = append(c.Dimensions, buildDimension(&dimensionKey, helper))
+	return c
+}
+
+func (c *cloudwatchInfo) addDimension(key string, value string) *cloudwatchInfo {
+	c.Dimensions = append(c.Dimensions, buildDimension(&key, &value))
+	return c
+}
+
+func removePrefix(value string, prefix string) *string {
+	strings.TrimPrefix(value, prefix)
+	return &value
+}
+
+func buildDimension(key *string, value *string) *cloudwatch.Dimension {
+	dimension := cloudwatch.Dimension{
+		Name:  key,
+		Value: value,
+	}
+	return &dimension
 }
