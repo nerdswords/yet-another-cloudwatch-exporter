@@ -39,10 +39,6 @@ jobs:
           Value: ^(easteregg|k8s)$
       exportedTags:
         - type
-      exportedAttributes:
-        - DedicatedMasterCount
-        - ElasticsearchVersion
-        - InstanceCount
     metrics:
       - name: FreeStorageSpace
         statistics: 'Sum'
@@ -61,19 +57,6 @@ jobs:
         period: 600
         length: 60
 ```
-
-### Exported Attributes
-Currently these possibilites are implemented:
-
-Elasticsearch:
-* DedicatedMasterCount
-* ElasticsearchVersion
-* InstanceCount
-* VolumeSize
-
-Elasticache:
-* Engine
-* EngineVersion
 
 ## Contribution
 Create Issue, get assigned, write pull request, get it merged, shipped :)
