@@ -48,38 +48,6 @@ func createPrometheusExportedTags(jobs []job) map[string][]string {
 	return output
 }
 
-func createPrometheusExportedAttributes(jobs []job) map[string][]string {
-	exportedAttributes := map[string]map[string]bool{
-		"ec":  map[string]bool{},
-		"ec2": map[string]bool{},
-		"elb": map[string]bool{},
-		"es":  map[string]bool{},
-		"rds": map[string]bool{},
-	}
-
-	output := map[string][]string{
-		"ec":  []string{},
-		"ec2": []string{},
-		"elb": []string{},
-		"es":  []string{},
-		"rds": []string{},
-	}
-
-	for _, job := range jobs {
-		for _, attribute := range job.Discovery.ExportedAttributes {
-			exportedAttributes[job.Discovery.Type][attribute] = true
-		}
-	}
-
-	for k, v := range exportedAttributes {
-		for kk, _ := range v {
-			output[k] = append(output[k], kk)
-		}
-	}
-
-	return output
-}
-
 func (r awsResource) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 

@@ -24,7 +24,6 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	registry := prometheus.NewRegistry()
 
 	exportedTags := createPrometheusExportedTags(c.Jobs)
-	exportedAttributes := createPrometheusExportedAttributes(c.Jobs)
 
 	var wg sync.WaitGroup
 	wg.Add(len(c.Jobs))
@@ -32,7 +31,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	for i, _ := range c.Jobs {
 		job := c.Jobs[i]
 		go func() {
-			metrics(registry, job, exportedTags[job.Discovery.Type], exportedAttributes[job.Discovery.Type])
+			metrics(registry, job, exportedTags[job.Discovery.Type])
 			wg.Done()
 		}()
 	}
