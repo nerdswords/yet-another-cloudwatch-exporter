@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
+	_ "fmt"
 	"regexp"
 )
 
 type awsResources struct {
-	Resources      []*awsResource
-	CloudwatchInfo *cloudwatchInfo
+	Resources []*awsResource
 }
 
 type awsResource struct {
@@ -15,12 +14,6 @@ type awsResource struct {
 	Tags       []*tag
 	Service    *string
 	Attributes map[string]*string
-}
-
-type cloudwatchInfo struct {
-	DimensionName   *string
-	Namespace       *string
-	CustomDimension []*tag
 }
 
 func createPrometheusExportedTags(jobs []job) map[string][]string {
@@ -85,25 +78,6 @@ func createPrometheusExportedAttributes(jobs []job) map[string][]string {
 	}
 
 	return output
-}
-
-func describeResources(discovery discovery) (resources awsResources) {
-	switch discovery.Type {
-	case "ec2":
-		resources = describeInstances(discovery)
-	case "elb":
-		resources = describeLoadBalancers(discovery)
-	case "rds":
-		resources = describeDatabases(discovery)
-	case "es":
-		resources = describeElasticsearchDomains(discovery)
-	case "ec":
-		resources = describeElasticacheDomains(discovery)
-	default:
-		fmt.Println("Not implemented resources:" + discovery.Type)
-	}
-
-	return resources
 }
 
 func (r awsResource) filterThroughTags(filterTags []tag) bool {
