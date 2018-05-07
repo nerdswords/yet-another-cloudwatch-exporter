@@ -6,7 +6,17 @@ import (
 	"strings"
 )
 
-func preparePrometheusData(registry *prometheus.Registry) {
+func createPrometheusMetrics(registry *prometheus.Registry, resources []*awsResource, cloudwatch []*cloudwatchData, exportedTags map[string][]string) {
+
+	for _, r := range resources {
+		metric := createInfoMetric(r, exportedTags[*r.Service])
+		registry.MustRegister(metric)
+	}
+
+	for _, c := range cloudwatch {
+		metric := createCloudwatchMetric(*c)
+		registry.MustRegister(metric)
+	}
 }
 
 func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
@@ -27,12 +37,22 @@ func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 	return gauge
 }
 
-func createInfoMetric(resource *awsResource) prometheus.Gauge {
+func createInfoMetric(resource *awsResource, exportedTags []string) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
 	promLabels["name"] = *resource.Id
 
 	name := "aws_" + *resource.Service + "_info"
+
+	for _, exportedTag := range exportedTags {
+		escapedKey := "tag_" + promString(exportedTag)
+		promLabels[escapedKey] = ""
+		for _, resourceTag := range resource.Tags {
+			if exportedTag == resourceTag.Key {
+				promLabels[escapedKey] = resourceTag.Value
+			}
+		}
+	}
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,

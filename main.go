@@ -43,7 +43,9 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 				for _, metric := range job.Metrics {
 					data := getCloudwatchData(resource, metric)
 					mux.Lock()
-					cloudwatchHelper = append(cloudwatchHelper, data)
+					if data.Value != nil {
+						cloudwatchHelper = append(cloudwatchHelper, data)
+					}
 					mux.Unlock()
 				}
 			}
@@ -52,15 +54,9 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	wg.Wait()
 
-	for _, c := range awsHelper {
-		metric := createInfoMetric(c)
-		registry.MustRegister(metric)
-	}
+	exportedTags := findExportedTags(awsHelper)
 
-	for _, c := range cloudwatchHelper {
-		metric := createCloudwatchMetric(*c)
-		registry.MustRegister(metric)
-	}
+	createPrometheusMetrics(registry, awsHelper, cloudwatchHelper, exportedTags)
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
