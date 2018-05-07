@@ -24,7 +24,7 @@ func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 		"name": *data.Id,
 	}
 
-	name := "aws_" + *data.Service + "_" + promString(*data.Metric) + "_" + promString(*data.Statistics)
+	name := "aws_" + strings.ToLower(*data.Service) + "_" + strings.ToLower(promString(*data.Metric)) + "_" + strings.ToLower(promString(*data.Statistics))
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,
