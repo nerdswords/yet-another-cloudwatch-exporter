@@ -11,7 +11,6 @@ type conf struct {
 }
 
 type job struct {
-	Name      string    `yaml:"name"`
 	Discovery discovery `yaml:"discovery"`
 	Metrics   []metric  `yaml:"metrics"`
 }
