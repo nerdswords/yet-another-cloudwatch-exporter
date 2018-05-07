@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"regexp"
 )
 
@@ -44,4 +44,19 @@ func (r awsResource) filterThroughTags(filterTags []tag) bool {
 	} else {
 		return false
 	}
+}
+
+func findExportedTags(resources []*awsResource) map[string][]string {
+	m := make(map[string][]string)
+
+	for _, r := range resources {
+		for _, t := range r.Tags {
+			value := t.Key
+			if !stringInSlice(value, m[*r.Service]) {
+				m[*r.Service] = append(m[*r.Service], value)
+			}
+		}
+	}
+
+	return m
 }
