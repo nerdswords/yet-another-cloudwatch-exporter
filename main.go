@@ -23,19 +23,44 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := prometheus.NewRegistry()
 
-	exportedTags := createPrometheusExportedTags(c.Jobs)
+	mux := &sync.Mutex{}
+
+	cloudwatchHelper := make([]*cloudwatchData, 0)
+	awsHelper := make([]*awsResource, 0)
 
 	var wg sync.WaitGroup
-	wg.Add(len(c.Jobs))
-
 	for i, _ := range c.Jobs {
+		wg.Add(1)
 		job := c.Jobs[i]
 		go func() {
-			metrics(registry, job, exportedTags[job.Discovery.Type])
+			resources := describeResources(job.Discovery)
+
+			for _, resource := range resources.Resources {
+				mux.Lock()
+				awsHelper = append(awsHelper, resource)
+				mux.Unlock()
+
+				for _, metric := range job.Metrics {
+					data := getCloudwatchData(resource, metric)
+					mux.Lock()
+					cloudwatchHelper = append(cloudwatchHelper, data)
+					mux.Unlock()
+				}
+			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+
+	for _, c := range awsHelper {
+		metric := createInfoMetric(c)
+		registry.MustRegister(metric)
+	}
+
+	for _, c := range cloudwatchHelper {
+		metric := createCloudwatchMetric(*c)
+		registry.MustRegister(metric)
+	}
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
