@@ -6,29 +6,15 @@ import (
 	"strings"
 )
 
-func metrics(registry *prometheus.Registry, job job, exportedTags []string) {
-	resources := describeResources(job.Discovery)
-
-	for _, resource := range resources.Resources {
-		metric := createInfoMetric(resource, &job.Name, exportedTags)
-		registry.MustRegister(metric)
-
-		for _, metric := range job.Metrics {
-			metric := createCloudwatchMetric(resource, &job.Name, metric)
-			registry.MustRegister(metric)
-		}
-	}
+func preparePrometheusData(registry *prometheus.Registry) {
 }
 
-func createCloudwatchMetric(resource *awsResource, jobName *string, metric metric) prometheus.Gauge {
-	value := getCloudwatchMetric(resource, metric)
-
+func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 	labels := prometheus.Labels{
-		"name": *resource.Id,
-		"job":  *jobName,
+		"name": *data.Id,
 	}
 
-	name := *resource.Service + "_" + promString(metric.Name)
+	name := "aws_" + *data.Service + "_" + promString(*data.Metric) + "_" + promString(*data.Statistics)
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,
@@ -36,28 +22,17 @@ func createCloudwatchMetric(resource *awsResource, jobName *string, metric metri
 		ConstLabels: labels,
 	})
 
-	gauge.Set(value)
+	gauge.Set(*data.Value)
 
 	return gauge
 }
 
-func createInfoMetric(resource *awsResource, jobName *string, exportedTags []string) prometheus.Gauge {
+func createInfoMetric(resource *awsResource) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
-	for _, exportedTag := range exportedTags {
-		escapedKey := "tag_" + promString(exportedTag)
-		promLabels[escapedKey] = ""
-		for _, resourceTag := range resource.Tags {
-			if exportedTag == resourceTag.Key {
-				promLabels[escapedKey] = resourceTag.Value
-			}
-		}
-	}
-
-	promLabels["job"] = *jobName
 	promLabels["name"] = *resource.Id
 
-	name := *resource.Service + "_info"
+	name := "aws_" + *resource.Service + "_info"
 
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        name,
