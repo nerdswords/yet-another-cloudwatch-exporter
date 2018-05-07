@@ -7,7 +7,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
-	_ "strings"
 	"sync"
 )
 
@@ -15,12 +14,10 @@ var (
 	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
 	supportedServices = []string{"rds", "ec2", "elb", "es", "ec"}
+	c                 = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	var c conf
-	c.getConf(configFile)
-
 	registry := prometheus.NewRegistry()
 
 	mux := &sync.Mutex{}
@@ -66,6 +63,8 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	c.getConf(configFile)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>

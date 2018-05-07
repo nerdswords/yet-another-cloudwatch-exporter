@@ -44,5 +44,11 @@ func (c *conf) getConf(file *string) *conf {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 
+	for _, job := range c.Jobs {
+		if !stringInSlice(job.Discovery.Type, supportedServices) {
+			log.Fatalf("Service is not in known list!: %v", job.Discovery.Type)
+		}
+	}
+
 	return c
 }
