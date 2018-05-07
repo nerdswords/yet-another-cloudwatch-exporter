@@ -24,7 +24,7 @@ func createCloudwatchSession() *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess)
 }
 
-func getCloudwatchMetric(resource *awsResource, metric metric) float64 {
+func getCloudwatchData(resource *awsResource, metric metric) *cloudwatchData {
 	c := createCloudwatchSession()
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
@@ -41,7 +41,7 @@ func getCloudwatchMetric(resource *awsResource, metric metric) float64 {
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,
-		MetricName: aws.String(metric.Name),
+		MetricName: &metric.Name,
 		Statistics: statistics,
 	})
 
@@ -51,11 +51,20 @@ func getCloudwatchMetric(resource *awsResource, metric metric) float64 {
 
 	points := sortDatapoints(resp.Datapoints, metric.Statistics)
 
-	if len(points) == 0 {
-		return float64(-1)
-	} else {
-		return float64(*points[0])
+	var output cloudwatchData
+
+	output.Tags = resource.Tags
+	output.Service = resource.Service
+	output.Metric = &metric.Name
+	output.Id = resource.Id
+	output.Statistics = &metric.Statistics
+
+	if len(points) != 0 {
+		point := float64(*points[0])
+		output.Value = &point
 	}
+
+	return &output
 }
 
 func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
