@@ -25,21 +25,24 @@ if (env.BRANCH_NAME == 'master') {
       sh 'docker-compose run app'
   }
 
-  stage 'Dockerhub release'
-  node {
-    version = readFile('version.txt').trim()
-    app.push(version)
-  }
+  timeout(time: 1, unit: 'HOURS') {
+    input 'Release to github?'
+    stage 'Dockerhub release'
+    node {
+      version = readFile('version.txt').trim()
+      app.push(version)
+    }
 
-  stage 'Git release'
-   node {
-    version = readFile('version.txt').trim()
+    stage 'Git release'
+     node {
+      version = readFile('version.txt').trim()
 
-    sh 'echo "Creating a new release in github"'
-    sh "github-release-wrapper release --user ivx --repo ${name} --tag ${version} --name ${version}"
+      sh 'echo "Creating a new release in github"'
+      sh "github-release-wrapper release --user ivx --repo ${name} --tag ${version} --name ${version}"
 
-    sh 'echo "Uploading the artifacts into github"'
-    sh "github-release-wrapper upload --user ivx --repo ${name} --tag ${version} --name yace-linux-amd64-${version} --file yace-linux-amd64"
-    sh "github-release-wrapper upload --user ivx --repo ${name} --tag ${version} --name yace-darwin-amd64-${version} --file yace-darwin-amd64"
+      sh 'echo "Uploading the artifacts into github"'
+      sh "github-release-wrapper upload --user ivx --repo ${name} --tag ${version} --name yace-linux-amd64-${version} --file yace-linux-amd64"
+      sh "github-release-wrapper upload --user ivx --repo ${name} --tag ${version} --name yace-darwin-amd64-${version} --file yace-darwin-amd64"
+    }
   }
 }
