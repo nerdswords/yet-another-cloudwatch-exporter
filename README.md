@@ -7,12 +7,10 @@ which will probably break things in next versions. Unstable till 1.0.0!
 Written without much golang experience. Would love to get feedback :))
 
 # Features
-* Stop worrying about your aws IDs - Discovery of ec2, elb, rds, elasticsearch, elasticache
-resources automatically through tags
-* Filtering tags through regex
+* Stop worrying about your aws IDs - Auto discovery of resources through tags
+* Filter monitored resources through regex
 * Automatic adding of tag labels to metrics
-* One prometheus metric with resource information (e.g. elasticsearch version or elb tags) which is easy groupable via prometheus
-* Allows to set nil values of cloudwatch to 0. This allows building elb availability metrics more easily.
+* Allows to export 0 even if cloudwatch returns nil
 
 ## Configuration File
 
