@@ -1,9 +1,13 @@
 FROM golang:1.10
 
-WORKDIR /go/src/app
-ADD ./ ./
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+WORKDIR /go/src/app
+ADD ./Gopkg.lock ./
+ADD ./Gopkg.toml ./
 RUN dep ensure
+
+Add ./ ./
 ENV GOOS darwin
 ENV GOARCH amd64
 RUN go build -v -o yace-$GOOS-$GOARCH
