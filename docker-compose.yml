@@ -1,0 +1,10 @@
+version: '2'
+services:
+  app:
+    build: .
+    working_dir: /go/src/app
+    volumes:
+      - ./:/copy
+    entrypoint: ["/bin/ash", "-c"]
+    command:
+      - cp /root/yace-linux-amd64 /copy; cp /root/yace-darwin-amd64 /copy
