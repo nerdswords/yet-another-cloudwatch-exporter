@@ -5,7 +5,7 @@ RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 WORKDIR /go/src/app
 ADD ./Gopkg.lock ./
 ADD ./Gopkg.toml ./
-RUN dep ensure
+RUN dep ensure -vendor-only
 
 Add ./ ./
 ENV GOOS darwin
