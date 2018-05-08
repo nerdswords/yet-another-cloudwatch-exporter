@@ -16,16 +16,16 @@ type cloudwatchInfo struct {
 	Namespace  *string
 }
 
-func createCloudwatchSession() *cloudwatch.CloudWatch {
+func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
-	return cloudwatch.New(sess)
+	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
 func getCloudwatchData(resource *awsResource, metric metric) *cloudwatchData {
-	c := createCloudwatchSession()
+	c := createCloudwatchSession(resource.Region)
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
 
