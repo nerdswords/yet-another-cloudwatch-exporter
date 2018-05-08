@@ -83,14 +83,18 @@ aws_ec2_info{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid",tag_Name="
 ## Example queries
 
 ```
-CPUUtilization + Name tag of the instance id - No more instance id needed for monitoring
+# CPUUtilization + Name tag of the instance id - No more instance id needed for monitoring
 aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 
-Free Storage in Megabytes + tag Type of the elasticsearch cluster
+# Free Storage in Megabytes + tag Type of the elasticsearch cluster
 (aws_es_freestoragespace_sum + on (name) group_left(tag_Type) aws_es_info) / 1024
 
-Add kubernetes / kops tags on 4xx elb metrics
+# Add kubernetes / kops tags on 4xx elb metrics
 (aws_elb_httpcode_backend_4xx_sum + on (name) group_left(tag_KubernetesCluster,tag_kubernetes_io_service_name) aws_elb_info)
+
+# Availability Metric for ELBs (Sucessfull requests / Total Requests) + k8s service name
+# Use nilToZero on all metrics else it won't work
+((aws_elb_requestcount_sum - on (name) group_left() aws_elb_httpcode_backend_4xx_sum) - on (name) group_left() aws_elb_httpcode_backend_5xx_sum) + on (name) group_left(tag_kubernetes_io_service_name) aws_elb_info
 ```
 
 ## Contribution
