@@ -36,7 +36,7 @@ if (env.BRANCH_NAME == 'master') {
     version = readFile('version.txt').trim()
 
     sh 'echo "Creating a new release in github"'
-    sh "#github-release-wrapper release --user ivx --repo ${name} --tag ${version} --name ${version}"
+    sh "github-release-wrapper release --user ivx --repo ${name} --tag ${version} --name ${version}"
 
     sh 'echo "Uploading the artifacts into github"'
     sh "github-release-wrapper upload --user ivx --repo ${name} --tag ${version} --name yace-linux-amd64-${version} --file yace-linux-amd64"
