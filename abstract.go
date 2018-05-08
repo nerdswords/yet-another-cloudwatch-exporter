@@ -13,6 +13,7 @@ type awsResource struct {
 	Id      *string
 	Tags    []*tag
 	Service *string
+	Region  *string
 }
 
 type cloudwatchData struct {

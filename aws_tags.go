@@ -54,6 +54,7 @@ func describeResources(discovery discovery) (resources awsResources) {
 			resource.Id = resourceTagMapping.ResourceARN
 
 			resource.Service = &discovery.Type
+			resource.Region = &discovery.Region
 
 			for _, t := range resourceTagMapping.Tags {
 				tag := tag{Key: *t.Key, Value: *t.Value}
