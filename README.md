@@ -93,6 +93,9 @@ aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 # Availability Metric for ELBs (Sucessfull requests / Total Requests) + k8s service name
 # Use nilToZero on all metrics else it won't work
 ((aws_elb_requestcount_sum - on (name) group_left() aws_elb_httpcode_backend_4xx_sum) - on (name) group_left() aws_elb_httpcode_backend_5xx_sum) + on (name) group_left(tag_kubernetes_io_service_name) aws_elb_info
+
+# Forecast your elasticsearch disk size in 7 days and report metrics with tags type and version
+predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group_left(tag_type, tag_version) aws_es_info
 ```
 
 ## Contribution
