@@ -95,5 +95,5 @@ Add kubernetes / kops tags on 4xx elb metrics
 Create Issue, get assigned, write pull request, get it merged, shipped :)
 
 # Thank you
-* (Justin Santa Barbara)[https://github.com/justinsb] - Told me about aws tags api which simplified a lot - Thanks!
-* (Brian Brazil)[https://github.com/brian-brazil] - Gave me a lot of feedback regarding user experience and code - Thanks!
+* [Justin Santa Barbara](https://github.com/justinsb) - Told me about aws tags api which simplified a lot - Thanks!
+* [Brian Brazil](https://github.com/brian-brazil) - Gave a lot of feedback regarding ux and prometheus lib - Thanks!
