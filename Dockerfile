@@ -3,11 +3,11 @@ FROM golang:1.10
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 WORKDIR /go/src/app
-ADD ./Gopkg.lock ./
-ADD ./Gopkg.toml ./
+ADD ./code/Gopkg.lock ./
+ADD ./code/Gopkg.toml ./
 RUN dep ensure -vendor-only
 
-Add ./ ./
+Add ./code/ ./
 ENV GOOS darwin
 ENV GOARCH amd64
 RUN go build -v -o yace-$GOOS-$GOARCH
