@@ -63,6 +63,8 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	flag.Parse()
+
 	c.getConf(configFile)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +77,6 @@ func main() {
 		</html>`))
 	})
 
-	flag.Parse()
 	http.HandleFunc("/metrics", metricsHandler)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
