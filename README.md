@@ -12,6 +12,7 @@ resources automatically through tags
 * Filtering tags through regex
 * Automatic adding of tag labels to metrics
 * One prometheus metric with resource information (e.g. elasticsearch version or elb tags) which is easy groupable via prometheus
+* Allows to set nil values of cloudwatch to 0. This allows building elb availability metrics more easily.
 
 ## Configuration File
 
@@ -63,6 +64,7 @@ jobs:
         statistics: 'Sum'
         period: 60
         length: 900
+        nilToZero: true
 ```
 
 ## Example metrics
