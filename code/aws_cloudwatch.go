@@ -62,6 +62,11 @@ func getCloudwatchData(resource *awsResource, metric metric) *cloudwatchData {
 	if len(points) != 0 {
 		point := float64(*points[0])
 		output.Value = &point
+	} else {
+		if metric.NilToZero {
+			point := float64(0)
+			output.Value = &point
+		}
 	}
 
 	return &output

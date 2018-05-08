@@ -27,6 +27,7 @@ type metric struct {
 	Statistics string `yaml:"statistics"`
 	Period     int    `yaml:"period"`
 	Length     int    `yaml:"length"`
+	NilToZero  bool   `yaml:"nilToZero"`
 }
 
 type tag struct {
