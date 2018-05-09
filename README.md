@@ -19,7 +19,7 @@ Currently in quick iteration mode which will probably break things in next versi
   - elb - elastic load balancers
 
 ## Image
-* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
+* [![Docker Image](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter/status?token=58e4108f-9e6f-44a4-a5fd-0beed543a271 "Docker Repository on Quay")](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter) `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
 * Binaries on release page
 
 ## Config
