@@ -3,11 +3,9 @@ package main
 import (
 	"flag"
 	_ "fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
-	"sync"
 )
 
 var (
@@ -18,42 +16,9 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	registry := prometheus.NewRegistry()
+	awsInfoData, cloudwatchData := scrapeData(c)
 
-	mux := &sync.Mutex{}
-
-	cloudwatchHelper := make([]*cloudwatchData, 0)
-	awsHelper := make([]*awsResource, 0)
-
-	var wg sync.WaitGroup
-	for i, _ := range c.Jobs {
-		wg.Add(1)
-		job := c.Jobs[i]
-		go func() {
-			resources := describeResources(job.Discovery)
-
-			for _, resource := range resources.Resources {
-				mux.Lock()
-				awsHelper = append(awsHelper, resource)
-				mux.Unlock()
-
-				for _, metric := range job.Metrics {
-					data := getCloudwatchData(resource, metric)
-					mux.Lock()
-					if data.Value != nil {
-						cloudwatchHelper = append(cloudwatchHelper, data)
-					}
-					mux.Unlock()
-				}
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
-	exportedTags := findExportedTags(awsHelper)
-
-	createPrometheusMetrics(registry, awsHelper, cloudwatchHelper, exportedTags)
+	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
