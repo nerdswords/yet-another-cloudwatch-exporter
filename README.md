@@ -108,7 +108,14 @@ predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group
 ((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
 ```
 
-## Kubernetes Installation:
+## IAM
+These are the currently needed IAM permissions.
+```
+"tag:getResources",
+"cloudwatch:GetMetricStatistics",
+```
+
+## Kubernetes Installation
 ```
 ---
 apiVersion: v1
