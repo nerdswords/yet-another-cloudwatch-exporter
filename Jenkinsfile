@@ -19,7 +19,7 @@ if (env.BRANCH_NAME == 'master') {
     sh 'echo "todo"'
   }
 
-  stage 'Build'
+  stage 'Build Binaries'
     node {
       sh 'docker-compose build --pull'
       sh 'docker-compose run app'
