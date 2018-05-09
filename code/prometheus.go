@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func createPrometheusMetrics(resources []*awsResource, cloudwatch []*cloudwatchData) *prometheus.Registry {
+func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchData) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 
 	exportedTags := findExportedTags(resources)
@@ -51,7 +51,7 @@ func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 	return gauge
 }
 
-func createInfoMetric(resource *awsResource, exportedTags []string) prometheus.Gauge {
+func createInfoMetric(resource *awsInfoData, exportedTags []string) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
 	promLabels["name"] = *resource.Id

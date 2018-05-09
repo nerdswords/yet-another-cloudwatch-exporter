@@ -24,7 +24,7 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func getCloudwatchData(resource *awsResource, metric metric) *cloudwatchData {
+func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 	c := createCloudwatchSession(resource.Region)
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
