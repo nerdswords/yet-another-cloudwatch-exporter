@@ -105,6 +105,61 @@ predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group
 ((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
 ```
 
+## Usage
+* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
+* Kubernetes Installation:
+```
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yace
+data:
+  config.yml: |-
+    ---
+    jobs:
+      - discovery:
+          region: eu-west-1
+          type: "ec2"
+          searchTags:
+            - Key: Name
+              Value: jenkins
+        metrics:
+          - name: CPUUtilization
+            statistics: 'Maximum'
+            period: 30
+            length: 30
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: yace
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: yace
+    spec:
+      containers:
+      - name: yace
+        image: quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x # release version as tag
+        imagePullPolicy: IfNotPresent
+        command:
+          - "yace"
+          - "--config.file=/tmp/config.yml"
+        ports:
+        - name: app
+          containerPort: 5000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: yace
+```
+
 ## Contribution
 Create Issue, get assigned, write pull request, get it merged, shipped :)
 
