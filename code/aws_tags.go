@@ -17,7 +17,7 @@ func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeResources(discovery discovery) (resources awsResources) {
+func describeResources(discovery discovery) (resources []*awsResource) {
 	c := createTagSession(discovery.Region)
 
 	var filter []*string
@@ -62,7 +62,7 @@ func describeResources(discovery discovery) (resources awsResources) {
 			}
 
 			if resource.filterThroughTags(discovery.SearchTags) {
-				resources.Resources = append(resources.Resources, &resource)
+				resources = append(resources, &resource)
 			}
 		}
 		return pageNum < 100

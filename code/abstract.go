@@ -3,11 +3,8 @@ package main
 import (
 	_ "fmt"
 	"regexp"
+	"sync"
 )
-
-type awsResources struct {
-	Resources []*awsResource
-}
 
 type awsResource struct {
 	Id      *string
