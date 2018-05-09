@@ -26,8 +26,8 @@ if (env.BRANCH_NAME == 'master') {
   }
 
   timeout(time: 1, unit: 'HOURS') {
-    input 'Release to github?'
     stage 'Dockerhub release'
+    input 'Release to github?'
     node {
       version = readFile('version.txt').trim()
       app.push(version)
