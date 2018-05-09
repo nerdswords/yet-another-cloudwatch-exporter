@@ -12,11 +12,11 @@ Currently in quick iteration mode which will probably break things in next versi
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if cloudwatch returns nil
 * Supported services:
-** es - elasticsearch
-** ec - elasticache
-** ec2 - elastic compute cloud
-** rds - relational database service
-** elb - elastic load balancers
+  - es - elasticsearch
+  - ec - elasticache
+  - ec2 - elastic compute cloud
+  - rds - relational database service
+  - elb - elastic load balancers
 
 ## Image
 * Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
