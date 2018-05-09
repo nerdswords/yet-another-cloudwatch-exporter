@@ -75,8 +75,10 @@ aws_elb_httpcode_backend_4xx_sum{name="arn:aws:elasticloadbalancing:eu-west-1:47
 # Info helper with tags
 aws_elb_info{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9",tag_KubernetesCluster="production-19",tag_Name="",tag_kubernetes_io_cluster_production_19="owned",tag_kubernetes_io_service_name="nginx-ingress/private-ext"} 0
 aws_ec2_info{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid",tag_Name="jenkins"} 0
-```
 
+# Track cloudwatch requests to calculate costs
+yace_cloudwatch_requests_total 168
+```
 
 ## Example queries
 
@@ -96,6 +98,11 @@ aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 
 # Forecast your elasticsearch disk size in 7 days and report metrics with tags type and version
 predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group_left(tag_type, tag_version) aws_es_info
+
+# Forecast your cloudwatch costs for next 32 days based on last 10 minutes
+# 1.000.000 Requests free
+# 0.01 Dollar for 1.000 GetMetricStatistics Api Requests (https://aws.amazon.com/cloudwatch/pricing/)
+((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
 ```
 
 ## Contribution
