@@ -7,7 +7,7 @@ Currently in quick iteration mode which will probably break things in next versi
 **Unstable till 1.0.0 - Use with care!**
 
 ## Features
-* Stop worrying about your aws IDs - Auto discovery of resources through tags
+* Stop worrying about your AWS IDs - Auto discovery of resources through tags
 * Filter monitored resources through regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if cloudwatch returns nil
@@ -161,9 +161,9 @@ spec:
           name: yace
 ```
 
-## Contribution
-Create Issue, get assigned, write pull request, get it merged, shipped :)
+## Contribute
+[Development Setup / Guide](/CONTRIBUTE.md)
 
 # Thank you
-* [Justin Santa Barbara](https://github.com/justinsb) - Told me about aws tags api which simplified a lot - Thanks!
+* [Justin Santa Barbara](https://github.com/justinsb) - Told me about AWS tags api which simplified a lot - Thanks!
 * [Brian Brazil](https://github.com/brian-brazil) - Gave a lot of feedback regarding ux and prometheus lib - Thanks!
