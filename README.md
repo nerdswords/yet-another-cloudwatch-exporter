@@ -1,12 +1,10 @@
 # YACE - yet another cloudwatch exporter
 
-## [EXPERIMENTAL STATE]
+## Experimental State
 
 Currently in quick iteration mode which will probably break things in next versions.
 
-**Unstable till 1.0.0!**
-
-Written without much golang experience. Use with care! Would love to get feedback :))
+**Unstable till 1.0.0 - Use with care!**
 
 ## Image
 * Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
