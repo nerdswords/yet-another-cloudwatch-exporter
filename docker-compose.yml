@@ -1,7 +1,9 @@
 version: '2'
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: /Dockerfile-build-binaries
     working_dir: /go/src/app
     volumes:
       - ./:/copy

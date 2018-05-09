@@ -1,4 +1,4 @@
-FROM golang:1.10 as builder
+FROM golang:1.10
 
 RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 && chmod +x /usr/local/bin/dep
 
@@ -7,14 +7,10 @@ ADD ./src/Gopkg.lock ./src/Gopkg.toml ./
 RUN dep ensure -vendor-only
 
 Add ./src/ ./
+ENV GOOS darwin
+ENV GOARCH amd64
+RUN go build -v -o yace-$GOOS-$GOARCH
 ENV GOOS linux
 ENV GOARCH amd64
 ENV CGO_ENABLED=0
-RUN go build -v
-
-FROM alpine:latest
-
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /go/src/yace/yace /usr/local/bin/yace
-CMD ["./yace"]
+RUN go build -v -o yace-$GOOS-$GOARCH
