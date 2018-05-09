@@ -23,6 +23,36 @@ type cloudwatchData struct {
 	Tags       []*tag
 }
 
+func scrapeData(conf conf) ([]*awsResource, []*cloudwatchData) {
+	mux := &sync.Mutex{}
+
+	cloudwatchData := make([]*cloudwatchData, 0)
+	awsInfoData := make([]*awsResource, 0)
+
+	var wg sync.WaitGroup
+	for i, _ := range conf.Jobs {
+		wg.Add(1)
+		job := conf.Jobs[i]
+		go func() {
+			resources := describeResources(job.Discovery)
+
+			for _, resource := range resources {
+				mux.Lock()
+				awsInfoData = append(awsInfoData, resource)
+				mux.Unlock()
+
+				for _, metric := range job.Metrics {
+					data := getCloudwatchData(resource, metric)
+					cloudwatchData = append(cloudwatchData, data)
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return awsInfoData, cloudwatchData
+}
+
 func (r awsResource) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 
