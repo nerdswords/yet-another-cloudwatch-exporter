@@ -1,6 +1,6 @@
 # YACE - yet another cloudwatch exporter
 
-##[EXPERIMENTAL STATE]
+## [EXPERIMENTAL STATE]
 
 Currently in quick iteration mode which will probably break things in next versions.
 
