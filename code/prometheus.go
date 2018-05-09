@@ -23,9 +23,14 @@ func createPrometheusMetrics(resources []*awsResource, cloudwatch []*cloudwatchD
 	}
 
 	for _, c := range cloudwatch {
-		metric := createCloudwatchMetric(*c)
-		registry.MustRegister(metric)
+		pushCounter.Inc()
+		if c.Value != nil {
+			metric := createCloudwatchMetric(*c)
+			registry.MustRegister(metric)
+		}
 	}
+
+	return registry
 }
 
 func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
