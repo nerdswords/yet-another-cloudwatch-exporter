@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type awsResource struct {
+type awsInfoData struct {
 	Id      *string
 	Tags    []*tag
 	Service *string
@@ -23,11 +23,11 @@ type cloudwatchData struct {
 	Tags       []*tag
 }
 
-func scrapeData(conf conf) ([]*awsResource, []*cloudwatchData) {
+func scrapeData(conf conf) ([]*awsInfoData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
 	cloudwatchData := make([]*cloudwatchData, 0)
-	awsInfoData := make([]*awsResource, 0)
+	awsInfoData := make([]*awsInfoData, 0)
 
 	var wg sync.WaitGroup
 	for i, _ := range conf.Jobs {
@@ -53,7 +53,7 @@ func scrapeData(conf conf) ([]*awsResource, []*cloudwatchData) {
 	return awsInfoData, cloudwatchData
 }
 
-func (r awsResource) filterThroughTags(filterTags []tag) bool {
+func (r awsInfoData) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -74,7 +74,7 @@ func (r awsResource) filterThroughTags(filterTags []tag) bool {
 	}
 }
 
-func findExportedTags(resources []*awsResource) map[string][]string {
+func findExportedTags(resources []*awsInfoData) map[string][]string {
 	m := make(map[string][]string)
 
 	for _, r := range resources {
