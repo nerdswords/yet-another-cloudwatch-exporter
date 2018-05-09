@@ -1,10 +1,16 @@
 # YACE - yet another cloudwatch exporter
 
-*[EXPERIMENTAL STATE]*  - Not sure if this project makes sense
-and/or helps prometheus/aws community. Currently in quick iteration mode
-which will probably break things in next versions. Unstable till 1.0.0!
+*[EXPERIMENTAL STATE]*
 
-Written without much golang experience. Would love to get feedback :))
+Currently in quick iteration mode which will probably break things in next versions.
+
+**Unstable till 1.0.0!**
+
+Written without much golang experience. Use with care! Would love to get feedback :))
+
+## Image
+* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
+* Binaries on release page
 
 # Features
 * Stop worrying about your aws IDs - Auto discovery of resources through tags
@@ -105,9 +111,7 @@ predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group
 ((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
 ```
 
-## Usage
-* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
-* Kubernetes Installation:
+## Kubernetes Installation:
 ```
 ---
 apiVersion: v1
