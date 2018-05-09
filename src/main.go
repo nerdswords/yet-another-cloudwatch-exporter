@@ -31,7 +31,11 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 
+	log.Println("Parse config..")
 	c.getConf(configFile)
+	log.Println("Config was parsed succesfully")
+
+	log.Println("Startup completed")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
