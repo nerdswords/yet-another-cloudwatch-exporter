@@ -6,24 +6,23 @@ Currently in quick iteration mode which will probably break things in next versi
 
 **Unstable till 1.0.0 - Use with care!**
 
-## Image
-* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
-* Binaries on release page
-
-# Features
+## Features
 * Stop worrying about your aws IDs - Auto discovery of resources through tags
 * Filter monitored resources through regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if cloudwatch returns nil
+* Supported services:
+** es - elasticsearch
+** ec - elasticache
+** ec2 - elastic compute cloud
+** rds - relational database service
+** elb - elastic load balancers
 
-## Configuration File
+## Image
+* Docker Image `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
+* Binaries on release page
 
-Currently supported aws services:
-* es => Elasticsearch
-* ec => Elasticache
-* ec2 => Elastic compute cloud
-* rds => Relation Database Service
-* elb => Elastic Load Balancers
+## Config
 
 Example of config File
 ```
