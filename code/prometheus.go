@@ -4,6 +4,7 @@ import (
 	_ "fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"strings"
+	"sync/atomic"
 )
 
 func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchData) *prometheus.Registry {
@@ -15,6 +16,8 @@ func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchD
 		Name: "yace_cloudwatch_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	pushCounter.Set(float64(atomic.LoadUint64(&CloudwatchApiRequests)))
+
 	registry.MustRegister(pushCounter)
 
 	for _, r := range resources {
@@ -23,7 +26,6 @@ func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchD
 	}
 
 	for _, c := range cloudwatch {
-		pushCounter.Inc()
 		if c.Value != nil {
 			metric := createCloudwatchMetric(*c)
 			registry.MustRegister(metric)
