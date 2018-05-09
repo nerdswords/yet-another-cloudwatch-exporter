@@ -6,7 +6,16 @@ import (
 	"strings"
 )
 
-func createPrometheusMetrics(registry *prometheus.Registry, resources []*awsResource, cloudwatch []*cloudwatchData, exportedTags map[string][]string) {
+func createPrometheusMetrics(resources []*awsResource, cloudwatch []*cloudwatchData) *prometheus.Registry {
+	registry := prometheus.NewRegistry()
+
+	exportedTags := findExportedTags(resources)
+
+	pushCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Help is not implemented yet.",
+	})
+	registry.MustRegister(pushCounter)
 
 	for _, r := range resources {
 		metric := createInfoMetric(r, exportedTags[*r.Service])
