@@ -33,7 +33,7 @@ func main() {
 
 	log.Println("Parse config..")
 	c.getConf(configFile)
-	log.Println("Config was parsed succesfully")
+	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")
 
