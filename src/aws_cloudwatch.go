@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
+	_ "fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"log"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -113,7 +114,7 @@ func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) 
 		c.buildInfo(arnParsed.Resource, "AWS/ES", "DomainName", "domain/")
 		c.addDimension("ClientId", arnParsed.AccountID)
 	default:
-		fmt.Println("Not implemented cloudwatch metric:" + *service)
+		log.Fatal("Not implemented cloudwatch metric:" + *service)
 	}
 	return c
 }

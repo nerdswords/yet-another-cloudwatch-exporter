@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"log"
 )
 
 func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
@@ -39,7 +39,7 @@ func describeResources(discovery discovery) (resources []*awsInfoData) {
 		hotfix := aws.String("elasticache:cluster")
 		filter = append(filter, hotfix)
 	default:
-		fmt.Println("Not implemented resources:" + discovery.Type)
+		log.Fatal("Not implemented resources:" + discovery.Type)
 	}
 
 	inputparams := r.GetResourcesInput{ResourceTypeFilters: filter}
