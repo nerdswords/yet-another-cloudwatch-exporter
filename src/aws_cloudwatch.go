@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"log"
 	"sort"
 	"strings"
@@ -18,6 +19,10 @@ type cloudwatchInfo struct {
 	Namespace  *string
 }
 
+type cloudwatchInterface struct {
+	client cloudwatchiface.CloudWatchAPI
+}
+
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -26,8 +31,8 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
-	c := createCloudwatchSession(resource.Region)
+func (iface cloudwatchInterface) getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
+	c := iface.client
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
 
