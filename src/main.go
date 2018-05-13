@@ -17,7 +17,7 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	awsInfoData, cloudwatchData := cloudwatch.scrapeData(config)
+	awsInfoData, cloudwatchData := scrapeData(config)
 
 	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
 
@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	log.Println("Parse config..")
-	c.getConf(configFile)
+	config.getConf(configFile)
 	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")
