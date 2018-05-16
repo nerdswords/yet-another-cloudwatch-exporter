@@ -12,12 +12,12 @@ var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
 	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec"}
-	c                     = conf{}
+	config                = conf{}
 	CloudwatchApiRequests = uint64(0)
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	awsInfoData, cloudwatchData := scrapeData(c)
+	awsInfoData, cloudwatchData := scrapeData(config)
 
 	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
 
@@ -32,7 +32,9 @@ func main() {
 	flag.Parse()
 
 	log.Println("Parse config..")
-	c.getConf(configFile)
+	config.getConf(configFile)
+	config.setDefaults()
+	config.verifyService()
 	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")

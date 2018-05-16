@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"log"
-	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -18,6 +18,10 @@ type cloudwatchInfo struct {
 	Namespace  *string
 }
 
+type cloudwatchInterface struct {
+	client cloudwatchiface.CloudWatchAPI
+}
+
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -26,8 +30,15 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
-	c := createCloudwatchSession(resource.Region)
+func (iface cloudwatchInterface) getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
+	c := iface.client
+
+	var output cloudwatchData
+	output.Tags = resource.Tags
+	output.Service = resource.Service
+	output.Metric = &metric.Name
+	output.Id = resource.Id
+	output.Statistics = &metric.Statistics
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
 
@@ -53,19 +64,9 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 		panic(err)
 	}
 
-	points := sortDatapoints(resp.Datapoints, metric.Statistics)
-
-	var output cloudwatchData
-
-	output.Tags = resource.Tags
-	output.Service = resource.Service
-	output.Metric = &metric.Name
-	output.Id = resource.Id
-	output.Statistics = &metric.Statistics
-
-	if len(points) != 0 {
-		point := float64(*points[0])
-		output.Value = &point
+	if len(resp.Datapoints) != 0 {
+		datapoints := datapointsToFloat(resp.Datapoints, metric.Statistics)
+		output.Value = chooseDatapoint(datapoints, metric.Exported)
 	} else {
 		if metric.NilToZero {
 			point := float64(0)
@@ -76,20 +77,39 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 	return &output
 }
 
-func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
+func chooseDatapoint(points []*float64, exported string) (value *float64) {
+	switch exported {
+	/* TODO implement
+	case "Sum":
+	case "Average":
+	case "Maximum":
+	case "Minimum":
+	sort.Slice(points, func(i, j int) bool { return *points[i] > *points[j] })
+	*/
+	case "First":
+		value = points[0]
+	case "Last":
+		value = points[len(points)-1]
+	default:
+		log.Fatal("Not implemented method to choose cloudwatch datapoint:" + exported)
+	}
+
+	return value
+}
+
+func datapointsToFloat(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
 	for _, point := range datapoints {
-		if statistic == "Sum" {
+		switch statistic {
+		case "Sum":
 			points = append(points, point.Sum)
-		} else if statistic == "Average" {
+		case "Average":
 			points = append(points, point.Average)
-		} else if statistic == "Maximum" {
+		case "Maximum":
 			points = append(points, point.Maximum)
-		} else if statistic == "Minimum" {
+		case "Minimum":
 			points = append(points, point.Minimum)
 		}
 	}
-
-	sort.Slice(points, func(i, j int) bool { return *points[i] > *points[j] })
 
 	return points
 }

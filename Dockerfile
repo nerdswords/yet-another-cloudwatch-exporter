@@ -7,6 +7,9 @@ ADD ./src/Gopkg.lock ./src/Gopkg.toml ./
 RUN dep ensure -vendor-only
 
 Add ./src/ ./
+
+RUN go test
+
 ENV GOOS linux
 ENV GOARCH amd64
 ENV CGO_ENABLED=0
