@@ -25,6 +25,7 @@ type discovery struct {
 type metric struct {
 	Name       string `yaml:"name"`
 	Statistics string `yaml:"statistics"`
+	Exported   string `yaml:"exported"`
 	Period     int    `yaml:"period"`
 	Length     int    `yaml:"length"`
 	NilToZero  bool   `yaml:"nilToZero"`
@@ -45,11 +46,25 @@ func (c *conf) getConf(file *string) *conf {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 
+	return c
+}
+
+func (c *conf) setDefaults() *conf {
+	for jobId, job := range c.Jobs {
+		for metricId, metric := range job.Metrics {
+			if metric.Exported == "" {
+				c.Jobs[jobId].Metrics[metricId].Exported = "Last"
+			}
+		}
+	}
+	return c
+}
+
+func (c *conf) verifyService() *conf {
 	for _, job := range c.Jobs {
 		if !stringInSlice(job.Discovery.Type, supportedServices) {
 			log.Fatalf("Service is not in known list!: %v", job.Discovery.Type)
 		}
 	}
-
 	return c
 }
