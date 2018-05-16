@@ -83,13 +83,14 @@ func (iface cloudwatchInterface) getCloudwatchData(resource *awsInfoData, metric
 
 func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
 	for _, point := range datapoints {
-		if statistic == "Sum" {
+		switch statistic {
+		case "Sum":
 			points = append(points, point.Sum)
-		} else if statistic == "Average" {
+		case "Average":
 			points = append(points, point.Average)
-		} else if statistic == "Maximum" {
+		case "Maximum":
 			points = append(points, point.Maximum)
-		} else if statistic == "Minimum" {
+		case "Minimum":
 			points = append(points, point.Minimum)
 		}
 	}
