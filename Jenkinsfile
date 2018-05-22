@@ -6,7 +6,7 @@ node {
   checkout scm
 }
 
-stage 'Build Image'
+stage 'Build image & test'
 node {
   gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
   app = docker.build "quay.io/invisionag/${name}","--pull ."
@@ -14,11 +14,6 @@ node {
 }
 
 if (env.BRANCH_NAME == 'master') {
-  stage 'Test'
-  node {
-    sh 'echo "todo"'
-  }
-
   stage 'Build Binaries'
     node {
       sh 'docker-compose build --pull'
