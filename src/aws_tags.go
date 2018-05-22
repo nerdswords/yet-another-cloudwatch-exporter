@@ -5,8 +5,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"log"
 )
+
+// https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
+type tagsInterface struct {
+	client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+}
 
 func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
 	sess, err := session.NewSession()
@@ -17,8 +23,8 @@ func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeResources(discovery discovery) (resources []*awsInfoData) {
-	c := createTagSession(discovery.Region)
+func (iface tagsInterface) describeResources(discovery discovery) (resources []*awsInfoData) {
+	c := iface.client
 
 	var filter []*string
 
