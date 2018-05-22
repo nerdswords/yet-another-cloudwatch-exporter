@@ -30,7 +30,7 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func (iface cloudwatchInterface) getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
+func (iface cloudwatchInterface) get(resource *awsInfoData, metric metric) *cloudwatchData {
 	c := iface.client
 
 	var output cloudwatchData

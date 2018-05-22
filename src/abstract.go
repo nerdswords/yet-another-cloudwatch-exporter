@@ -39,7 +39,7 @@ func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
 				client: createTagSession(job.Discovery.Region),
 			}
 
-			resources := clientTag.describeResources(job.Discovery)
+			resources := clientTag.get(job.Discovery)
 
 			for _, resource := range resources {
 				mux.Lock()
@@ -50,7 +50,7 @@ func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
 				}
 
 				for _, metric := range job.Metrics {
-					data := clientCloudwatch.getCloudwatchData(resource, metric)
+					data := clientCloudwatch.get(resource, metric)
 					mux.Lock()
 					cloudwatchData = append(cloudwatchData, data)
 					mux.Unlock()
