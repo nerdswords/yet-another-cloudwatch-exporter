@@ -46,7 +46,9 @@ func scrapeData(conf conf) ([]*awsInfoData, []*cloudwatchData) {
 
 				for _, metric := range job.Metrics {
 					data := client.getCloudwatchData(resource, metric)
+					mux.Lock()
 					cloudwatchData = append(cloudwatchData, data)
+					mux.Unlock()
 				}
 			}
 			wg.Done()
