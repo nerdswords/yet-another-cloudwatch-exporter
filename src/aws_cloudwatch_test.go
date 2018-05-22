@@ -49,7 +49,7 @@ func TestGetCloudwatchData(t *testing.T) {
 		Exported:   "First",
 	}
 
-	output := *mock.getCloudwatchData(&resource, metric)
+	output := *mock.get(&resource, metric)
 
 	verify := *output.Value
 	expected := float64(6)

@@ -23,7 +23,7 @@ func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func (iface tagsInterface) describeResources(discovery discovery) (resources []*awsInfoData) {
+func (iface tagsInterface) get(discovery discovery) (resources []*awsInfoData) {
 	c := iface.client
 
 	var filter []*string
