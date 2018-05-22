@@ -17,7 +17,7 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	awsInfoData, cloudwatchData := scrapeData(config)
+	awsInfoData, cloudwatchData := scrapeAwsData(config.Jobs)
 
 	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
 
