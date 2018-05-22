@@ -17,35 +17,40 @@ type cloudwatchData struct {
 	Id         *string
 	Metric     *string
 	Service    *string
+	Region     *string
 	Statistics *string
 	Value      *float64
 	Empty      bool
 	Tags       []*tag
 }
 
-func scrapeData(conf conf) ([]*awsInfoData, []*cloudwatchData) {
+func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
 	cloudwatchData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*awsInfoData, 0)
 
 	var wg sync.WaitGroup
-	for i, _ := range conf.Jobs {
+	for i, _ := range jobs {
 		wg.Add(1)
-		job := conf.Jobs[i]
+		job := jobs[i]
 		go func() {
-			resources := describeResources(job.Discovery)
+			clientTag := tagsInterface{
+				client: createTagSession(job.Discovery.Region),
+			}
+
+			resources := clientTag.describeResources(job.Discovery)
 
 			for _, resource := range resources {
 				mux.Lock()
 				awsInfoData = append(awsInfoData, resource)
 				mux.Unlock()
-				client := cloudwatchInterface{
+				clientCloudwatch := cloudwatchInterface{
 					client: createCloudwatchSession(resource.Region),
 				}
 
 				for _, metric := range job.Metrics {
-					data := client.getCloudwatchData(resource, metric)
+					data := clientCloudwatch.getCloudwatchData(resource, metric)
 					mux.Lock()
 					cloudwatchData = append(cloudwatchData, data)
 					mux.Unlock()
