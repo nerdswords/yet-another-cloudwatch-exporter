@@ -19,7 +19,6 @@ type cloudwatchData struct {
 	Service    *string
 	Statistics *string
 	Value      *float64
-	Empty      bool
 }
 
 func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
