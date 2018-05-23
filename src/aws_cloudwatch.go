@@ -41,7 +41,7 @@ func (iface cloudwatchInterface) get(resource *awsInfoData, metric metric) *clou
 
 	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
 
-	period := int64(metric.Length)
+	period := int64(metric.Period)
 	length := metric.Length
 	endTime := time.Now()
 	startTime := time.Now().Add(-time.Duration(length) * time.Minute)
