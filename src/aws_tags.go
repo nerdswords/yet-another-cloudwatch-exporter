@@ -14,13 +14,13 @@ type tagsInterface struct {
 	client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 }
 
-func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
+func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
 	sess, err := session.NewSession()
 	if err != nil {
 		panic(err)
 	}
 
-	return r.New(sess, &aws.Config{Region: aws.String(region)})
+	return r.New(sess, &aws.Config{Region: region})
 }
 
 func (iface tagsInterface) get(discovery discovery) (resources []*awsInfoData) {
