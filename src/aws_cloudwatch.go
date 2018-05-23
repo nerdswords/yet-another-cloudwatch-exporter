@@ -134,6 +134,9 @@ func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) 
 	case "es":
 		c.buildInfo(arnParsed.Resource, "AWS/ES", "DomainName", "domain/")
 		c.addDimension("ClientId", arnParsed.AccountID)
+	case "s3":
+		c.buildInfo(arnParsed.Resource, "AWS/S3", "BucketName", "")
+		c.addDimension("StorageType", "AllStorageTypes")
 	default:
 		log.Fatal("Not implemented cloudwatch metric:" + *service)
 	}

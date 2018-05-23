@@ -11,7 +11,7 @@ import (
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec"}
+	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
 	config                = conf{}
 	CloudwatchApiRequests = uint64(0)
 )

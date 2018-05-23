@@ -44,6 +44,9 @@ func (iface tagsInterface) get(discovery discovery) (resources []*awsInfoData) {
 	case "ec":
 		hotfix := aws.String("elasticache:cluster")
 		filter = append(filter, hotfix)
+	case "s3":
+		hotfix := aws.String("s3")
+		filter = append(filter, hotfix)
 	default:
 		log.Fatal("Not implemented resources:" + discovery.Type)
 	}
