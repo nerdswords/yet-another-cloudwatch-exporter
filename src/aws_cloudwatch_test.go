@@ -40,7 +40,7 @@ func TestGetCloudwatchData(t *testing.T) {
 	}
 
 	resource := awsInfoData{
-		Id:      aws.String("arn:aws:elasticache:eu-west-1:xxxxxxxxxxxx:instance/i-01ccc2af5414c54a7"),
+		Id:      aws.String("arn:aws:someservice:eu-west-1:xxxxxxxxxxxx:some-type/just-som-valid-arn"),
 		Service: aws.String("ec2"),
 	}
 
