@@ -35,31 +35,38 @@ func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
 		wg.Add(1)
 		job := jobs[i]
 		go func() {
+			clientCloudwatch := cloudwatchInterface{
+				client: createCloudwatchSession(&job.Discovery.Region),
+			}
+
 			clientTag := tagsInterface{
-				client: createTagSession(job.Discovery.Region),
+				client: createTagSession(&job.Discovery.Region),
 			}
 
-			resources := clientTag.get(job.Discovery)
+			resources, metrics := scrapeJob(job, clientTag, clientCloudwatch)
 
-			for _, resource := range resources {
-				mux.Lock()
-				awsInfoData = append(awsInfoData, resource)
-				mux.Unlock()
-				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(resource.Region),
-				}
-
-				for _, metric := range job.Metrics {
-					data := clientCloudwatch.get(resource, metric)
-					mux.Lock()
-					cloudwatchData = append(cloudwatchData, data)
-					mux.Unlock()
-				}
-			}
+			mux.Lock()
+			awsInfoData = append(awsInfoData, resources...)
+			cloudwatchData = append(cloudwatchData, metrics...)
+			mux.Unlock()
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+	return awsInfoData, cloudwatchData
+}
+
+func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*awsInfoData, cloudwatchData []*cloudwatchData) {
+	resources := clientTag.get(job.Discovery)
+
+	for _, resource := range resources {
+		awsInfoData = append(awsInfoData, resource)
+
+		for _, metric := range job.Metrics {
+			data := clientCloudwatch.get(resource, metric)
+			cloudwatchData = append(cloudwatchData, data)
+		}
+	}
 	return awsInfoData, cloudwatchData
 }
 
