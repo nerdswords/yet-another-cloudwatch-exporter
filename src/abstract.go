@@ -17,11 +17,9 @@ type cloudwatchData struct {
 	Id         *string
 	Metric     *string
 	Service    *string
-	Region     *string
 	Statistics *string
 	Value      *float64
 	Empty      bool
-	Tags       []*tag
 }
 
 func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
