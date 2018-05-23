@@ -34,9 +34,7 @@ func (iface cloudwatchInterface) get(resource *awsInfoData, metric metric) *clou
 	c := iface.client
 
 	var output cloudwatchData
-	output.Tags = resource.Tags
 	output.Service = resource.Service
-	output.Region = resource.Region
 	output.Metric = &metric.Name
 	output.Id = resource.Id
 	output.Statistics = &metric.Statistics
