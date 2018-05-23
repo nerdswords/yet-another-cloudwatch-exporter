@@ -16,46 +16,63 @@ func (m mockedReceiveMsgs) GetMetricStatistics(in *cloudwatch.GetMetricStatistic
 	return &m.Resp, nil
 }
 
-func buildDatapoints(points []int) []*cloudwatch.Datapoint {
+func buildDatapoints(points []int, datapointsType string) []*cloudwatch.Datapoint {
 	datapoints := []*cloudwatch.Datapoint{}
 
 	for _, p := range points {
 		number := float64(p)
-		point := cloudwatch.Datapoint{
-			Minimum: &number,
+		point := cloudwatch.Datapoint{}
+		switch datapointsType {
+		case "Minimum":
+			point.Minimum = &number
 		}
+
 		datapoints = append(datapoints, &point)
 	}
 
 	return datapoints
 }
 
+var cloudwatchtests = []struct {
+	datapoints     []int
+	datapointsType string
+	arn            string
+	service        string
+	statistics     string
+	exported       string
+	result         cloudwatchData
+}{
+	{[]int{}, "Maximum", "arn:aws:someservice:eu-west-1:xxxxxxxxxxxx:some-type/just-som-valid-arn", "ec2", "Minimum", "First", cloudwatchData{Id: aws.String("arn:aws:someservice:eu-west-1:xxxxxxxxxxxx:some-type/just-som-valid-arn")}},
+}
+
 func TestGetCloudwatchData(t *testing.T) {
-	resp := cloudwatch.GetMetricStatisticsOutput{
-		Datapoints: buildDatapoints([]int{6, 4, 1, 5}),
-	}
+	for _, tt := range cloudwatchtests {
 
-	mock := cloudwatchInterface{
-		client: mockedReceiveMsgs{Resp: resp},
-	}
+		resp := cloudwatch.GetMetricStatisticsOutput{
+			Datapoints: buildDatapoints(tt.datapoints, tt.datapointsType),
+		}
 
-	resource := awsInfoData{
-		Id:      aws.String("arn:aws:someservice:eu-west-1:xxxxxxxxxxxx:some-type/just-som-valid-arn"),
-		Service: aws.String("ec2"),
-	}
+		mock := cloudwatchInterface{
+			client: mockedReceiveMsgs{Resp: resp},
+		}
 
-	metric := metric{
-		Statistics: "Minimum",
-		Exported:   "First",
-	}
+		resource := awsInfoData{
+			Id:      aws.String(tt.arn),
+			Service: aws.String(tt.service),
+		}
 
-	output := *mock.get(&resource, metric)
+		metric := metric{
+			Statistics: tt.statistics,
+			Exported:   tt.exported,
+		}
 
-	verify := *output.Value
-	expected := float64(6)
+		output := *mock.get(&resource, metric)
 
-	if verify != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			verify, expected)
+		verify := output
+
+		if *verify.Id != *tt.result.Id {
+			t.Errorf("handler returned unexpected body: got %v want %v",
+				*verify.Id, *tt.result.Id)
+		}
 	}
 }
