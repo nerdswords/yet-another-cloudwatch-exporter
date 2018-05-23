@@ -17,6 +17,7 @@ Currently in quick iteration mode which will probably break things in next versi
   - ec2 - elastic compute cloud
   - rds - relational database service
   - elb - elastic load balancers
+  - s3 - object storage
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
