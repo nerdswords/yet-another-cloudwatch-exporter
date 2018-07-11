@@ -5,7 +5,6 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,8 +46,7 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 		MetricName: &metric.Name,
 		Statistics: statistics,
 	})
-
-	atomic.AddUint64(&cloudwatchAPIRequests, 1)
+	pushCounter.Inc()
 
 	if err != nil {
 		panic(err)
