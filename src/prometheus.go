@@ -3,21 +3,21 @@ package main
 import (
 	_ "fmt"
 	"strings"
-	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	pushCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchData) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 
 	exportedTags := findExportedTags(resources)
-
-	pushCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_requests_total",
-		Help: "Help is not implemented yet.",
-	})
-	pushCounter.Set(float64(atomic.LoadUint64(&cloudwatchAPIRequests)))
 
 	registry.MustRegister(pushCounter)
 

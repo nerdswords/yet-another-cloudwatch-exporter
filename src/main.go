@@ -10,11 +10,10 @@ import (
 )
 
 var (
-	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec"}
-	c                     = conf{}
-	cloudwatchAPIRequests = uint64(0)
+	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec"}
+	c                 = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
@@ -33,7 +32,9 @@ func main() {
 	flag.Parse()
 
 	log.Println("Parse config..")
-	c.getConf(configFile)
+	if err := c.loadConf(configFile); err != nil {
+		log.Fatal("Couldn't read config", *configFile, ":", err)
+	}
 	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")
