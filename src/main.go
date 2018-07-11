@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	_ "fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -13,7 +14,7 @@ var (
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
 	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec"}
 	c                     = conf{}
-	CloudwatchApiRequests = uint64(0)
+	cloudwatchAPIRequests = uint64(0)
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
@@ -38,7 +39,7 @@ func main() {
 	log.Println("Startup completed")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
 		<body>
 		<h1>Thanks for using our product :)</h1>
