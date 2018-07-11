@@ -2,19 +2,20 @@ package main
 
 import (
 	_ "fmt"
+	"log"
 	"regexp"
 	"sync"
 )
 
 type awsInfoData struct {
-	Id      *string
+	ID      *string
 	Tags    []*tag
 	Service *string
 	Region  *string
 }
 
 type cloudwatchData struct {
-	Id         *string
+	ID         *string
 	Metric     *string
 	Service    *string
 	Statistics *string
@@ -30,11 +31,15 @@ func scrapeData(conf conf) ([]*awsInfoData, []*cloudwatchData) {
 	awsInfoData := make([]*awsInfoData, 0)
 
 	var wg sync.WaitGroup
-	for i, _ := range conf.Jobs {
+	for i := range conf.Jobs {
 		wg.Add(1)
 		job := conf.Jobs[i]
 		go func() {
-			resources := describeResources(job.Discovery)
+			resources, err := describeResources(job.Discovery)
+			if err != nil {
+				log.Println("Couldn't describe resources: ", err.Error())
+				return
+			}
 
 			for _, resource := range resources {
 				mux.Lock()
@@ -61,17 +66,13 @@ func (r awsInfoData) filterThroughTags(filterTags []tag) bool {
 			if resourceTag.Key == filterTag.Key {
 				r, _ := regexp.Compile(filterTag.Value)
 				if r.MatchString(resourceTag.Value) {
-					tagMatches += 1
+					tagMatches++
 				}
 			}
 		}
 	}
 
-	if tagMatches == len(filterTags) {
-		return true
-	} else {
-		return false
-	}
+	return tagMatches == len(filterTags)
 }
 
 func findExportedTags(resources []*awsInfoData) map[string][]string {

@@ -2,15 +2,16 @@ package main
 
 import (
 	_ "fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 type cloudwatchInfo struct {
@@ -29,7 +30,7 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 	c := createCloudwatchSession(resource.Region)
 
-	cloudwatchInfo := getCloudwatchInfo(resource.Service, resource.Id)
+	info := getCloudwatchInfo(resource.Service, resource.ID)
 
 	period := int64(metric.Length)
 	length := metric.Length
@@ -38,8 +39,8 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 	statistics := []*string{&metric.Statistics}
 
 	resp, err := c.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
-		Dimensions: cloudwatchInfo.Dimensions,
-		Namespace:  cloudwatchInfo.Namespace,
+		Dimensions: info.Dimensions,
+		Namespace:  info.Namespace,
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,
@@ -47,7 +48,7 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 		Statistics: statistics,
 	})
 
-	atomic.AddUint64(&CloudwatchApiRequests, 1)
+	atomic.AddUint64(&cloudwatchAPIRequests, 1)
 
 	if err != nil {
 		panic(err)
@@ -60,11 +61,11 @@ func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
 	output.Tags = resource.Tags
 	output.Service = resource.Service
 	output.Metric = &metric.Name
-	output.Id = resource.Id
+	output.ID = resource.ID
 	output.Statistics = &metric.Statistics
 
 	if len(points) != 0 {
-		point := float64(*points[0])
+		point := *points[0]
 		output.Value = &point
 	} else {
 		if metric.NilToZero {
