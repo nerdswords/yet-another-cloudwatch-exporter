@@ -17,9 +17,12 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	awsInfoData, cloudwatchData := scrapeAwsData(config.Jobs)
+	_, cloudwatchData := scrapeAwsData(config.Jobs)
 
-	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
+	promData := migrateCloudwatchToPrometheus(cloudwatchData)
+	//promData = append(promData, migrateTagsToPrometheus(tagsData))
+
+	registry := fillRegistry(promData)
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,

@@ -13,14 +13,6 @@ type awsInfoData struct {
 	Region  *string
 }
 
-type cloudwatchData struct {
-	Id         *string
-	Metric     *string
-	Service    *string
-	Statistics *string
-	Value      *float64
-}
-
 func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
 	mux := &sync.Mutex{}
 
@@ -75,7 +67,7 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 					Statistics: metric.Statistics,
 				}
 
-				data.Value = clientCloudwatch.get(resource.Service, resource.Id, metric)
+				data.Points = clientCloudwatch.get(resource.Service, resource.Id, metric)
 
 				mux.Lock()
 				cloudwatchData = append(cloudwatchData, &data)

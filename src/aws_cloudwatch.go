@@ -22,7 +22,7 @@ type CloudwatchData struct {
 	Metric     *string
 	Service    *string
 	Statistics []string
-	Value      []*cloudwatch.Datapoint
+	Points     []*cloudwatch.Datapoint
 }
 
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
@@ -131,4 +131,53 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 		Value: &value,
 	}
 	return &dimension
+}
+
+func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
+	output := make([]*PrometheusData, 0)
+	for _, c := range cwd {
+
+		for _, statistic := range c.Statistics {
+			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(PromString(*c.Metric)) + "_" + strings.ToLower(PromString(statistic))
+
+			var points []*float64
+
+			for _, point := range c.Points {
+				switch statistic {
+				case "Maximum":
+					if point.Maximum != nil {
+						points = append(points, point.Maximum)
+					}
+				case "Minimum":
+					if point.Minimum != nil {
+						points = append(points, point.Minimum)
+					}
+				case "Sum":
+					if point.Sum != nil {
+						points = append(points, point.Sum)
+					}
+				default:
+					log.Fatal("Not implemented statistics" + statistic)
+				}
+			}
+
+			if len(points) > 0 {
+				promLabels := make(map[string]string)
+				promLabels["name"] = *c.Id
+
+				lastValue := points[len(points)-1]
+
+				p := PrometheusData{
+					name:   &name,
+					labels: promLabels,
+					value:  lastValue,
+				}
+				output = append(output, &p)
+			}
+
+		}
+
+	}
+
+	return output
 }
