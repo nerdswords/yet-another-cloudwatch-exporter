@@ -99,18 +99,18 @@ func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwat
 
 	switch *service {
 	case "ec2":
-		dimensions := buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "elb":
-		dimensions := buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
 	case "rds":
-		dimensions := buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
 	case "ec":
-		dimensions := buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
+		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
 	case "es":
-		dimensions := buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
 	case "s3":
-		dimensions := buildBaseDimension(arnParsed.Resource, "BucketName", "")
+		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 		dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
 	default:
 		log.Fatal("Not implemented cloudwatch metric:" + *service)
