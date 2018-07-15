@@ -9,6 +9,13 @@ import (
 	"log"
 )
 
+type TagsData struct {
+	Id      *string
+	Tags    []*tag
+	Service *string
+	Region  *string
+}
+
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
 	client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
@@ -23,7 +30,7 @@ func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: region})
 }
 
-func (iface tagsInterface) get(discovery discovery) (resources []*awsInfoData) {
+func (iface tagsInterface) get(discovery discovery) (resources []*TagsData) {
 	c := iface.client
 
 	var filter []*string
@@ -58,7 +65,7 @@ func (iface tagsInterface) get(discovery discovery) (resources []*awsInfoData) {
 	c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
-			resource := awsInfoData{}
+			resource := TagsData{}
 
 			resource.Id = resourceTagMapping.ResourceARN
 
