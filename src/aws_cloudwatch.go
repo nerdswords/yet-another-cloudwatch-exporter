@@ -21,7 +21,7 @@ type CloudwatchData struct {
 	Id         *string
 	Metric     *string
 	Service    *string
-	Statistics *string
+	Statistics []string
 	Value      []*cloudwatch.Datapoint
 }
 
