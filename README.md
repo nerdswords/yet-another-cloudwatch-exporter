@@ -36,19 +36,23 @@ jobs:
           Value: ^(easteregg|k8s)$
     metrics:
       - name: FreeStorageSpace
-        statistics: 'Sum'
+        statistics:
+        - 'Sum'
         period: 600
         length: 60
       - name: ClusterStatus.green
-        statistics: 'Minimum'
+        statistics:
+        - 'Minimum'
         period: 600
         length: 60
       - name: ClusterStatus.yellow
-        statistics: 'Maximum'
+        statistics:
+        - 'Maximum'
         period: 600
         length: 60
       - name: ClusterStatus.red
-        statistics: 'Maximum'
+        statistics:
+        - 'Maximum'
         period: 600
         length: 60
   - discovery:
@@ -59,11 +63,13 @@ jobs:
           Value: production-19
     metrics:
       - name: HealthyHostCount
-        statistics: 'Minimum'
+        statistics:
+        - 'Minimum'
         period: 60
         length: 300
       - name: HTTPCode_Backend_4XX
-        statistics: 'Sum'
+        statistics:
+        - 'Sum'
         period: 60
         length: 900
         nilToZero: true
@@ -135,7 +141,8 @@ data:
               Value: jenkins
         metrics:
           - name: CPUUtilization
-            statistics: 'Maximum'
+            statistics:
+            - 'Maximum'
             period: 30
             length: 30
 ---
