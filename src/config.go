@@ -23,12 +23,12 @@ type discovery struct {
 }
 
 type metric struct {
-	Name       string `yaml:"name"`
-	Statistics string `yaml:"statistics"`
-	Exported   string `yaml:"exported"`
-	Period     int    `yaml:"period"`
-	Length     int    `yaml:"length"`
-	NilToZero  bool   `yaml:"nilToZero"`
+	Name       string   `yaml:"name"`
+	Statistics []string `yaml:"statistics"`
+	Exported   string   `yaml:"exported"`
+	Period     int      `yaml:"period"`
+	Length     int      `yaml:"length"`
+	NilToZero  bool     `yaml:"nilToZero"`
 }
 
 type tag struct {
