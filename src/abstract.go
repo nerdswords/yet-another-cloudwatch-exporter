@@ -21,11 +21,11 @@ type cloudwatchData struct {
 	Value      *float64
 }
 
-func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
+func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
 	mux := &sync.Mutex{}
 
-	cloudwatchData := make([]*cloudwatchData, 0)
-	awsInfoData := make([]*awsInfoData, 0)
+	cloudwatchData := make([]*CloudwatchData, 0)
+	awsInfoData := make([]*TagsData, 0)
 
 	var wg sync.WaitGroup
 	for i, _ := range jobs {
@@ -55,7 +55,7 @@ func scrapeAwsData(jobs []job) ([]*awsInfoData, []*cloudwatchData) {
 	return awsInfoData, cloudwatchData
 }
 
-func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*awsInfoData, cloudwatchData []*cloudwatchData) {
+func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*TagsData, cloudwatchData []*CloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	resources := clientTag.get(job.Discovery)
@@ -68,9 +68,17 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 			metric := job.Metrics[j]
 			wg.Add(1)
 			go func() {
-				data := clientCloudwatch.get(resource, metric)
+				data := CloudwatchData{
+					Id:         resource.Id,
+					Metric:     &metric.Name,
+					Service:    resource.Service,
+					Statistics: metric.Statistics,
+				}
+
+				data.Value = clientCloudwatch.get(resource.Service, resource.Id, metric)
+
 				mux.Lock()
-				cloudwatchData = append(cloudwatchData, data)
+				cloudwatchData = append(cloudwatchData, &data)
 				mux.Unlock()
 				wg.Done()
 			}()
@@ -80,7 +88,7 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 	return awsInfoData, cloudwatchData
 }
 
-func (r awsInfoData) filterThroughTags(filterTags []tag) bool {
+func (r TagsData) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -101,7 +109,7 @@ func (r awsInfoData) filterThroughTags(filterTags []tag) bool {
 	}
 }
 
-func findExportedTags(resources []*awsInfoData) map[string][]string {
+func findExportedTags(resources []*TagsData) map[string][]string {
 	m := make(map[string][]string)
 
 	for _, r := range resources {
