@@ -17,10 +17,14 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	_, cloudwatchData := scrapeAwsData(config.Jobs)
+	tagsData, cloudwatchData := scrapeAwsData(config.Jobs)
 
-	promData := migrateCloudwatchToPrometheus(cloudwatchData)
-	//promData = append(promData, migrateTagsToPrometheus(tagsData))
+	var promData []*PrometheusData
+
+	promData = append(promData, migrateCloudwatchToPrometheus(cloudwatchData)...)
+	promData = append(promData, migrateTagsToPrometheus(tagsData)...)
+
+	promData = removePromDouble(promData)
 
 	registry := fillRegistry(promData)
 
