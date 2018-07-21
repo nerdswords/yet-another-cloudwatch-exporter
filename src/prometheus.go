@@ -25,6 +25,18 @@ func createPrometheusMetrics(p PrometheusData) *prometheus.Gauge {
 	return &gauge
 }
 
+func removePromDouble(data []*PrometheusData) []*PrometheusData {
+	keys := make(map[string]bool)
+	list := []*PrometheusData{}
+	for _, entry := range data {
+		if _, value := keys[*entry.name]; !value {
+			keys[*entry.name] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 func fillRegistry(promData []*PrometheusData) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 
