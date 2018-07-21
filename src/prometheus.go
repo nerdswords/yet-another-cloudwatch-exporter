@@ -29,8 +29,9 @@ func removePromDouble(data []*PrometheusData) []*PrometheusData {
 	keys := make(map[string]bool)
 	list := []*PrometheusData{}
 	for _, entry := range data {
-		if _, value := keys[*entry.name]; !value {
-			keys[*entry.name] = true
+		check := *entry.name + entry.labels["name"]
+		if _, value := keys[check]; !value {
+			keys[check] = true
 			list = append(list, entry)
 		}
 	}
