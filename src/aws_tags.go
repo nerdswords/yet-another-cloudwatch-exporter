@@ -91,12 +91,12 @@ func (iface tagsInterface) get(discovery discovery) (resources []*TagsData) {
 func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 	output := make([]*PrometheusData, 0)
 
-	var tagList []string
+	tagList := make(map[string][]string)
 
 	for _, d := range tagData {
 		for _, entry := range d.Tags {
-			if !stringInSlice(entry.Key, tagList) {
-				tagList = append(tagList, entry.Key)
+			if !stringInSlice(entry.Key, tagList[*d.Service]) {
+				tagList[*d.Service] = append(tagList[*d.Service], entry.Key)
 			}
 		}
 	}
@@ -106,7 +106,7 @@ func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 		promLabels := make(map[string]string)
 		promLabels["name"] = *d.Id
 
-		for _, entry := range tagList {
+		for _, entry := range tagList[*d.Service] {
 			labelKey := "tag_" + PromString(entry)
 			promLabels[labelKey] = ""
 
