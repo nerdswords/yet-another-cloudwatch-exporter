@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -106,7 +107,7 @@ func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 		promLabels["name"] = *d.Id
 
 		for _, entry := range tagList {
-			labelKey := PromString(entry)
+			labelKey := "tag_" + PromString(entry)
 			promLabels[labelKey] = ""
 
 			for _, rTag := range d.Tags {
