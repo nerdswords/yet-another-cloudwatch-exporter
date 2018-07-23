@@ -32,6 +32,8 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := fillRegistry(promData)
 
+	registry.Register(cloudwatchApiRequestsMetric())
+
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
 	})
