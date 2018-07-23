@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"strings"
 	_ "sync/atomic"

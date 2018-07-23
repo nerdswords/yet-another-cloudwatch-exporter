@@ -65,6 +65,7 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 					Metric:     &metric.Name,
 					Service:    resource.Service,
 					Statistics: metric.Statistics,
+					NilToZero:  &metric.NilToZero,
 				}
 
 				data.Points = clientCloudwatch.get(resource.Service, resource.Id, metric)
