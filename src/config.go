@@ -47,17 +47,6 @@ func (c *conf) getConf(file *string) *conf {
 	return c
 }
 
-func (c *conf) setDefaults() *conf {
-	for jobId, job := range c.Jobs {
-		for metricId, metric := range job.Metrics {
-			if metric.Exported == "" {
-				c.Jobs[jobId].Metrics[metricId].Exported = "Last"
-			}
-		}
-	}
-	return c
-}
-
 func (c *conf) verifyService() *conf {
 	for _, job := range c.Jobs {
 		if !stringInSlice(job.Discovery.Type, supportedServices) {
