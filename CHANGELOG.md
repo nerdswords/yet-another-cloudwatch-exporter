@@ -1,6 +1,22 @@
 # 0.4.0
+* **BREAKING**: Config file uses list as statistics config option,
+this should reduce api calls for more than one statistics.
 
-* BREAKING: Use list as statistics config option for less api calls
+Before:
+```yaml
+jobs:
+  - discovery:
+    metrics:
+        statistics: 'Maximum'
+```
+After:
+```yaml
+jobs:
+  - discovery:
+    metrics:
+        statistics:
+        - 'Maximum'
+```
 * Start to track changes in CHANGELOG.md
 * Increase speed, not only each jobs threaded but now each metric
 * Add s3 support
