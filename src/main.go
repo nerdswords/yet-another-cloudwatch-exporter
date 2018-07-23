@@ -9,11 +9,12 @@ import (
 	"os"
 )
 
-const AppVersion = "0.4.0"
+const yaceVersion = "0.4.0"
 
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
+	version               = flag.Bool("v", false, "prints current yace version")
 	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
 	config                = conf{}
 	CloudwatchApiRequests = uint64(0)
@@ -39,12 +40,10 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	version := flag.Bool("v", false, "prints current yace version")
-
 	flag.Parse()
 
 	if *version {
-		fmt.Println(AppVersion)
+		fmt.Println(yaceVersion)
 		os.Exit(0)
 	}
 
