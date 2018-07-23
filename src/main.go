@@ -2,11 +2,14 @@ package main
 
 import (
 	"flag"
-	_ "fmt"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+	"os"
 )
+
+const AppVersion = "0.4.0"
 
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
@@ -36,7 +39,14 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	version := flag.Bool("v", false, "prints current yace version")
+
 	flag.Parse()
+
+	if *version {
+		fmt.Println(AppVersion)
+		os.Exit(0)
+	}
 
 	log.Println("Parse config..")
 	config.getConf(configFile)
