@@ -43,7 +43,14 @@ func fillRegistry(promData []*PrometheusData) *prometheus.Registry {
 
 	for _, point := range promData {
 		gauge := createPrometheusMetrics(*point)
-		registry.MustRegister(*gauge)
+
+		if err := registry.Register(*gauge); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+				fmt.Println("Already registered")
+			} else {
+				panic(err)
+			}
+		}
 	}
 
 	return registry
