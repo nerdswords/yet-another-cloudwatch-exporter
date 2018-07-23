@@ -50,7 +50,6 @@ func main() {
 
 	log.Println("Parse config..")
 	config.getConf(configFile)
-	config.setDefaults()
 	config.verifyService()
 	log.Println("Config was parsed successfully")
 
