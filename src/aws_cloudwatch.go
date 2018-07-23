@@ -23,6 +23,7 @@ type CloudwatchData struct {
 	Service    *string
 	Statistics []string
 	Points     []*cloudwatch.Datapoint
+	NilToZero  *bool
 }
 
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
@@ -161,6 +162,14 @@ func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
 				}
 			}
 
+			if len(points) == 0 {
+				if *c.NilToZero {
+					helper := float64(0)
+					slice_helper := []*float64{&helper}
+					points = slice_helper
+				}
+			}
+
 			if len(points) > 0 {
 				promLabels := make(map[string]string)
 				promLabels["name"] = *c.Id
@@ -174,9 +183,7 @@ func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
 				}
 				output = append(output, &p)
 			}
-
 		}
-
 	}
 
 	return output
