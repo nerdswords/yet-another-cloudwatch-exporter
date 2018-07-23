@@ -16,16 +16,14 @@ type job struct {
 }
 
 type discovery struct {
-	Region       string   `yaml:"region"`
-	Type         string   `yaml:"type"`
-	SearchTags   []tag    `yaml:"searchTags"`
-	ExportedTags []string `yaml:"exportedTags"`
+	Region     string `yaml:"region"`
+	Type       string `yaml:"type"`
+	SearchTags []tag  `yaml:"searchTags"`
 }
 
 type metric struct {
 	Name       string   `yaml:"name"`
 	Statistics []string `yaml:"statistics"`
-	Exported   string   `yaml:"exported"`
 	Period     int      `yaml:"period"`
 	Length     int      `yaml:"length"`
 	NilToZero  bool     `yaml:"nilToZero"`
