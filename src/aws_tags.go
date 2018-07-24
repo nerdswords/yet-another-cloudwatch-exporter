@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	"log"
 )
 
 func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
@@ -17,7 +18,7 @@ func createTagSession(region string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: aws.String(region)})
 }
 
-func describeResources(discovery discovery) (resources []*awsInfoData) {
+func describeResources(discovery discovery) (resources []*awsInfoData, err error) {
 	c := createTagSession(discovery.Region)
 
 	var filter []*string
@@ -46,19 +47,18 @@ func describeResources(discovery discovery) (resources []*awsInfoData) {
 
 	ctx := context.Background()
 	pageNum := 0
-	c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
+	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
 			resource := awsInfoData{}
 
-			resource.Id = resourceTagMapping.ResourceARN
+			resource.ID = resourceTagMapping.ResourceARN
 
 			resource.Service = &discovery.Type
 			resource.Region = &discovery.Region
 
 			for _, t := range resourceTagMapping.Tags {
-				tag := tag{Key: *t.Key, Value: *t.Value}
-				resource.Tags = append(resource.Tags, &tag)
+				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
 			}
 
 			if resource.filterThroughTags(discovery.SearchTags) {
@@ -67,6 +67,4 @@ func describeResources(discovery discovery) (resources []*awsInfoData) {
 		}
 		return pageNum < 100
 	})
-
-	return resources
 }
