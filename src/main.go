@@ -2,24 +2,38 @@ package main
 
 import (
 	"flag"
-	_ "fmt"
+	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"os"
 )
+
+const yaceVersion = "0.4.0-alpha"
 
 var (
 	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
-	supportedServices = []string{"rds", "ec2", "elb", "es", "ec"}
-	c                 = conf{}
+	version           = flag.Bool("v", false, "prints current yace version")
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
+	config            = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	awsInfoData, cloudwatchData := scrapeData(c)
+	tagsData, cloudwatchData := scrapeAwsData(config.Jobs)
 
-	registry := createPrometheusMetrics(awsInfoData, cloudwatchData)
+	var promData []*prometheusData
+
+	promData = append(promData, migrateCloudwatchToPrometheus(cloudwatchData)...)
+	promData = append(promData, migrateTagsToPrometheus(tagsData)...)
+
+	promData = removePromDouble(promData)
+
+	registry := fillRegistry(promData)
+
+	if err := registry.Register(cloudwatchAPICounter); err != nil {
+		log.Fatal("Could not publish cloudwatch api metric")
+	}
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
@@ -31,11 +45,15 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 
+	if *version {
+		fmt.Println(yaceVersion)
+		os.Exit(0)
+	}
+
 	log.Println("Parse config..")
-	if err := c.loadConf(configFile); err != nil {
+	if err := config.load(configFile); err != nil {
 		log.Fatal("Couldn't read config", *configFile, ":", err)
 	}
-	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")
 

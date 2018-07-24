@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 )
 
 type conf struct {
@@ -17,18 +16,17 @@ type job struct {
 }
 
 type discovery struct {
-	Region       string   `yaml:"region"`
-	Type         string   `yaml:"type"`
-	SearchTags   []tag    `yaml:"searchTags"`
-	ExportedTags []string `yaml:"exportedTags"`
+	Region     string `yaml:"region"`
+	Type       string `yaml:"type"`
+	SearchTags []tag  `yaml:"searchTags"`
 }
 
 type metric struct {
-	Name       string `yaml:"name"`
-	Statistics string `yaml:"statistics"`
-	Period     int    `yaml:"period"`
-	Length     int    `yaml:"length"`
-	NilToZero  bool   `yaml:"nilToZero"`
+	Name       string   `yaml:"name"`
+	Statistics []string `yaml:"statistics"`
+	Period     int      `yaml:"period"`
+	Length     int      `yaml:"length"`
+	NilToZero  bool     `yaml:"nilToZero"`
 }
 
 type tag struct {
@@ -36,7 +34,7 @@ type tag struct {
 	Value string `yaml:"Value"`
 }
 
-func (c *conf) loadConf(file *string) error {
+func (c *conf) load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
 	if err != nil {
 		return err
