@@ -16,7 +16,7 @@ type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
 }
 
-type CloudwatchData struct {
+type cloudwatchData struct {
 	ID         *string
 	Metric     *string
 	Service    *string
@@ -61,7 +61,7 @@ func (iface cloudwatchInterface) get(service *string, id *string, metric metric)
 	filter := prepareCloudwatchRequest(service, id, metric)
 	resp, err := c.GetMetricStatistics(filter)
 
-	cloudwatchApiCounter.Inc()
+	cloudwatchAPICounter.Inc()
 
 	if err != nil {
 		panic(err)
@@ -134,12 +134,12 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 	return &dimension
 }
 
-func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
-	output := make([]*PrometheusData, 0)
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
+	output := make([]*prometheusData, 0)
 	for _, c := range cwd {
 
 		for _, statistic := range c.Statistics {
-			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(PromString(*c.Metric)) + "_" + strings.ToLower(PromString(statistic))
+			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 
 			var points []*float64
 
@@ -165,8 +165,8 @@ func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
 			if len(points) == 0 {
 				if *c.NilToZero {
 					helper := float64(0)
-					slice_helper := []*float64{&helper}
-					points = slice_helper
+					sliceHelper := []*float64{&helper}
+					points = sliceHelper
 				}
 			}
 
@@ -176,7 +176,7 @@ func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
 
 				lastValue := points[len(points)-1]
 
-				p := PrometheusData{
+				p := prometheusData{
 					name:   &name,
 					labels: promLabels,
 					value:  lastValue,

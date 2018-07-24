@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-type TagsData struct {
+type tagsData struct {
 	ID      *string
 	Tags    []*tag
 	Service *string
@@ -31,7 +31,7 @@ func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: region})
 }
 
-func (iface tagsInterface) get(discovery discovery) (resources []*TagsData, err error) {
+func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err error) {
 	c := iface.client
 
 	var filter []*string
@@ -66,7 +66,7 @@ func (iface tagsInterface) get(discovery discovery) (resources []*TagsData, err 
 	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
-			resource := TagsData{}
+			resource := tagsData{}
 
 			resource.ID = resourceTagMapping.ResourceARN
 
@@ -85,8 +85,8 @@ func (iface tagsInterface) get(discovery discovery) (resources []*TagsData, err 
 	})
 }
 
-func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
-	output := make([]*PrometheusData, 0)
+func migrateTagsToPrometheus(tagData []*tagsData) []*prometheusData {
+	output := make([]*prometheusData, 0)
 
 	tagList := make(map[string][]string)
 
@@ -104,7 +104,7 @@ func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 		promLabels["name"] = *d.ID
 
 		for _, entry := range tagList[*d.Service] {
-			labelKey := "tag_" + PromString(entry)
+			labelKey := "tag_" + promString(entry)
 			promLabels[labelKey] = ""
 
 			for _, rTag := range d.Tags {
@@ -114,10 +114,10 @@ func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 			}
 		}
 
-		var i int = 0
-		var f float64 = float64(i)
+		var i int
+		f := float64(i)
 
-		p := PrometheusData{
+		p := prometheusData{
 			name:   &name,
 			labels: promLabels,
 			value:  &f,
