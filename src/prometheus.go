@@ -2,21 +2,22 @@ package main
 
 import (
 	_ "fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"strings"
-	"sync/atomic"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	pushCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchData) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 
 	exportedTags := findExportedTags(resources)
-
-	pushCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_requests_total",
-		Help: "Help is not implemented yet.",
-	})
-	pushCounter.Set(float64(atomic.LoadUint64(&CloudwatchApiRequests)))
 
 	registry.MustRegister(pushCounter)
 
@@ -37,7 +38,7 @@ func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchD
 
 func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 	labels := prometheus.Labels{
-		"name": *data.Id,
+		"name": *data.ID,
 	}
 
 	name := "aws_" + strings.ToLower(*data.Service) + "_" + strings.ToLower(promString(*data.Metric)) + "_" + strings.ToLower(promString(*data.Statistics))
@@ -56,7 +57,7 @@ func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
 func createInfoMetric(resource *awsInfoData, exportedTags []string) prometheus.Gauge {
 	promLabels := make(map[string]string)
 
-	promLabels["name"] = *resource.Id
+	promLabels["name"] = *resource.ID
 
 	name := "aws_" + *resource.Service + "_info"
 

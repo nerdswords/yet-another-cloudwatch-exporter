@@ -3,17 +3,17 @@ package main
 import (
 	"flag"
 	_ "fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
-	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec"}
-	c                     = conf{}
-	CloudwatchApiRequests = uint64(0)
+	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec"}
+	c                 = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
@@ -32,13 +32,15 @@ func main() {
 	flag.Parse()
 
 	log.Println("Parse config..")
-	c.getConf(configFile)
+	if err := c.loadConf(configFile); err != nil {
+		log.Fatal("Couldn't read config", *configFile, ":", err)
+	}
 	log.Println("Config was parsed successfully")
 
 	log.Println("Startup completed")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
 		<body>
 		<h1>Thanks for using our product :)</h1>
