@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 )
 
 type conf struct {
@@ -34,24 +34,20 @@ type tag struct {
 	Value string `yaml:"Value"`
 }
 
-func (c *conf) getConf(file *string) *conf {
+func (c *conf) load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		return err
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		return err
 	}
 
-	return c
-}
-
-func (c *conf) verifyService() *conf {
 	for _, job := range c.Jobs {
 		if !stringInSlice(job.Discovery.Type, supportedServices) {
-			log.Fatalf("Service is not in known list!: %v", job.Discovery.Type)
+			return fmt.Errorf("Service is not in known list!: %v", job.Discovery.Type)
 		}
 	}
-	return c
+	return nil
 }

@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"strings"
-	"sync/atomic"
+)
+
+var (
+	cloudwatchApiCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 type PrometheusData struct {
@@ -59,13 +65,4 @@ func fillRegistry(promData []*PrometheusData) *prometheus.Registry {
 func PromString(text string) string {
 	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_")
 	return replacer.Replace(text)
-}
-
-func cloudwatchApiRequestsMetric() prometheus.Counter {
-	pushCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_requests_total",
-		Help: "Help is not implemented yet.",
-	})
-	pushCounter.Set(float64(atomic.LoadUint64(&CloudwatchApiRequests)))
-	return pushCounter
 }
