@@ -11,7 +11,7 @@ import (
 )
 
 type TagsData struct {
-	Id      *string
+	ID      *string
 	Tags    []*tag
 	Service *string
 	Region  *string
@@ -31,7 +31,7 @@ func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: region})
 }
 
-func (iface tagsInterface) get(discovery discovery) (resources []*TagsData) {
+func (iface tagsInterface) get(discovery discovery) (resources []*TagsData, err error) {
 	c := iface.client
 
 	var filter []*string
@@ -63,19 +63,18 @@ func (iface tagsInterface) get(discovery discovery) (resources []*TagsData) {
 
 	ctx := context.Background()
 	pageNum := 0
-	c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
+	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
 			resource := TagsData{}
 
-			resource.Id = resourceTagMapping.ResourceARN
+			resource.ID = resourceTagMapping.ResourceARN
 
 			resource.Service = &discovery.Type
 			resource.Region = &discovery.Region
 
 			for _, t := range resourceTagMapping.Tags {
-				tag := tag{Key: *t.Key, Value: *t.Value}
-				resource.Tags = append(resource.Tags, &tag)
+				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
 			}
 
 			if resource.filterThroughTags(discovery.SearchTags) {
@@ -84,8 +83,6 @@ func (iface tagsInterface) get(discovery discovery) (resources []*TagsData) {
 		}
 		return pageNum < 100
 	})
-
-	return resources
 }
 
 func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
@@ -104,7 +101,7 @@ func migrateTagsToPrometheus(tagData []*TagsData) []*PrometheusData {
 	for _, d := range tagData {
 		name := "aws_" + *d.Service + "_info"
 		promLabels := make(map[string]string)
-		promLabels["name"] = *d.Id
+		promLabels["name"] = *d.ID
 
 		for _, entry := range tagList[*d.Service] {
 			labelKey := "tag_" + PromString(entry)

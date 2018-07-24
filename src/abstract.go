@@ -2,12 +2,13 @@ package main
 
 import (
 	_ "fmt"
+	"log"
 	"regexp"
 	"sync"
 )
 
 type awsInfoData struct {
-	Id      *string
+	ID      *string
 	Tags    []*tag
 	Service *string
 	Region  *string
@@ -20,7 +21,7 @@ func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
 	awsInfoData := make([]*TagsData, 0)
 
 	var wg sync.WaitGroup
-	for i, _ := range jobs {
+	for i := range jobs {
 		wg.Add(1)
 		job := jobs[i]
 		go func() {
@@ -50,7 +51,11 @@ func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
 func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*TagsData, cloudwatchData []*CloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
-	resources := clientTag.get(job.Discovery)
+	resources, err := clientTag.get(job.Discovery)
+	if err != nil {
+		log.Println("Couldn't describe resources: ", err.Error())
+		return
+	}
 
 	for i, _ := range resources {
 		resource := resources[i]
@@ -61,14 +66,14 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 			wg.Add(1)
 			go func() {
 				data := CloudwatchData{
-					Id:         resource.Id,
+					ID:         resource.ID,
 					Metric:     &metric.Name,
 					Service:    resource.Service,
 					Statistics: metric.Statistics,
 					NilToZero:  &metric.NilToZero,
 				}
 
-				data.Points = clientCloudwatch.get(resource.Service, resource.Id, metric)
+				data.Points = clientCloudwatch.get(resource.Service, resource.ID, metric)
 
 				mux.Lock()
 				cloudwatchData = append(cloudwatchData, &data)
@@ -89,17 +94,13 @@ func (r TagsData) filterThroughTags(filterTags []tag) bool {
 			if resourceTag.Key == filterTag.Key {
 				r, _ := regexp.Compile(filterTag.Value)
 				if r.MatchString(resourceTag.Value) {
-					tagMatches += 1
+					tagMatches++
 				}
 			}
 		}
 	}
 
-	if tagMatches == len(filterTags) {
-		return true
-	} else {
-		return false
-	}
+	return tagMatches == len(filterTags)
 }
 
 func findExportedTags(resources []*TagsData) map[string][]string {

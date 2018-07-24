@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"log"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
@@ -18,7 +17,7 @@ type cloudwatchInterface struct {
 }
 
 type CloudwatchData struct {
-	Id         *string
+	ID         *string
 	Metric     *string
 	Service    *string
 	Statistics []string
@@ -61,7 +60,8 @@ func (iface cloudwatchInterface) get(service *string, id *string, metric metric)
 
 	filter := prepareCloudwatchRequest(service, id, metric)
 	resp, err := c.GetMetricStatistics(filter)
-	atomic.AddUint64(&CloudwatchApiRequests, 1)
+
+	cloudwatchApiCounter.Inc()
 
 	if err != nil {
 		panic(err)
@@ -172,7 +172,7 @@ func migrateCloudwatchToPrometheus(cwd []*CloudwatchData) []*PrometheusData {
 
 			if len(points) > 0 {
 				promLabels := make(map[string]string)
-				promLabels["name"] = *c.Id
+				promLabels["name"] = *c.ID
 
 				lastValue := points[len(points)-1]
 

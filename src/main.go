@@ -32,7 +32,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := fillRegistry(promData)
 
-	registry.Register(cloudwatchApiRequestsMetric())
+	registry.Register(cloudwatchApiCounter)
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,
@@ -50,14 +50,14 @@ func main() {
 	}
 
 	log.Println("Parse config..")
-	config.getConf(configFile)
-	config.verifyService()
-	log.Println("Config was parsed successfully")
+	if err := config.load(configFile); err != nil {
+		log.Fatal("Couldn't read config", *configFile, ":", err)
+	}
 
 	log.Println("Startup completed")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
+		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
 		<body>
 		<h1>Thanks for using our product :)</h1>
