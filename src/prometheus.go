@@ -1,83 +1,65 @@
 package main
 
 import (
-	_ "fmt"
-	"strings"
-
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"strings"
 )
 
 var (
-	pushCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	cloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_requests_total",
 		Help: "Help is not implemented yet.",
 	})
 )
 
-func createPrometheusMetrics(resources []*awsInfoData, cloudwatch []*cloudwatchData) *prometheus.Registry {
-	registry := prometheus.NewRegistry()
-
-	exportedTags := findExportedTags(resources)
-
-	registry.MustRegister(pushCounter)
-
-	for _, r := range resources {
-		metric := createInfoMetric(r, exportedTags[*r.Service])
-		registry.MustRegister(metric)
-	}
-
-	for _, c := range cloudwatch {
-		if c.Value != nil {
-			metric := createCloudwatchMetric(*c)
-			registry.MustRegister(metric)
-		}
-	}
-
-	return registry
+type prometheusData struct {
+	name   *string
+	labels map[string]string
+	value  *float64
 }
 
-func createCloudwatchMetric(data cloudwatchData) prometheus.Gauge {
-	labels := prometheus.Labels{
-		"name": *data.ID,
-	}
-
-	name := "aws_" + strings.ToLower(*data.Service) + "_" + strings.ToLower(promString(*data.Metric)) + "_" + strings.ToLower(promString(*data.Statistics))
-
+func createPrometheusMetrics(p prometheusData) *prometheus.Gauge {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        name,
+		Name:        *p.name,
 		Help:        "Help is not implemented yet.",
-		ConstLabels: labels,
+		ConstLabels: p.labels,
 	})
 
-	gauge.Set(*data.Value)
+	gauge.Set(*p.value)
 
-	return gauge
+	return &gauge
 }
 
-func createInfoMetric(resource *awsInfoData, exportedTags []string) prometheus.Gauge {
-	promLabels := make(map[string]string)
+func removePromDouble(data []*prometheusData) []*prometheusData {
+	keys := make(map[string]bool)
+	list := []*prometheusData{}
+	for _, entry := range data {
+		check := *entry.name + entry.labels["name"]
+		if _, value := keys[check]; !value {
+			keys[check] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
 
-	promLabels["name"] = *resource.ID
+func fillRegistry(promData []*prometheusData) *prometheus.Registry {
+	registry := prometheus.NewRegistry()
 
-	name := "aws_" + *resource.Service + "_info"
+	for _, point := range promData {
+		gauge := createPrometheusMetrics(*point)
 
-	for _, exportedTag := range exportedTags {
-		escapedKey := "tag_" + promString(exportedTag)
-		promLabels[escapedKey] = ""
-		for _, resourceTag := range resource.Tags {
-			if exportedTag == resourceTag.Key {
-				promLabels[escapedKey] = resourceTag.Value
+		if err := registry.Register(*gauge); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+				fmt.Println("Already registered")
+			} else {
+				panic(err)
 			}
 		}
 	}
 
-	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        name,
-		Help:        "Help is not implemented yet.",
-		ConstLabels: promLabels,
-	})
-
-	return gauge
+	return registry
 }
 
 func promString(text string) string {

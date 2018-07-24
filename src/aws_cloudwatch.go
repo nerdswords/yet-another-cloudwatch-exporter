@@ -2,20 +2,27 @@ package main
 
 import (
 	_ "fmt"
-	"log"
-	"sort"
-	"strings"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"log"
+	"strings"
+	"time"
 )
 
-type cloudwatchInfo struct {
-	Dimensions []*cloudwatch.Dimension
-	Namespace  *string
+type cloudwatchInterface struct {
+	client cloudwatchiface.CloudWatchAPI
+}
+
+type cloudwatchData struct {
+	ID         *string
+	Metric     *string
+	Service    *string
+	Statistics []string
+	Points     []*cloudwatch.Datapoint
+	NilToZero  *bool
 }
 
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
@@ -26,74 +33,65 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func getCloudwatchData(resource *awsInfoData, metric metric) *cloudwatchData {
-	c := createCloudwatchSession(resource.Region)
-
-	info := getCloudwatchInfo(resource.Service, resource.ID)
-
-	period := int64(metric.Length)
+func prepareCloudwatchRequest(service *string, arn *string, metric metric) *cloudwatch.GetMetricStatisticsInput {
+	period := int64(metric.Period)
 	length := metric.Length
 	endTime := time.Now()
 	startTime := time.Now().Add(-time.Duration(length) * time.Minute)
-	statistics := []*string{&metric.Statistics}
 
-	resp, err := c.GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
-		Dimensions: info.Dimensions,
-		Namespace:  info.Namespace,
+	var statistics []*string
+	for _, statistic := range metric.Statistics {
+		statistics = append(statistics, &statistic)
+	}
+
+	return &cloudwatch.GetMetricStatisticsInput{
+		Dimensions: getDimensions(service, arn),
+		Namespace:  getNamespace(service),
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,
 		MetricName: &metric.Name,
 		Statistics: statistics,
-	})
-	pushCounter.Inc()
+	}
+}
+
+func (iface cloudwatchInterface) get(service *string, id *string, metric metric) []*cloudwatch.Datapoint {
+	c := iface.client
+
+	filter := prepareCloudwatchRequest(service, id, metric)
+	resp, err := c.GetMetricStatistics(filter)
+
+	cloudwatchAPICounter.Inc()
 
 	if err != nil {
 		panic(err)
 	}
 
-	points := sortDatapoints(resp.Datapoints, metric.Statistics)
-
-	var output cloudwatchData
-
-	output.Tags = resource.Tags
-	output.Service = resource.Service
-	output.Metric = &metric.Name
-	output.ID = resource.ID
-	output.Statistics = &metric.Statistics
-
-	if len(points) != 0 {
-		point := *points[0]
-		output.Value = &point
-	} else {
-		if metric.NilToZero {
-			point := float64(0)
-			output.Value = &point
-		}
-	}
-
-	return &output
+	return resp.Datapoints
 }
 
-func sortDatapoints(datapoints []*cloudwatch.Datapoint, statistic string) (points []*float64) {
-	for _, point := range datapoints {
-		if statistic == "Sum" {
-			points = append(points, point.Sum)
-		} else if statistic == "Average" {
-			points = append(points, point.Average)
-		} else if statistic == "Maximum" {
-			points = append(points, point.Maximum)
-		} else if statistic == "Minimum" {
-			points = append(points, point.Minimum)
-		}
+func getNamespace(service *string) *string {
+	var ns string
+	switch *service {
+	case "ec2":
+		ns = "AWS/EC2"
+	case "elb":
+		ns = "AWS/ELB"
+	case "rds":
+		ns = "AWS/RDS"
+	case "ec":
+		ns = "AWS/ElastiCache"
+	case "es":
+		ns = "AWS/ES"
+	case "s3":
+		ns = "AWS/S3"
+	default:
+		log.Fatal("Not implemented namespace for cloudwatch metric:" + *service)
 	}
-
-	sort.Slice(points, func(i, j int) bool { return *points[i] > *points[j] })
-
-	return points
+	return &ns
 }
 
-func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) {
+func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
@@ -102,38 +100,91 @@ func getCloudwatchInfo(service *string, resourceArn *string) (c cloudwatchInfo) 
 
 	switch *service {
 	case "ec2":
-		c.buildInfo(arnParsed.Resource, "AWS/EC2", "InstanceId", "instance/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "elb":
-		c.buildInfo(arnParsed.Resource, "AWS/ELB", "LoadBalancerName", "loadbalancer/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
 	case "rds":
-		c.buildInfo(arnParsed.Resource, "AWS/RDS", "DBInstanceIdentifier", "db:")
+		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
 	case "ec":
-		c.buildInfo(arnParsed.Resource, "AWS/ElastiCache", "CacheClusterId", "cluster:")
+		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
 	case "es":
-		c.buildInfo(arnParsed.Resource, "AWS/ES", "DomainName", "domain/")
-		c.addDimension("ClientId", arnParsed.AccountID)
+		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
+		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "s3":
+		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
+		dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
 	default:
 		log.Fatal("Not implemented cloudwatch metric:" + *service)
 	}
-	return c
+	return dimensions
 }
 
-func (c *cloudwatchInfo) buildInfo(identifier string, namespace string, dimensionKey string, prefix string) *cloudwatchInfo {
-	c.Namespace = aws.String(namespace)
+func buildBaseDimension(identifier string, dimensionKey string, prefix string) (dimensions []*cloudwatch.Dimension) {
 	helper := strings.TrimPrefix(identifier, prefix)
-	c.Dimensions = append(c.Dimensions, buildDimension(&dimensionKey, &helper))
-	return c
+	dimensions = append(dimensions, buildDimension(dimensionKey, helper))
+
+	return dimensions
 }
 
-func (c *cloudwatchInfo) addDimension(key string, value string) *cloudwatchInfo {
-	c.Dimensions = append(c.Dimensions, buildDimension(&key, &value))
-	return c
-}
-
-func buildDimension(key *string, value *string) *cloudwatch.Dimension {
+func buildDimension(key string, value string) *cloudwatch.Dimension {
 	dimension := cloudwatch.Dimension{
-		Name:  key,
-		Value: value,
+		Name:  &key,
+		Value: &value,
 	}
 	return &dimension
+}
+
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
+	output := make([]*prometheusData, 0)
+	for _, c := range cwd {
+
+		for _, statistic := range c.Statistics {
+			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+
+			var points []*float64
+
+			for _, point := range c.Points {
+				switch statistic {
+				case "Maximum":
+					if point.Maximum != nil {
+						points = append(points, point.Maximum)
+					}
+				case "Minimum":
+					if point.Minimum != nil {
+						points = append(points, point.Minimum)
+					}
+				case "Sum":
+					if point.Sum != nil {
+						points = append(points, point.Sum)
+					}
+				default:
+					log.Fatal("Not implemented statistics" + statistic)
+				}
+			}
+
+			if len(points) == 0 {
+				if *c.NilToZero {
+					helper := float64(0)
+					sliceHelper := []*float64{&helper}
+					points = sliceHelper
+				}
+			}
+
+			if len(points) > 0 {
+				promLabels := make(map[string]string)
+				promLabels["name"] = *c.ID
+
+				lastValue := points[len(points)-1]
+
+				p := prometheusData{
+					name:   &name,
+					labels: promLabels,
+					value:  lastValue,
+				}
+				output = append(output, &p)
+			}
+		}
+	}
+
+	return output
 }
