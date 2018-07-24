@@ -7,19 +7,19 @@ import (
 )
 
 var (
-	cloudwatchApiCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	cloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_requests_total",
 		Help: "Help is not implemented yet.",
 	})
 )
 
-type PrometheusData struct {
+type prometheusData struct {
 	name   *string
 	labels map[string]string
 	value  *float64
 }
 
-func createPrometheusMetrics(p PrometheusData) *prometheus.Gauge {
+func createPrometheusMetrics(p prometheusData) *prometheus.Gauge {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        *p.name,
 		Help:        "Help is not implemented yet.",
@@ -31,9 +31,9 @@ func createPrometheusMetrics(p PrometheusData) *prometheus.Gauge {
 	return &gauge
 }
 
-func removePromDouble(data []*PrometheusData) []*PrometheusData {
+func removePromDouble(data []*prometheusData) []*prometheusData {
 	keys := make(map[string]bool)
-	list := []*PrometheusData{}
+	list := []*prometheusData{}
 	for _, entry := range data {
 		check := *entry.name + entry.labels["name"]
 		if _, value := keys[check]; !value {
@@ -44,7 +44,7 @@ func removePromDouble(data []*PrometheusData) []*PrometheusData {
 	return list
 }
 
-func fillRegistry(promData []*PrometheusData) *prometheus.Registry {
+func fillRegistry(promData []*prometheusData) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 
 	for _, point := range promData {
@@ -62,7 +62,7 @@ func fillRegistry(promData []*PrometheusData) *prometheus.Registry {
 	return registry
 }
 
-func PromString(text string) string {
+func promString(text string) string {
 	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_")
 	return replacer.Replace(text)
 }

@@ -12,18 +12,17 @@ import (
 const yaceVersion = "0.4.0"
 
 var (
-	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	version               = flag.Bool("v", false, "prints current yace version")
-	supportedServices     = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
-	config                = conf{}
-	CloudwatchApiRequests = uint64(0)
+	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
+	version           = flag.Bool("v", false, "prints current yace version")
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
+	config            = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	tagsData, cloudwatchData := scrapeAwsData(config.Jobs)
 
-	var promData []*PrometheusData
+	var promData []*prometheusData
 
 	promData = append(promData, migrateCloudwatchToPrometheus(cloudwatchData)...)
 	promData = append(promData, migrateTagsToPrometheus(tagsData)...)
@@ -32,7 +31,9 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 
 	registry := fillRegistry(promData)
 
-	registry.Register(cloudwatchApiCounter)
+	if err := registry.Register(cloudwatchAPICounter); err != nil {
+		log.Fatal("Could not publish cloudwatch api metric")
+	}
 
 	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
 		DisableCompression: false,

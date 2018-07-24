@@ -7,18 +7,11 @@ import (
 	"sync"
 )
 
-type awsInfoData struct {
-	ID      *string
-	Tags    []*tag
-	Service *string
-	Region  *string
-}
-
-func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
+func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
-	cloudwatchData := make([]*CloudwatchData, 0)
-	awsInfoData := make([]*TagsData, 0)
+	cloudwatchData := make([]*cloudwatchData, 0)
+	awsInfoData := make([]*tagsData, 0)
 
 	var wg sync.WaitGroup
 	for i := range jobs {
@@ -48,7 +41,7 @@ func scrapeAwsData(jobs []job) ([]*TagsData, []*CloudwatchData) {
 	return awsInfoData, cloudwatchData
 }
 
-func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*TagsData, cloudwatchData []*CloudwatchData) {
+func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	resources, err := clientTag.get(job.Discovery)
@@ -57,15 +50,15 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 		return
 	}
 
-	for i, _ := range resources {
+	for i := range resources {
 		resource := resources[i]
 		awsInfoData = append(awsInfoData, resource)
 
-		for j, _ := range job.Metrics {
+		for j := range job.Metrics {
 			metric := job.Metrics[j]
 			wg.Add(1)
 			go func() {
-				data := CloudwatchData{
+				data := cloudwatchData{
 					ID:         resource.ID,
 					Metric:     &metric.Name,
 					Service:    resource.Service,
@@ -76,17 +69,17 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 				data.Points = clientCloudwatch.get(resource.Service, resource.ID, metric)
 
 				mux.Lock()
-				cloudwatchData = append(cloudwatchData, &data)
+				cw = append(cw, &data)
 				mux.Unlock()
 				wg.Done()
 			}()
 		}
 	}
 	wg.Wait()
-	return awsInfoData, cloudwatchData
+	return awsInfoData, cw
 }
 
-func (r TagsData) filterThroughTags(filterTags []tag) bool {
+func (r tagsData) filterThroughTags(filterTags []tag) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -101,19 +94,4 @@ func (r TagsData) filterThroughTags(filterTags []tag) bool {
 	}
 
 	return tagMatches == len(filterTags)
-}
-
-func findExportedTags(resources []*TagsData) map[string][]string {
-	m := make(map[string][]string)
-
-	for _, r := range resources {
-		for _, t := range r.Tags {
-			value := t.Key
-			if !stringInSlice(value, m[*r.Service]) {
-				m[*r.Service] = append(m[*r.Service], value)
-			}
-		}
-	}
-
-	return m
 }
