@@ -24,7 +24,7 @@ node {
     app.inside {
       version = sh (
           returnStdout: true,
-          script: "./yace -v"
+          script: "/usr/local/bin/yace -v"
           ).trim()
     }
 
