@@ -1,3 +1,7 @@
+# 0.5.0
+* Support of EFS - Elastic File System
+* Support of EBS - Elastic Block Storage
+
 # 0.4.0
 * **BREAKING**: Config file uses list as statistics config option,
 this should reduce api calls for more than one statistics.
