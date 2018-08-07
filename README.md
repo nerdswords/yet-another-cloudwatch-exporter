@@ -19,6 +19,8 @@ Currently in quick iteration mode which will probably break things in next versi
   - elb - elastic load balancers
   - efs - elastic file system
   - s3 - object storage
+  - efs - elastic file system
+  - ebs - elastic block storage
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
