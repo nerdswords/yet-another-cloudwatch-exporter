@@ -85,6 +85,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ES"
 	case "s3":
 		ns = "AWS/S3"
+	case "efs":
+		ns = "AWS/EFS"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric:" + *service)
 	}
@@ -113,6 +115,8 @@ func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwat
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 		dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
+	case "efs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	default:
 		log.Fatal("Not implemented cloudwatch metric:" + *service)
 	}

@@ -17,6 +17,7 @@ Currently in quick iteration mode which will probably break things in next versi
   - ec2 - elastic compute cloud
   - rds - relational database service
   - elb - elastic load balancers
+  - efs - elastic file system
   - s3 - object storage
 
 ## Image
