@@ -55,6 +55,9 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 	case "s3":
 		hotfix := aws.String("s3")
 		filter = append(filter, hotfix)
+	case "efs":
+		hotfix := aws.String("elasticfilesystem:file-system")
+		filter = append(filter, hotfix)
 	default:
 		log.Fatal("Not implemented resources:" + discovery.Type)
 	}
