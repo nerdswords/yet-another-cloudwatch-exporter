@@ -16,6 +16,8 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - rds - Relational Database Service
   - elb - Elastic Load Balancers
   - s3 - Object Storage
+  - efs - Elastic File System
+  - ebs - Elastic Block Storage
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
