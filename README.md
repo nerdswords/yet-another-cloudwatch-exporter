@@ -1,29 +1,27 @@
 # YACE - yet another cloudwatch exporter [![Docker Image](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter/status?token=58e4108f-9e6f-44a4-a5fd-0beed543a271 "Docker Repository on Quay")](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter)
 
-## Experimental State
+## Project Status
 
-Currently in quick iteration mode which will probably break things in next versions.
-
-**Unstable till 1.0.0 - Use with care!**
+YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
 
 ## Features
-* Stop worrying about your AWS IDs - Auto discovery of resources through tags
-* Filter monitored resources through regex
+* Stop worrying about your AWS IDs - Auto discovery of resources via tags
+* Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
-* Allows to export 0 even if cloudwatch returns nil
+* Allows to export 0 even if CloudWatch returns nil
 * Supported services:
-  - es - elasticsearch
-  - ec - elasticache
-  - ec2 - elastic compute cloud
-  - rds - relational database service
-  - elb - elastic load balancers
-  - s3 - object storage
+  - es - ElasticSearch
+  - ec - ElastiCache
+  - ec2 - Elastic Compute Cloud
+  - rds - Relational Database Service
+  - elb - Elastic Load Balancers
+  - s3 - Object Storage
 
 ## Image
-* `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 10.1.3
-* Binaries on release page
+* `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
+* See [Releases](https://github.com/ivx/yet-another-cloudwatch-exporter/releases) for binaries
 
-## Config
+## Configuration
 
 Example of config File
 ```
@@ -75,22 +73,22 @@ jobs:
         nilToZero: true
 ```
 
-## Example metrics
+## Metrics Examples
 ```
-# Metrics
+### Metrics
 aws_ec2_cpuutilization_maximum{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid"} 57.2916666666667
 aws_elb_healthyhostcount_minimum{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9"} 9
 aws_elb_httpcode_backend_4xx_sum{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9"} 1
 
-# Info helper with tags
+### Info helper with tags
 aws_elb_info{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9",tag_KubernetesCluster="production-19",tag_Name="",tag_kubernetes_io_cluster_production_19="owned",tag_kubernetes_io_service_name="nginx-ingress/private-ext"} 0
 aws_ec2_info{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid",tag_Name="jenkins"} 0
 
-# Track cloudwatch requests to calculate costs
+### Track cloudwatch requests to calculate costs
 yace_cloudwatch_requests_total 168
 ```
 
-## Example queries
+## Query Examples
 
 ```
 # CPUUtilization + Name tag of the instance id - No more instance id needed for monitoring
@@ -116,7 +114,8 @@ predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group
 ```
 
 ## IAM
-These are the currently needed IAM permissions.
+The following IAM permissions are required for YACE to work.
+
 ```
 "tag:getResources",
 "cloudwatch:GetMetricStatistics",
@@ -180,5 +179,5 @@ spec:
 [Development Setup / Guide](/CONTRIBUTE.md)
 
 # Thank you
-* [Justin Santa Barbara](https://github.com/justinsb) - Told me about AWS tags api which simplified a lot - Thanks!
-* [Brian Brazil](https://github.com/brian-brazil) - Gave a lot of feedback regarding ux and prometheus lib - Thanks!
+* [Justin Santa Barbara](https://github.com/justinsb) - For telling me about AWS tags api which simplified a lot - Thanks!
+* [Brian Brazil](https://github.com/brian-brazil) - Who gave a lot of feedback regarding UX and prometheus lib - Thanks!
