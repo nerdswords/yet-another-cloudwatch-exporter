@@ -9,13 +9,13 @@ import (
 	"os"
 )
 
-const yaceVersion = "0.4.0"
+const yaceVersion = "0.5.0"
 
 var (
 	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
 	version           = flag.Bool("v", false, "prints current yace version")
-	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3"}
+	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3", "efs", "ebs"}
 	config            = conf{}
 )
 
