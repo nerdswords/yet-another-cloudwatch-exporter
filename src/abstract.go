@@ -7,18 +7,18 @@ import (
 	"sync"
 )
 
-func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
+func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
 	cloudwatchData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*tagsData, 0)
 
 	var wg sync.WaitGroup
-	for i := range jobs {
+	for i := range config.Discovery {
 		wg.Add(1)
-		job := jobs[i]
+		job := config.Discovery[i]
 		go func() {
-			region := &job.Discovery.Region
+			region := &job.Region
 
 			clientCloudwatch := cloudwatchInterface{
 				client: createCloudwatchSession(region),
@@ -41,10 +41,10 @@ func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
 	return awsInfoData, cloudwatchData
 }
 
-func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+func scrapeJob(job discovery, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
-	resources, err := clientTag.get(job.Discovery)
+	resources, err := clientTag.get(job)
 	if err != nil {
 		log.Println("Couldn't describe resources: ", err.Error())
 		return

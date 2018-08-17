@@ -20,7 +20,7 @@ var (
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	tagsData, cloudwatchData := scrapeAwsData(config.Jobs)
+	tagsData, cloudwatchData := scrapeAwsData(config)
 
 	var promData []*prometheusData
 
