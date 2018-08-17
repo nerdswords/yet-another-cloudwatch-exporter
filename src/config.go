@@ -19,6 +19,7 @@ type discovery struct {
 }
 
 type static struct {
+	Name       string      `yaml:"name"`
 	Region     string      `yaml:"region"`
 	Namespace  string      `yaml:"namespace"`
 	Dimensions []dimension `yaml:"dimensions"`
@@ -35,7 +36,7 @@ type metric struct {
 
 type dimension struct {
 	Name  string `yaml:"name"`
-	value string `yaml:"value"`
+	Value string `yaml:"value"`
 }
 
 type tag struct {
