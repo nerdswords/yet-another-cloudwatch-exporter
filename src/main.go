@@ -16,6 +16,7 @@ var (
 	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
 	version           = flag.Bool("v", false, "prints current yace version")
 	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3", "efs", "ebs"}
+	debug             = flag.Bool("debug", false, "Add verbose logging")
 	config            = conf{}
 )
 
