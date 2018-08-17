@@ -7,18 +7,22 @@ import (
 )
 
 type conf struct {
-	Jobs []job `yaml:"jobs"`
-}
-
-type job struct {
-	Discovery discovery `yaml:"discovery"`
-	Metrics   []metric  `yaml:"metrics"`
+	Discovery []discovery `yaml:"discovery"`
+	Static    []static    `yaml:"static"`
 }
 
 type discovery struct {
-	Region     string `yaml:"region"`
-	Type       string `yaml:"type"`
-	SearchTags []tag  `yaml:"searchTags"`
+	Region     string   `yaml:"region"`
+	Type       string   `yaml:"type"`
+	SearchTags []tag    `yaml:"searchTags"`
+	Metrics    []metric `yaml:"metrics"`
+}
+
+type static struct {
+	Region     string      `yaml:"region"`
+	Namespace  string      `yaml:"namespace"`
+	Dimensions []dimension `yaml:"dimensions"`
+	Metrics    []metric    `yaml:"metrics"`
 }
 
 type metric struct {
@@ -27,6 +31,11 @@ type metric struct {
 	Period     int      `yaml:"period"`
 	Length     int      `yaml:"length"`
 	NilToZero  bool     `yaml:"nilToZero"`
+}
+
+type dimension struct {
+	Name  string `yaml:"name"`
+	value string `yaml:"value"`
 }
 
 type tag struct {
@@ -44,9 +53,9 @@ func (c *conf) load(file *string) error {
 		return err
 	}
 
-	for _, job := range c.Jobs {
-		if !stringInSlice(job.Discovery.Type, supportedServices) {
-			return fmt.Errorf("Service is not in known list!: %v", job.Discovery.Type)
+	for _, job := range c.Discovery {
+		if !stringInSlice(job.Type, supportedServices) {
+			return fmt.Errorf("Service is not in known list!: %v", job.Type)
 		}
 	}
 	return nil
