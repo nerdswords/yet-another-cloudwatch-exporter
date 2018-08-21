@@ -1,8 +1,11 @@
 # 0.6.0-alpha
 * **BREAKING**: Period/length uses now seconds instead of minutes
+* **BREAKING**: Config file uses new syntax to support static
 * Support of --debug flag which outputs some dev debug informations
 * Support of metrics who are not included in tags api (e.g. autoscaling metrics)
-`` `
+
+New Syntax:
+```
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
@@ -16,7 +19,7 @@ static:
         period: 60
         length: 300
 ```
-* **Breaking**: Config file uses new syntax to support static
+
 
 Before
 ```yaml
@@ -31,6 +34,7 @@ discovery:
   - region: eu-west-1
     metrics:
 ```
+
 
 # 0.5.0
 * Support of EFS - Elastic File System
