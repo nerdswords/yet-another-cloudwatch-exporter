@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -33,33 +32,44 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func prepareCloudwatchRequest(service *string, arn *string, metric metric) *cloudwatch.GetMetricStatisticsInput {
+func prepareCloudwatchRequest(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := int64(metric.Period)
 	length := metric.Length
 	endTime := time.Now()
-	startTime := time.Now().Add(-time.Duration(length) * time.Minute)
+	startTime := time.Now().Add(-time.Duration(length) * time.Second)
 
 	var statistics []*string
 	for _, statistic := range metric.Statistics {
 		statistics = append(statistics, &statistic)
 	}
 
-	return &cloudwatch.GetMetricStatisticsInput{
-		Dimensions: getDimensions(service, arn),
-		Namespace:  getNamespace(service),
+	output = &cloudwatch.GetMetricStatisticsInput{
+		Dimensions: dimensions,
+		Namespace:  namespace,
 		StartTime:  &startTime,
 		EndTime:    &endTime,
 		Period:     &period,
 		MetricName: &metric.Name,
 		Statistics: statistics,
 	}
+	if *debug {
+		log.Println(*output)
+	}
+	return output
 }
 
-func (iface cloudwatchInterface) get(service *string, id *string, metric metric) []*cloudwatch.Datapoint {
+func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
-	filter := prepareCloudwatchRequest(service, id, metric)
+	if *debug {
+		log.Println(filter)
+	}
+
 	resp, err := c.GetMetricStatistics(filter)
+
+	if *debug {
+		log.Println(resp)
+	}
 
 	cloudwatchAPICounter.Inc()
 
@@ -93,6 +103,14 @@ func getNamespace(service *string) *string {
 		log.Fatal("Not implemented namespace for cloudwatch metric:" + *service)
 	}
 	return &ns
+}
+
+func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
+	for _, d := range dimensions {
+		output = append(output, buildDimension(d.Name, d.Value))
+	}
+
+	return output
 }
 
 func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwatch.Dimension) {

@@ -9,18 +9,19 @@ import (
 	"os"
 )
 
-const yaceVersion = "0.5.0"
+const yaceVersion = "0.6.0-alpha"
 
 var (
 	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
 	version           = flag.Bool("v", false, "prints current yace version")
 	supportedServices = []string{"rds", "ec2", "elb", "es", "ec", "s3", "efs", "ebs"}
+	debug             = flag.Bool("debug", false, "Add verbose logging")
 	config            = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
-	tagsData, cloudwatchData := scrapeAwsData(config.Jobs)
+	tagsData, cloudwatchData := scrapeAwsData(config)
 
 	var promData []*prometheusData
 

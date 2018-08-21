@@ -4,21 +4,22 @@ import (
 	_ "fmt"
 	"log"
 	"regexp"
+	"strings"
 	"sync"
 )
 
-func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
+func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
 	cloudwatchData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*tagsData, 0)
 
 	var wg sync.WaitGroup
-	for i := range jobs {
+	for i := range config.Discovery {
 		wg.Add(1)
-		job := jobs[i]
+		job := config.Discovery[i]
 		go func() {
-			region := &job.Discovery.Region
+			region := &job.Region
 
 			clientCloudwatch := cloudwatchInterface{
 				client: createCloudwatchSession(region),
@@ -28,10 +29,29 @@ func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
 				client: createTagSession(region),
 			}
 
-			resources, metrics := scrapeJob(job, clientTag, clientCloudwatch)
+			resources, metrics := scrapeDiscoveryJob(job, clientTag, clientCloudwatch)
 
 			mux.Lock()
 			awsInfoData = append(awsInfoData, resources...)
+			cloudwatchData = append(cloudwatchData, metrics...)
+			mux.Unlock()
+			wg.Done()
+		}()
+	}
+
+	for i := range config.Static {
+		wg.Add(1)
+		job := config.Static[i]
+		go func() {
+			region := &job.Region
+
+			clientCloudwatch := cloudwatchInterface{
+				client: createCloudwatchSession(region),
+			}
+
+			metrics := scrapeStaticJob(job, clientCloudwatch)
+
+			mux.Lock()
 			cloudwatchData = append(cloudwatchData, metrics...)
 			mux.Unlock()
 			wg.Done()
@@ -41,10 +61,46 @@ func scrapeAwsData(jobs []job) ([]*tagsData, []*cloudwatchData) {
 	return awsInfoData, cloudwatchData
 }
 
-func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
-	resources, err := clientTag.get(job.Discovery)
+
+	for j := range resource.Metrics {
+		metric := resource.Metrics[j]
+		wg.Add(1)
+		go func() {
+			id := resource.Name
+			service := strings.TrimPrefix(resource.Namespace, "AWS/")
+			data := cloudwatchData{
+				ID:         &id,
+				Metric:     &metric.Name,
+				Service:    &service,
+				Statistics: metric.Statistics,
+				NilToZero:  &metric.NilToZero,
+			}
+
+			filter := prepareCloudwatchRequest(
+				createStaticDimensions(resource.Dimensions),
+				&resource.Namespace,
+				metric,
+			)
+
+			data.Points = clientCloudwatch.get(filter)
+
+			mux.Lock()
+			cw = append(cw, &data)
+			mux.Unlock()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return cw
+}
+
+func scrapeDiscoveryJob(job discovery, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+	mux := &sync.Mutex{}
+	var wg sync.WaitGroup
+	resources, err := clientTag.get(job)
 	if err != nil {
 		log.Println("Couldn't describe resources: ", err.Error())
 		return
@@ -66,7 +122,13 @@ func scrapeJob(job job, clientTag tagsInterface, clientCloudwatch cloudwatchInte
 					NilToZero:  &metric.NilToZero,
 				}
 
-				data.Points = clientCloudwatch.get(resource.Service, resource.ID, metric)
+				filter := prepareCloudwatchRequest(
+					getDimensions(resource.Service, resource.ID),
+					getNamespace(resource.Service),
+					metric,
+				)
+
+				data.Points = clientCloudwatch.get(filter)
 
 				mux.Lock()
 				cw = append(cw, &data)
