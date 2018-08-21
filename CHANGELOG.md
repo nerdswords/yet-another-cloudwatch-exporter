@@ -4,8 +4,33 @@
 * Support of --debug flag which outputs some dev debug informations
 * Support of metrics who are not included in tags api (e.g. autoscaling metrics)
 
+Before
+```yaml
+jobs:
+  - discovery:
+      region: eu-west-1
+      metrics:
+        - name: HealthyHostCount
+          statistics:
+          - 'Minimum'
+          period: 60
+          length: 300
+```
+
 New Syntax:
 ```
+discovery:
+  - region: eu-west-1
+    type: elb
+    searchTags:
+      - Key: KubernetesCluster
+        Value: production
+    metrics:
+      - name: HealthyHostCount
+        statistics:
+        - 'Minimum'
+        period: 60
+        length: 300
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
@@ -19,22 +44,6 @@ static:
         period: 60
         length: 300
 ```
-
-
-Before
-```yaml
-jobs:
-  - discovery:
-      region: eu-west-1
-    metrics:
-```
-After:
-```yaml
-discovery:
-  - region: eu-west-1
-    metrics:
-```
-
 
 # 0.5.0
 * Support of EFS - Elastic File System
