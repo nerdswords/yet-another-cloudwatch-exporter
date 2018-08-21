@@ -18,7 +18,7 @@ jobs:
 ```
 
 New Syntax:
-```
+```yaml
 discovery:
   - region: eu-west-1
     type: elb
