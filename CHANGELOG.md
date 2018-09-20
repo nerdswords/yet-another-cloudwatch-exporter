@@ -1,4 +1,4 @@
-# 0.6.0-alpha
+# 0.6.0 / 0.6.0-alpha
 * **BREAKING**: Period/length uses now seconds instead of minutes
 * **BREAKING**: Config file uses new syntax to support static
 * Support of --debug flag which outputs some dev debug informations

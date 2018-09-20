@@ -9,7 +9,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
-* Supported services:
+* Supported services with auto discovery through tags:
   - es - ElasticSearch
   - ec - ElastiCache
   - ec2 - Elastic Compute Cloud
@@ -18,6 +18,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - s3 - Object Storage
   - efs - Elastic File System
   - ebs - Elastic Block Storage
+* Static metrics support for all cloudwatch metrics
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
@@ -27,13 +28,12 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 Example of config File
 ```
-jobs:
-  - discovery:
-      region: eu-west-1
-      type: "es"
-      searchTags:
-        - Key: type
-          Value: ^(easteregg|k8s)$
+discovery:
+  - region: eu-west-1
+    type: "es"
+    searchTags:
+      - Key: type
+        Value: ^(easteregg|k8s)$
     metrics:
       - name: FreeStorageSpace
         statistics:
@@ -55,12 +55,11 @@ jobs:
         - 'Maximum'
         period: 600
         length: 60
-  - discovery:
-      type: "elb"
-      region: eu-west-1
-      searchTags:
-        - Key: KubernetesCluster
-          Value: production-19
+  - type: "elb"
+    region: eu-west-1
+    searchTags:
+      - Key: KubernetesCluster
+        Value: production-19
     metrics:
       - name: HealthyHostCount
         statistics:
@@ -73,6 +72,18 @@ jobs:
         period: 60
         length: 900
         nilToZero: true
+static:
+  - namespace: AWS/AutoScaling
+    region: eu-west-1
+    dimensions:
+     - name: AutoScalingGroupName
+       value: Test
+    metrics:
+      - name: GroupInServiceInstances
+        statistics:
+        - 'Minimum'
+        period: 60
+        length: 300
 ```
 
 ## Metrics Examples
@@ -133,13 +144,12 @@ metadata:
 data:
   config.yml: |-
     ---
-    jobs:
-      - discovery:
-          region: eu-west-1
-          type: "ec2"
-          searchTags:
-            - Key: Name
-              Value: jenkins
+    discovery:
+      - region: eu-west-1
+        type: "ec2"
+        searchTags:
+          - Key: Name
+            Value: jenkins
         metrics:
           - name: CPUUtilization
             statistics:
