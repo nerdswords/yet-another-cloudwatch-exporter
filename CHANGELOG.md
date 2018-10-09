@@ -1,3 +1,6 @@
+# 0.6.1
+* Sanitize colons in tags
+
 # 0.6.0 / 0.6.0-alpha
 * **BREAKING**: Period/length uses now seconds instead of minutes
 * **BREAKING**: Config file uses new syntax to support static
