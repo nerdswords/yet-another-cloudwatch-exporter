@@ -63,6 +63,6 @@ func fillRegistry(promData []*prometheusData) *prometheus.Registry {
 }
 
 func promString(text string) string {
-	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_")
+	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_", ":", "_")
 	return replacer.Replace(text)
 }
