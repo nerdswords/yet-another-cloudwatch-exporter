@@ -32,7 +32,7 @@ func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
 	return cloudwatch.New(sess, &aws.Config{Region: region})
 }
 
-func prepareCloudwatchRequest(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
+func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := int64(metric.Period)
 	length := metric.Length
 	endTime := time.Now()
@@ -54,6 +54,21 @@ func prepareCloudwatchRequest(dimensions []*cloudwatch.Dimension, namespace *str
 	}
 	if *debug {
 		log.Println(*output)
+	}
+	return output
+}
+
+func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string) (output *cloudwatch.ListMetricsInput) {
+	var dimensionsFilter []*cloudwatch.DimensionFilter
+
+	for _, dim := range dimensions {
+		dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{ Name: dim.Name, Value: dim.Value })
+  }
+	output = &cloudwatch.ListMetricsInput{
+		MetricName: nil,
+		Dimensions: dimensionsFilter,
+		Namespace: namespace,
+		NextToken: nil,
 	}
 	return output
 }
@@ -87,6 +102,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/EC2"
 	case "elb":
 		ns = "AWS/ELB"
+	case "alb":
+		ns = "AWS/ApplicationELB"
 	case "rds":
 		ns = "AWS/RDS"
 	case "ec":
@@ -113,7 +130,54 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwatch.Dimension) {
+func getDimensionValueForName(name string, resp *cloudwatch.ListMetricsOutput) (value *string) {
+	for _, metric := range resp.Metrics {
+		for _, dim := range metric.Dimensions {
+			if strings.Compare(*dim.Name, name) == 0 {
+				return dim.Value
+			}
+		}
+	}
+	return nil
+}
+
+func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, clientCloudwatch cloudwatchInterface) (dimensionResourceName *string) {
+	c := clientCloudwatch.client
+	filter := createListMetricsInput(dimensions, namespace)
+	req, resp := c.ListMetricsRequest(filter)
+	err := req.Send()
+
+	if err != nil {
+		panic(err)
+	}
+
+	cloudwatchAPICounter.Inc()
+	return getDimensionValueForName(resourceName, resp)
+}
+
+
+func queryAvailableDimensions(resource string, namespace *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
+
+	if (!strings.HasSuffix(*namespace, "ApplicationELB")) {
+		log.Fatal("Not implemented queryAvailableDimensions:" + *namespace)
+		return nil
+	}
+
+	if strings.HasPrefix(resource, "targetgroup/") {
+		dimensions = append(dimensions, buildDimension("TargetGroup", resource))
+		loadBalancerName := getResourceValue("LoadBalancer", dimensions, namespace, clientCloudwatch)
+		if loadBalancerName != nil {
+			dimensions = append(dimensions, buildDimension("LoadBalancer", *loadBalancerName))
+		}
+
+	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
+		dimensions = append(dimensions, buildDimension("LoadBalancer", resource))
+	}
+
+	return dimensions
+}
+
+func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
@@ -125,6 +189,8 @@ func getDimensions(service *string, resourceArn *string) (dimensions []*cloudwat
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "elb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
+	case "alb":
+		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
 	case "ec":
