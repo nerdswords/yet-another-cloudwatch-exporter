@@ -89,6 +89,9 @@ static:
     dimensions:
      - name: AutoScalingGroupName
        value: Test
+    customTags:
+      - Key: CustomTag
+        Value: CustomValue
     metrics:
       - name: GroupInServiceInstances
         statistics:
