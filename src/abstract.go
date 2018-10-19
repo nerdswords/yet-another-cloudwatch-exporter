@@ -79,7 +79,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				NilToZero:  &metric.NilToZero,
 			}
 
-			filter := prepareCloudwatchRequest(
+			filter := createGetMetricStatisticsInput(
 				createStaticDimensions(resource.Dimensions),
 				&resource.Namespace,
 				metric,
@@ -122,8 +122,8 @@ func scrapeDiscoveryJob(job discovery, clientTag tagsInterface, clientCloudwatch
 					NilToZero:  &metric.NilToZero,
 				}
 
-				filter := prepareCloudwatchRequest(
-					getDimensions(resource.Service, resource.ID),
+				filter := createGetMetricStatisticsInput(
+					getDimensions(resource.Service, resource.ID, clientCloudwatch),
 					getNamespace(resource.Service),
 					metric,
 				)
