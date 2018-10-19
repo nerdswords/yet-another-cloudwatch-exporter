@@ -72,6 +72,16 @@ discovery:
         period: 60
         length: 900
         nilToZero: true
+  - type: "alb"
+    region: eu-west-1
+    searchTags:
+      - Key: kubernetes.io/service-name
+        Value: .*
+    metrics:
+      - name: UnHealthyHostCount
+        statistics: [Maximum]
+        period: 60
+        length: 600
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1

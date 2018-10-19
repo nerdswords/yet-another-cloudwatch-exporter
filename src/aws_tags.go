@@ -43,6 +43,11 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 	case "elb":
 		hotfix := aws.String("elasticloadbalancing:loadbalancer")
 		filter = append(filter, hotfix)
+	case "alb":
+		alb := aws.String("elasticloadbalancing:loadbalancer")
+		tg := aws.String("elasticloadbalancing:targetgroup")
+		filter = append(filter, alb)
+		filter = append(filter, tg)
 	case "rds":
 		hotfix := aws.String("rds:db")
 		filter = append(filter, hotfix)
