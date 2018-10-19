@@ -10,14 +10,15 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
 * Supported services with auto discovery through tags:
-  - es - ElasticSearch
+  - alb - Application Load Balancer
+  - ebs - Elastic Block Storage
   - ec - ElastiCache
   - ec2 - Elastic Compute Cloud
-  - rds - Relational Database Service
-  - elb - Elastic Load Balancers
-  - s3 - Object Storage
   - efs - Elastic File System
-  - ebs - Elastic Block Storage
+  - elb - Elastic Load Balancer
+  - es - ElasticSearch
+  - rds - Relational Database Service
+  - s3 - Object Storage
 * Static metrics support for all cloudwatch metrics
 
 ## Image
