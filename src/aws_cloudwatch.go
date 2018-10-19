@@ -63,13 +63,13 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	var dimensionsFilter []*cloudwatch.DimensionFilter
 
 	for _, dim := range dimensions {
-		dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{ Name: dim.Name, Value: dim.Value })
-  }
+		dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{Name: dim.Name, Value: dim.Value})
+	}
 	output = &cloudwatch.ListMetricsInput{
 		MetricName: nil,
 		Dimensions: dimensionsFilter,
-		Namespace: namespace,
-		NextToken: nil,
+		Namespace:  namespace,
+		NextToken:  nil,
 	}
 	return output
 }
@@ -156,10 +156,9 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 	return getDimensionValueForName(resourceName, resp)
 }
 
-
 func queryAvailableDimensions(resource string, namespace *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
 
-	if (!strings.HasSuffix(*namespace, "ApplicationELB")) {
+	if !strings.HasSuffix(*namespace, "ApplicationELB") {
 		log.Fatal("Not implemented queryAvailableDimensions:" + *namespace)
 		return nil
 	}
