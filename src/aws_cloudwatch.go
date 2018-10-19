@@ -22,6 +22,7 @@ type cloudwatchData struct {
 	Statistics []string
 	Points     []*cloudwatch.Datapoint
 	NilToZero  *bool
+	CustomTags []tag
 }
 
 func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
@@ -265,6 +266,10 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 			if len(points) > 0 {
 				promLabels := make(map[string]string)
 				promLabels["name"] = *c.ID
+
+				for _, label := range c.CustomTags {
+					promLabels["custom_tag_"+label.Key] = label.Value
+				}
 
 				lastValue := points[len(points)-1]
 
