@@ -1,3 +1,26 @@
+# 0.7.0-alpha
+* ALB Support
+* Custom lables for static metrics
+
+Example
+```yaml
+static:
+  - namespace: AWS/AutoScaling
+    region: eu-west-1
+    dimensions:
+     - name: AutoScalingGroupName
+       value: Test
+    customTags:
+      - Key: CustomTag
+        Value: CustomValue
+    metrics:
+      - name: GroupInServiceInstances
+        statistics:
+        - 'Minimum'
+        period: 60
+        length: 300
+```
+
 # 0.6.1
 * Sanitize colons in tags
 
