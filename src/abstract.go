@@ -77,6 +77,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				Service:    &service,
 				Statistics: metric.Statistics,
 				NilToZero:  &metric.NilToZero,
+				CustomTags: resource.CustomTags,
 			}
 
 			filter := createGetMetricStatisticsInput(

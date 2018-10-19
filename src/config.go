@@ -22,6 +22,7 @@ type static struct {
 	Name       string      `yaml:"name"`
 	Region     string      `yaml:"region"`
 	Namespace  string      `yaml:"namespace"`
+	CustomTags []tag       `yaml:"customTags"`
 	Dimensions []dimension `yaml:"dimensions"`
 	Metrics    []metric    `yaml:"metrics"`
 }
