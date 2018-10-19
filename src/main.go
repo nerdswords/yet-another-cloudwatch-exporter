@@ -12,12 +12,24 @@ import (
 const yaceVersion = "0.6.1"
 
 var (
-	addr              = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile        = flag.String("config.file", "config.yml", "Path to configuration file.")
-	version           = flag.Bool("v", false, "prints current yace version")
-	supportedServices = []string{"rds", "ec2", "elb", "alb", "es", "ec", "s3", "efs", "ebs"}
-	debug             = flag.Bool("debug", false, "Add verbose logging")
-	config            = conf{}
+	addr       = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile = flag.String("config.file", "config.yml", "Path to configuration file.")
+	version    = flag.Bool("v", false, "prints current yace version")
+
+	supportedServices = []string{
+		"alb",
+		"ebs",
+		"ec",
+		"ec2",
+		"efs",
+		"elb",
+		"es",
+		"rds",
+		"s3",
+	}
+
+	debug  = flag.Bool("debug", false, "Add verbose logging")
+	config = conf{}
 )
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
