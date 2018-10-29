@@ -293,7 +293,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 
 				var value float64 = 0
 
-				if statistic == "Averege" {
+				if statistic == "Average" {
 					var total float64 = 0
 					for _, p := range points {
 						total += *p
