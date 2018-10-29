@@ -263,7 +263,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 						points = append(points, point.Sum)
 					}
 				case statistic == "Average":
-					if point.Sum != nil {
+					if point.Average != nil {
 						points = append(points, point.Average)
 					}
 				case percentile.MatchString(statistic):
