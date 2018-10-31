@@ -19,6 +19,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - es - ElasticSearch
   - rds - Relational Database Service
   - s3 - Object Storage
+  - vpn - VPN connection
 * Static metrics support for all cloudwatch metrics
 
 ## Image
@@ -83,6 +84,17 @@ discovery:
         statistics: [Maximum]
         period: 60
         length: 600
+  - type: "vpn"
+    region: eu-west-1
+    searchTags:
+      - Key: kubernetes.io/service-name
+        Value: .*
+    metrics:
+      - name: TunnelState
+        statistics:
+        - 'p90'
+        period: 60
+        length: 300
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
