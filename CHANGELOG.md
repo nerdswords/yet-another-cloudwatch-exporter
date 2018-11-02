@@ -1,3 +1,8 @@
+# 0.8.0
+* Added VPN connection metrics
+* Added ExtendedStatistics (percentiles)
+* Added Average Statistic
+
 # 0.7.0-alpha
 * ALB Support
 * Custom lables for static metrics
