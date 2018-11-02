@@ -7,9 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
 type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
@@ -40,19 +43,26 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	startTime := time.Now().Add(-time.Duration(length) * time.Second)
 
 	var statistics []*string
+	var extendedStatistics []*string
 	for _, statistic := range metric.Statistics {
-		statistics = append(statistics, &statistic)
+		if percentile.MatchString(statistic) {
+			extendedStatistics = append(extendedStatistics, &statistic)
+		} else {
+			statistics = append(statistics, &statistic)
+		}
 	}
 
 	output = &cloudwatch.GetMetricStatisticsInput{
-		Dimensions: dimensions,
-		Namespace:  namespace,
-		StartTime:  &startTime,
-		EndTime:    &endTime,
-		Period:     &period,
-		MetricName: &metric.Name,
-		Statistics: statistics,
+		Dimensions:         dimensions,
+		Namespace:          namespace,
+		StartTime:          &startTime,
+		EndTime:            &endTime,
+		Period:             &period,
+		MetricName:         &metric.Name,
+		Statistics:         statistics,
+		ExtendedStatistics: extendedStatistics,
 	}
+
 	if *debug {
 		log.Println(*output)
 	}
@@ -117,8 +127,10 @@ func getNamespace(service *string) *string {
 		ns = "AWS/EFS"
 	case "ebs":
 		ns = "AWS/EBS"
+	case "vpn":
+		ns = "AWS/VPN"
 	default:
-		log.Fatal("Not implemented namespace for cloudwatch metric:" + *service)
+		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
 	return &ns
 }
@@ -159,7 +171,7 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 func queryAvailableDimensions(resource string, namespace *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
 
 	if !strings.HasSuffix(*namespace, "ApplicationELB") {
-		log.Fatal("Not implemented queryAvailableDimensions:" + *namespace)
+		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
 		return nil
 	}
 
@@ -205,8 +217,10 @@ func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudw
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "ebs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
+	case "vpn":
+		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	default:
-		log.Fatal("Not implemented cloudwatch metric:" + *service)
+		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
 	return dimensions
 }
@@ -229,28 +243,35 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 	output := make([]*prometheusData, 0)
 	for _, c := range cwd {
-
 		for _, statistic := range c.Statistics {
 			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 
 			var points []*float64
 
 			for _, point := range c.Points {
-				switch statistic {
-				case "Maximum":
+				switch {
+				case statistic == "Maximum":
 					if point.Maximum != nil {
 						points = append(points, point.Maximum)
 					}
-				case "Minimum":
+				case statistic == "Minimum":
 					if point.Minimum != nil {
 						points = append(points, point.Minimum)
 					}
-				case "Sum":
+				case statistic == "Sum":
 					if point.Sum != nil {
 						points = append(points, point.Sum)
 					}
+				case statistic == "Average":
+					if point.Average != nil {
+						points = append(points, point.Average)
+					}
+				case percentile.MatchString(statistic):
+					if data, ok := point.ExtendedStatistics[statistic]; ok {
+						points = append(points, data)
+					}
 				default:
-					log.Fatal("Not implemented statistics" + statistic)
+					log.Fatal("Not implemented statistics: " + statistic)
 				}
 			}
 
@@ -270,12 +291,21 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 					promLabels["custom_tag_"+label.Key] = label.Value
 				}
 
-				lastValue := points[len(points)-1]
+				var value float64 = 0
 
+				if statistic == "Average" {
+					var total float64 = 0
+					for _, p := range points {
+						total += *p
+					}
+					value = total / float64(len(points))
+				} else {
+					value = *points[len(points)-1]
+				}
 				p := prometheusData{
 					name:   &name,
 					labels: promLabels,
-					value:  lastValue,
+					value:  &value,
 				}
 				output = append(output, &p)
 			}

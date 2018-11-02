@@ -26,6 +26,7 @@ var (
 		"es",
 		"rds",
 		"s3",
+		"vpn",
 	}
 
 	debug  = flag.Bool("debug", false, "Add verbose logging")
