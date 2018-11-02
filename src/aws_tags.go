@@ -48,6 +48,9 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 		tg := aws.String("elasticloadbalancing:targetgroup")
 		filter = append(filter, alb)
 		filter = append(filter, tg)
+	case "vpn":
+		connection := aws.String("ec2:vpn-connection")
+		filter = append(filter, connection)
 	case "rds":
 		hotfix := aws.String("rds:db")
 		filter = append(filter, hotfix)
