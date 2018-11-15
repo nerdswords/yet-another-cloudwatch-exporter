@@ -46,9 +46,9 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	var extendedStatistics []*string
 	for _, statistic := range metric.Statistics {
 		if percentile.MatchString(statistic) {
-			extendedStatistics = append(extendedStatistics, &statistic)
+			extendedStatistics = append(extendedStatistics, aws.String(statistic))
 		} else {
-			statistics = append(statistics, &statistic)
+			statistics = append(statistics, aws.String(statistic))
 		}
 	}
 
