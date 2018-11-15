@@ -24,6 +24,7 @@ var (
 		"efs",
 		"elb",
 		"es",
+		"lambda",
 		"rds",
 		"s3",
 		"vpn",
