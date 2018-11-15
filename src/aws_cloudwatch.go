@@ -129,6 +129,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/EBS"
 	case "vpn":
 		ns = "AWS/VPN"
+	case "lambda":
+		ns = "AWS/Lambda"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -219,6 +221,8 @@ func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudw
 		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
+	case "lambda":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
