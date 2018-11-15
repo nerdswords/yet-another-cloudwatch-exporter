@@ -29,7 +29,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 				client: createTagSession(region),
 			}
 
-			resources, metrics := scrapeDiscoveryJob(job, clientTag, clientCloudwatch)
+			resources, metrics := scrapeDiscoveryJob(job, config.TagsOnMetrics, clientTag, clientCloudwatch)
 
 			mux.Lock()
 			awsInfoData = append(awsInfoData, resources...)
@@ -98,7 +98,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 	return cw
 }
 
-func scrapeDiscoveryJob(job discovery, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+func scrapeDiscoveryJob(job discovery, tagsOnMetrics tagsOnMetrics, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	resources, err := clientTag.get(job)
@@ -110,6 +110,7 @@ func scrapeDiscoveryJob(job discovery, clientTag tagsInterface, clientCloudwatch
 	for i := range resources {
 		resource := resources[i]
 		awsInfoData = append(awsInfoData, resource)
+		metricTags := resource.metricTags(tagsOnMetrics)
 
 		for j := range job.Metrics {
 			metric := job.Metrics[j]
@@ -121,6 +122,7 @@ func scrapeDiscoveryJob(job discovery, clientTag tagsInterface, clientCloudwatch
 					Service:    resource.Service,
 					Statistics: metric.Statistics,
 					NilToZero:  &metric.NilToZero,
+					Tags:       metricTags,
 				}
 
 				filter := createGetMetricStatisticsInput(
@@ -157,4 +159,23 @@ func (r tagsData) filterThroughTags(filterTags []tag) bool {
 	}
 
 	return tagMatches == len(filterTags)
+}
+
+func (r tagsData) metricTags(tagsOnMetrics tagsOnMetrics) []tag {
+	tags := make([]tag, 0)
+	for _, tagName := range tagsOnMetrics[*r.Service] {
+		tag := tag{
+			Key: tagName,
+		}
+		for _, resourceTag := range r.Tags {
+			if resourceTag.Key == tagName {
+				tag.Value = resourceTag.Value
+				break
+			}
+		}
+
+		// Always add the tag, even if it's empty, to ensure the same labels are present on all metrics for a single service
+		tags = append(tags, tag)
+	}
+	return tags
 }

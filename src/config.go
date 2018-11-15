@@ -7,8 +7,9 @@ import (
 )
 
 type conf struct {
-	Discovery []discovery `yaml:"discovery"`
-	Static    []static    `yaml:"static"`
+	Discovery     []discovery   `yaml:"discovery"`
+	Static        []static      `yaml:"static"`
+	TagsOnMetrics tagsOnMetrics `yaml:"tagsOnMetrics"`
 }
 
 type discovery struct {
@@ -44,6 +45,8 @@ type tag struct {
 	Key   string `yaml:"Key"`
 	Value string `yaml:"Value"`
 }
+
+type tagsOnMetrics map[string][]string
 
 func (c *conf) load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
