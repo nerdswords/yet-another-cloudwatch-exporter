@@ -69,6 +69,9 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 	case "ebs":
 		hotfix := aws.String("ec2:volume")
 		filter = append(filter, hotfix)
+	case "lambda":
+		hotfix := aws.String("lambda:function")
+		filter = append(filter, hotfix)
 	default:
 		log.Fatal("Not implemented resources:" + discovery.Type)
 	}

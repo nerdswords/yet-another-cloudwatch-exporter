@@ -17,6 +17,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - efs - Elastic File System
   - elb - Elastic Load Balancer
   - es - ElasticSearch
+  - lambda - Lambda Functions
   - rds - Relational Database Service
   - s3 - Object Storage
   - vpn - VPN connection
