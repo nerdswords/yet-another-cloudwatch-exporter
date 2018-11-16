@@ -31,12 +31,12 @@ func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
 	return r.New(sess, &aws.Config{Region: region})
 }
 
-func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err error) {
+func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	c := iface.client
 
 	var filter []*string
 
-	switch discovery.Type {
+	switch job.Type {
 	case "ec2":
 		hotfix := aws.String("ec2:instance")
 		filter = append(filter, hotfix)
@@ -73,7 +73,7 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 		hotfix := aws.String("lambda:function")
 		filter = append(filter, hotfix)
 	default:
-		log.Fatal("Not implemented resources:" + discovery.Type)
+		log.Fatal("Not implemented resources:" + job.Type)
 	}
 
 	inputparams := r.GetResourcesInput{ResourceTypeFilters: filter}
@@ -87,14 +87,14 @@ func (iface tagsInterface) get(discovery discovery) (resources []*tagsData, err 
 
 			resource.ID = resourceTagMapping.ResourceARN
 
-			resource.Service = &discovery.Type
-			resource.Region = &discovery.Region
+			resource.Service = &job.Type
+			resource.Region = &job.Region
 
 			for _, t := range resourceTagMapping.Tags {
 				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
 			}
 
-			if resource.filterThroughTags(discovery.SearchTags) {
+			if resource.filterThroughTags(job.SearchTags) {
 				resources = append(resources, &resource)
 			}
 		}

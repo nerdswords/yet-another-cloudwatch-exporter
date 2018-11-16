@@ -15,9 +15,9 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	awsInfoData := make([]*tagsData, 0)
 
 	var wg sync.WaitGroup
-	for i := range config.Discovery {
+	for i := range config.Discovery.Jobs {
 		wg.Add(1)
-		job := config.Discovery[i]
+		job := config.Discovery.Jobs[i]
 		go func() {
 			region := &job.Region
 
@@ -29,7 +29,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 				client: createTagSession(region),
 			}
 
-			resources, metrics := scrapeDiscoveryJob(job, config.TagsOnMetrics, clientTag, clientCloudwatch)
+			resources, metrics := scrapeDiscoveryJob(job, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
 
 			mux.Lock()
 			awsInfoData = append(awsInfoData, resources...)
@@ -98,7 +98,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 	return cw
 }
 
-func scrapeDiscoveryJob(job discovery, tagsOnMetrics tagsOnMetrics, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	resources, err := clientTag.get(job)
@@ -161,7 +161,7 @@ func (r tagsData) filterThroughTags(filterTags []tag) bool {
 	return tagMatches == len(filterTags)
 }
 
-func (r tagsData) metricTags(tagsOnMetrics tagsOnMetrics) []tag {
+func (r tagsData) metricTags(tagsOnMetrics exportedTagsOnMetrics) []tag {
 	tags := make([]tag, 0)
 	for _, tagName := range tagsOnMetrics[*r.Service] {
 		tag := tag{

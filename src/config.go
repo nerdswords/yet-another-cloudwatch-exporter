@@ -7,12 +7,18 @@ import (
 )
 
 type conf struct {
-	Discovery     []discovery   `yaml:"discovery"`
-	Static        []static      `yaml:"static"`
-	TagsOnMetrics tagsOnMetrics `yaml:"tagsOnMetrics"`
+	Discovery discovery `yaml:"discovery"`
+	Static    []static  `yaml:"static"`
 }
 
 type discovery struct {
+	ExportedTagsOnMetrics exportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
+	Jobs                  []job                 `yaml:"jobs"`
+}
+
+type exportedTagsOnMetrics map[string][]string
+
+type job struct {
 	Region     string   `yaml:"region"`
 	Type       string   `yaml:"type"`
 	SearchTags []tag    `yaml:"searchTags"`
@@ -46,8 +52,6 @@ type tag struct {
 	Value string `yaml:"Value"`
 }
 
-type tagsOnMetrics map[string][]string
-
 func (c *conf) load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
 	if err != nil {
@@ -58,7 +62,7 @@ func (c *conf) load(file *string) error {
 		return err
 	}
 
-	for _, job := range c.Discovery {
+	for _, job := range c.Discovery.Jobs {
 		if !stringInSlice(job.Type, supportedServices) {
 			return fmt.Errorf("Service is not in known list!: %v", job.Type)
 		}
