@@ -173,18 +173,7 @@ metadata:
 data:
   config.yml: |-
     ---
-    discovery:
-      - region: eu-west-1
-        type: "ec2"
-        searchTags:
-          - Key: Name
-            Value: jenkins
-        metrics:
-          - name: CPUUtilization
-            statistics:
-            - 'Maximum'
-            period: 30
-            length: 30
+    # Start of config file
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
