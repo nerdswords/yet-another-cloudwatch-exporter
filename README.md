@@ -9,6 +9,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
+* Static metrics support for all cloudwatch metrics
 * Supported services with auto discovery through tags:
   - alb - Application Load Balancer
   - ebs - Elastic Block Storage
@@ -21,7 +22,6 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - rds - Relational Database Service
   - s3 - Object Storage
   - vpn - VPN connection
-* Static metrics support for all cloudwatch metrics
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
@@ -32,6 +32,10 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 Example of config File
 ```
 discovery:
+  exportedTagsOnMetrics:
+    ec2:
+      - Name
+  jobs:
   - region: eu-west-1
     type: "es"
     searchTags:
@@ -115,10 +119,8 @@ static:
 
 ## Metrics Examples
 ```
-### Metrics
-aws_ec2_cpuutilization_maximum{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid"} 57.2916666666667
-aws_elb_healthyhostcount_minimum{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9"} 9
-aws_elb_httpcode_backend_4xx_sum{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9"} 1
+### Metrics with exportedTagsOnMetrics
+aws_ec2_cpuutilization_maximum{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid", tag_Name="jenkins"} 57.2916666666667
 
 ### Info helper with tags
 aws_elb_info{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9",tag_KubernetesCluster="production-19",tag_Name="",tag_kubernetes_io_cluster_production_19="owned",tag_kubernetes_io_service_name="nginx-ingress/private-ext"} 0
@@ -128,7 +130,7 @@ aws_ec2_info{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid",tag_Name="
 yace_cloudwatch_requests_total 168
 ```
 
-## Query Examples
+## Query Examples without exportedTagsOnMetrics
 
 ```
 # CPUUtilization + Name tag of the instance id - No more instance id needed for monitoring

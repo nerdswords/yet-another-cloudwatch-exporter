@@ -1,3 +1,53 @@
+# 0.9.0
+* Add lambda support
+* Fix support for listing multiple statistics per metric
+* Add tag labels on metrics for easy querying
+```
+# Before
+aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
+
+# After, now name tags are on metrics and no grouping needed
+aws_ec2_cpuutilization_average
+```
+
+* **BREAKING** Change config syntax. Now you can define tags which are exported as labels on metrics.
+Before:
+
+```yaml
+discovery:
+  - region: eu-west-1
+    type: "es"
+    searchTags:
+      - Key: type
+        Value: ^(easteregg|k8s)$
+    metrics:
+      - name: FreeStorageSpace
+        statistics:
+        - 'Sum'
+        period: 600
+        length: 60
+```
+
+New Syntax with optional exportedTagsOnMetrics:
+```yaml
+discovery:
+  exportedTagsOnMetrics:
+    ec2:
+      - Name
+  jobs:
+    - region: eu-west-1
+      type: "es"
+      searchTags:
+        - Key: type
+          Value: ^(easteregg|k8s)$
+      metrics:
+        - name: FreeStorageSpace
+          statistics:
+          - 'Sum'
+          period: 600
+          length: 60
+```
+
 # 0.8.0
 * Added VPN connection metrics
 * Added ExtendedStatistics (percentiles)
