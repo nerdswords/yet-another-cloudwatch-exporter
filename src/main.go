@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const yaceVersion = "0.8.0"
+const yaceVersion = "0.9.0"
 
 var (
 	addr       = flag.String("listen-address", ":5000", "The address to listen on.")
