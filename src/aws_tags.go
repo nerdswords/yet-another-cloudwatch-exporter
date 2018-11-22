@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
@@ -22,13 +23,17 @@ type tagsInterface struct {
 	client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 }
 
-func createTagSession(region *string) *r.ResourceGroupsTaggingAPI {
+func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
 	sess, err := session.NewSession()
 	if err != nil {
 		panic(err)
 	}
+	config := &aws.Config{Region: region}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
 
-	return r.New(sess, &aws.Config{Region: region})
+	return r.New(sess, config)
 }
 
 func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
