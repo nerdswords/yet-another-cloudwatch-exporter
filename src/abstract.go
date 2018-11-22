@@ -20,13 +20,14 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		job := config.Discovery.Jobs[i]
 		go func() {
 			region := &job.Region
+			roleArn := job.RoleArn
 
 			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region),
+				client: createCloudwatchSession(region, roleArn),
 			}
 
 			clientTag := tagsInterface{
-				client: createTagSession(region),
+				client: createTagSession(region, roleArn),
 			}
 
 			resources, metrics := scrapeDiscoveryJob(job, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
@@ -44,9 +45,10 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		job := config.Static[i]
 		go func() {
 			region := &job.Region
+			roleArn := job.RoleArn
 
 			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region),
+				client: createCloudwatchSession(region, roleArn),
 			}
 
 			metrics := scrapeStaticJob(job, clientCloudwatch)
