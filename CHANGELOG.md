@@ -1,3 +1,17 @@
+# 0.10.0
+* Reduce usage of listMetrics calls
+* Add support of iam roles
+* Add optional roleArn setting, which allows scraping with different roles e.g. pull data from mulitple AWS accounts using cross-acount roles
+```yaml
+    metrics:
+      - name: FreeStorageSpace
+        roleArn: xxx
+        statistics:
+        - 'Sum'
+        period: 600
+        length: 60
+```
+
 # 0.9.0
 * Add lambda support
 * Fix support for listing multiple statistics per metric
