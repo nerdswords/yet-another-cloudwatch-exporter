@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -29,12 +30,16 @@ type cloudwatchData struct {
 	Tags       []tag
 }
 
-func createCloudwatchSession(region *string) *cloudwatch.CloudWatch {
+func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
+	config := &aws.Config{Region: region}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
 
-	return cloudwatch.New(sess, &aws.Config{Region: region})
+	return cloudwatch.New(sess, config)
 }
 
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
