@@ -9,7 +9,8 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
-* Static metrics support for all cloudwatch metrics
+* Static metrics support for all cloudwatch metrics without auto discovery
+* Pull data from mulitple AWS accounts using cross-acount roles
 * Supported services with auto discovery through tags:
   - alb - Application Load Balancer
   - ebs - Elastic Block Storage
