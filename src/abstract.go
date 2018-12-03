@@ -112,33 +112,36 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 		awsInfoData = append(awsInfoData, resource)
 		metricTags := resource.metricTags(tagsOnMetrics)
 
-		for j := range job.Metrics {
-			metric := job.Metrics[j]
-			wg.Add(1)
-			go func() {
-				data := cloudwatchData{
-					ID:         resource.ID,
-					Metric:     &metric.Name,
-					Service:    resource.Service,
-					Statistics: metric.Statistics,
-					NilToZero:  &metric.NilToZero,
-					Tags:       metricTags,
-				}
+		wg.Add(len(job.Metrics))
+		go func() {
+			dimensions := getDimensions(resource.Service, resource.ID, clientCloudwatch)
+			for j := range job.Metrics {
+				metric := job.Metrics[j]
+				go func() {
+					data := cloudwatchData{
+						ID:         resource.ID,
+						Metric:     &metric.Name,
+						Service:    resource.Service,
+						Statistics: metric.Statistics,
+						NilToZero:  &metric.NilToZero,
+						Tags:       metricTags,
+					}
 
-				filter := createGetMetricStatisticsInput(
-					getDimensions(resource.Service, resource.ID, clientCloudwatch),
-					getNamespace(resource.Service),
-					metric,
-				)
+					filter := createGetMetricStatisticsInput(
+						dimensions,
+						getNamespace(resource.Service),
+						metric,
+					)
 
-				data.Points = clientCloudwatch.get(filter)
+					data.Points = clientCloudwatch.get(filter)
 
-				mux.Lock()
-				cw = append(cw, &data)
-				mux.Unlock()
-				wg.Done()
-			}()
-		}
+					mux.Lock()
+					cw = append(cw, &data)
+					mux.Unlock()
+					wg.Done()
+				}()
+			}
+		}()
 	}
 	wg.Wait()
 	return awsInfoData, cw
