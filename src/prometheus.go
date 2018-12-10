@@ -69,6 +69,6 @@ func promString(text string) string {
 }
 
 func splitText(text string) string {
-	split_regexp := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	return split_regexp.ReplaceAllString(text, `$1.$2`)
+	splitRegexp := regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	return splitRegexp.ReplaceAllString(text, `$1.$2`)
 }
