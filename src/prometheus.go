@@ -63,6 +63,12 @@ func fillRegistry(promData []*prometheusData) *prometheus.Registry {
 }
 
 func promString(text string) string {
+	text = splitText(text)
 	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_", ":", "_")
 	return replacer.Replace(text)
+}
+
+func splitText(text string) string {
+	split_regexp := regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	return split_regexp.ReplaceAllString(text, `$1.$2`)
 }
