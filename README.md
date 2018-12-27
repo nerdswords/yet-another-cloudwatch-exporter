@@ -79,6 +79,7 @@ discovery:
         - 'Sum'
         period: 60
         length: 900
+        delay: 300
         nilToZero: true
   - type: "alb"
     region: eu-west-1
