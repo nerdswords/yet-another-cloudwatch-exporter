@@ -41,6 +41,7 @@ type metric struct {
 	Statistics []string `yaml:"statistics"`
 	Period     int      `yaml:"period"`
 	Length     int      `yaml:"length"`
+	Delay      int      `yaml:"delay"`
 	NilToZero  bool     `yaml:"nilToZero"`
 }
 
