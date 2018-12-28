@@ -301,7 +301,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 					promLabels["custom_tag_"+label.Key] = label.Value
 				}
 				for _, tag := range c.Tags {
-					promLabels["tag_"+promString(tag.Key)] = tag.Value
+					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value
 				}
 
 				var value float64 = 0
