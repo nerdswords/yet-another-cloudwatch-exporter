@@ -1,3 +1,19 @@
+# 0.11.0
+* **BREAKING** Add snake_case to prometheus metrics (sanchezpaco)
+```yaml
+# Before
+aws_elb_requestcount_sum
+# After
+aws_elb_request_count_sum
+```
+
+* Add optional delay setting to scraping (Deepak1100)
+```yaml
+period: 60
+length: 900
+delay: 300
+``` 
+
 # 0.10.0
 * Reduce usage of listMetrics calls (nhinds)
 * Add support of iam roles (nhinds)
