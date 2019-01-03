@@ -126,7 +126,7 @@ func migrateTagsToPrometheus(tagData []*tagsData) []*prometheusData {
 		promLabels["name"] = *d.ID
 
 		for _, entry := range tagList[*d.Service] {
-			labelKey := "tag_" + promStringTag(entry)
+			labelKey := "tag_" + promString(entry)
 			promLabels[labelKey] = ""
 
 			for _, rTag := range d.Tags {

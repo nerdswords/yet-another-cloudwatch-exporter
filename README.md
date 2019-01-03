@@ -139,17 +139,17 @@ yace_cloudwatch_requests_total 168
 aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 
 # Free Storage in Megabytes + tag Type of the elasticsearch cluster
-(aws_es_free_storage_space_sum + on (name) group_left(tag_Type) aws_es_info) / 1024
+(aws_es_freestoragespace_sum + on (name) group_left(tag_Type) aws_es_info) / 1024
 
 # Add kubernetes / kops tags on 4xx elb metrics
-(aws_elb_httpcode_backend_4_xx_sum + on (name) group_left(tag_KubernetesCluster,tag_kubernetes_io_service_name) aws_elb_info)
+(aws_elb_httpcode_backend_4xx_sum + on (name) group_left(tag_KubernetesCluster,tag_kubernetes_io_service_name) aws_elb_info)
 
 # Availability Metric for ELBs (Sucessfull requests / Total Requests) + k8s service name
 # Use nilToZero on all metrics else it won't work
-((aws_elb_request_count_sum - on (name) group_left() aws_elb_httpcode_backend_4_xx_sum) - on (name) group_left() aws_elb_httpcode_backend_5_xx_sum) + on (name) group_left(tag_kubernetes_io_service_name) aws_elb_info
+((aws_elb_requestcount_sum - on (name) group_left() aws_elb_httpcode_backend_4xx_sum) - on (name) group_left() aws_elb_httpcode_backend_5xx_sum) + on (name) group_left(tag_kubernetes_io_service_name) aws_elb_info
 
 # Forecast your elasticsearch disk size in 7 days and report metrics with tags type and version
-predict_linear(aws_es_free_storage_space_minimum[2d], 86400 * 7) + on (name) group_left(tag_type, tag_version) aws_es_info
+predict_linear(aws_es_freestoragespace_minimum[2d], 86400 * 7) + on (name) group_left(tag_type, tag_version) aws_es_info
 
 # Forecast your cloudwatch costs for next 32 days based on last 10 minutes
 # 1.000.000 Requests free
