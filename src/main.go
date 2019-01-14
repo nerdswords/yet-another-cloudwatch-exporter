@@ -67,7 +67,7 @@ func main() {
 
 	log.Println("Parse config..")
 	if err := config.load(configFile); err != nil {
-		log.Fatal("Couldn't read config", *configFile, ":", err)
+		log.Fatal("Couldn't read ", *configFile, ":", err)
 	}
 
 	log.Println("Startup completed")
