@@ -1,16 +1,17 @@
 package main
 
 import (
+	"log"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	"log"
-	"regexp"
-	"strings"
-	"time"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -20,14 +21,15 @@ type cloudwatchInterface struct {
 }
 
 type cloudwatchData struct {
-	ID         *string
-	Metric     *string
-	Service    *string
-	Statistics []string
-	Points     []*cloudwatch.Datapoint
-	NilToZero  *bool
-	CustomTags []tag
-	Tags       []tag
+	ID               *string
+	Metric           *string
+	Service          *string
+	Statistics       []string
+	Points           []*cloudwatch.Datapoint
+	NilToZero        *bool
+	DisableTimestamp *bool
+	CustomTags       []tag
+	Tags             []tag
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
@@ -47,7 +49,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	length := metric.Length
 	delay := metric.Delay
 	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
-	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)	
+	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
 
 	var statistics []*string
 	var extendedStatistics []*string
@@ -251,15 +253,21 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 	return &dimension
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
-	output := make([]*prometheusData, 0)
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
+	output := make([]*PrometheusMetric, 0)
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
 			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 
 			var points []*float64
 
+			var timestamp time.Time
+
 			for _, point := range c.Points {
+				if point.Timestamp != nil && timestamp.Before(*point.Timestamp) {
+					timestamp = *point.Timestamp
+				}
+
 				switch {
 				case statistic == "Maximum":
 					if point.Maximum != nil {
@@ -316,10 +324,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 				} else {
 					value = *points[len(points)-1]
 				}
-				p := prometheusData{
-					name:   &name,
-					labels: promLabels,
-					value:  &value,
+				p := PrometheusMetric{
+					name:             &name,
+					labels:           promLabels,
+					value:            &value,
+					timestamp:        timestamp,
+					includeTimestamp: c.DisableTimestamp == nil || *c.DisableTimestamp == false,
 				}
 				output = append(output, &p)
 			}
