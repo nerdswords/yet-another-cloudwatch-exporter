@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const yaceVersion = "0.11.0"
@@ -37,14 +39,13 @@ var (
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	tagsData, cloudwatchData := scrapeAwsData(config)
 
-	var promData []*prometheusData
+	var metrics []*PrometheusMetric
 
-	promData = append(promData, migrateCloudwatchToPrometheus(cloudwatchData)...)
-	promData = append(promData, migrateTagsToPrometheus(tagsData)...)
+	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
+	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
-	promData = removePromDouble(promData)
-
-	registry := fillRegistry(promData)
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(NewPrometheusCollector(metrics))
 
 	if err := registry.Register(cloudwatchAPICounter); err != nil {
 		log.Fatal("Could not publish cloudwatch api metric")
