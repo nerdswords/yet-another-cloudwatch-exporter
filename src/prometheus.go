@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -14,53 +15,72 @@ var (
 	})
 )
 
-type prometheusData struct {
-	name   *string
-	labels map[string]string
-	value  *float64
+type PrometheusMetric struct {
+	name             *string
+	labels           map[string]string
+	value            *float64
+	includeTimestamp bool
+	timestamp        time.Time
 }
 
-func createPrometheusMetrics(p prometheusData) *prometheus.Gauge {
+type PrometheusCollector struct {
+	metrics []*PrometheusMetric
+}
+
+func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
+	return &PrometheusCollector{
+		metrics: removeDuplicatedMetrics(metrics),
+	}
+}
+
+func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
+	for _, metric := range p.metrics {
+		descs <- createDesc(metric)
+	}
+}
+
+func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
+	for _, metric := range p.metrics {
+		metrics <- createMetric(metric)
+	}
+}
+
+func createDesc(metric *PrometheusMetric) *prometheus.Desc {
+	return prometheus.NewDesc(
+		*metric.name,
+		"Help is not implemented yet.",
+		nil,
+		metric.labels,
+	)
+}
+
+func createMetric(metric *PrometheusMetric) prometheus.Metric {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        *p.name,
+		Name:        *metric.name,
 		Help:        "Help is not implemented yet.",
-		ConstLabels: p.labels,
+		ConstLabels: metric.labels,
 	})
 
-	gauge.Set(*p.value)
+	gauge.Set(*metric.value)
 
-	return &gauge
+	if !metric.includeTimestamp {
+		return gauge
+	}
+
+	return prometheus.NewMetricWithTimestamp(metric.timestamp, gauge)
 }
 
-func removePromDouble(data []*prometheusData) []*prometheusData {
+func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 	keys := make(map[string]bool)
-	list := []*prometheusData{}
-	for _, entry := range data {
-		check := *entry.name + entry.labels["name"]
+	filteredMetrics := []*PrometheusMetric{}
+	for _, metric := range metrics {
+		check := *metric.name + metric.labels["name"]
 		if _, value := keys[check]; !value {
 			keys[check] = true
-			list = append(list, entry)
+			filteredMetrics = append(filteredMetrics, metric)
 		}
 	}
-	return list
-}
-
-func fillRegistry(promData []*prometheusData) *prometheus.Registry {
-	registry := prometheus.NewRegistry()
-
-	for _, point := range promData {
-		gauge := createPrometheusMetrics(*point)
-
-		if err := registry.Register(*gauge); err != nil {
-			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
-				fmt.Println("Already registered")
-			} else {
-				panic(err)
-			}
-		}
-	}
-
-	return registry
+	return filteredMetrics
 }
 
 func promString(text string) string {
