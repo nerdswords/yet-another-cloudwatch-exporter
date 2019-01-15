@@ -45,8 +45,9 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := int64(metric.Period)
 	length := metric.Length
-	endTime := time.Now()
-	startTime := time.Now().Add(-time.Duration(length) * time.Second)
+	delay := metric.Delay
+	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
+	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)	
 
 	var statistics []*string
 	var extendedStatistics []*string
@@ -301,7 +302,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*prometheusData {
 					promLabels["custom_tag_"+label.Key] = label.Value
 				}
 				for _, tag := range c.Tags {
-					promLabels["tag_"+promString(tag.Key)] = tag.Value
+					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value
 				}
 
 				var value float64 = 0
