@@ -1,7 +1,23 @@
+# 0.11.0
+* **BREAKING** Add snake_case to prometheus metrics (sanchezpaco)
+```yaml
+# Before
+aws_elb_requestcount_sum
+# After
+aws_elb_request_count_sum
+```
+
+* Add optional delay setting to scraping (Deepak1100)
+```yaml
+period: 60
+length: 900
+delay: 300
+``` 
+
 # 0.10.0
-* Reduce usage of listMetrics calls
-* Add support of iam roles
-* Add optional roleArn setting, which allows scraping with different roles e.g. pull data from mulitple AWS accounts using cross-acount roles
+* Reduce usage of listMetrics calls (nhinds)
+* Add support of iam roles (nhinds)
+* Add optional roleArn setting, which allows scraping with different roles e.g. pull data from mulitple AWS accounts using cross-acount roles (nhinds)
 ```yaml
     metrics:
       - name: FreeStorageSpace
@@ -13,9 +29,9 @@
 ```
 
 # 0.9.0
-* Add lambda support
-* Fix support for listing multiple statistics per metric
-* Add tag labels on metrics for easy querying
+* Add lambda support (nhinds)
+* Fix support for listing multiple statistics per metric (nhinds)
+* Add tag labels on metrics for easy querying (nhinds)
 ```
 # Before
 aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
@@ -63,12 +79,12 @@ discovery:
 ```
 
 # 0.8.0
-* Added VPN connection metrics
-* Added ExtendedStatistics (percentiles)
-* Added Average Statistic
+* Added VPN connection metrics (AndrewChubatiuk)
+* Added ExtendedStatistics / percentiles (linefeedse)
+* Added Average Statistic (AndrewChubatiuk)
 
 # 0.7.0-alpha
-* ALB Support
+* ALB Support (linefeedse)
 * Custom lables for static metrics
 
 Example
@@ -91,7 +107,7 @@ static:
 ```
 
 # 0.6.1
-* Sanitize colons in tags
+* Sanitize colons in tags (linefeedse)
 
 # 0.6.0 / 0.6.0-alpha
 * **BREAKING**: Period/length uses now seconds instead of minutes
@@ -164,6 +180,7 @@ jobs:
         - 'Maximum'
 ```
 * Start to track changes in CHANGELOG.md
+* Better error handling (discordianfish)
 * Increase speed, not only each jobs threaded but now each metric
 * Add s3 support
 * Fix potential race condition during cloudwatch access

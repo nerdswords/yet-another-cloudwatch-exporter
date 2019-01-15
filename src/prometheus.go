@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"regexp"
 	"strings"
 )
 
@@ -63,6 +64,20 @@ func fillRegistry(promData []*prometheusData) *prometheus.Registry {
 }
 
 func promString(text string) string {
+	text = splitString(text)
+	return replaceWithUnderscores(text)
+}
+
+func promStringTag(text string) string {
+	return replaceWithUnderscores(text)
+}
+
+func replaceWithUnderscores(text string) string {
 	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_", ":", "_")
 	return replacer.Replace(text)
+}
+
+func splitString(text string) string {
+	splitRegexp := regexp.MustCompile(`([a-z0-9])([A-Z])`)
+	return splitRegexp.ReplaceAllString(text, `$1.$2`)
 }
