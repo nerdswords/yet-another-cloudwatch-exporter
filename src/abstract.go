@@ -74,12 +74,13 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 			id := resource.Name
 			service := strings.TrimPrefix(resource.Namespace, "AWS/")
 			data := cloudwatchData{
-				ID:         &id,
-				Metric:     &metric.Name,
-				Service:    &service,
-				Statistics: metric.Statistics,
-				NilToZero:  &metric.NilToZero,
-				CustomTags: resource.CustomTags,
+				ID:               &id,
+				Metric:           &metric.Name,
+				Service:          &service,
+				Statistics:       metric.Statistics,
+				NilToZero:        &metric.NilToZero,
+				DisableTimestamp: &metric.DisableTimestamp,
+				CustomTags:       resource.CustomTags,
 			}
 
 			filter := createGetMetricStatisticsInput(
@@ -121,12 +122,13 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 				metric := job.Metrics[j]
 				go func() {
 					data := cloudwatchData{
-						ID:         resource.ID,
-						Metric:     &metric.Name,
-						Service:    resource.Service,
-						Statistics: metric.Statistics,
-						NilToZero:  &metric.NilToZero,
-						Tags:       metricTags,
+						ID:               resource.ID,
+						Metric:           &metric.Name,
+						Service:          resource.Service,
+						Statistics:       metric.Statistics,
+						NilToZero:        &metric.NilToZero,
+						DisableTimestamp: &metric.DisableTimestamp,
+						Tags:             metricTags,
 					}
 
 					filter := createGetMetricStatisticsInput(
