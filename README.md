@@ -23,6 +23,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - rds - Relational Database Service
   - s3 - Object Storage
   - vpn - VPN connection
+  - kinesis - Kinesis Data Stream
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
@@ -100,6 +101,14 @@ discovery:
       - name: TunnelState
         statistics:
         - 'p90'
+        period: 60
+        length: 300
+  - type: "kinesis"
+    region: eu-west-1
+    metrics:
+      - name: PutRecords.Success
+        statistics:
+        - 'Sum'
         period: 60
         length: 300
 static:
