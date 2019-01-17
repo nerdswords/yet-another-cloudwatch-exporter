@@ -77,6 +77,9 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "lambda":
 		hotfix := aws.String("lambda:function")
 		filter = append(filter, hotfix)
+	case "kinesis":
+		hotfix := aws.String("kinesis:stream")
+		filter = append(filter, hotfix)
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}

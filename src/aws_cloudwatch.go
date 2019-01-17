@@ -47,7 +47,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	length := metric.Length
 	delay := metric.Delay
 	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
-	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)	
+	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
 
 	var statistics []*string
 	var extendedStatistics []*string
@@ -138,6 +138,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/VPN"
 	case "lambda":
 		ns = "AWS/Lambda"
+	case "kinesis":
+		ns = "AWS/Kinesis"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -230,6 +232,8 @@ func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudw
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "lambda":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
+	case "kinesis":
+		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}

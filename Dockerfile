@@ -20,4 +20,4 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=builder /go/src/yace/yace /usr/local/bin/yace
-CMD ["./yace"]
+CMD ["/usr/local/bin/yace"]

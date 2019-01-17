@@ -27,6 +27,7 @@ var (
 		"lambda",
 		"rds",
 		"s3",
+		"kinesis",
 		"vpn",
 	}
 
