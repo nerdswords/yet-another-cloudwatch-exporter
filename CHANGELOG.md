@@ -1,6 +1,7 @@
-# 0.12.0
-* Add the exact timestamps from CloudWatch to the exporter Prometheus metrics
-* Add a new option `disableTimestamp` to not include a timestamp for a specific metric (it can be useful for sparse metrics, e.g. from S3)
+# 0.12.0-alpha
+* **BREAKING** Add the exact timestamps from CloudWatch to the exporter Prometheus metrics (LeePorte)
+* Add a new option `disableTimestamp` to not include a timestamp for a specific metric (it can be useful for sparse metrics, e.g. from S3) (LeePorte)
+* Add support for kinesis (AndrewChubatiuk)
 
 # 0.11.0
 * **BREAKING** Add snake_case to prometheus metrics (sanchezpaco)
