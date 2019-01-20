@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 type conf struct {
@@ -37,12 +38,13 @@ type static struct {
 }
 
 type metric struct {
-	Name       string   `yaml:"name"`
-	Statistics []string `yaml:"statistics"`
-	Period     int      `yaml:"period"`
-	Length     int      `yaml:"length"`
-	Delay      int      `yaml:"delay"`
-	NilToZero  bool     `yaml:"nilToZero"`
+	Name             string   `yaml:"name"`
+	Statistics       []string `yaml:"statistics"`
+	Period           int      `yaml:"period"`
+	Length           int      `yaml:"length"`
+	Delay            int      `yaml:"delay"`
+	NilToZero        bool     `yaml:"nilToZero"`
+	DisableTimestamp bool     `yaml:"disableTimestamp"`
 }
 
 type dimension struct {

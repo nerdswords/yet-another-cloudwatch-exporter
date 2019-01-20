@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	_ "fmt"
+	"log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
-	"log"
 )
 
 type tagsData struct {
@@ -110,8 +111,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	})
 }
 
-func migrateTagsToPrometheus(tagData []*tagsData) []*prometheusData {
-	output := make([]*prometheusData, 0)
+func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
+	output := make([]*PrometheusMetric, 0)
 
 	tagList := make(map[string][]string)
 
@@ -142,7 +143,7 @@ func migrateTagsToPrometheus(tagData []*tagsData) []*prometheusData {
 		var i int
 		f := float64(i)
 
-		p := prometheusData{
+		p := PrometheusMetric{
 			name:   &name,
 			labels: promLabels,
 			value:  &f,

@@ -9,6 +9,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
+* Exports metrics with CloudWatch timestamps (can be disabled per-metric)
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from mulitple AWS accounts using cross-acount roles
 * Supported services with auto discovery through tags:
@@ -31,7 +32,70 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 ## Configuration
 
-Example of config File
+### Top level configuration
+
+| Key       | Description                   |
+| --------- | ----------------------------- |
+| discovery | Auto-discovery configuration  |
+| static    | List of static configurations |
+
+### Auto-discovery configuration
+
+| Key                   | Description                                       |
+| --------------------- | ------------------------------------------------- |
+| exportedTagsOnMetrics | List of tags per service to export to all metrics |
+| jobs                  | List of auto-discovery jobs                       |
+
+exportedTagsOnMetrics example:
+
+```
+exportedTagsOnMetrics:
+  ec2:
+    - Name
+    - type
+```
+
+### Auto-discovery job
+
+| Key        | Description                                                                              |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| region     | AWS region                                                                               |
+| type       | Service name, e.g. "ec2", "s3", etc.                                                     |
+| roleArn    | IAM role to assume (optional)                                                            |
+| searchTags | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex. |
+| metrics    | List of metric definitions                                                               |
+
+searchTags example:
+```
+searchTags:
+  - Key: env
+    Value: production
+```
+
+### Metric definition
+
+| Key              | Description                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| name             | CloudWatch metric name                                                                                   |
+| statistics       | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                 |
+| period           | Statictic period                                                                                         |
+| length           | How far back to request data for                                                                         |
+| delay            | If set it will request metrics up until `current_time - delay`                                           |
+| nilToZero        | Return 0 value if Cloudwatch returns no metrics at all                                                   |
+| disableTimestamp | Do not export the metric with the original CloudWatch timestamp (useful for sparse metrics, e.g from S3) |
+
+### Static configuration
+
+| Key        | Description                                                |
+| ---------- | ---------------------------------------------------------- |
+| region     | AWS region                                                 |
+| roleArn    | IAM role to assume                                         |
+| namespace  | CloudWatch namespace                                       |
+| customTags | Custom tags to be added as a list of Key/Value pairs       |
+| dimensions | CloudWatch metric dimensions as a list of Name/Value pairs |
+| metrics    | List of metric definitions                                 |
+
+### Example of config File
 ```
 discovery:
   exportedTagsOnMetrics:
@@ -111,6 +175,18 @@ discovery:
         - 'Sum'
         period: 60
         length: 300
+  - type: "s3"
+    region: eu-west-1
+    searchTags:
+      - Key: type
+        Value: public
+    metrics:
+      - name: NumberOfObjects
+        statistics:
+          - Average
+        period: 86400
+        length: 172800
+        disableTimestamp: true
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
