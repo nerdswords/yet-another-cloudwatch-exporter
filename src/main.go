@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const yaceVersion = "0.12.0-alpha"
+const yaceVersion = "0.12.0"
 
 var (
 	addr       = flag.String("listen-address", ":5000", "The address to listen on.")

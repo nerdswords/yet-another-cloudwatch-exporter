@@ -1,4 +1,4 @@
-# 0.12.0-alpha
+# 0.12.0 / 0.12.0-alpha
 * **BREAKING** Add the exact timestamps from CloudWatch to the exporter Prometheus metrics (LeePorte)
 * Add a new option `disableTimestamp` to not include a timestamp for a specific metric (it can be useful for sparse metrics, e.g. from S3) (LeePorte)
 * Add support for kinesis (AndrewChubatiuk)
