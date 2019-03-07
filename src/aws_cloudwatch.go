@@ -202,7 +202,7 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 	return dimensions
 }
 
-func getDimensions(service *string, resourceArn *string, configuredDimensions []dimension, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
+func detectDimensionsByService(service *string, resourceArn *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
@@ -225,9 +225,7 @@ func getDimensions(service *string, resourceArn *string, configuredDimensions []
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
-		if len(configuredDimensions) == 0 {
-			dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
-		}
+		dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "ebs":
@@ -242,7 +240,12 @@ func getDimensions(service *string, resourceArn *string, configuredDimensions []
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
 
-	for _, dimension := range configuredDimensions {
+	return dimensions
+}
+
+func addAdditionalDimensions(startingDimensions []*cloudwatch.Dimension, additionalDimensions []dimension) (dimensions []*cloudwatch.Dimension) {
+	dimensions = startingDimensions
+	for _, dimension := range additionalDimensions {
 		dimensions = append(dimensions, buildDimension(dimension.Name, dimension.Value))
 	}
 
