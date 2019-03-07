@@ -11,7 +11,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Allows to export 0 even if CloudWatch returns nil
 * Exports metrics with CloudWatch timestamps (can be disabled per-metric)
 * Static metrics support for all cloudwatch metrics without auto discovery
-* Pull data from mulitple AWS accounts using cross-acount roles
+* Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
   - alb - Application Load Balancer
   - ebs - Elastic Block Storage
@@ -57,13 +57,14 @@ exportedTagsOnMetrics:
 
 ### Auto-discovery job
 
-| Key        | Description                                                                              |
-| ---------- | ---------------------------------------------------------------------------------------- |
-| region     | AWS region                                                                               |
-| type       | Service name, e.g. "ec2", "s3", etc.                                                     |
-| roleArn    | IAM role to assume (optional)                                                            |
-| searchTags | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex. |
-| metrics    | List of metric definitions                                                               |
+| Key                  | Description                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| region               | AWS region                                                                               |
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                     |
+| roleArn              | IAM role to assume (optional)                                                            |
+| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex. |
+| metrics              | List of metric definitions                                                               |
+| additionalDimensions | List of dimensions to return beyond the default list per service                         |
 
 searchTags example:
 ```
@@ -78,11 +79,12 @@ searchTags:
 | ---------------- | -------------------------------------------------------------------------------------------------------- |
 | name             | CloudWatch metric name                                                                                   |
 | statistics       | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                 |
-| period           | Statictic period                                                                                         |
+| period           | Statistic period                                                                                         |
 | length           | How far back to request data for                                                                         |
 | delay            | If set it will request metrics up until `current_time - delay`                                           |
 | nilToZero        | Return 0 value if Cloudwatch returns no metrics at all                                                   |
 | disableTimestamp | Do not export the metric with the original CloudWatch timestamp (useful for sparse metrics, e.g from S3) |
+
 
 ### Static configuration
 
@@ -180,8 +182,17 @@ discovery:
     searchTags:
       - Key: type
         Value: public
+    additionalDimensions:
+      - name: StorageType
+        value: StandardStorage
     metrics:
       - name: NumberOfObjects
+        statistics:
+          - Average
+        period: 86400
+        length: 172800
+        disableTimestamp: true
+      - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
