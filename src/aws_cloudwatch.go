@@ -21,15 +21,15 @@ type cloudwatchInterface struct {
 }
 
 type cloudwatchData struct {
-	ID               *string
-	Metric           *string
-	Service          *string
-	Statistics       []string
-	Points           []*cloudwatch.Datapoint
-	NilToZero        *bool
-	DisableTimestamp *bool
-	CustomTags       []tag
-	Tags             []tag
+	ID                     *string
+	Metric                 *string
+	Service                *string
+	Statistics             []string
+	Points                 []*cloudwatch.Datapoint
+	NilToZero              *bool
+	AddCloudwatchTimestamp *bool
+	CustomTags             []tag
+	Tags                   []tag
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
@@ -344,7 +344,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 					labels:           promLabels,
 					value:            &value,
 					timestamp:        timestamp,
-					includeTimestamp: c.DisableTimestamp == nil || *c.DisableTimestamp == false,
+					includeTimestamp: *c.AddCloudwatchTimestamp,
 				}
 				output = append(output, &p)
 			}

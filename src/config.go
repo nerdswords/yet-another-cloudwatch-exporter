@@ -38,14 +38,14 @@ type static struct {
 }
 
 type metric struct {
-	Name                  string      `yaml:"name"`
-	Statistics            []string    `yaml:"statistics"`
-	AdditionalDimensions	[]dimension `yaml:"additionalDimensions"`
-	Period                int         `yaml:"period"`
-	Length                int         `yaml:"length"`
-	Delay                 int         `yaml:"delay"`
-	NilToZero             bool        `yaml:"nilToZero"`
-	DisableTimestamp      bool        `yaml:"disableTimestamp"`
+	Name                   string      `yaml:"name"`
+	Statistics             []string    `yaml:"statistics"`
+	AdditionalDimensions   []dimension `yaml:"additionalDimensions"`
+	Period                 int         `yaml:"period"`
+	Length                 int         `yaml:"length"`
+	Delay                  int         `yaml:"delay"`
+	NilToZero              bool        `yaml:"nilToZero"`
+	AddCloudwatchTimestamp bool        `yaml:"addCloudwatchTimestamp"`
 }
 
 type dimension struct {
