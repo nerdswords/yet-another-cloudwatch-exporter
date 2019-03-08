@@ -202,7 +202,7 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 	return dimensions
 }
 
-func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
+func detectDimensionsByService(service *string, resourceArn *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
@@ -239,6 +239,16 @@ func getDimensions(service *string, resourceArn *string, clientCloudwatch cloudw
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
+
+	return dimensions
+}
+
+func addAdditionalDimensions(startingDimensions []*cloudwatch.Dimension, additionalDimensions []dimension) (dimensions []*cloudwatch.Dimension) {
+	dimensions = startingDimensions
+	for _, dimension := range additionalDimensions {
+		dimensions = append(dimensions, buildDimension(dimension.Name, dimension.Value))
+	}
+
 	return dimensions
 }
 
