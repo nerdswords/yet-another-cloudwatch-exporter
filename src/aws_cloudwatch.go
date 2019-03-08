@@ -192,7 +192,8 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 		dimensions = append(dimensions, buildDimension("TargetGroup", resource))
 		loadBalancerName := getResourceValue("LoadBalancer", dimensions, namespace, clientCloudwatch)
 		if loadBalancerName != nil {
-			dimensions = append(dimensions, buildDimension("LoadBalancer", *loadBalancerName))
+			trimmedDimensionValue := strings.Replace(resource, "loadbalancer/", "", -1)
+			dimensions = append(dimensions, buildDimension("LoadBalancer", trimmedDimensionValue))
 		}
 
 	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
