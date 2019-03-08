@@ -9,7 +9,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
-* Exports metrics with CloudWatch timestamps (can be disabled per-metric)
+* Allows exports metrics with CloudWatch timestamps (disabled by default)
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
@@ -75,15 +75,15 @@ searchTags:
 
 ### Metric definition
 
-| Key              | Description                                                                                              |
-| ---------------- | -------------------------------------------------------------------------------------------------------- |
-| name             | CloudWatch metric name                                                                                   |
-| statistics       | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                 |
-| period           | Statistic period                                                                                         |
-| length           | How far back to request data for                                                                         |
-| delay            | If set it will request metrics up until `current_time - delay`                                           |
-| nilToZero        | Return 0 value if Cloudwatch returns no metrics at all                                                   |
-| disableTimestamp | Do not export the metric with the original CloudWatch timestamp (useful for sparse metrics, e.g from S3) |
+| Key                    | Description                                                                                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                                                                          |
+| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                        |
+| period                 | Statistic period                                                                                                |
+| length                 | How far back to request data for                                                                                |
+| delay                  | If set it will request metrics up until `current_time - delay`                                                  |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                                          |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Watch out using this for sparse metrics, e.g from S3) |
 
 
 ### Static configuration
