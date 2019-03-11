@@ -197,7 +197,8 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 		}
 
 	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
-		dimensions = append(dimensions, buildDimension("LoadBalancer", resource))
+		trimmedDimensionValue := strings.Replace(resource, "loadbalancer/", "", -1)
+		dimensions = append(dimensions, buildDimension("LoadBalancer", trimmedDimensionValue))
 	}
 
 	return dimensions
