@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,6 +75,17 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	}
 
 	if *debug {
+		if len(statistics) != 0 {
+			log.Println("CLI helper - " +
+				"aws cloudwatch get-metric-statistics" +
+				" --metric-name " + metric.Name +
+				" --dimensions " + dimensionsToCliString(dimensions) +
+				" --namespace " + *namespace +
+				" --statistics " + *statistics[0] +
+				" --period " + strconv.FormatInt(period, 10) +
+				" --start-time " + startTime.Format(time.RFC3339) +
+				" --end-time " + endTime.Format(time.RFC3339))
+		}
 		log.Println(*output)
 	}
 	return output
@@ -89,6 +102,14 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 		Dimensions: dimensionsFilter,
 		Namespace:  namespace,
 		NextToken:  nil,
+	}
+	return output
+}
+
+func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
+	for _, dim := range dimensions {
+		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
+		fmt.Println(output)
 	}
 	return output
 }
