@@ -1,3 +1,28 @@
+# 0.13.0-alpha
+* **BREAKING**  As adding cloudwatch timestamp breaks some metrics I decided to not set it as default anymore.
+This should make it easier for new users to have fun with this project.
+It fixes for some users `non-histogram and non-summary metrics should not have "_sum" suffix` bug.
+```yaml
+# Before
+  metrics:
+    - name: FreeStorageSpace
+      disableTimestamp: true
+# After
+  metrics:
+    - name: FreeStorageSpace
+
+# Before
+  metrics:
+    - name: FreeStorageSpace
+# After
+  metrics:
+    - name: FreeStorageSpace
+      useCloudwatchTimestamp: true
+```
+* Add ability to specify additional dimensions on discovery jobs e.g. for BucketSizeBytes metrics on S3 (abuchananTW)
+* Fix incorrect dimension value in case of alb in discovery config (GeeksWine)
+* Add CLI command to debug output
+
 # 0.12.0 / 0.12.0-alpha
 * **BREAKING** Add the exact timestamps from CloudWatch to the exporter Prometheus metrics (LeePorte)
 * Add a new option `disableTimestamp` to not include a timestamp for a specific metric (it can be useful for sparse metrics, e.g. from S3) (LeePorte)
