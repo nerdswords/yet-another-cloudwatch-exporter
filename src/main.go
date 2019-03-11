@@ -16,7 +16,8 @@ const yaceVersion = "0.12.0"
 var (
 	addr       = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile = flag.String("config.file", "config.yml", "Path to configuration file.")
-	version    = flag.Bool("v", false, "prints current yace version")
+	debug      = flag.Bool("debug", false, "Add verbose logging")
+	version    = flag.Bool("v", false, "prints current yace version.")
 
 	supportedServices = []string{
 		"alb",
@@ -33,7 +34,6 @@ var (
 		"vpn",
 	}
 
-	debug  = flag.Bool("debug", false, "Add verbose logging")
 	config = conf{}
 )
 
