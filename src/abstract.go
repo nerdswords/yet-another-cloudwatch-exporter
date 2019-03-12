@@ -130,7 +130,7 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 						NilToZero:              &metric.NilToZero,
 						AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 						Tags:                   metricTags,
-						Dimensions:				dimensions,
+						Dimensions:             dimensions,
 					}
 
 					filter := createGetMetricStatisticsInput(
