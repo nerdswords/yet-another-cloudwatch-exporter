@@ -8,6 +8,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
+* Automatic adding of dimension labels to metrics
 * Allows to export 0 even if CloudWatch returns nil
 * Allows exports metrics with CloudWatch timestamps (disabled by default)
 * Static metrics support for all cloudwatch metrics without auto discovery
@@ -218,7 +219,7 @@ static:
 ## Metrics Examples
 ```
 ### Metrics with exportedTagsOnMetrics
-aws_ec2_cpuutilization_maximum{name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid", tag_Name="jenkins"} 57.2916666666667
+aws_ec2_cpuutilization_maximum{dimension_InstanceId="i-someid", name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid", tag_Name="jenkins"} 57.2916666666667
 
 ### Info helper with tags
 aws_elb_info{name="arn:aws:elasticloadbalancing:eu-west-1:472724724:loadbalancer/a815b16g3417211e7738a02fcc13bbf9",tag_KubernetesCluster="production-19",tag_Name="",tag_kubernetes_io_cluster_production_19="owned",tag_kubernetes_io_service_name="nginx-ingress/private-ext"} 0
