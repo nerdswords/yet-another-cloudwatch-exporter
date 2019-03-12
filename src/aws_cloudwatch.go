@@ -32,7 +32,7 @@ type cloudwatchData struct {
 	AddCloudwatchTimestamp *bool
 	CustomTags             []tag
 	Tags                   []tag
-	Dimensions 			   []*cloudwatch.Dimension
+	Dimensions             []*cloudwatch.Dimension
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
