@@ -22,6 +22,7 @@ It fixes for some users `non-histogram and non-summary metrics should not have "
 * Add ability to specify additional dimensions on discovery jobs e.g. for BucketSizeBytes metrics on S3 (abuchananTW)
 * Fix incorrect dimension value in case of alb in discovery config (GeeksWine)
 * Add CLI command to debug output
+* Add DynamoDB support
 
 # 0.12.0 / 0.12.0-alpha
 * **BREAKING** Add the exact timestamps from CloudWatch to the exporter Prometheus metrics (LeePorte)

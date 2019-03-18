@@ -15,17 +15,18 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
   - alb - Application Load Balancer
+  - dynamodb - NoSQL Online Datenbank Service
   - ebs - Elastic Block Storage
   - ec - ElastiCache
   - ec2 - Elastic Compute Cloud
   - efs - Elastic File System
   - elb - Elastic Load Balancer
   - es - ElasticSearch
+  - kinesis - Kinesis Data Stream
   - lambda - Lambda Functions
   - rds - Relational Database Service
   - s3 - Object Storage
   - vpn - VPN connection
-  - kinesis - Kinesis Data Stream
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
