@@ -21,6 +21,7 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"dynamodb",
 		"ebs",
 		"ec",
 		"ec2",
