@@ -81,8 +81,8 @@ searchTags:
 | ---------------------- | --------------------------------------------------------------------------------------------------------------- |
 | name                   | CloudWatch metric name                                                                                          |
 | statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                        |
-| period                 | Statistic period                                                                                                |
-| length                 | How far back to request data for                                                                                |
+| period                 | Statistic period in seconds                                                                                     |
+| length                 | How far back to request data for in seconds                                                                     |
 | delay                  | If set it will request metrics up until `current_time - delay`                                                  |
 | nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                                          |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Watch out using this for sparse metrics, e.g from S3) |
@@ -141,8 +141,8 @@ discovery:
       - name: HealthyHostCount
         statistics:
         - 'Minimum'
-        period: 60
-        length: 300
+        period: 600
+        length: 600
       - name: HTTPCode_Backend_4XX
         statistics:
         - 'Sum'
@@ -304,6 +304,13 @@ spec:
         configMap:
           name: yace
 ```
+
+## Troubleshooting / Debuging
+
+### Help my metrics are intermittent
+
+* Please try out a bigger length e.g. for elb try out a length of 600 and a period of 600. Then test how low you can
+go without losing data. ELB metrics on AWS are written every 5 minutes (300) in default.
 
 ## Contribute
 [Development Setup / Guide](/CONTRIBUTE.md)
