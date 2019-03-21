@@ -1,0 +1,23 @@
+before:
+  hooks:
+    - dep ensure
+builds:
+- binary: yace
+  env:
+  - CGO_ENABLED=0
+archive:
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    amd64: x86_64
+  files:
+  - none*
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - typo
