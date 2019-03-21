@@ -3,10 +3,10 @@ FROM golang:1.10 as builder
 RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 && chmod +x /usr/local/bin/dep
 
 WORKDIR /go/src/yace
-ADD ./src/Gopkg.lock ./src/Gopkg.toml ./
+ADD /Gopkg.lock ./Gopkg.toml ./
 RUN dep ensure -vendor-only
 
-Add ./src/ ./
+Add ./*.go ./
 
 RUN go test
 
