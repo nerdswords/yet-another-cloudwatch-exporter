@@ -11,13 +11,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const yaceVersion = "0.13.0-alpha"
+const version = "0.13.0-alpha"
 
 var (
-	addr       = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile = flag.String("config.file", "config.yml", "Path to configuration file.")
-	debug      = flag.Bool("debug", false, "Add verbose logging")
-	version    = flag.Bool("v", false, "prints current yace version.")
+	addr        = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile  = flag.String("config.file", "config.yml", "Path to configuration file.")
+	debug       = flag.Bool("debug", false, "Add verbose logging")
+	showVersion = flag.Bool("v", false, "prints current yace version.")
 
 	supportedServices = []string{
 		"alb",
@@ -63,8 +63,8 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 
-	if *version {
-		fmt.Println(yaceVersion)
+	if *showVersion {
+		fmt.Println(version)
 		os.Exit(0)
 	}
 
