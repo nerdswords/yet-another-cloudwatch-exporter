@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const version = "0.13.0-alpha"
+const version = "custom-build"
 
 var (
 	addr        = flag.String("listen-address", ":5000", "The address to listen on.")
