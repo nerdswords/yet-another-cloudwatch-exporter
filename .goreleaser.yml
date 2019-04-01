@@ -3,6 +3,8 @@ before:
     - dep ensure
 builds:
 - binary: yace
+  goarch:
+    - amd64
   env:
   - CGO_ENABLED=0
 archive:
