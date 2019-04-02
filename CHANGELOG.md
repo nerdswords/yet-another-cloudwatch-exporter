@@ -1,3 +1,17 @@
+# 0.13.1-alpha
+* **BREAKING** Add 'v' to indicate it is a version number in docker tag / version output
+```
+# Before
+ image: quay.io/invisionag/yet-another-cloudwatch-exporter:0.13.0
+# After
+ image: quay.io/invisionag/yet-another-cloudwatch-exporter:v0.13.0
+```
+* Use golang 1.12.0 to build
+* Use goreleaser to release
+* Update dependencies
+* Use github actions as CI
+* Migrate dependency management to golang modules
+
 # 0.13.0-alpha
 * **BREAKING**  As adding cloudwatch timestamp breaks some metrics I decided to not set it as default anymore.
 This should make it easier for new users to have fun with this project.
