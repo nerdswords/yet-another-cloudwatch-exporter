@@ -1,6 +1,3 @@
-before:
-  hooks:
-    - dep ensure
 builds:
 - binary: yace
   goarch:
@@ -14,5 +11,7 @@ archive:
     amd64: x86_64
   files:
   - none*
+changelog:
+  skip: true
 checksum:
   name_template: 'checksums.txt'
