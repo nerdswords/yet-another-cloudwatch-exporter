@@ -1,4 +1,4 @@
-module github.com/ivx/yet-another-cloudwatch-exporter-deployment
+module github.com/ivx/yet-another-cloudwatch-exporter
 
 go 1.12
 
