@@ -1,4 +1,5 @@
 # 0.13.1-alpha
+* **BREAKING** For some metrics `cloudwatch:ListMetrics` iam permissions are needed. Please update your role!
 * **BREAKING** Add 'v' to indicate it is a version number in docker tag / version output
 ```
 # Before
@@ -13,7 +14,8 @@
 * Migrate dependency management to golang modules
 
 # 0.13.0-alpha
-* **BREAKING**  As adding cloudwatch timestamp breaks some metrics I decided to not set it as default anymore.
+* **BREAKING** For some metrics `cloudwatch:ListMetrics` iam permissions are needed. Please update your role!
+* **BREAKING** As adding cloudwatch timestamp breaks some metrics I decided to not set it as default anymore.
 This should make it easier for new users to have fun with this project.
 It fixes for some users `non-histogram and non-summary metrics should not have "_sum" suffix` bug.
 ```yaml

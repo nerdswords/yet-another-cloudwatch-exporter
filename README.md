@@ -261,6 +261,7 @@ The following IAM permissions are required for YACE to work.
 ```
 "tag:getResources",
 "cloudwatch:GetMetricStatistics",
+"cloudwatch:ListMetrics"
 ```
 
 ## Kubernetes Installation
