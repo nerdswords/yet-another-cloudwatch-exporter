@@ -1,4 +1,4 @@
 config.yml
 yet-another-cloudwatch-exporter
 vendor
-/src/yace
+dist
