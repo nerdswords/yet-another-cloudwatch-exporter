@@ -9,7 +9,7 @@
 ```
 * Use golang 1.12.0 to build
 * Use goreleaser to release
-* Update dependencies
+* Update aws dependencies
 * Use github actions as CI
 * Migrate dependency management to golang modules
 
