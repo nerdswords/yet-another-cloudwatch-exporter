@@ -357,10 +357,10 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 					promLabels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
 				}
 
-				var value float64 = 0
+				var value float64
 
 				if statistic == "Average" {
-					var total float64 = 0
+					var total float64
 					for _, p := range points {
 						total += *p
 					}
