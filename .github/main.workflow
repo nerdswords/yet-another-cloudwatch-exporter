@@ -24,14 +24,14 @@ action "Release if master branch" {
 }
 
 action "Build && release binaries" {
-  needs = ["Release if master branch", ""Release if tagged"]
+  needs = ["Release if master branch", "Release if tagged"]
   secrets = ["GITHUB_TOKEN"]
   uses = "docker://goreleaser/goreleaser:v0.104"
   args = ["release"]
 }
 
 action "Log into docker" {
-  needs = ["Release if master branch", ""Release if tagged"]
+  needs = ["Release if master branch", "Release if tagged"]
   uses = "actions/docker/login@master"
   secrets = ["DOCKER_USERNAME", "DOCKER_PASSWORD"]
   env = {
