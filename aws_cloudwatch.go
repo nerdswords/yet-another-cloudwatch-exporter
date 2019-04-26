@@ -294,11 +294,23 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 	return &dimension
 }
 
+func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
+	var targetGroup string
+	if *serviceName == "alb" {
+		for _, dimension := range dimensions {
+			if *dimension.Name == "TargetGroup" {
+				targetGroup = "tg"
+			}
+		}
+	}
+	return strings.ToLower(*serviceName) + targetGroup
+}
+
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
-			name := "aws_" + strings.ToLower(*c.Service) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+			name := "aws_" + fixServiceName(c.Service, c.Dimensions) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 
 			var points []*float64
 
