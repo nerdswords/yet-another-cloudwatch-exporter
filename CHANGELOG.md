@@ -1,8 +1,11 @@
-# 0.13.2
+# 0.13.3
 * Fix ALB problems. Target Group metrics are now exported as aws_albtg
 ```
 aws_albtg_request_count_sum{dimension_LoadBalancer="app/Test-ALB/fec38de4cf0cacb1",dimension_TargetGroup="targetgroup/Test/708ecba11979327b",name="arn:aws:elasticloadbalancing:eu-west-1:237935892384916:targetgroup/Test/708dcba119793234"} 0
 ```
+
+# 0.13.2
+* CI problem
 
 # 0.13.1-alpha
 * **BREAKING** For some metrics `cloudwatch:ListMetrics` iam permissions are needed. Please update your role!
