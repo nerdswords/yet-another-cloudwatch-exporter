@@ -166,6 +166,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Kinesis"
 	case "dynamodb":
 		ns = "AWS/DynamoDB"
+	case "asg":
+		ns = "AWS/AutoScaling"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -263,6 +265,8 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "dynamodb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
+	case "asg":
+		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}

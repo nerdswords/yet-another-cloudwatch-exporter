@@ -33,6 +33,7 @@ var (
 		"s3",
 		"kinesis",
 		"vpn",
+		"asg",
 	}
 
 	config = conf{}
