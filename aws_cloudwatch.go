@@ -307,7 +307,7 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 			}
 		}
 	}
-	return strings.ToLower(*serviceName) + targetGroup
+	return strings.ToLower(promString(*serviceName)) + targetGroup
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
