@@ -27,6 +27,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - rds - Relational Database Service
   - s3 - Object Storage
   - vpn - VPN connection
+  - asg - Auto Scaling Group
 
 ## Image
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0

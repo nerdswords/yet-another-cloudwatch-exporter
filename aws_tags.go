@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	_ "fmt"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -21,7 +25,8 @@ type tagsData struct {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	client    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	asgClient autoscalingiface.AutoScalingAPI
 }
 
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
@@ -35,6 +40,19 @@ func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAP
 	}
 
 	return r.New(sess, config)
+}
+
+func createASGSession(region *string, roleArn string) autoscalingiface.AutoScalingAPI {
+	sess, err := session.NewSession()
+	if err != nil {
+		panic(err)
+	}
+	config := &aws.Config{Region: region}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+
+	return autoscaling.New(sess, config)
 }
 
 func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
@@ -84,6 +102,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "dynamodb":
 		hotfix := aws.String("dynamodb:table")
 		filter = append(filter, hotfix)
+	case "asg":
+		return iface.getTaggedAutoscalingGroups(job)
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
@@ -112,6 +132,36 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		}
 		return pageNum < 100
 	})
+}
+
+// Once the resourcemappingapi supports ASGs then this workaround method can be deleted
+func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
+		func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
+			pageNum++
+
+			for _, asg := range page.AutoScalingGroups {
+				resource := tagsData{}
+
+				// Transform the ASG ARN into something which looks more like an ARN from the ResourceGroupTaggingAPI
+				parts := strings.Split(*asg.AutoScalingGroupARN, ":")
+				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
+
+				resource.Service = &job.Type
+				resource.Region = &job.Region
+
+				for _, t := range asg.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		})
 }
 
 func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
