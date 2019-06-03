@@ -194,13 +194,13 @@ discovery:
           - Average
         period: 86400
         length: 172800
-        disableTimestamp: true
+        addCloudwatchTimestamp: true
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
         length: 172800
-        disableTimestamp: true
+        addCloudwatchTimestamp: true
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
