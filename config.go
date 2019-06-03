@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
+	"log"
 )
 
 type conf struct {
@@ -71,6 +72,12 @@ func (c *conf) load(file *string) error {
 	for _, job := range c.Discovery.Jobs {
 		if !stringInSlice(job.Type, supportedServices) {
 			return fmt.Errorf("Service is not in known list!: %v", job.Type)
+		}
+
+		for _, metric := range job.Metrics {
+			if metric.Length <= 300 {
+				log.Output(2, "WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
+			}
 		}
 	}
 	return nil
