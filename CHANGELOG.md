@@ -1,3 +1,8 @@
+# 0.13.4
+* Add Autoscaling group support (wjam)
+* Fix strange AWS namespace bug for static exports (AWS/EC2/API)
+* Add warning if metric length of less than 300s is configured / Interminent metrics
+
 # 0.13.3
 * Fix ALB problems. Target Group metrics are now exported as aws_albtg
 ```
