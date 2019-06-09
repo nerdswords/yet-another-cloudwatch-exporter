@@ -1,3 +1,6 @@
+# 0.13.5-alpha
+* Limit concurrency of aws calls
+
 # 0.13.4
 * Add Autoscaling group support (wjam)
 * Fix strange AWS namespace bug for static exports (AWS/EC2/API)
