@@ -204,7 +204,7 @@ discovery:
         length: 172800
         addCloudwatchTimestamp: true
   - type: "ebs"
-    region: us-east-1
+    region: eu-west-1
     searchTags:
       - Key: type
         Value: public
