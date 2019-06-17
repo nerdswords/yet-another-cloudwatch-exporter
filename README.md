@@ -106,6 +106,8 @@ discovery:
   exportedTagsOnMetrics:
     ec2:
       - Name
+    ebs:
+      - VolumeId
   jobs:
   - region: eu-west-1
     type: "es"
@@ -201,6 +203,17 @@ discovery:
         period: 86400
         length: 172800
         addCloudwatchTimestamp: true
+  - type: "ebs"
+    region: us-east-1
+    searchTags:
+      - Key: type
+        Value: public
+    metrics:
+      - name: BurstBalance
+        statistics:
+        - 'Minimum'
+        period: 600
+        length: 600
 static:
   - namespace: AWS/AutoScaling
     region: eu-west-1
