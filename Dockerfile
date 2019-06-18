@@ -18,7 +18,7 @@ RUN go build -v -ldflags "-X main.version=$VERSION" -o yace
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 COPY --from=builder /opt/yace /usr/local/bin/yace
 CMD ["/usr/local/bin/yace"]
