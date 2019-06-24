@@ -1,3 +1,7 @@
+# 0.13.6
+* Fix errors with "=" in tags (cdchris12)
+* Add curl to container for easy debugging (cdchris12)
+
 # 0.13.5-alpha
 * Limit concurrency of aws calls
 
