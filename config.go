@@ -21,11 +21,12 @@ type discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type job struct {
-	Region     string   `yaml:"region"`
-	Type       string   `yaml:"type"`
-	RoleArn    string   `yaml:"roleArn"`
-	SearchTags []tag    `yaml:"searchTags"`
-	Metrics    []metric `yaml:"metrics"`
+	Region        string   `yaml:"region"`
+	Type          string   `yaml:"type"`
+	RoleArn       string   `yaml:"roleArn"`
+	AwsDimensions []string `yaml:"awsDimensions"`
+	SearchTags    []tag    `yaml:"searchTags"`
+	Metrics       []metric `yaml:"metrics"`
 }
 
 type static struct {
@@ -68,7 +69,6 @@ func (c *conf) load(file *string) error {
 	if err != nil {
 		return err
 	}
-
 	for _, job := range c.Discovery.Jobs {
 		if !stringInSlice(job.Type, supportedServices) {
 			return fmt.Errorf("Service is not in known list!: %v", job.Type)
