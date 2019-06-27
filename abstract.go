@@ -27,9 +27,10 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		go func() {
 			region := &job.Region
 			roleArn := job.RoleArn
+			maxRetries := job.CloudWatchMaxRetries
 
 			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region, roleArn),
+				client: createCloudwatchSession(region, roleArn, maxRetries),
 			}
 
 			clientTag := tagsInterface{
@@ -53,9 +54,10 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		go func() {
 			region := &job.Region
 			roleArn := job.RoleArn
+			maxRetries := job.CloudWatchMaxRetries
 
 			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region, roleArn),
+				client: createCloudwatchSession(region, roleArn, maxRetries),
 			}
 
 			metrics := scrapeStaticJob(job, clientCloudwatch)
