@@ -372,15 +372,22 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 }
 
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
-	var targetGroup string
+	var suffixName string
 	if *serviceName == "alb" {
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
-				targetGroup = "tg"
+				suffixName = "tg"
 			}
 		}
 	}
-	return strings.ToLower(promString(*serviceName)) + targetGroup
+	if *serviceName == "elb" {
+		for _, dimension := range dimensions {
+			if *dimension.Name == "AvailabilityZone" {
+				suffixName = "_az"
+			}
+		}
+	}
+	return strings.ToLower(promString(*serviceName)) + suffixName
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
