@@ -133,25 +133,25 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 		log.Println("Couldn't describe resources: ", err.Error())
 		return
 	}
+	commonJobDimensions := getAwsDimensions(job)
 
 	for i := range resources {
 		resource := resources[i]
 		awsInfoData = append(awsInfoData, resource)
 		metricTags := resource.metricTags(tagsOnMetrics)
+		dimensions := detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch)
+		for _, commonJobDimension := range commonJobDimensions {
+			dimensions = append(dimensions, commonJobDimension)
+		}
+
 		wg.Add(len(job.Metrics))
 		go func() {
-			dimensions := getAwsDimensions(job)
 			for j := range job.Metrics {
 				metric := job.Metrics[j]
-				for _, detectedDimension := range detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch) {
-					dimensions = append(dimensions, detectedDimension)
-				}
-				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
-
 				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
+				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
 				go func() {
 					defer wg.Done()
-
 					cloudwatchSemaphore <- struct{}{}
 					defer func() {
 						<-cloudwatchSemaphore
@@ -170,6 +170,7 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 						Region:                 &job.Region,
 =======
 					for _, fetchedMetrics := range resp.Metrics {
+
 						data := cloudwatchData{
 							ID:                     resource.ID,
 							Metric:                 &metric.Name,
