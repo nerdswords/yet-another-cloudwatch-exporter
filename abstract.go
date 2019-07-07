@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	cloudwatchSemaphore = make(chan struct{}, 5)
-	tagSemaphore        = make(chan struct{}, 5)
+	cloudwatchSemaphore = make(chan struct{}, 20)
+	tagSemaphore        = make(chan struct{}, 20)
 )
 
 func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
