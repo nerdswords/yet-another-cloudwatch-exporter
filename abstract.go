@@ -78,10 +78,9 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 	for j := range resource.Metrics {
 		metric := resource.Metrics[j]
 		wg.Add(1)
+		cloudwatchSemaphore <- struct{}{}
 		go func() {
 			defer wg.Done()
-
-			cloudwatchSemaphore <- struct{}{}
 			defer func() {
 				<-cloudwatchSemaphore
 			}()
@@ -139,12 +138,12 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 		go func() {
 			for j := range job.Metrics {
 				metric := job.Metrics[j]
+				cloudwatchSemaphore <- struct{}{}				
 				dimensions := detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch)
 				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
 				go func() {
 					defer wg.Done()
 
-					cloudwatchSemaphore <- struct{}{}
 					defer func() {
 						<-cloudwatchSemaphore
 					}()
