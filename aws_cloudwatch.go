@@ -33,6 +33,7 @@ type cloudwatchData struct {
 	CustomTags             []tag
 	Tags                   []tag
 	Dimensions             []*cloudwatch.Dimension
+	Region                 *string
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
@@ -372,6 +373,8 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				for _, dimension := range c.Dimensions {
 					promLabels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
 				}
+
+				promLabels["region"] = *c.Region
 
 				var value float64
 
