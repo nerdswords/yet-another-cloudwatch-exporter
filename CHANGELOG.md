@@ -1,3 +1,6 @@
+# 0.13.7
+* Add region as exported label to metrics
+
 # 0.13.6
 * Fix errors with "=" in tags (cdchris12)
 * Add curl to container for easy debugging (cdchris12)

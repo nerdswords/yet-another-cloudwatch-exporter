@@ -96,6 +96,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				NilToZero:              &metric.NilToZero,
 				AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 				CustomTags:             resource.CustomTags,
+				Region:                 &resource.Region,
 			}
 
 			filter := createGetMetricStatisticsInput(
@@ -158,6 +159,7 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 						AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 						Tags:                   metricTags,
 						Dimensions:             dimensions,
+						Region:                 &job.Region,
 					}
 
 					filter := createGetMetricStatisticsInput(
