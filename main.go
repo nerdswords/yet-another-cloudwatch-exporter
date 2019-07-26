@@ -14,10 +14,12 @@ import (
 var version = "custom-build"
 
 var (
-	addr        = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile  = flag.String("config.file", "config.yml", "Path to configuration file.")
-	debug       = flag.Bool("debug", false, "Add verbose logging")
-	showVersion = flag.Bool("v", false, "prints current yace version.")
+	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
+	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
+	debug                 = flag.Bool("debug", false, "Add verbose logging")
+	showVersion           = flag.Bool("v", false, "prints current yace version.")
+	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API")
+	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API")
 
 	supportedServices = []string{
 		"alb",
@@ -73,6 +75,9 @@ func main() {
 	if err := config.load(configFile); err != nil {
 		log.Fatal("Couldn't read ", *configFile, ":", err)
 	}
+
+	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)
+	tagSemaphore = make(chan struct{}, *tagConcurrency)
 
 	log.Println("Startup completed")
 
