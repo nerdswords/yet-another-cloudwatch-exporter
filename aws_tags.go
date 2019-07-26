@@ -102,6 +102,9 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "dynamodb":
 		hotfix := aws.String("dynamodb:table")
 		filter = append(filter, hotfix)
+	case "emr":
+		hotfix := aws.String("elasticmapreduce:cluster")
+		filter = append(filter, hotfix)
 	case "asg":
 		return iface.getTaggedAutoscalingGroups(job)
 	default:
