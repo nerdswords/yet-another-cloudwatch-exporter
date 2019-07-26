@@ -27,6 +27,7 @@ var (
 		"ec2",
 		"efs",
 		"elb",
+		"emr",
 		"es",
 		"lambda",
 		"rds",

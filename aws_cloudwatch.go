@@ -167,6 +167,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Kinesis"
 	case "dynamodb":
 		ns = "AWS/DynamoDB"
+	case "emr":
+		ns = "AWS/ElasticMapReduce"
 	case "asg":
 		ns = "AWS/AutoScaling"
 	default:
@@ -266,6 +268,8 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "dynamodb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
+	case "emr":
+		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	default:
