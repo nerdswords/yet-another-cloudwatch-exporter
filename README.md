@@ -21,6 +21,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   - ec2 - Elastic Compute Cloud
   - efs - Elastic File System
   - elb - Elastic Load Balancer
+  - emr - Elastic MapReduce
   - es - ElasticSearch
   - kinesis - Kinesis Data Stream
   - lambda - Lambda Functions
