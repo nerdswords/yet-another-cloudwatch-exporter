@@ -279,6 +279,13 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:ListMetrics"
 ```
 
+## Running locally
+
+```shell
+docker run -d --rm -v $PWD/credentials:/root/.aws/PWD/credentials -v $PWD/config.yml:/tmp/config.yml \
+-p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:v0.13.7
+```
+
 ## Kubernetes Installation
 ```
 ---
@@ -307,7 +314,6 @@ spec:
         image: quay.io/invisionag/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
         imagePullPolicy: IfNotPresent
         command:
-          - "yace"
           - "--config.file=/tmp/config.yml"
         ports:
         - name: app

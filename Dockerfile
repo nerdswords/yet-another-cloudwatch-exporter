@@ -4,9 +4,10 @@ RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/down
 
 WORKDIR /opt/
 
-ADD go.mod ./go.sum ./
-Add ./*.go ./
+COPY go.mod go.sum ./
+RUN go mod download
 
+COPY . .
 RUN go test
 
 ENV GOOS linux
@@ -18,7 +19,11 @@ RUN go build -v -ldflags "-X main.version=$VERSION" -o yace
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates curl
+EXPOSE 5000
+ENTRYPOINT ["yace"]
+CMD ["--config.file=/tmp/config.yml"]
 WORKDIR /root/
+
+RUN apk --no-cache add ca-certificates
 COPY --from=builder /opt/yace /usr/local/bin/yace
-CMD ["/usr/local/bin/yace"]
+
