@@ -5,6 +5,7 @@
 YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
 
 ## Features
+
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
@@ -14,23 +15,25 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
-  - alb - Application Load Balancer
-  - dynamodb - NoSQL Online Datenbank Service
-  - ebs - Elastic Block Storage
-  - ec - ElastiCache
-  - ec2 - Elastic Compute Cloud
-  - efs - Elastic File System
-  - elb - Elastic Load Balancer
-  - emr - Elastic MapReduce
-  - es - ElasticSearch
-  - kinesis - Kinesis Data Stream
-  - lambda - Lambda Functions
-  - rds - Relational Database Service
-  - s3 - Object Storage
-  - vpn - VPN connection
-  - asg - Auto Scaling Group
+
+  * alb - Application Load Balancer
+  * dynamodb - NoSQL Online Datenbank Service
+  * ebs - Elastic Block Storage
+  * ec - ElastiCache
+  * ec2 - Elastic Compute Cloud
+  * efs - Elastic File System
+  * elb - Elastic Load Balancer
+  * emr - Elastic MapReduce
+  * es - ElasticSearch
+  * kinesis - Kinesis Data Stream
+  * lambda - Lambda Functions
+  * rds - Relational Database Service
+  * s3 - Object Storage
+  * vpn - VPN connection
+  * asg - Auto Scaling Group
 
 ## Image
+
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
 * See [Releases](https://github.com/ivx/yet-another-cloudwatch-exporter/releases) for binaries
 
@@ -52,7 +55,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 exportedTagsOnMetrics example:
 
-```
+```yaml
 exportedTagsOnMetrics:
   ec2:
     - Name
@@ -71,7 +74,8 @@ exportedTagsOnMetrics:
 | additionalDimensions | List of dimensions to return beyond the default list per service                         |
 
 searchTags example:
-```
+
+```yaml
 searchTags:
   - Key: env
     Value: production
@@ -79,16 +83,17 @@ searchTags:
 
 ### Metric definition
 
-| Key                    | Description                                                                                                     |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                                                                          |
-| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.                                                        |
-| period                 | Statistic period in seconds                                                                                     |
-| length                 | How far back to request data for in seconds                                                                     |
-| delay                  | If set it will request metrics up until `current_time - delay`                                                  |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                                          |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Watch out using this for sparse metrics, e.g from S3) |
+| Key                    | Description |
+| ---------------------- | -------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                         |
+| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.       |
+| period                 | Statistic period in seconds                                    |
+| length                 | How far back to request data for in seconds                    |
+| delay                  | If set it will request metrics up until `current_time - delay` |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all         |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp       |
 
+* **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
 
 ### Static configuration
 
@@ -97,12 +102,14 @@ searchTags:
 | region     | AWS region                                                 |
 | roleArn    | IAM role to assume                                         |
 | namespace  | CloudWatch namespace                                       |
+| name       | Must be set with multiple block definitions per namespace  |
 | customTags | Custom tags to be added as a list of Key/Value pairs       |
 | dimensions | CloudWatch metric dimensions as a list of Name/Value pairs |
 | metrics    | List of metric definitions                                 |
 
 ### Example of config File
-```
+
+```yaml
 discovery:
   exportedTagsOnMetrics:
     ec2:
@@ -111,32 +118,32 @@ discovery:
       - VolumeId
   jobs:
   - region: eu-west-1
-    type: "es"
+    type: es
     searchTags:
       - Key: type
         Value: ^(easteregg|k8s)$
     metrics:
       - name: FreeStorageSpace
         statistics:
-        - 'Sum'
+        - Sum
         period: 600
         length: 60
       - name: ClusterStatus.green
         statistics:
-        - 'Minimum'
+        - Minimum
         period: 600
         length: 60
       - name: ClusterStatus.yellow
         statistics:
-        - 'Maximum'
+        - Maximum
         period: 600
         length: 60
       - name: ClusterStatus.red
         statistics:
-        - 'Maximum'
+        - Maximum
         period: 600
         length: 60
-  - type: "elb"
+  - type: elb
     region: eu-west-1
     searchTags:
       - Key: KubernetesCluster
@@ -144,17 +151,17 @@ discovery:
     metrics:
       - name: HealthyHostCount
         statistics:
-        - 'Minimum'
+        - Minimum
         period: 600
         length: 600
       - name: HTTPCode_Backend_4XX
         statistics:
-        - 'Sum'
+        - Sum
         period: 60
         length: 900
         delay: 300
         nilToZero: true
-  - type: "alb"
+  - type: alb
     region: eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
@@ -164,7 +171,7 @@ discovery:
         statistics: [Maximum]
         period: 60
         length: 600
-  - type: "vpn"
+  - type: vpn
     region: eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
@@ -172,39 +179,37 @@ discovery:
     metrics:
       - name: TunnelState
         statistics:
-        - 'p90'
+        - p90
         period: 60
         length: 300
-  - type: "kinesis"
+  - type: kinesis
     region: eu-west-1
     metrics:
       - name: PutRecords.Success
         statistics:
-        - 'Sum'
+        - Sum
         period: 60
         length: 300
-  - type: "s3"
+  - type: s3
     region: eu-west-1
     searchTags:
       - Key: type
         Value: public
-    additionalDimensions:
-      - name: StorageType
-        value: StandardStorage
     metrics:
       - name: NumberOfObjects
         statistics:
           - Average
         period: 86400
         length: 172800
-        addCloudwatchTimestamp: true
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
         length: 172800
-        addCloudwatchTimestamp: true
-  - type: "ebs"
+        additionalDimensions:
+          - name: StorageType
+            value: StandardStorage
+  - type: ebs
     region: eu-west-1
     searchTags:
       - Key: type
@@ -212,11 +217,13 @@ discovery:
     metrics:
       - name: BurstBalance
         statistics:
-        - 'Minimum'
+        - Minimum
         period: 600
         length: 600
+        addCloudwatchTimestamp: true
 static:
   - namespace: AWS/AutoScaling
+    name: must_be_set
     region: eu-west-1
     dimensions:
      - name: AutoScalingGroupName
@@ -227,13 +234,14 @@ static:
     metrics:
       - name: GroupInServiceInstances
         statistics:
-        - 'Minimum'
+        - Minimum
         period: 60
         length: 300
 ```
 
 ## Metrics Examples
-```
+
+```text
 ### Metrics with exportedTagsOnMetrics
 aws_ec2_cpuutilization_maximum{dimension_InstanceId="i-someid", name="arn:aws:ec2:eu-west-1:472724724:instance/i-someid", tag_Name="jenkins"} 57.2916666666667
 
@@ -247,7 +255,7 @@ yace_cloudwatch_requests_total 168
 
 ## Query Examples without exportedTagsOnMetrics
 
-```
+```text
 # CPUUtilization + Name tag of the instance id - No more instance id needed for monitoring
 aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 
@@ -271,16 +279,18 @@ predict_linear(aws_es_free_storage_space_minimum[2d], 86400 * 7) + on (name) gro
 ```
 
 ## IAM
+
 The following IAM permissions are required for YACE to work.
 
-```
-"tag:getResources",
+```json
+"tag:GetResources",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
 ```
 
 ## Kubernetes Installation
-```
+
+```yaml
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -329,8 +339,10 @@ spec:
 go without losing data. ELB metrics on AWS are written every 5 minutes (300) in default.
 
 ## Contribute
+
 [Development Setup / Guide](/CONTRIBUTE.md)
 
 # Thank you
+
 * [Justin Santa Barbara](https://github.com/justinsb) - For telling me about AWS tags api which simplified a lot - Thanks!
 * [Brian Brazil](https://github.com/brian-brazil) - Who gave a lot of feedback regarding UX and prometheus lib - Thanks!
