@@ -37,6 +37,7 @@ var (
 		"kinesis",
 		"vpn",
 		"asg",
+		"sqs",
 	}
 
 	config = conf{}

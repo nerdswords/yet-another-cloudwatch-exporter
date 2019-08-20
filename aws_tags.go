@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	_ "fmt"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 )
@@ -107,6 +107,9 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, hotfix)
 	case "asg":
 		return iface.getTaggedAutoscalingGroups(job)
+	case "sqs":
+		hotfix := aws.String("sqs")
+		filter = append(filter, hotfix)
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
