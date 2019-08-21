@@ -96,11 +96,12 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				NilToZero:              &metric.NilToZero,
 				AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 				CustomTags:             resource.CustomTags,
+				Dimensions:             createStaticDimensions(resource.Dimensions),
 				Region:                 &resource.Region,
 			}
 
 			filter := createGetMetricStatisticsInput(
-				createStaticDimensions(resource.Dimensions),
+				data.Dimensions,
 				&resource.Namespace,
 				metric,
 			)
