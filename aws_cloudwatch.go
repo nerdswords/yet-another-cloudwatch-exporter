@@ -171,6 +171,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "asg":
 		ns = "AWS/AutoScaling"
+	case "sqs":
+		ns = "AWS/SQS"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -272,6 +274,8 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
+	case "sqs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
