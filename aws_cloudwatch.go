@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -325,50 +326,71 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 		for _, statistic := range c.Statistics {
 			name := "aws_" + fixServiceName(c.Service, c.Dimensions) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 
-			var points []*float64
+			datapoints := c.Points
+			// sorting by timestamps so we can consistently export the most updated datapoint
+			// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
+			sort.Slice(datapoints, func(i, j int) bool {
+				jTimestamp := *datapoints[j].Timestamp
+				return datapoints[i].Timestamp.Before(jTimestamp)
+			})
 
+			var exportedDatapoint *float64
+			var averageDataPoints []*float64
 			var timestamp time.Time
-
-			for _, point := range c.Points {
-				if point.Timestamp != nil && timestamp.Before(*point.Timestamp) {
-					timestamp = *point.Timestamp
-				}
-
+			for _, datapoint := range datapoints {
 				switch {
 				case statistic == "Maximum":
-					if point.Maximum != nil {
-						points = append(points, point.Maximum)
+					if datapoint.Maximum != nil {
+						exportedDatapoint = datapoint.Maximum
+						timestamp = *datapoint.Timestamp
+						break
 					}
 				case statistic == "Minimum":
-					if point.Minimum != nil {
-						points = append(points, point.Minimum)
+					if datapoint.Minimum != nil {
+						exportedDatapoint = datapoint.Minimum
+						timestamp = *datapoint.Timestamp
+						break
 					}
 				case statistic == "Sum":
-					if point.Sum != nil {
-						points = append(points, point.Sum)
+					if datapoint.Sum != nil {
+						exportedDatapoint = datapoint.Sum
+						timestamp = *datapoint.Timestamp
+						break
 					}
 				case statistic == "Average":
-					if point.Average != nil {
-						points = append(points, point.Average)
+					if datapoint.Average != nil {
+						if datapoint.Timestamp.After(timestamp) {
+							timestamp = *datapoint.Timestamp
+						}
+						averageDataPoints = append(averageDataPoints, datapoint.Average)
 					}
 				case percentile.MatchString(statistic):
-					if data, ok := point.ExtendedStatistics[statistic]; ok {
-						points = append(points, data)
+					if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
+						exportedDatapoint = data
+						timestamp = *datapoint.Timestamp
+						break
 					}
 				default:
 					log.Fatal("Not implemented statistics: " + statistic)
 				}
 			}
 
-			if len(points) == 0 {
-				if *c.NilToZero {
-					helper := float64(0)
-					sliceHelper := []*float64{&helper}
-					points = sliceHelper
+			var exportedAverage float64
+			if len(averageDataPoints) > 0 {
+				var total float64
+				for _, p := range averageDataPoints {
+					total += *p
 				}
+				exportedAverage = total / float64(len(averageDataPoints))
+				exportedDatapoint = &exportedAverage
 			}
-
-			if len(points) > 0 {
+			var zero float64
+			includeTimestamp := *c.AddCloudwatchTimestamp
+			if exportedDatapoint == nil && *c.NilToZero {
+				exportedDatapoint = &zero
+				includeTimestamp = false
+			}
+			if exportedDatapoint != nil {
 				promLabels := make(map[string]string)
 				promLabels["name"] = *c.ID
 
@@ -384,23 +406,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 
 				promLabels["region"] = *c.Region
 
-				var value float64
-
-				if statistic == "Average" {
-					var total float64
-					for _, p := range points {
-						total += *p
-					}
-					value = total / float64(len(points))
-				} else {
-					value = *points[len(points)-1]
-				}
 				p := PrometheusMetric{
 					name:             &name,
 					labels:           promLabels,
-					value:            &value,
+					value:            exportedDatapoint,
 					timestamp:        timestamp,
-					includeTimestamp: *c.AddCloudwatchTimestamp,
+					includeTimestamp: includeTimestamp,
 				}
 				output = append(output, &p)
 			}
