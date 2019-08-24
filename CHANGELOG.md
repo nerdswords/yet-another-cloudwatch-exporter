@@ -1,3 +1,21 @@
+# 0.14.0-alpha
+* **BREAKING** Default command in Dockerfile is changed to yace. This removes the need to add yace as command.
+```yaml
+# Before
+        command:
+          - "yace"
+          - "--config.file=/tmp/config.yml"
+# After
+        command:
+          - "--config.file=/tmp/config.yml"
+```
+* Add support for Elastic MapReduce (nhinds)
+* Add support for SQS - (alext)
+* Add support for ECS Services as ecs-svc
+* Add support for NLB
+* Add retries to cloudwatch api calls (Deepak1100)
+* Fix dimension labels for static jobs (alext)
+
 # 0.13.7
 * Add region as exported label to metrics
 
