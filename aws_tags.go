@@ -64,11 +64,6 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "ec2":
 		hotfix := aws.String("ec2:instance")
 		filter = append(filter, hotfix)
-	case "ecs-svc":
-		hotfix := aws.String("ecs:cluster")
-		svc := aws.String("ecs:service")
-		filter = append(filter, hotfix)
-		filter = append(filter, svc)
 	case "elb":
 		hotfix := aws.String("elasticloadbalancing:loadbalancer")
 		filter = append(filter, hotfix)
@@ -77,9 +72,6 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		tg := aws.String("elasticloadbalancing:targetgroup")
 		filter = append(filter, alb)
 		filter = append(filter, tg)
-	case "nlb":
-		alb := aws.String("elasticloadbalancing:loadbalancer/net")
-		filter = append(filter, alb)
 	case "vpn":
 		connection := aws.String("ec2:vpn-connection")
 		filter = append(filter, connection)

@@ -21,17 +21,14 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ebs - Elastic Block Storage
   * ec - ElastiCache
   * ec2 - Elastic Compute Cloud
-  * ecs-svc - Elastic Container Service (Service Metrics)
   * efs - Elastic File System
   * elb - Elastic Load Balancer
   * emr - Elastic MapReduce
   * es - ElasticSearch
   * kinesis - Kinesis Data Stream
   * lambda - Lambda Functions
-  * nlb - Network Load Balancer
   * rds - Relational Database Service
   * s3 - Object Storage
-  * sqs - Simple Queue Service
   * vpn - VPN connection
   * asg - Auto Scaling Group
 
@@ -295,8 +292,7 @@ The following IAM permissions are required for YACE to work.
 
 ```shell
 docker run -d --rm -v $PWD/credentials:/root/.aws/PWD/credentials -v $PWD/config.yml:/tmp/config.yml \
--p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
-
+-p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:v0.13.7
 ```
 
 ## Kubernetes Installation
