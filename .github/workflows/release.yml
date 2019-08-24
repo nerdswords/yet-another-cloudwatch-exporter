@@ -13,7 +13,7 @@ jobs:
     - name: Build docker image
       uses: actions/docker/cli@master
       with:
-        args: build -t yace --build-arg VERSION=${github.event.release.tag_name }} .
+        args: build -t yace --build-arg VERSION=${{ github.event.release.tag_name }} .
     - name: Log into docker
       uses: actions/docker/login@master
       env:
