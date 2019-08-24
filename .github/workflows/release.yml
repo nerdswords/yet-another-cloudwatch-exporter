@@ -1,0 +1,39 @@
+on:
+  create:
+    ref_type: tag
+
+name: Build, test and publish
+jobs:
+  buildDockerImage:
+    name: Build docker image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Build docker image
+      uses: actions/docker/cli@master
+      with:
+        args: build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
+    - name: Log into docker
+      uses: actions/docker/login@master
+      env:
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        DOCKER_REGISTRY_URL: quay.io
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    - name: Release if tagged
+      uses: actions/bin/filter@master
+      with:
+        args: tag v*
+    - name: Tag docker image
+      uses: actions/docker/tag@master
+      with:
+        args: --no-latest --no-sha yace quay.io/invisionag/yet-another-cloudwatch-exporter
+    - name: Build && release binaries
+      uses: docker://goreleaser/goreleaser:v0.104
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: release
+    - name: Publish docker image
+      uses: actions/docker/cli@master
+      with:
+        args: '"push quay.io/invisionag/yet-another-cloudwatch-exporter"'

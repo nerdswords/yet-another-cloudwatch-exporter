@@ -1,5 +1,6 @@
-on: push
-name: Build, test and publish
+on: [push]
+
+name: Build and test
 jobs:
   buildDockerImage:
     name: Build docker image
@@ -16,21 +17,3 @@ jobs:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         DOCKER_REGISTRY_URL: quay.io
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    - name: Release if tagged
-      uses: actions/bin/filter@master
-      with:
-        args: tag v*
-    - name: Tag docker image
-      uses: actions/docker/tag@master
-      with:
-        args: --no-latest --no-sha yace quay.io/invisionag/yet-another-cloudwatch-exporter
-    - name: Build && release binaries
-      uses: docker://goreleaser/goreleaser:v0.104
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: release
-    - name: Publish docker image
-      uses: actions/docker/cli@master
-      with:
-        args: '"push quay.io/invisionag/yet-another-cloudwatch-exporter"'
