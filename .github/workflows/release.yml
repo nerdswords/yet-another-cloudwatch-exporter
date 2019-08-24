@@ -1,6 +1,4 @@
-on:
-  create:
-    ref_type: tag
+on: release
 
 name: Build, test and publish
 jobs:
@@ -8,11 +6,14 @@ jobs:
     name: Build docker image
     runs-on: ubuntu-latest
     steps:
+    - name: Is release published?
+      if: github.event.action != 'published'
+      run: exit 78
     - uses: actions/checkout@master
     - name: Build docker image
       uses: actions/docker/cli@master
       with:
-        args: build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
+        args: build -t yace --build-arg VERSION=${github.event.release.tag_name }} .
     - name: Log into docker
       uses: actions/docker/login@master
       env:
