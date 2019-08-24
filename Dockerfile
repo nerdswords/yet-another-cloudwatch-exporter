@@ -7,7 +7,7 @@ WORKDIR /opt/
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+Add ./*.go ./
 RUN go test
 
 ENV GOOS linux
