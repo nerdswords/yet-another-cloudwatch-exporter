@@ -40,7 +40,10 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	config := &aws.Config{Region: region}
+
+	maxCloudwatchRetries := 5
+
+	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
