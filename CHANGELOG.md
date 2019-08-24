@@ -6,7 +6,7 @@
           - "yace"
           - "--config.file=/tmp/config.yml"
 # After
-        command:
+        args:
           - "--config.file=/tmp/config.yml"
 ```
 * Add support for Elastic MapReduce (nhinds)

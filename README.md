@@ -327,7 +327,7 @@ spec:
       - name: yace
         image: quay.io/invisionag/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
         imagePullPolicy: IfNotPresent
-        command:
+        args:
           - "--config.file=/tmp/config.yml"
         ports:
         - name: app
