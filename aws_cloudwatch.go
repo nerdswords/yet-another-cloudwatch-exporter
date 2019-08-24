@@ -153,6 +153,10 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElastiCache"
 	case "es":
 		ns = "AWS/ES"
+	case "ecs-svc":
+		ns = "AWS/ECS"
+	case "nlb":
+		ns = "AWS/NetworkELB"
 	case "s3":
 		ns = "AWS/S3"
 	case "efs":
@@ -246,8 +250,15 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "elb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
+	case "ecs-svc":
+		cluster := strings.Split(arnParsed.Resource, "/")[1]
+		service := strings.Split(arnParsed.Resource, "/")[2]
+		dimensions = append(dimensions, buildDimension("ClusterName", cluster))
+		dimensions = append(dimensions, buildDimension("ServiceName", service))
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
+	case "nlb":
+		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
 	case "ec":
