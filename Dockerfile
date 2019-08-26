@@ -1,7 +1,5 @@
 FROM golang:1.12 as builder
 
-RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.5.1/dep-linux-amd64 && chmod +x /usr/local/bin/dep
-
 WORKDIR /opt/
 
 COPY go.mod go.sum ./
