@@ -156,19 +156,6 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 					defer func() {
 						<-cloudwatchSemaphore
 					}()
-<<<<<<< HEAD
-
-					data := cloudwatchData{
-						ID:                     resource.ID,
-						Metric:                 &metric.Name,
-						Service:                resource.Service,
-						Statistics:             metric.Statistics,
-						NilToZero:              &metric.NilToZero,
-						AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
-						Tags:                   metricTags,
-						Dimensions:             dimensions,
-						Region:                 &job.Region,
-=======
 					for _, fetchedMetrics := range resp.Metrics {
 
 						data := cloudwatchData{
@@ -180,6 +167,7 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 							Tags:                   metricTags,
 							Dimensions:             fetchedMetrics.Dimensions,
+							Region:                 &job.Region,
 						}
 
 						filter := createGetMetricStatisticsInput(
@@ -190,7 +178,6 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 
 						data.Points = clientCloudwatch.get(filter)
 						cw = append(cw, &data)
->>>>>>> adding awsDimension variable in config to fanout additional dimensions
 					}
 					mux.Lock()
 					mux.Unlock()
