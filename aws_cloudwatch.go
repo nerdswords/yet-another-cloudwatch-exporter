@@ -395,7 +395,6 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
 			name := "aws_" + fixServiceName(c.Service, c.Dimensions) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
-<<<<<<< HEAD
 
 			datapoints := c.Points
 			// sorting by timestamps so we can consistently export the most updated datapoint
@@ -404,22 +403,11 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				jTimestamp := *datapoints[j].Timestamp
 				return datapoints[i].Timestamp.Before(jTimestamp)
 			})
-=======
-			var points []*float64
->>>>>>> adding awsDimension variable in config to fanout additional dimensions
 
 			var exportedDatapoint *float64
 			var averageDataPoints []*float64
 			var timestamp time.Time
-<<<<<<< HEAD
 			for _, datapoint := range datapoints {
-=======
-			for _, point := range c.Points {
-				if point.Timestamp != nil && timestamp.Before(*point.Timestamp) {
-					timestamp = *point.Timestamp
-				}
-
->>>>>>> adding awsDimension variable in config to fanout additional dimensions
 				switch {
 				case statistic == "Maximum":
 					if datapoint.Maximum != nil {
