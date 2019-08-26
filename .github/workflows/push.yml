@@ -11,9 +11,3 @@ jobs:
       uses: actions/docker/cli@master
       with:
         args: build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
-    - name: Log into docker
-      uses: actions/docker/login@master
-      env:
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        DOCKER_REGISTRY_URL: quay.io
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
