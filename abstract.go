@@ -131,48 +131,53 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 		log.Println("Couldn't describe resources: ", err.Error())
 		return
 	}
+	commonJobDimensions := getAwsDimensions(job)
 
 	for i := range resources {
 		resource := resources[i]
 		awsInfoData = append(awsInfoData, resource)
 		metricTags := resource.metricTags(tagsOnMetrics)
+		dimensions := detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch)
+		for _, commonJobDimension := range commonJobDimensions {
+			dimensions = append(dimensions, commonJobDimension)
+		}
 
 		wg.Add(len(job.Metrics))
 		go func() {
 			for j := range job.Metrics {
 				metric := job.Metrics[j]
-				dimensions := detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch)
 				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
+				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
 				go func() {
 					defer wg.Done()
-
 					cloudwatchSemaphore <- struct{}{}
 					defer func() {
 						<-cloudwatchSemaphore
 					}()
+					for _, fetchedMetrics := range resp.Metrics {
 
-					data := cloudwatchData{
-						ID:                     resource.ID,
-						Metric:                 &metric.Name,
-						Service:                resource.Service,
-						Statistics:             metric.Statistics,
-						NilToZero:              &metric.NilToZero,
-						AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
-						Tags:                   metricTags,
-						Dimensions:             dimensions,
-						Region:                 &job.Region,
+						data := cloudwatchData{
+							ID:                     resource.ID,
+							Metric:                 &metric.Name,
+							Service:                resource.Service,
+							Statistics:             metric.Statistics,
+							NilToZero:              &metric.NilToZero,
+							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
+							Tags:                   metricTags,
+							Dimensions:             fetchedMetrics.Dimensions,
+							Region:                 &job.Region,
+						}
+
+						filter := createGetMetricStatisticsInput(
+							fetchedMetrics.Dimensions,
+							getNamespace(resource.Service),
+							metric,
+						)
+
+						data.Points = clientCloudwatch.get(filter)
+						cw = append(cw, &data)
 					}
-
-					filter := createGetMetricStatisticsInput(
-						dimensions,
-						getNamespace(resource.Service),
-						metric,
-					)
-
-					data.Points = clientCloudwatch.get(filter)
-
 					mux.Lock()
-					cw = append(cw, &data)
 					mux.Unlock()
 				}()
 			}
