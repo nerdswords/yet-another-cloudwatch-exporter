@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -97,14 +98,14 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	return output
 }
 
-func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string) (output *cloudwatch.ListMetricsInput) {
+func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsInput) {
 	var dimensionsFilter []*cloudwatch.DimensionFilter
 
 	for _, dim := range dimensions {
 		dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{Name: dim.Name, Value: dim.Value})
 	}
 	output = &cloudwatch.ListMetricsInput{
-		MetricName: nil,
+		MetricName: metricsName,
 		Dimensions: dimensionsFilter,
 		Namespace:  namespace,
 		NextToken:  nil,
@@ -206,9 +207,30 @@ func getDimensionValueForName(name string, resp *cloudwatch.ListMetricsOutput) (
 	return nil
 }
 
+func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
+	for _, dimension := range dimensions {
+		keys = append(keys, *dimension.Name)
+	}
+	return keys
+}
+
+func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
+	var output cloudwatch.ListMetricsOutput
+	selectedDimensionKeys := keysofDimension(dimensions)
+	sort.Strings(selectedDimensionKeys)
+	for _, metric := range resp.Metrics {
+		metricsDimensionkeys := keysofDimension(metric.Dimensions)
+		sort.Strings(metricsDimensionkeys)
+		if reflect.DeepEqual(metricsDimensionkeys, selectedDimensionKeys) {
+			output.Metrics = append(output.Metrics, metric)
+		}
+	}
+	return &output
+}
+
 func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, clientCloudwatch cloudwatchInterface) (dimensionResourceName *string) {
 	c := clientCloudwatch.client
-	filter := createListMetricsInput(dimensions, namespace)
+	filter := createListMetricsInput(dimensions, namespace, nil)
 	req, resp := c.ListMetricsRequest(filter)
 	err := req.Send()
 
@@ -218,6 +240,28 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 
 	cloudwatchAPICounter.Inc()
 	return getDimensionValueForName(resourceName, resp)
+}
+
+func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
+	for _, awsDimension := range job.AwsDimensions {
+		dimensions = append(dimensions, buildDimensionWithoutValue(awsDimension))
+	}
+	return dimensions
+}
+
+func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+	c := clientCloudwatch.client
+	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
+	req, resp := c.ListMetricsRequest(filter)
+	cloudwatchAPICounter.Inc()
+	err := req.Send()
+
+	if err != nil {
+		panic(err)
+	}
+
+	resp = filterMetricsBasedOnDimensions(dimensions, resp)
+	return resp
 }
 
 func queryAvailableDimensions(resource string, namespace *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
@@ -303,15 +347,20 @@ func addAdditionalDimensions(startingDimensions []*cloudwatch.Dimension, additio
 	for _, dimension := range additionalDimensions {
 		dimensions = append(dimensions, buildDimension(dimension.Name, dimension.Value))
 	}
-
 	return dimensions
 }
 
 func buildBaseDimension(identifier string, dimensionKey string, prefix string) (dimensions []*cloudwatch.Dimension) {
 	helper := strings.TrimPrefix(identifier, prefix)
 	dimensions = append(dimensions, buildDimension(dimensionKey, helper))
-
 	return dimensions
+}
+
+func buildDimensionWithoutValue(key string) *cloudwatch.Dimension {
+	dimension := cloudwatch.Dimension{
+		Name: &key,
+	}
+	return &dimension
 }
 
 func buildDimension(key string, value string) *cloudwatch.Dimension {
@@ -323,15 +372,22 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 }
 
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
-	var targetGroup string
+	var suffixName string
 	if *serviceName == "alb" {
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
-				targetGroup = "tg"
+				suffixName = "tg"
 			}
 		}
 	}
-	return strings.ToLower(promString(*serviceName)) + targetGroup
+	if *serviceName == "elb" {
+		for _, dimension := range dimensions {
+			if *dimension.Name == "AvailabilityZone" {
+				suffixName = "_az"
+			}
+		}
+	}
+	return strings.ToLower(promString(*serviceName)) + suffixName
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
@@ -414,6 +470,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				for _, tag := range c.Tags {
 					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value
 				}
+
 				for _, dimension := range c.Dimensions {
 					promLabels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
 				}

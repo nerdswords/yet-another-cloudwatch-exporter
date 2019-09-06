@@ -148,6 +148,8 @@ discovery:
         length: 60
   - type: elb
     region: eu-west-1
+    awsDimensions:
+     - AvailabilityZone
     searchTags:
       - Key: KubernetesCluster
         Value: production-19
