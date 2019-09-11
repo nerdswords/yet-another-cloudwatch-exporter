@@ -29,8 +29,7 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		//metrics: removeDuplicatedMetrics(metrics),
-		metrics: metrics,
+		metrics: removeDuplicatedMetrics(metrics),
 	}
 }
 
