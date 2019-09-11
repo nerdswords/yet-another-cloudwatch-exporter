@@ -1,3 +1,6 @@
+# 0.14.1-alpha
+* **BREAKING** Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
+
 # 0.14.0-alpha
 * **BREAKING** Default command in Dockerfile is changed to yace. This removes the need to add yace as command.
 ```yaml
