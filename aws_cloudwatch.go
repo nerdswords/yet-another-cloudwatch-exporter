@@ -387,7 +387,7 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 			}
 		}
 	}
-	return strings.ToLower(promString(*serviceName)) + suffixName
+	return promString(*serviceName) + suffixName
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
