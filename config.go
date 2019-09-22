@@ -26,6 +26,7 @@ type job struct {
 	RoleArn       string   `yaml:"roleArn"`
 	AwsDimensions []string `yaml:"awsDimensions"`
 	SearchTags    []tag    `yaml:"searchTags"`
+	Length        int      `yaml:"length"`
 	Metrics       []metric `yaml:"metrics"`
 }
 
@@ -44,7 +45,6 @@ type metric struct {
 	Statistics             []string    `yaml:"statistics"`
 	AdditionalDimensions   []dimension `yaml:"additionalDimensions"`
 	Period                 int         `yaml:"period"`
-	Length                 int         `yaml:"length"`
 	Delay                  int         `yaml:"delay"`
 	NilToZero              bool        `yaml:"nilToZero"`
 	AddCloudwatchTimestamp bool        `yaml:"addCloudwatchTimestamp"`

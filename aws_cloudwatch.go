@@ -53,7 +53,7 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 	return cloudwatch.New(sess, config)
 }
 
-func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricStatisticsInput) {
+func createGetMetricDataInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricDataInput) {
 	period := int64(metric.Period)
 	length := metric.Length
 	delay := metric.Delay
@@ -70,11 +70,49 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		}
 	}
 
+	var queries []*cloudwatch.MetricDataQuery
+
+	metric = &cloudwatch.Metric{
+		MetricName: &metric.Name,
+		Dimensions: dimensions,
+		Namespace:  namespace,
+	}
+
+	metricStat = &cloudwatch.MetricStat{
+		metric: &metric,
+		Period: &period,
+
+		// The statistic to return. It can include any CloudWatch statistic or extended
+		// statistic.
+		Stat: statistics,
+	}
+
+	query = &cloudwatch.metricDataQuery{
+		Id:         aws.String("static"),
+		MetricStat: &metricStat,
+	}
+
+	query := cloudwatch.MetricDataQuery{}
+
+	queries = append(*queries, query)
+
+	metricDataInput = &cloudwatch.GetMetricDataInput{
+		StartTime:         &startTime,
+		EndTime:           &endTime,
+		MetricDataQueries: queries,
+	}
+
+	output, err := cloudwatch.GetMetricData(metricDataInput)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(output)
+
 	output = &cloudwatch.GetMetricStatisticsInput{
 		Dimensions:         dimensions,
 		Namespace:          namespace,
-		StartTime:          &startTime,
-		EndTime:            &endTime,
 		Period:             &period,
 		MetricName:         &metric.Name,
 		Statistics:         statistics,
