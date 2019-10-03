@@ -1,3 +1,6 @@
+# 0.14.2-alpha
+* Changing user in Docker image to be non root to adhere to potential security requirements.
+
 # 0.14.0-alpha
 * **BREAKING** Default command in Dockerfile is changed to yace. This removes the need to add yace as command.
 ```yaml
@@ -278,3 +281,4 @@ jobs:
 * Implement minimum, average, maximum, sum for cloudwatch api
 * Implement way to handle multiple data returned by cloudwatch
 * Update go dependencies
+

@@ -296,7 +296,7 @@ The following IAM permissions are required for YACE to work.
 ## Running locally
 
 ```shell
-docker run -d --rm -v $PWD/credentials:/root/.aws/PWD/credentials -v $PWD/config.yml:/tmp/config.yml \
+docker run -d --rm -v $PWD/credentials:/exporter/.aws/PWD/credentials -v $PWD/config.yml:/tmp/config.yml \
 -p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
 
 ```
@@ -358,3 +358,4 @@ go without losing data. ELB metrics on AWS are written every 5 minutes (300) in 
 
 * [Justin Santa Barbara](https://github.com/justinsb) - For telling me about AWS tags api which simplified a lot - Thanks!
 * [Brian Brazil](https://github.com/brian-brazil) - Who gave a lot of feedback regarding UX and prometheus lib - Thanks!
+
