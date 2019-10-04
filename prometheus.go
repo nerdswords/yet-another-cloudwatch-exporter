@@ -29,8 +29,7 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		//metrics: removeDuplicatedMetrics(metrics),
-		metrics: metrics,
+		metrics: removeDuplicatedMetrics(metrics),
 	}
 }
 
@@ -86,7 +85,7 @@ func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 
 func promString(text string) string {
 	text = splitString(text)
-	return replaceWithUnderscores(text)
+	return strings.ToLower(replaceWithUnderscores(text))
 }
 
 func promStringTag(text string) string {
@@ -94,7 +93,17 @@ func promStringTag(text string) string {
 }
 
 func replaceWithUnderscores(text string) string {
-	replacer := strings.NewReplacer(" ", "_", ",", "_", "\t", "_", ",", "_", "/", "_", "\\", "_", ".", "_", "-", "_", ":", "_", "=", "_")
+	replacer := strings.NewReplacer(
+		" ", "_",
+		",", "_",
+		"\t", "_",
+		"/", "_",
+		"\\", "_",
+		".", "_",
+		"-", "_",
+		":", "_",
+		"=", "_",
+	)
 	return replacer.Replace(text)
 }
 
