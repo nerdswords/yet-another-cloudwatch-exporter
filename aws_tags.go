@@ -192,7 +192,7 @@ func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
 	}
 
 	for _, d := range tagData {
-		name := "aws_" + *d.Service + "_info"
+		name := "aws_" + promString(*d.Service) + "_info"
 		promLabels := make(map[string]string)
 		promLabels["name"] = *d.ID
 

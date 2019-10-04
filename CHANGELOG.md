@@ -1,5 +1,9 @@
 # 0.14.2-alpha
-* Changing user in Docker image to be non root to adhere to potential security requirements.
+* **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements.
+* Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
+
+# 0.14.1-alpha
+* Was accidentally with code from 01.14.0-alpha released.
 
 # 0.14.0-alpha
 * **BREAKING** Default command in Dockerfile is changed to yace. This removes the need to add yace as command.
