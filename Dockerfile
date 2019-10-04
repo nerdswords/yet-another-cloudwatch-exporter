@@ -20,8 +20,13 @@ FROM alpine:latest
 EXPOSE 5000
 ENTRYPOINT ["yace"]
 CMD ["--config.file=/tmp/config.yml"]
-WORKDIR /root/
+RUN addgroup -g 1000 exporter && \
+    adduser -u 1000 -D -G exporter exporter -h /exporter
+
+WORKDIR /exporter/
+
 
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /opt/yace /usr/local/bin/yace
+USER exporter
 

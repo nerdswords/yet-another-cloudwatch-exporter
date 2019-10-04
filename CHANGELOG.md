@@ -1,5 +1,6 @@
 # 0.14.2-alpha
-* **BREAKING** Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
+* **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements.
+* Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
 
 # 0.14.1-alpha
 * Was accidentally with code from 01.14.0-alpha released.
@@ -284,3 +285,4 @@ jobs:
 * Implement minimum, average, maximum, sum for cloudwatch api
 * Implement way to handle multiple data returned by cloudwatch
 * Update go dependencies
+
