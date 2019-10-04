@@ -1,5 +1,5 @@
 # 0.14.2-alpha
-* **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements.
+* **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements. (whitlekx)
 * Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
 
 # 0.14.1-alpha
