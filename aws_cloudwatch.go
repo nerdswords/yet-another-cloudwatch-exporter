@@ -53,9 +53,8 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 	return cloudwatch.New(sess, config)
 }
 
-func createGetMetricDataInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(dimensions []*cloudwatch.Dimension, namespace *string, metric metric, length int) (output *cloudwatch.GetMetricDataInput) {
 	period := int64(metric.Period)
-	length := metric.Length
 	delay := metric.Delay
 	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
 	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
@@ -87,7 +86,7 @@ func createGetMetricDataInput(dimensions []*cloudwatch.Dimension, namespace *str
 		Stat: statistics,
 	}
 
-	query = &cloudwatch.metricDataQuery{
+	query = &cloudwatch.MetricDataQuery{
 		Id:         aws.String("static"),
 		MetricStat: &metricStat,
 	}
@@ -159,7 +158,7 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	return output
 }
 
-func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricDataInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
 	if *debug {

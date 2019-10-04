@@ -1,3 +1,43 @@
+# 0.14.3-alph
+* **BREAKING** Length is now configured in job scope and not metric scope. This is due to the new way how data is scraped to reduce api calls. Several data points are collected together. This only works if the all share the same length.
+```yaml
+# Before
+  jobs:
+  - region: eu-west-1
+    type: "es"
+    searchTags:
+      - Key: type
+        Value: ^(vault|k8s)$
+    metrics:
+      - name: ClusterStatus.green
+        statistics:
+          - 'Minimum'
+        period: 600
+        length: 600
+      - name: ClusterStatus.yellow
+        statistics:
+          - 'Minimum'
+        period: 600
+        length: 600
+# After
+  jobs:
+  - region: eu-west-1
+    type: "es"
+    searchTags:
+      - Key: type
+        Value: ^(vault|k8s)$
+    length: 600
+    metrics:
+      - name: ClusterStatus.green
+        statistics:
+          - 'Minimum'
+        period: 600
+      - name: ClusterStatus.yellow
+        statistics:
+          - 'Minimum'
+        period: 600
+```
+
 # 0.14.2-alpha
 * **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements. (whitlekx)
 * Fix prometheus metric bug with new services with '-' e.g. ecs-svc.

@@ -38,6 +38,7 @@ type static struct {
 	CustomTags []tag       `yaml:"customTags"`
 	Dimensions []dimension `yaml:"dimensions"`
 	Metrics    []metric    `yaml:"metrics"`
+	Length     int         `yaml:"length"`
 }
 
 type metric struct {

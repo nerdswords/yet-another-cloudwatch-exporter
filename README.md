@@ -14,6 +14,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Allows exports metrics with CloudWatch timestamps (disabled by default)
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from multiple AWS accounts using cross-account roles
+* Use get metric data api calls to reduce api calls and costs of exporter
 * Supported services with auto discovery through tags:
 
   * alb - Application Load Balancer
@@ -73,6 +74,7 @@ exportedTagsOnMetrics:
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                     |
 | roleArn              | IAM role to assume (optional)                                                            |
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex. |
+| length               | How far back to request data for in seconds                                              |
 | metrics              | List of metric definitions                                                               |
 | additionalDimensions | List of dimensions to return beyond the default list per service                         |
 
@@ -91,7 +93,6 @@ searchTags:
 | name                   | CloudWatch metric name                                         |
 | statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.       |
 | period                 | Statistic period in seconds                                    |
-| length                 | How far back to request data for in seconds                    |
 | delay                  | If set it will request metrics up until `current_time - delay` |
 | nilToZero              | Return 0 value if Cloudwatch returns no metrics at all         |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp       |
@@ -125,27 +126,24 @@ discovery:
     searchTags:
       - Key: type
         Value: ^(easteregg|k8s)$
+    length: 60
     metrics:
       - name: FreeStorageSpace
         statistics:
         - Sum
         period: 600
-        length: 60
       - name: ClusterStatus.green
         statistics:
         - Minimum
         period: 600
-        length: 60
       - name: ClusterStatus.yellow
         statistics:
         - Maximum
         period: 600
-        length: 60
       - name: ClusterStatus.red
         statistics:
         - Maximum
         period: 600
-        length: 60
   - type: elb
     region: eu-west-1
     awsDimensions:
@@ -153,17 +151,16 @@ discovery:
     searchTags:
       - Key: KubernetesCluster
         Value: production-19
+    length: 600
     metrics:
       - name: HealthyHostCount
         statistics:
         - Minimum
         period: 600
-        length: 600
       - name: HTTPCode_Backend_4XX
         statistics:
         - Sum
         period: 60
-        length: 900
         delay: 300
         nilToZero: true
   - type: alb
@@ -171,46 +168,45 @@ discovery:
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
+    length: 600
     metrics:
       - name: UnHealthyHostCount
         statistics: [Maximum]
         period: 60
-        length: 600
   - type: vpn
     region: eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
+    length: 300
     metrics:
       - name: TunnelState
         statistics:
         - p90
         period: 60
-        length: 300
   - type: kinesis
     region: eu-west-1
+    length: 300
     metrics:
       - name: PutRecords.Success
         statistics:
         - Sum
         period: 60
-        length: 300
   - type: s3
     region: eu-west-1
     searchTags:
       - Key: type
         Value: public
+    length: 172800
     metrics:
       - name: NumberOfObjects
         statistics:
           - Average
         period: 86400
-        length: 172800
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
-        length: 172800
         additionalDimensions:
           - name: StorageType
             value: StandardStorage
@@ -219,12 +215,12 @@ discovery:
     searchTags:
       - Key: type
         Value: public
+    length: 600
     metrics:
       - name: BurstBalance
         statistics:
         - Minimum
         period: 600
-        length: 600
         addCloudwatchTimestamp: true
 static:
   - namespace: AWS/AutoScaling
@@ -236,12 +232,12 @@ static:
     customTags:
       - Key: CustomTag
         Value: CustomValue
+    length: 300
     metrics:
       - name: GroupInServiceInstances
         statistics:
         - Minimum
         period: 60
-        length: 300
 ```
 
 ## Metrics Examples

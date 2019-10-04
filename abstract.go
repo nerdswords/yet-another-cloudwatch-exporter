@@ -100,10 +100,11 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				Region:                 &resource.Region,
 			}
 
-			filter := createGetMetricStatisticsInput(
+			filter := createGetMetricDataInput(
 				data.Dimensions,
 				&resource.Namespace,
 				metric,
+				resource.Length,
 			)
 
 			data.Points = clientCloudwatch.get(filter)
@@ -168,10 +169,11 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 							Region:                 &job.Region,
 						}
 
-						filter := createGetMetricStatisticsInput(
+						filter := createGetMetricDataInput(
 							fetchedMetrics.Dimensions,
 							getNamespace(resource.Service),
 							metric,
+							job.Length,
 						)
 
 						data.Points = clientCloudwatch.get(filter)
