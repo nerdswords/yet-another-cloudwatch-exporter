@@ -388,13 +388,24 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
 	var suffixName string
+
 	if *serviceName == "alb" {
+		var albSuffix, tgSuffix string
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
-				suffixName = "tg"
+				tgSuffix = "tg"
+			}
+			if *dimension.Name == "LoadBalancer" {
+				albSuffix = "alb"
 			}
 		}
+		if albSuffix != "" && tgSuffix != "" {
+			return albSuffix + "_" + tgSuffix
+		} else if albSuffix == "" && tgSuffix != "" {
+			return tgSuffix
+		}
 	}
+
 	if *serviceName == "elb" {
 		for _, dimension := range dimensions {
 			if *dimension.Name == "AvailabilityZone" {
