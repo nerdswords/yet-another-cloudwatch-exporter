@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/fatih/structs"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -265,7 +266,14 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	if len(dimensions) != 1 {
+	callListMetrics := false
+	for _, dimension := range dimensions {
+		if structs.HasZero(dimension) {
+			callListMetrics = true
+			break
+		}
+	}
+	if callListMetrics {
 		req, res := c.ListMetricsRequest(filter)
 		cloudwatchAPICounter.Inc()
 		err := req.Send()
