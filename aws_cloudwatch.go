@@ -113,6 +113,19 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	return output
 }
 
+func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
+	Metrics := []*cloudwatch.Metric{{
+		MetricName: metricsName,
+		Dimensions: dimensions,
+		Namespace:  namespace,
+	}}
+	output = &cloudwatch.ListMetricsOutput{
+		Metrics:   Metrics,
+		NextToken: nil,
+	}
+	return output
+}
+
 func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	for _, dim := range dimensions {
 		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
@@ -252,15 +265,17 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	req, resp := c.ListMetricsRequest(filter)
-	cloudwatchAPICounter.Inc()
-	err := req.Send()
-
-	if err != nil {
-		panic(err)
+	if len(dimensions) != 1 {
+		req, res := c.ListMetricsRequest(filter)
+		cloudwatchAPICounter.Inc()
+		err := req.Send()
+		if err != nil {
+			panic(err)
+		}
+		resp = filterMetricsBasedOnDimensions(dimensions, res)
+	} else {
+		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
 	}
-
-	resp = filterMetricsBasedOnDimensions(dimensions, resp)
 	return resp
 }
 
