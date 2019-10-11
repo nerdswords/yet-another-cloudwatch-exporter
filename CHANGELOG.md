@@ -1,3 +1,6 @@
+# 0.14.3-alpha
+* Fix problems and crashes with ALBs and ELBs (Deepak1100)
+
 # 0.14.2-alpha
 * **BREAKING** Changing user in Docker image to be non root to adhere to potential security requirements. (whitlekx)
 * Fix prometheus metric bug with new services with '-' e.g. ecs-svc.
