@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/fatih/structs"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -109,6 +110,19 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 		Dimensions: dimensionsFilter,
 		Namespace:  namespace,
 		NextToken:  nil,
+	}
+	return output
+}
+
+func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
+	Metrics := []*cloudwatch.Metric{{
+		MetricName: metricsName,
+		Dimensions: dimensions,
+		Namespace:  namespace,
+	}}
+	output = &cloudwatch.ListMetricsOutput{
+		Metrics:   Metrics,
+		NextToken: nil,
 	}
 	return output
 }
@@ -252,15 +266,24 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	req, resp := c.ListMetricsRequest(filter)
-	cloudwatchAPICounter.Inc()
-	err := req.Send()
-
-	if err != nil {
-		panic(err)
+	callListMetrics := false
+	for _, dimension := range dimensions {
+		if structs.HasZero(dimension) {
+			callListMetrics = true
+			break
+		}
 	}
-
-	resp = filterMetricsBasedOnDimensions(dimensions, resp)
+	if callListMetrics {
+		req, res := c.ListMetricsRequest(filter)
+		cloudwatchAPICounter.Inc()
+		err := req.Send()
+		if err != nil {
+			panic(err)
+		}
+		resp = filterMetricsBasedOnDimensions(dimensions, res)
+	} else {
+		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
+	}
 	return resp
 }
 
@@ -373,13 +396,24 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
 	var suffixName string
+
 	if *serviceName == "alb" {
+		var albSuffix, tgSuffix string
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
-				suffixName = "tg"
+				tgSuffix = "tg"
+			}
+			if *dimension.Name == "LoadBalancer" {
+				albSuffix = "alb"
 			}
 		}
+		if albSuffix != "" && tgSuffix != "" {
+			return albSuffix + "_" + tgSuffix
+		} else if albSuffix == "" && tgSuffix != "" {
+			return tgSuffix
+		}
 	}
+
 	if *serviceName == "elb" {
 		for _, dimension := range dimensions {
 			if *dimension.Name == "AvailabilityZone" {
