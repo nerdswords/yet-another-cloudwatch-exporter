@@ -6,6 +6,7 @@ import (
 	_ "fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -30,11 +31,30 @@ type tagsInterface struct {
 }
 
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
-	sess, err := session.NewSession()
-	if err != nil {
-		panic(err)
+
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	maxCloudwatchRetries := 20
+	level := aws.LogDebugWithHTTPBody
+
+	config := &aws.Config{
+		Region: region,
+		HTTPClient: NewHTTPClientWithSettings(HTTPClientSettings{
+			Connect:          55 * time.Second,
+			ExpectContinue:   3 * time.Second,
+			IdleConn:         120 * time.Second,
+			ConnKeepAlive:    30 * time.Second,
+			MaxAllIdleConns:  100,
+			MaxHostIdleConns: 55,
+			ResponseHeader:   10 * time.Second,
+			TLSHandshake:     10 * time.Second,
+		}),
+		MaxRetries: &maxCloudwatchRetries,
+		LogLevel:   &level,
 	}
-	config := &aws.Config{Region: region}
+
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -43,11 +63,30 @@ func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAP
 }
 
 func createASGSession(region *string, roleArn string) autoscalingiface.AutoScalingAPI {
-	sess, err := session.NewSession()
-	if err != nil {
-		panic(err)
+
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	maxCloudwatchRetries := 20
+	level := aws.LogDebugWithHTTPBody
+
+	config := &aws.Config{
+		Region: region,
+		HTTPClient: NewHTTPClientWithSettings(HTTPClientSettings{
+			Connect:          55 * time.Second,
+			ExpectContinue:   3 * time.Second,
+			IdleConn:         120 * time.Second,
+			ConnKeepAlive:    30 * time.Second,
+			MaxAllIdleConns:  100,
+			MaxHostIdleConns: 55,
+			ResponseHeader:   10 * time.Second,
+			TLSHandshake:     10 * time.Second,
+		}),
+		MaxRetries: &maxCloudwatchRetries,
+		LogLevel:   &level,
 	}
-	config := &aws.Config{Region: region}
+
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -192,7 +231,7 @@ func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
 	}
 
 	for _, d := range tagData {
-		name := "aws_" + *d.Service + "_info"
+		name := "aws_" + promString(*d.Service) + "_info"
 		promLabels := make(map[string]string)
 		promLabels["name"] = *d.ID
 

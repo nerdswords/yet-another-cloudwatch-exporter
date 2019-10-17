@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"reflect"
 	"regexp"
 	"sort"
@@ -16,9 +18,22 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/fatih/structs"
+	"golang.org/x/net/http2"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
+
+type HTTPClientSettings struct {
+	Connect          time.Duration
+	ConnKeepAlive    time.Duration
+	ExpectContinue   time.Duration
+	IdleConn         time.Duration
+	MaxAllIdleConns  int
+	MaxHostIdleConns int
+	ResponseHeader   time.Duration
+	TLSHandshake     time.Duration
+}
 
 type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
@@ -38,14 +53,54 @@ type cloudwatchData struct {
 	Region                 *string
 }
 
+func NewHTTPClientWithSettings(httpSettings HTTPClientSettings) *http.Client {
+	tr := &http.Transport{
+		ResponseHeaderTimeout: httpSettings.ResponseHeader,
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			KeepAlive: httpSettings.ConnKeepAlive,
+			DualStack: true,
+			Timeout:   httpSettings.Connect,
+		}).DialContext,
+		MaxIdleConns:          httpSettings.MaxAllIdleConns,
+		IdleConnTimeout:       httpSettings.IdleConn,
+		TLSHandshakeTimeout:   httpSettings.TLSHandshake,
+		MaxIdleConnsPerHost:   httpSettings.MaxHostIdleConns,
+		ExpectContinueTimeout: httpSettings.ExpectContinue,
+	}
+
+	// So client makes HTTP/2 requests
+	http2.ConfigureTransport(tr)
+
+	return &http.Client{
+		Transport: tr,
+	}
+}
+
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
+
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
+	level := aws.LogDebugWithHTTPBody
+	maxCloudwatchRetries := 20
 
-	maxCloudwatchRetries := 5
+	config := &aws.Config{
+		Region: region,
+		HTTPClient: NewHTTPClientWithSettings(HTTPClientSettings{
+			Connect:          55 * time.Second,
+			ExpectContinue:   3 * time.Second,
+			IdleConn:         120 * time.Second,
+			ConnKeepAlive:    30 * time.Second,
+			MaxAllIdleConns:  100,
+			MaxHostIdleConns: 100,
+			ResponseHeader:   10 * time.Second,
+			TLSHandshake:     10 * time.Second,
+		}),
+		MaxRetries: &maxCloudwatchRetries,
+		LogLevel:   &level,
+	}
 
-	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -81,20 +136,16 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		ExtendedStatistics: extendedStatistics,
 	}
 
-	if *debug {
-		if len(statistics) != 0 {
-			log.Println("CLI helper - " +
-				"aws cloudwatch get-metric-statistics" +
-				" --metric-name " + metric.Name +
-				" --dimensions " + dimensionsToCliString(dimensions) +
-				" --namespace " + *namespace +
-				" --statistics " + *statistics[0] +
-				" --period " + strconv.FormatInt(period, 10) +
-				" --start-time " + startTime.Format(time.RFC3339) +
-				" --end-time " + endTime.Format(time.RFC3339))
-		}
-		log.Println(*output)
-	}
+	log.Println("CLI helper - " +
+		"aws cloudwatch get-metric-statistics" +
+		" --metric-name " + metric.Name +
+		" --dimensions " + dimensionsToCliString(dimensions) +
+		" --namespace " + *namespace +
+		" --statistics " + *statistics[0] +
+		" --period " + strconv.FormatInt(period, 10) +
+		" --start-time " + startTime.Format(time.RFC3339) +
+		" --end-time " + endTime.Format(time.RFC3339))
+
 	return output
 }
 
@@ -109,6 +160,19 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 		Dimensions: dimensionsFilter,
 		Namespace:  namespace,
 		NextToken:  nil,
+	}
+	return output
+}
+
+func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
+	Metrics := []*cloudwatch.Metric{{
+		MetricName: metricsName,
+		Dimensions: dimensions,
+		Namespace:  namespace,
+	}}
+	output = &cloudwatch.ListMetricsOutput{
+		Metrics:   Metrics,
+		NextToken: nil,
 	}
 	return output
 }
@@ -252,15 +316,24 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	req, resp := c.ListMetricsRequest(filter)
-	cloudwatchAPICounter.Inc()
-	err := req.Send()
-
-	if err != nil {
-		panic(err)
+	callListMetrics := false
+	for _, dimension := range dimensions {
+		if structs.HasZero(dimension) {
+			callListMetrics = true
+			break
+		}
 	}
-
-	resp = filterMetricsBasedOnDimensions(dimensions, resp)
+	if callListMetrics {
+		req, res := c.ListMetricsRequest(filter)
+		cloudwatchAPICounter.Inc()
+		err := req.Send()
+		if err != nil {
+			panic(err)
+		}
+		resp = filterMetricsBasedOnDimensions(dimensions, res)
+	} else {
+		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
+	}
 	return resp
 }
 
@@ -373,13 +446,24 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
 	var suffixName string
+
 	if *serviceName == "alb" {
+		var albSuffix, tgSuffix string
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
-				suffixName = "tg"
+				tgSuffix = "tg"
+			}
+			if *dimension.Name == "LoadBalancer" {
+				albSuffix = "alb"
 			}
 		}
+		if albSuffix != "" && tgSuffix != "" {
+			return albSuffix + "_" + tgSuffix
+		} else if albSuffix == "" && tgSuffix != "" {
+			return tgSuffix
+		}
 	}
+
 	if *serviceName == "elb" {
 		for _, dimension := range dimensions {
 			if *dimension.Name == "AvailabilityZone" {
@@ -387,7 +471,7 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 			}
 		}
 	}
-	return strings.ToLower(promString(*serviceName)) + suffixName
+	return promString(*serviceName) + suffixName
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {

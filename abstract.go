@@ -39,6 +39,8 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 
 			resources, metrics := scrapeDiscoveryJob(job, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
 
+			log.Println("Finished scrap!")
+
 			mux.Lock()
 			awsInfoData = append(awsInfoData, resources...)
 			cloudwatchData = append(cloudwatchData, metrics...)
@@ -148,6 +150,9 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 				metric := job.Metrics[j]
 				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
 				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
+				log.Printf("Get Metrics %v", *resource.ID)
+				log.Println(resp)
+
 				go func() {
 					defer wg.Done()
 					cloudwatchSemaphore <- struct{}{}
