@@ -206,6 +206,9 @@ discovery:
           - Average
         period: 86400
         length: 172800
+        additionalDimensions:
+          - name: StorageType
+            value: AllStorageTypes
       - name: BucketSizeBytes
         statistics:
           - Average
