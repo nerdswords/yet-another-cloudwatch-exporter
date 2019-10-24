@@ -146,8 +146,8 @@ func scrapeDiscoveryJob(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag 
 		go func() {
 			for j := range job.Metrics {
 				metric := job.Metrics[j]
-				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
-				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
+				metricDimensions := addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
+				resp := getMetricsList(metricDimensions, resource.Service, metric, clientCloudwatch)
 				go func() {
 					defer wg.Done()
 					cloudwatchSemaphore <- struct{}{}
