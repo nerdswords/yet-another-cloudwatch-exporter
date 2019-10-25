@@ -11,23 +11,18 @@ jobs:
       run: exit 78
     - uses: actions/checkout@master
     - name: Build docker image
-      uses: actions/docker/cli@master
-      with:
-        args: build -t yace --build-arg VERSION=${{ github.event.release.tag_name }} .
+      run: docker build -t yace --build-arg VERSION=${{ github.event.release.tag_name }} .
     - name: Log into docker
-      uses: actions/docker/login@master
       env:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         DOCKER_REGISTRY_URL: quay.io
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY_URL
     - name: Release if tagged
-      uses: actions/bin/filter@master
-      with:
-        args: tag v*
+      if: "!startswith(github.ref, 'refs/tags/v')"
+      run: exit 78
     - name: Tag docker image
-      uses: actions/docker/tag@master
-      with:
-        args: --no-latest --no-sha yace quay.io/invisionag/yet-another-cloudwatch-exporter
+      run: docker tag yace quay.io/invisionag/yet-another-cloudwatch-exporter:${GITHUB_REF#refs/tags/}
     - name: Build && release binaries
       uses: docker://goreleaser/goreleaser:v0.104
       env:
@@ -35,6 +30,4 @@ jobs:
       with:
         args: release
     - name: Publish docker image
-      uses: actions/docker/cli@master
-      with:
-        args: '"push quay.io/invisionag/yet-another-cloudwatch-exporter"'
+      run: docker push quay.io/invisionag/yet-another-cloudwatch-exporter
