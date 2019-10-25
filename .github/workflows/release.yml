@@ -24,7 +24,7 @@ jobs:
     - name: Tag docker image
       run: docker tag yace quay.io/invisionag/yet-another-cloudwatch-exporter:${GITHUB_REF#refs/tags/}
     - name: Build && release binaries
-      uses: docker://goreleaser/goreleaser:v0.104
+      uses: docker://goreleaser/goreleaser:v0.120.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
