@@ -8,6 +8,4 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Build docker image
-      uses: actions/docker/cli@master
-      with:
-        args: build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
+      run: docker build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
