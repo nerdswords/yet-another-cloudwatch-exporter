@@ -1,3 +1,9 @@
+# 0.14.4-alpha
+* Fix github actions (nhinds)
+* Update aws-sdk-go (deanrock)
+* Avoid appending to a shared dimensions variable from inside a loop (nhinds)
+* Remove hardcoded StorageType dimension from S3 metric (nhinds)
+
 # 0.14.3-alpha
 * Fix problems and crashes with ALBs and ELBs (Deepak1100)
 
