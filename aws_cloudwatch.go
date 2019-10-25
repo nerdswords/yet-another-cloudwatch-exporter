@@ -339,7 +339,6 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
-		dimensions = append(dimensions, buildDimension("StorageType", "AllStorageTypes"))
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "ebs":
