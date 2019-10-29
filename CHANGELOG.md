@@ -1,3 +1,7 @@
+# 0.14.5-alpha
+* Fix sts api calls without specifying a region (nhinds)
+* Update aws-sdk to v1.25.21 (nhinds)
+
 # 0.14.4-alpha
 * Fix github actions (nhinds)
 * Update aws-sdk-go (deanrock)
