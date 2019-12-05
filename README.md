@@ -69,14 +69,18 @@ exportedTagsOnMetrics:
 
 ### Auto-discovery job
 
-| Key                  | Description                                                                              |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| region               | AWS region                                                                               |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                     |
-| roleArn              | IAM role to assume (optional)                                                            |
-| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex. |
-| metrics              | List of metric definitions                                                               |
-| additionalDimensions | List of dimensions to return beyond the default list per service                         |
+| Key                  | Description                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------  |
+| region               | AWS region                                                                                          |
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                                |
+| enableMetricData     | Use Cloudwatch GetMetricData Api instead of getmetricstatistics.                                   |
+| length (Default 120) | How far back to request data for in seconds (only when enableMetricData: true).                     |
+| delay                | If set it will request metrics up until `current_time - delay` (only when enableMetricData: true).  |
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                                |
+| roleArn              | IAM role to assume (optional)                                                                       |
+| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.            |
+| metrics              | List of metric definitions                                                                          |
+| additionalDimensions | List of dimensions to return beyond the default list per service                                    |
 
 searchTags example:
 
@@ -150,6 +154,9 @@ discovery:
         length: 60
   - type: elb
     region: eu-west-1
+    length: 900
+    delay: 120
+    enableMetricData: true
     awsDimensions:
      - AvailabilityZone
     searchTags:
@@ -160,13 +167,13 @@ discovery:
         statistics:
         - Minimum
         period: 600
-        length: 600
+        length: 600 #(this will be ignore at metrics level as enableMetricData is true)
       - name: HTTPCode_Backend_4XX
         statistics:
         - Sum
         period: 60
-        length: 900
-        delay: 300
+        length: 900 #(this will be ignore at metrics level as enableMetricData is true)
+        delay: 300 #(this will be ignore at metrics level as enableMetricData is true)
         nilToZero: true
   - type: alb
     region: eu-west-1
@@ -377,4 +384,3 @@ go without losing data. ELB metrics on AWS are written every 5 minutes (300) in 
 
 * [Justin Santa Barbara](https://github.com/justinsb) - For telling me about AWS tags api which simplified a lot - Thanks!
 * [Brian Brazil](https://github.com/brian-brazil) - Who gave a lot of feedback regarding UX and prometheus lib - Thanks!
-
