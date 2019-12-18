@@ -1,3 +1,6 @@
+# 0.14.6-alpha
+* Add optional structured logging flag (bheight-Zymergen)
+
 # 0.14.5-alpha
 * Fix sts api calls without specifying a region (nhinds)
 * Update aws-sdk to v1.25.21 (nhinds)
