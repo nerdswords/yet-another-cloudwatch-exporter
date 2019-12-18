@@ -1,11 +1,11 @@
 package main
 
 import (
-	_ "fmt"
-	"log"
 	"regexp"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
