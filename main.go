@@ -49,7 +49,6 @@ var (
 func init() {
 	flag.Parse()
 
-	log.Println(*logFormat)
 	// Switch case to determine which log formatter to use
 	switch *logFormat {
 	case "ascii":
