@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
 var version = "custom-build"
@@ -16,6 +16,7 @@ var version = "custom-build"
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
+	logFormat             = flag.String("log-format", "ascii", "The format to be used for log messages")
 	debug                 = flag.Bool("debug", false, "Add verbose logging")
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
 	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API")
@@ -45,6 +46,28 @@ var (
 	config = conf{}
 )
 
+func init() {
+	flag.Parse()
+
+	log.Println(*logFormat)
+	// Switch case to determine which log formatter to use
+	switch *logFormat {
+	case "ascii":
+		log.SetFormatter(&log.TextFormatter{})
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{})
+	default:
+		log.Fatal("Unknown logging format.")
+	}
+
+	// Set the Output to stdout instead of the default stderr
+	log.SetOutput(os.Stdout)
+
+	// Only log Info severity or above.
+	log.SetLevel(log.InfoLevel)
+
+}
+
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	tagsData, cloudwatchData := scrapeAwsData(config)
 
@@ -68,7 +91,6 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	flag.Parse()
 
 	if *showVersion {
 		fmt.Println(version)
