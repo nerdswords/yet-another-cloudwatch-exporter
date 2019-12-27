@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -74,13 +75,26 @@ func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 	keys := make(map[string]bool)
 	filteredMetrics := []*PrometheusMetric{}
 	for _, metric := range metrics {
-		check := *metric.name + metric.labels["name"]
+		check := *metric.name + combineLabels(metric.labels)
 		if _, value := keys[check]; !value {
 			keys[check] = true
 			filteredMetrics = append(filteredMetrics, metric)
 		}
 	}
 	return filteredMetrics
+}
+
+func combineLabels(labels map[string]string) string {
+	var combinedLabels string
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		combinedLabels += promString(k) + promString(labels[k])
+	}
+	return combinedLabels
 }
 
 func promString(text string) string {
