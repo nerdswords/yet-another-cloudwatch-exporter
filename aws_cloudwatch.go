@@ -160,42 +160,42 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 func getNamespace(service *string) *string {
 	var ns string
 	switch *service {
-	case "ec2":
-		ns = "AWS/EC2"
-	case "elb":
-		ns = "AWS/ELB"
 	case "alb":
 		ns = "AWS/ApplicationELB"
-	case "rds":
-		ns = "AWS/RDS"
-	case "ec":
-		ns = "AWS/ElastiCache"
-	case "es":
-		ns = "AWS/ES"
-	case "ecs-svc":
-		ns = "AWS/ECS"
-	case "nlb":
-		ns = "AWS/NetworkELB"
-	case "s3":
-		ns = "AWS/S3"
-	case "efs":
-		ns = "AWS/EFS"
-	case "ebs":
-		ns = "AWS/EBS"
-	case "vpn":
-		ns = "AWS/VPN"
-	case "lambda":
-		ns = "AWS/Lambda"
-	case "kinesis":
-		ns = "AWS/Kinesis"
-	case "dynamodb":
-		ns = "AWS/DynamoDB"
-	case "emr":
-		ns = "AWS/ElasticMapReduce"
 	case "asg":
 		ns = "AWS/AutoScaling"
+	case "dynamodb":
+		ns = "AWS/DynamoDB"
+	case "ebs":
+		ns = "AWS/EBS"
+	case "ec":
+		ns = "AWS/ElastiCache"
+	case "ec2":
+		ns = "AWS/EC2"
+	case "ecs-svc":
+		ns = "AWS/ECS"
+	case "efs":
+		ns = "AWS/EFS"
+	case "elb":
+		ns = "AWS/ELB"
+	case "emr":
+		ns = "AWS/ElasticMapReduce"
+	case "es":
+		ns = "AWS/ES"
+	case "kinesis":
+		ns = "AWS/Kinesis"
+	case "lambda":
+		ns = "AWS/Lambda"
+	case "nlb":
+		ns = "AWS/NetworkELB"
+	case "rds":
+		ns = "AWS/RDS"
+	case "s3":
+		ns = "AWS/S3"
 	case "sqs":
 		ns = "AWS/SQS"
+	case "vpn":
+		ns = "AWS/VPN"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
