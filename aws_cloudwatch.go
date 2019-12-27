@@ -443,6 +443,13 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			var timestamp time.Time
 			for _, datapoint := range datapoints {
 				switch {
+				case statistic == "Average":
+					if datapoint.Average != nil {
+						if datapoint.Timestamp.After(timestamp) {
+							timestamp = *datapoint.Timestamp
+						}
+						averageDataPoints = append(averageDataPoints, datapoint.Average)
+					}
 				case statistic == "Maximum":
 					if datapoint.Maximum != nil {
 						exportedDatapoint = datapoint.Maximum
@@ -460,13 +467,6 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 						exportedDatapoint = datapoint.Sum
 						timestamp = *datapoint.Timestamp
 						break
-					}
-				case statistic == "Average":
-					if datapoint.Average != nil {
-						if datapoint.Timestamp.After(timestamp) {
-							timestamp = *datapoint.Timestamp
-						}
-						averageDataPoints = append(averageDataPoints, datapoint.Average)
 					}
 				case percentile.MatchString(statistic):
 					if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
