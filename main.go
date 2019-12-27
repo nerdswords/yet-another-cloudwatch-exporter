@@ -40,6 +40,7 @@ var (
 		"vpn",
 		"asg",
 		"sqs",
+		"kafka",
 	}
 
 	config = conf{}
