@@ -23,23 +23,23 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"asg",
 		"dynamodb",
 		"ebs",
 		"ec",
-		"ecs-svc",
 		"ec2",
+		"ecs-svc",
 		"efs",
 		"elb",
 		"emr",
 		"es",
+		"kinesis",
 		"lambda",
 		"nlb",
 		"rds",
 		"s3",
-		"kinesis",
-		"vpn",
-		"asg",
 		"sqs",
+		"vpn",
 	}
 
 	config = conf{}

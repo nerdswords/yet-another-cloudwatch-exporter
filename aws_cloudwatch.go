@@ -317,46 +317,46 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	}
 
 	switch *service {
+	case "alb":
+		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
+	case "asg":
+		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
+	case "dynamodb":
+		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
+	case "ebs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
+	case "ec":
+		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
 	case "ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
-	case "elb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
 	case "ecs-svc":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		service := strings.Split(arnParsed.Resource, "/")[2]
 		dimensions = append(dimensions, buildDimension("ClusterName", cluster))
 		dimensions = append(dimensions, buildDimension("ServiceName", service))
-	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
+	case "efs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
+	case "elb":
+		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
+	case "emr":
+		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
+	case "es":
+		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
+		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "kinesis":
+		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
+	case "lambda":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
 	case "nlb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
-	case "ec":
-		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
-	case "es":
-		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
-		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
-	case "efs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-	case "ebs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
-	case "vpn":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
-	case "lambda":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
-	case "kinesis":
-		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
-	case "dynamodb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
-	case "emr":
-		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
-	case "asg":
-		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
+	case "vpn":
+		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
