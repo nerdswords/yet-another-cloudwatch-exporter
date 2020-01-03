@@ -324,10 +324,10 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	case "elb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
 	case "ecs-svc":
-		cluster := strings.Split(arnParsed.Resource, "/")[1]
-		service := strings.Split(arnParsed.Resource, "/")[2]
-		dimensions = append(dimensions, buildDimension("ClusterName", cluster))
-		dimensions = append(dimensions, buildDimension("ServiceName", service))
+		parsedResource := strings.Split(arnParsed.Resource, "/")
+		if parsedResource[0] == "service" {
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
+		}
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
 	case "nlb":
