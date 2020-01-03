@@ -16,7 +16,6 @@ var version = "custom-build"
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	logFormat             = flag.String("log-format", "ascii", "The format to be used for log messages")
 	debug                 = flag.Bool("debug", false, "Add verbose logging")
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
 	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API")
@@ -49,15 +48,8 @@ var (
 func init() {
 	flag.Parse()
 
-	// Switch case to determine which log formatter to use
-	switch *logFormat {
-	case "ascii":
-		log.SetFormatter(&log.TextFormatter{})
-	case "json":
-		log.SetFormatter(&log.JSONFormatter{})
-	default:
-		log.Fatal("Unknown logging format.")
-	}
+	// Set JSON structured logging as the default log formatter
+	log.SetFormatter(&log.JSONFormatter{})
 
 	// Set the Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)
