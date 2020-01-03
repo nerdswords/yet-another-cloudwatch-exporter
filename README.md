@@ -361,7 +361,7 @@ spec:
           name: yace
 ```
 
-## Troubleshooting / Debuging
+## Troubleshooting / Debugging
 
 ### Help my metrics are intermittent
 

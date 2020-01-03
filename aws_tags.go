@@ -61,66 +61,46 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	var filter []*string
 
 	switch job.Type {
-	case "ec2":
-		hotfix := aws.String("ec2:instance")
-		filter = append(filter, hotfix)
-	case "ecs-svc":
-		hotfix := aws.String("ecs:cluster")
-		svc := aws.String("ecs:service")
-		filter = append(filter, hotfix)
-		filter = append(filter, svc)
-	case "elb":
-		hotfix := aws.String("elasticloadbalancing:loadbalancer")
-		filter = append(filter, hotfix)
 	case "alb":
-		alb := aws.String("elasticloadbalancing:loadbalancer")
-		tg := aws.String("elasticloadbalancing:targetgroup")
-		filter = append(filter, alb)
-		filter = append(filter, tg)
-	case "nlb":
-		alb := aws.String("elasticloadbalancing:loadbalancer/net")
-		filter = append(filter, alb)
-	case "vpn":
-		connection := aws.String("ec2:vpn-connection")
-		filter = append(filter, connection)
-	case "rds":
-		hotfix := aws.String("rds:db")
-		filter = append(filter, hotfix)
-	case "es":
-		hotfix := aws.String("es:domain")
-		filter = append(filter, hotfix)
-	case "ec":
-		hotfix := aws.String("elasticache:cluster")
-		filter = append(filter, hotfix)
-	case "s3":
-		hotfix := aws.String("s3")
-		filter = append(filter, hotfix)
-	case "efs":
-		hotfix := aws.String("elasticfilesystem:file-system")
-		filter = append(filter, hotfix)
-	case "ebs":
-		hotfix := aws.String("ec2:volume")
-		filter = append(filter, hotfix)
-	case "lambda":
-		hotfix := aws.String("lambda:function")
-		filter = append(filter, hotfix)
-	case "kinesis":
-		hotfix := aws.String("kinesis:stream")
-		filter = append(filter, hotfix)
-	case "dynamodb":
-		hotfix := aws.String("dynamodb:table")
-		filter = append(filter, hotfix)
-	case "emr":
-		hotfix := aws.String("elasticmapreduce:cluster")
-		filter = append(filter, hotfix)
+		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer"))
+		filter = append(filter, aws.String("elasticloadbalancing:targetgroup"))
 	case "asg":
 		return iface.getTaggedAutoscalingGroups(job)
+	case "dynamodb":
+		filter = append(filter, aws.String("dynamodb:table"))
+	case "ebs":
+		filter = append(filter, aws.String("ec2:volume"))
+	case "ec":
+		filter = append(filter, aws.String("elasticache:cluster"))
+	case "ec2":
+		filter = append(filter, aws.String("ec2:instance"))
+	case "ecs-svc":
+		filter = append(filter, aws.String("ecs:cluster"))
+		filter = append(filter, aws.String("ecs:service"))
+	case "efs":
+		filter = append(filter, aws.String("elasticfilesystem:file-system"))
+	case "elb":
+		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer"))
+	case "emr":
+		filter = append(filter, aws.String("elasticmapreduce:cluster"))
+	case "es":
+		filter = append(filter, aws.String("es:domain"))
+	case "kinesis":
+		filter = append(filter, aws.String("kinesis:stream"))
+	case "lambda":
+		filter = append(filter, aws.String("lambda:function"))
+	case "nlb":
+		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/net"))
+	case "rds":
+		filter = append(filter, aws.String("rds:db"))
+	case "s3":
+		filter = append(filter, aws.String("s3"))
 	case "sqs":
-		hotfix := aws.String("sqs")
-		filter = append(filter, hotfix)
+		filter = append(filter, aws.String("sqs"))
+	case "vpn":
+		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":
-		hotfix := aws.String("kafka:cluster")
-		filter = append(filter, hotfix)
+		filter = append(filter, aws.String("kafka:cluster"))
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
