@@ -1,5 +1,9 @@
 # 0.14.6-alpha
-* Add optional structured logging flag (bheight-Zymergen)
+* Add support for kafka (eminugurkenar)
+* Add structured json logging (bheight-Zymergen)
+* Increase code readability (bheight-Zymergen)
+* Fix ecs scraping bug (rabunkosar-dd)
+* Fix aws cloudwatch period bug (rabunkosar-dd)
 
 # 0.14.5-alpha
 * Fix sts api calls without specifying a region (nhinds)

@@ -35,6 +35,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * sqs - Simple Queue Service
   * vpn - VPN connection
   * asg - Auto Scaling Group
+  * kafka - Managed Apache Kafka
 
 ## Image
 
@@ -230,6 +231,20 @@ discovery:
         period: 600
         length: 600
         addCloudwatchTimestamp: true
+  - type: kafka
+    region: eu-west-1
+    searchTags:
+      - Key: env
+        Value: dev
+    awsDimensions:
+      - Broker ID
+      - Topic
+    metrics:
+      - name: BytesOutPerSec
+        statistics:
+        - Average
+        period: 600
+        length: 600
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
@@ -347,7 +362,7 @@ spec:
           name: yace
 ```
 
-## Troubleshooting / Debuging
+## Troubleshooting / Debugging
 
 ### Help my metrics are intermittent
 
