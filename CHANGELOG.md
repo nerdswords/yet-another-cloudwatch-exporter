@@ -1,3 +1,9 @@
+# 0.14.6-alpha
+* Add support for kafka (eminugurkenar)
+* Increase code readability (bheight-Zymergen)
+* Fix ecs scraping bug (rabunkosar-dd)
+* Fix aws cloudwatch period bug (rabunkosar-dd)
+
 # 0.14.5-alpha
 * Fix sts api calls without specifying a region (nhinds)
 * Update aws-sdk to v1.25.21 (nhinds)
