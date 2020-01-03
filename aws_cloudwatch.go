@@ -183,7 +183,7 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
-  case "kafka":
+	case "kafka":
 		ns = "AWS/Kafka"
 	case "kinesis":
 		ns = "AWS/Kinesis"
@@ -333,10 +333,10 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	case "ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "ecs-svc":
-    parsedResource := strings.Split(arnParsed.Resource, "/")
+		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
-		}  
+		}
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "elb":
