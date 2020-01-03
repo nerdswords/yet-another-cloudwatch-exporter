@@ -182,6 +182,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
+  case "kafka":
+		ns = "AWS/Kafka"
 	case "kinesis":
 		ns = "AWS/Kinesis"
 	case "lambda":
@@ -330,10 +332,10 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	case "ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "ecs-svc":
-		cluster := strings.Split(arnParsed.Resource, "/")[1]
-		service := strings.Split(arnParsed.Resource, "/")[2]
-		dimensions = append(dimensions, buildDimension("ClusterName", cluster))
-		dimensions = append(dimensions, buildDimension("ServiceName", service))
+    parsedResource := strings.Split(arnParsed.Resource, "/")
+		if parsedResource[0] == "service" {
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
+		}  
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "elb":
@@ -357,6 +359,9 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
+	case "kafka":
+		cluster := strings.Split(arnParsed.Resource, "/")[1]
+		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
