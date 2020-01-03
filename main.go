@@ -33,7 +33,7 @@ var (
 		"elb",
 		"emr",
 		"es",
-		"kafka",	
+		"kafka",
 		"kinesis",
 		"lambda",
 		"nlb",
