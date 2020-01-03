@@ -78,6 +78,10 @@ func (c *conf) load(file *string) error {
 			if metric.Length < 300 {
 				log.Output(2, "WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
 			}
+
+			if metric.Period < 1 {
+				return fmt.Errorf("Period value should be a positive integer")
+			}
 		}
 	}
 	return nil
