@@ -47,7 +47,6 @@ var (
 )
 
 func init() {
-	flag.Parse()
 
 	// Set JSON structured logging as the default log formatter
 	log.SetFormatter(&log.JSONFormatter{})
@@ -83,6 +82,7 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	flag.Parse()
 
 	if *showVersion {
 		fmt.Println(version)
