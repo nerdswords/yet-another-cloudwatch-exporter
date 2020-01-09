@@ -1,3 +1,6 @@
+# 0.14.7-alpha
+* Change logging to json format (bheight-Zymergen)
+
 # 0.14.6-alpha
 * Add support for kafka (eminugurkenar)
 * Add structured json logging (bheight-Zymergen)
