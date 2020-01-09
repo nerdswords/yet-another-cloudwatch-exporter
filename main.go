@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
 var version = "custom-build"
@@ -45,6 +45,19 @@ var (
 
 	config = conf{}
 )
+
+func init() {
+
+	// Set JSON structured logging as the default log formatter
+	log.SetFormatter(&log.JSONFormatter{})
+
+	// Set the Output to stdout instead of the default stderr
+	log.SetOutput(os.Stdout)
+
+	// Only log Info severity or above.
+	log.SetLevel(log.InfoLevel)
+
+}
 
 func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	tagsData, cloudwatchData := scrapeAwsData(config)

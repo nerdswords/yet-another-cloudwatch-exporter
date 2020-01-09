@@ -1,5 +1,6 @@
 # 0.14.6-alpha
 * Add support for kafka (eminugurkenar)
+* Add structured json logging (bheight-Zymergen)
 * Increase code readability (bheight-Zymergen)
 * Fix ecs scraping bug (rabunkosar-dd)
 * Fix aws cloudwatch period bug (rabunkosar-dd)

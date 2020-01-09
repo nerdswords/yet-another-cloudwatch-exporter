@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"log"
 )
 
 type conf struct {
@@ -76,7 +76,7 @@ func (c *conf) load(file *string) error {
 
 		for _, metric := range job.Metrics {
 			if metric.Length < 300 {
-				log.Output(2, "WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
+				log.Warn("WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
 			}
 
 			if metric.Period < 1 {
