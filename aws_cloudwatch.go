@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -17,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/fatih/structs"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -151,7 +152,7 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	cloudwatchAPICounter.Inc()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return resp.Datapoints
@@ -182,7 +183,7 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
-  case "kafka":
+	case "kafka":
 		ns = "AWS/Kafka"
 	case "kinesis":
 		ns = "AWS/Kinesis"
@@ -251,7 +252,7 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 	err := req.Send()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	cloudwatchAPICounter.Inc()
@@ -280,7 +281,7 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 		cloudwatchAPICounter.Inc()
 		err := req.Send()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		resp = filterMetricsBasedOnDimensions(dimensions, res)
 	} else {
@@ -315,7 +316,7 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	switch *service {
@@ -332,10 +333,10 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	case "ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "ecs-svc":
-    parsedResource := strings.Split(arnParsed.Resource, "/")
+		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
-		}  
+		}
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "elb":

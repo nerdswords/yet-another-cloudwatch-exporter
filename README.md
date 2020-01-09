@@ -7,6 +7,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 ## Features
 
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
+* Structured JSON logging
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Automatic adding of dimension labels to metrics

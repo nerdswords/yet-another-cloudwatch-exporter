@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	_ "fmt"
-	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	log "github.com/sirupsen/logrus"
 )
 
 type tagsData struct {
@@ -32,7 +31,7 @@ type tagsInterface struct {
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
 	sess, err := session.NewSession()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	config := &aws.Config{Region: region}
 	if roleArn != "" {
@@ -45,7 +44,7 @@ func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAP
 func createASGSession(region *string, roleArn string) autoscalingiface.AutoScalingAPI {
 	sess, err := session.NewSession()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	config := &aws.Config{Region: region}
 	if roleArn != "" {
