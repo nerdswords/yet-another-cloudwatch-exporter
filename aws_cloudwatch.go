@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -17,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/fatih/structs"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -151,7 +152,7 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	cloudwatchAPICounter.Inc()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return resp.Datapoints
@@ -160,44 +161,44 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 func getNamespace(service *string) *string {
 	var ns string
 	switch *service {
-	case "ec2":
-		ns = "AWS/EC2"
-	case "elb":
-		ns = "AWS/ELB"
 	case "alb":
 		ns = "AWS/ApplicationELB"
-	case "rds":
-		ns = "AWS/RDS"
-	case "ec":
-		ns = "AWS/ElastiCache"
-	case "es":
-		ns = "AWS/ES"
-	case "ecs-svc":
-		ns = "AWS/ECS"
-	case "nlb":
-		ns = "AWS/NetworkELB"
-	case "s3":
-		ns = "AWS/S3"
-	case "efs":
-		ns = "AWS/EFS"
-	case "ebs":
-		ns = "AWS/EBS"
-	case "vpn":
-		ns = "AWS/VPN"
-	case "lambda":
-		ns = "AWS/Lambda"
-	case "kinesis":
-		ns = "AWS/Kinesis"
-	case "dynamodb":
-		ns = "AWS/DynamoDB"
-	case "emr":
-		ns = "AWS/ElasticMapReduce"
 	case "asg":
 		ns = "AWS/AutoScaling"
-	case "sqs":
-		ns = "AWS/SQS"
+	case "dynamodb":
+		ns = "AWS/DynamoDB"
+	case "ebs":
+		ns = "AWS/EBS"
+	case "ec":
+		ns = "AWS/ElastiCache"
+	case "ec2":
+		ns = "AWS/EC2"
+	case "ecs-svc":
+		ns = "AWS/ECS"
+	case "efs":
+		ns = "AWS/EFS"
+	case "elb":
+		ns = "AWS/ELB"
+	case "emr":
+		ns = "AWS/ElasticMapReduce"
+	case "es":
+		ns = "AWS/ES"
 	case "kafka":
 		ns = "AWS/Kafka"
+	case "kinesis":
+		ns = "AWS/Kinesis"
+	case "lambda":
+		ns = "AWS/Lambda"
+	case "nlb":
+		ns = "AWS/NetworkELB"
+	case "rds":
+		ns = "AWS/RDS"
+	case "s3":
+		ns = "AWS/S3"
+	case "sqs":
+		ns = "AWS/SQS"
+	case "vpn":
+		ns = "AWS/VPN"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -251,7 +252,7 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 	err := req.Send()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	cloudwatchAPICounter.Inc()
@@ -280,7 +281,7 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 		cloudwatchAPICounter.Inc()
 		err := req.Send()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		resp = filterMetricsBasedOnDimensions(dimensions, res)
 	} else {
@@ -315,50 +316,50 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	switch *service {
-	case "ec2":
-		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
-	case "elb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
-	case "ecs-svc":
-		cluster := strings.Split(arnParsed.Resource, "/")[1]
-		service := strings.Split(arnParsed.Resource, "/")[2]
-		dimensions = append(dimensions, buildDimension("ClusterName", cluster))
-		dimensions = append(dimensions, buildDimension("ServiceName", service))
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
+	case "asg":
+		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
+	case "dynamodb":
+		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
+	case "ebs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
+	case "ec":
+		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
+	case "ec2":
+		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
+	case "ecs-svc":
+		parsedResource := strings.Split(arnParsed.Resource, "/")
+		if parsedResource[0] == "service" {
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
+		}
+	case "efs":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
+	case "elb":
+		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
+	case "emr":
+		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
+	case "es":
+		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
+		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "kinesis":
+		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
+	case "lambda":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
 	case "nlb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
-	case "ec":
-		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
-	case "es":
-		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
-		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
-	case "efs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-	case "ebs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
-	case "vpn":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
-	case "lambda":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
-	case "kinesis":
-		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
-	case "dynamodb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
-	case "emr":
-		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
-	case "asg":
-		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
+	case "vpn":
+		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
@@ -448,6 +449,13 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			var timestamp time.Time
 			for _, datapoint := range datapoints {
 				switch {
+				case statistic == "Average":
+					if datapoint.Average != nil {
+						if datapoint.Timestamp.After(timestamp) {
+							timestamp = *datapoint.Timestamp
+						}
+						averageDataPoints = append(averageDataPoints, datapoint.Average)
+					}
 				case statistic == "Maximum":
 					if datapoint.Maximum != nil {
 						exportedDatapoint = datapoint.Maximum
@@ -465,13 +473,6 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 						exportedDatapoint = datapoint.Sum
 						timestamp = *datapoint.Timestamp
 						break
-					}
-				case statistic == "Average":
-					if datapoint.Average != nil {
-						if datapoint.Timestamp.After(timestamp) {
-							timestamp = *datapoint.Timestamp
-						}
-						averageDataPoints = append(averageDataPoints, datapoint.Average)
 					}
 				case percentile.MatchString(statistic):
 					if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
