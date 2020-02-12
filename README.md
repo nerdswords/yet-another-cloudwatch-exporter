@@ -23,6 +23,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ec - ElastiCache
   * ec2 - Elastic Compute Cloud
   * ecs-svc - Elastic Container Service (Service Metrics)
+  * ecs-containerinsights - ECS/ContainerInsights (Fargate metrics)
   * efs - Elastic File System
   * elb - Elastic Load Balancer
   * emr - Elastic MapReduce
