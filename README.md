@@ -69,18 +69,17 @@ exportedTagsOnMetrics:
 
 ### Auto-discovery job
 
-| Key                  | Description                                                                                         |
-| -------------------- | --------------------------------------------------------------------------------------------------  |
-| region               | AWS region                                                                                          |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                                |
-| enableMetricData     | Use Cloudwatch GetMetricData Api instead of getmetricstatistics.                                   |
-| length (Default 120) | How far back to request data for in seconds (only when enableMetricData: true).                     |
-| delay                | If set it will request metrics up until `current_time - delay` (only when enableMetricData: true).  |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                                |
-| roleArn              | IAM role to assume (optional)                                                                       |
-| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.            |
-| metrics              | List of metric definitions                                                                          |
-| additionalDimensions | List of dimensions to return beyond the default list per service                                    |
+| Key                  | Description                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| region               | AWS region                                                                                 |
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
+| length (Default 120) | How far back to request data for in seconds                                                |
+| delay                | If set it will request metrics up until `current_time - d
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
+| roleArn              | IAM role to assume (optional)                                                              |
+| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
+| metrics              | List of metric definitions                                                                 |
+| additionalDimensions | List of dimensions to return beyond the default list per service                           |
 
 searchTags example:
 
@@ -93,14 +92,14 @@ searchTags:
 ### Metric definition
 
 | Key                    | Description |
-| ---------------------- | -------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                         |
-| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.       |
-| period                 | Statistic period in seconds                                    |
-| length                 | How far back to request data for in seconds                    |
-| delay                  | If set it will request metrics up until `current_time - delay` |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all         |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp       |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                                           |
+| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.                         |
+| period                 | Statistic period in seconds                                                      |
+| length                 | How far back to request data for in seconds(for static jobs)                     |
+| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)  |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                           |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp                         |
 
 * **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
 
@@ -156,7 +155,6 @@ discovery:
     region: eu-west-1
     length: 900
     delay: 120
-    enableMetricData: true
     awsDimensions:
      - AvailabilityZone
     searchTags:
@@ -167,13 +165,13 @@ discovery:
         statistics:
         - Minimum
         period: 600
-        length: 600 #(this will be ignore at metrics level as enableMetricData is true)
+        length: 600 #(this will be ignored)
       - name: HTTPCode_Backend_4XX
         statistics:
         - Sum
         period: 60
-        length: 900 #(this will be ignore at metrics level as enableMetricData is true)
-        delay: 300 #(this will be ignore at metrics level as enableMetricData is true)
+        length: 900 #(this will be ignored)
+        delay: 300 #(this will be ignored)
         nilToZero: true
   - type: alb
     region: eu-west-1
