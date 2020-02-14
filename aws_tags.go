@@ -88,14 +88,20 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("kinesis:stream"))
 	case "lambda":
 		filter = append(filter, aws.String("lambda:function"))
+	case "ngw":
+		filter = append(filter, aws.String("ec2:natgateway"))
 	case "nlb":
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/net"))
 	case "rds":
 		filter = append(filter, aws.String("rds:db"))
+	case "r53r":
+		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
 		filter = append(filter, aws.String("s3"))
 	case "sqs":
 		filter = append(filter, aws.String("sqs"))
+	case "tgw":
+		filter = append(filter, aws.String("ec2:transit-gateway"))
 	case "vpn":
 		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":

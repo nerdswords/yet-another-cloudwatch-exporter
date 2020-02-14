@@ -187,16 +187,22 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Kafka"
 	case "kinesis":
 		ns = "AWS/Kinesis"
+	case "ngw":
+		ns = "AWS/NATGateway"
 	case "lambda":
 		ns = "AWS/Lambda"
 	case "nlb":
 		ns = "AWS/NetworkELB"
 	case "rds":
 		ns = "AWS/RDS"
+	case "r53r":
+		ns = "AWS/Route53Resolver"
 	case "s3":
 		ns = "AWS/S3"
 	case "sqs":
 		ns = "AWS/SQS"
+	case "tgw":
+		ns = "AWS/TransitGateway"
 	case "vpn":
 		ns = "AWS/VPN"
 	default:
@@ -350,14 +356,20 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "lambda":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
+	case "ngw":
+		dimensions = buildBaseDimension(arnParsed.Resource, "NatGatewayId", "natgateway/")
 	case "nlb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+	case "r53r":
+		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
+	case "tgw":
+		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
