@@ -22,6 +22,14 @@ var (
 		Name: "yace_cloudwatch_getmetricstatistics_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	resourceGroupTaggingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_resourcegrouptaggingapi_requests_total",
+		Help: "Help is not implemented yet.",
+	})
+	autoScalingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_autoscalingapi_requests_total",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 type PrometheusMetric struct {
