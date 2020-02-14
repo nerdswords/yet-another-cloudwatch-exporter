@@ -21,15 +21,14 @@ type discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type job struct {
-	Region           string   `yaml:"region"`
-	Type             string   `yaml:"type"`
-	EnableMetricData bool     `yaml:"enableMetricData"`
-	RoleArn          string   `yaml:"roleArn"`
-	AwsDimensions    []string `yaml:"awsDimensions"`
-	SearchTags       []tag    `yaml:"searchTags"`
-	Metrics          []metric `yaml:"metrics"`
-	Length           int      `yaml:"length"`
-	Delay            int      `yaml:"delay"`
+	Region        string   `yaml:"region"`
+	Type          string   `yaml:"type"`
+	RoleArn       string   `yaml:"roleArn"`
+	AwsDimensions []string `yaml:"awsDimensions"`
+	SearchTags    []tag    `yaml:"searchTags"`
+	Metrics       []metric `yaml:"metrics"`
+	Length        int      `yaml:"length"`
+	Delay         int      `yaml:"delay"`
 }
 
 type static struct {
