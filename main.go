@@ -29,6 +29,7 @@ var (
 		"ec",
 		"ec2",
 		"ecs-svc",
+		"ecs-containerinsights",
 		"efs",
 		"elb",
 		"emr",
