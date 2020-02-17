@@ -73,7 +73,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("elasticache:cluster"))
 	case "ec2":
 		filter = append(filter, aws.String("ec2:instance"))
-	case "ecs-svc":
+	case "ecs-svc", "ecs-containerinsights":
 		filter = append(filter, aws.String("ecs:cluster"))
 		filter = append(filter, aws.String("ecs:service"))
 	case "efs":

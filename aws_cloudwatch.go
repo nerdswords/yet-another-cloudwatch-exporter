@@ -175,6 +175,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/EC2"
 	case "ecs-svc":
 		ns = "AWS/ECS"
+	case "ecs-containerinsights":
+		ns = "ECS/ContainerInsights"
 	case "efs":
 		ns = "AWS/EFS"
 	case "elb":
@@ -332,7 +334,7 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
 	case "ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
-	case "ecs-svc":
+	case "ecs-svc", "ecs-containerinsights":
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
