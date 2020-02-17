@@ -279,13 +279,19 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 		}
 	}
 	if callListMetrics {
-		req, res := c.ListMetricsRequest(filter)
+		var res cloudwatch.ListMetricsOutput
+		err := c.ListMetricsPages(filter,
+			func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
+				for _, metric := range page.Metrics {
+					res.Metrics = append(res.Metrics, metric)
+				}
+				return !lastPage
+			})
 		cloudwatchAPICounter.Inc()
-		err := req.Send()
 		if err != nil {
 			log.Fatal(err)
 		}
-		resp = filterMetricsBasedOnDimensions(dimensions, res)
+		resp = filterMetricsBasedOnDimensions(dimensions, &res)
 	} else {
 		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
 	}
