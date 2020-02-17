@@ -27,6 +27,8 @@ type job struct {
 	AwsDimensions []string `yaml:"awsDimensions"`
 	SearchTags    []tag    `yaml:"searchTags"`
 	Metrics       []metric `yaml:"metrics"`
+	Length        int      `yaml:"length"`
+	Delay         int      `yaml:"delay"`
 }
 
 type static struct {

@@ -33,7 +33,8 @@ func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAP
 	if err != nil {
 		log.Fatal(err)
 	}
-	config := &aws.Config{Region: region}
+	maxResourceGroupTaggingRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxResourceGroupTaggingRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -46,7 +47,8 @@ func createASGSession(region *string, roleArn string) autoscalingiface.AutoScali
 	if err != nil {
 		log.Fatal(err)
 	}
-	config := &aws.Config{Region: region}
+	maxAutoScalingAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -110,6 +112,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	pageNum := 0
 	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
+		resourceGroupTaggingAPICounter.Inc()
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
 			resource := tagsData{}
 
@@ -137,6 +140,7 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tag
 	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
 		func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
 			pageNum++
+			autoScalingAPICounter.Inc()
 
 			for _, asg := range page.AutoScalingGroups {
 				resource := tagsData{}
