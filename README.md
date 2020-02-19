@@ -321,7 +321,7 @@ The following IAM permissions are required for YACE to work.
 ## Running locally
 
 ```shell
-docker run -d --rm -v $PWD/credentials:/exporter/.aws/PWD/credentials -v $PWD/config.yml:/tmp/config.yml \
+docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
 -p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
 
 ```
