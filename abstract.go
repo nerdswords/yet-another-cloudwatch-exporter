@@ -160,25 +160,27 @@ func scrapeDiscoveryJobUsingMetricData(job job, tagsOnMetrics exportedTagsOnMetr
 				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
 				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
 				defer wg.Done()
-				for _, fetchedMetrics := range resp.Metrics {
-					for _, stats := range metric.Statistics {
-						id := fmt.Sprintf("id_%d", rand.Int())
-						period := int64(metric.Period)
-						mux.Lock()
-						getMetricDatas = append(getMetricDatas, cloudwatchData{
-							ID:                     resource.ID,
-							MetricID:               &id,
-							Metric:                 &metric.Name,
-							Service:                resource.Service,
-							Statistics:             []string{stats},
-							NilToZero:              &metric.NilToZero,
-							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
-							Tags:                   metricTags,
-							Dimensions:             fetchedMetrics.Dimensions,
-							Region:                 &job.Region,
-							Period:                 &period,
-						})
-						mux.Unlock()
+				if resp != nil {
+					for _, fetchedMetrics := range resp.Metrics {
+						for _, stats := range metric.Statistics {
+							id := fmt.Sprintf("id_%d", rand.Int())
+							period := int64(metric.Period)
+							mux.Lock()
+							getMetricDatas = append(getMetricDatas, cloudwatchData{
+								ID:                     resource.ID,
+								MetricID:               &id,
+								Metric:                 &metric.Name,
+								Service:                resource.Service,
+								Statistics:             []string{stats},
+								NilToZero:              &metric.NilToZero,
+								AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
+								Tags:                   metricTags,
+								Dimensions:             fetchedMetrics.Dimensions,
+								Region:                 &job.Region,
+								Period:                 &period,
+							})
+							mux.Unlock()
+						}
 					}
 				}
 			}
