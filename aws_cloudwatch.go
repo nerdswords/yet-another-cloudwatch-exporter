@@ -415,6 +415,9 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 		}
+		if parsedResource[0] == "cluster" {
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]))
+		}
 	case "efs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "elb":
