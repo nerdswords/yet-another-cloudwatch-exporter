@@ -37,10 +37,13 @@ var (
 		"kafka",
 		"kinesis",
 		"lambda",
+		"ngw",
 		"nlb",
 		"rds",
+		"r53r",
 		"s3",
 		"sqs",
+		"tgw",
 		"vpn",
 	}
 

@@ -29,11 +29,14 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * emr - Elastic MapReduce
   * es - ElasticSearch
   * kinesis - Kinesis Data Stream
+  * ngw - Nat Gateway
   * lambda - Lambda Functions
   * nlb - Network Load Balancer
   * rds - Relational Database Service
+  * r53r - Route53 Resolver
   * s3 - Object Storage
   * sqs - Simple Queue Service
+  * tgw - Transit Gateway
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
