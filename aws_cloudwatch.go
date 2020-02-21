@@ -259,10 +259,10 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Kafka"
 	case "kinesis":
 		ns = "AWS/Kinesis"
-	case "ngw":
-		ns = "AWS/NATGateway"
 	case "lambda":
 		ns = "AWS/Lambda"
+	case "ngw":
+		ns = "AWS/NATGateway"
 	case "nlb":
 		ns = "AWS/NetworkELB"
 	case "rds":
