@@ -1,3 +1,9 @@
+# 0.15.0-alpha
+* Fixed docker run command in README.md (daviddetorres)
+* Added support for Nat Gateway / Transit Gateway / Route 53 Resolver (j-nix)
+* Added support for ECS/ContainerInsights (daviddetorres)
+* Fix pagination for getMetricList (eminugurkenar)
+
 # 0.14.7-alpha
 * Change logging to json format (bheight-Zymergen)
 
