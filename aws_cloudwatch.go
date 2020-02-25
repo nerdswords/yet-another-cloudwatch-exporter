@@ -200,7 +200,8 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	cloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Warning(err)
+		return nil
 	}
 
 	return resp.Datapoints
@@ -223,7 +224,8 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 	cloudwatchGetMetricDataAPICounter.Inc()
 
 	if err != nil {
-		panic(err)
+		log.Warning(err)
+		return nil
 	}
 	return resp
 }
@@ -324,7 +326,8 @@ func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, n
 	err := req.Send()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Warning(err)
+		return (nil)
 	}
 
 	cloudwatchAPICounter.Inc()
@@ -359,7 +362,7 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 			})
 		cloudwatchAPICounter.Inc()
 		if err != nil {
-			log.Fatal(err)
+			log.Warning(err)
 		}
 		resp = filterMetricsBasedOnDimensions(dimensions, &res)
 	} else {
@@ -394,7 +397,8 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Warning(err)
+		return (dimensions)
 	}
 
 	switch *service {

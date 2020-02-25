@@ -112,9 +112,11 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 
 			data.Points = clientCloudwatch.get(filter)
 
-			mux.Lock()
-			cw = append(cw, &data)
-			mux.Unlock()
+			if data.Points != nil {
+				mux.Lock()
+				cw = append(cw, &data)
+				mux.Unlock()
+			}
 		}()
 	}
 	wg.Wait()
@@ -206,16 +208,18 @@ func scrapeDiscoveryJobUsingMetricData(job job, tagsOnMetrics exportedTagsOnMetr
 			)
 
 			data := clientCloudwatch.getMetricData(filter)
-			for _, MetricDataResult := range data.MetricDataResults {
-				getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
-				if err == nil {
-					if len(MetricDataResult.Values) != 0 {
-						getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
-						getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
+			if data != nil {
+				for _, MetricDataResult := range data.MetricDataResults {
+					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
+					if err == nil {
+						if len(MetricDataResult.Values) != 0 {
+							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
+							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
+						}
+						mux.Lock()
+						cw = append(cw, &getMetricData)
+						mux.Unlock()
 					}
-					mux.Lock()
-					cw = append(cw, &getMetricData)
-					mux.Unlock()
 				}
 			}
 		}(i)
