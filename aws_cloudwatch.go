@@ -361,7 +361,8 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 		if err != nil {
 			log.Fatal(err)
 		}
-		resp = filterMetricsBasedOnDimensions(dimensions, &res)
+		//resp = filterMetricsBasedOnDimensions(dimensions, &res)
+		return resp
 	} else {
 		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
 	}
@@ -436,7 +437,8 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
 	case "s3":
-		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
+		//dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
+		break
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "vpn":
