@@ -98,7 +98,7 @@ searchTags:
 | Key                    | Description |
 | ---------------------- | -------------------------------------------------------------------------------- |
 | name                   | CloudWatch metric name                                                           |
-| statistics             | List of statictic types, e.g. "Mininum", "Maximum", etc.                         |
+| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                         |
 | period                 | Statistic period in seconds                                                      |
 | length                 | How far back to request data for in seconds(for static jobs)                     |
 | delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)  |
@@ -370,13 +370,27 @@ spec:
         configMap:
           name: yace
 ```
+## Options
+### Requests concurrency
+The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5. 
+
+Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API. 
+
+### Decoupled scraping
+The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in background in fixed intervals, in stead of each time that the '/metrics' endpoint is fetched. This protects from the abuse of API requests that can cause extra billing in AWS account. This flag is activated by default.
+
+If the flag 'decoupled-scraping' is activated, the flag 'scraping-interval' defines the seconds between scrapes. Its default value is 300.
 
 ## Troubleshooting / Debugging
 
 ### Help my metrics are intermittent
 
-* Please try out a bigger length e.g. for elb try out a length of 600 and a period of 600. Then test how low you can
+* Please, try out a bigger length e.g. for elb try out a length of 600 and a period of 600. Then test how low you can
 go without losing data. ELB metrics on AWS are written every 5 minutes (300) in default.
+
+### My metrics only show new values after 5 minutes
+
+* Please, try to set a lower value for the 'scraping-interval' flag or set the 'decoupled-scraping' to false.
 
 ## Contribute
 
