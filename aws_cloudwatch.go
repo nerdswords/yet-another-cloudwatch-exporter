@@ -52,6 +52,11 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 	maxCloudwatchRetries := 5
 
 	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
+
+	if *debug {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
@@ -151,7 +156,9 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	var dimensionsFilter []*cloudwatch.DimensionFilter
 
 	for _, dim := range dimensions {
-		dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{Name: dim.Name, Value: dim.Value})
+		if dim.Value != nil {
+			dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{Name: dim.Name, Value: dim.Value})
+		}
 	}
 	output = &cloudwatch.ListMetricsInput{
 		MetricName: metricsName,
@@ -209,23 +216,31 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	c := iface.client
 
+	var resp cloudwatch.GetMetricDataOutput
+
 	if *debug {
 		log.Println(filter)
 	}
 
-	resp, err := c.GetMetricData(filter)
+	// Using the paged version of the function
+	err := c.GetMetricDataPages(filter,
+		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
+			cloudwatchAPICounter.Inc()
+			cloudwatchGetMetricDataAPICounter.Inc()
+			for _, metricData := range page.MetricDataResults {
+				resp.MetricDataResults = append(resp.MetricDataResults, metricData)
+			}
+			return !lastPage
+		})
 
 	if *debug {
 		log.Println(resp)
 	}
 
-	cloudwatchAPICounter.Inc()
-	cloudwatchGetMetricDataAPICounter.Inc()
-
 	if err != nil {
 		panic(err)
 	}
-	return resp
+	return &resp
 }
 
 func getNamespace(service *string) *string {
@@ -323,17 +338,9 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 	return &output
 }
 
-func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, clientCloudwatch cloudwatchInterface) (dimensionResourceName *string) {
-	c := clientCloudwatch.client
-	filter := createListMetricsInput(dimensions, namespace, nil)
-	req, resp := c.ListMetricsRequest(filter)
-	err := req.Send()
+func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensionResourceName *string) {
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cloudwatchAPICounter.Inc()
+	resp := filterMetricsBasedOnDimensionsWithValues(dimensions, nil, fullMetricsList)
 	return getDimensionValueForName(resourceName, resp)
 }
 
@@ -374,7 +381,78 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 	return resp
 }
 
-func queryAvailableDimensions(resource string, namespace *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
+func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+	c := clientCloudwatch.client
+	filter := createListMetricsInput(nil, getNamespace(serviceName), &metric.Name)
+	var res cloudwatch.ListMetricsOutput
+	err := c.ListMetricsPages(filter,
+		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
+			for _, metric := range page.Metrics {
+				res.Metrics = append(res.Metrics, metric)
+			}
+			return !lastPage
+		})
+	cloudwatchAPICounter.Inc()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &res
+}
+
+func filterMetricsBasedOnDimensionsWithValues(
+	dimensionsWithValue []*cloudwatch.Dimension,
+	dimensionsWithoutValue []*cloudwatch.Dimension,
+	metricsToFilter *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
+
+	var numberOfDimensions = len(dimensionsWithValue) + len(dimensionsWithoutValue)
+	var output cloudwatch.ListMetricsOutput
+	for _, metric := range metricsToFilter.Metrics {
+		if len(metric.Dimensions) == numberOfDimensions {
+			shouldAddMetric := true
+			for _, metricDimension := range metric.Dimensions {
+				shouldAddMetric = shouldAddMetric &&
+					(dimensionIsInListWithValues(metricDimension, dimensionsWithValue) ||
+						dimensionIsInListWithoutValues(metricDimension, dimensionsWithoutValue))
+				if shouldAddMetric == false {
+					break
+				}
+			}
+			if shouldAddMetric == true {
+				output.Metrics = append(output.Metrics, metric)
+			}
+		}
+	}
+	return &output
+}
+
+func dimensionIsInListWithValues(
+	dimension *cloudwatch.Dimension,
+	dimensionsList []*cloudwatch.Dimension) bool {
+	if dimensionsList != nil {
+		for _, dimensionInList := range dimensionsList {
+			if *dimension.Name == *dimensionInList.Name &&
+				*dimension.Value == *dimensionInList.Value {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dimensionIsInListWithoutValues(
+	dimension *cloudwatch.Dimension,
+	dimensionsList []*cloudwatch.Dimension) bool {
+	if dimensionsList != nil {
+		for _, dimensionInList := range dimensionsList {
+			if *dimension.Name == *dimensionInList.Name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 
 	if !strings.HasSuffix(*namespace, "ApplicationELB") {
 		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
@@ -383,7 +461,7 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 
 	if strings.HasPrefix(resource, "targetgroup/") {
 		dimensions = append(dimensions, buildDimension("TargetGroup", resource))
-		loadBalancerName := getResourceValue("LoadBalancer", dimensions, namespace, clientCloudwatch)
+		loadBalancerName := getResourceValue("LoadBalancer", dimensions, namespace, fullMetricsList)
 		if loadBalancerName != nil {
 			dimensions = append(dimensions, buildDimension("LoadBalancer", *loadBalancerName))
 		}
@@ -396,7 +474,7 @@ func queryAvailableDimensions(resource string, namespace *string, clientCloudwat
 	return dimensions
 }
 
-func detectDimensionsByService(service *string, resourceArn *string, clientCloudwatch cloudwatchInterface) (dimensions []*cloudwatch.Dimension) {
+func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
@@ -405,7 +483,7 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 
 	switch *service {
 	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), clientCloudwatch)
+		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "dynamodb":
@@ -447,6 +525,7 @@ func detectDimensionsByService(service *string, resourceArn *string, clientCloud
 		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
+		break
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
