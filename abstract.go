@@ -121,17 +121,24 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 	return cw
 }
 
-func scrapeDiscoveryJobUsingMetricData(job job, tagsOnMetrics exportedTagsOnMetrics, clientTag tagsInterface, clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+func scrapeDiscoveryJobUsingMetricData(
+	job job,
+	tagsOnMetrics exportedTagsOnMetrics,
+	clientTag tagsInterface,
+	clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	var getMetricDatas []cloudwatchData
 	var length int
 
+	// Why is this here? 120?
 	if job.Length == 0 {
 		length = 120
 	} else {
 		length = job.Length
 	}
+
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.get(job)
 	<-tagSemaphore
@@ -140,54 +147,71 @@ func scrapeDiscoveryJobUsingMetricData(job job, tagsOnMetrics exportedTagsOnMetr
 		log.Printf("Couldn't describe resources for region %s: %s\n", job.Region, err.Error())
 		return
 	}
+	// Get the awsDimensions of the job configuration
+	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(job)
 
-	for i := range resources {
-		resource := resources[i]
-		mux.Lock()
-		awsInfoData = append(awsInfoData, resource)
-		mux.Unlock()
-		metricTags := resource.metricTags(tagsOnMetrics)
-		dimensions := detectDimensionsByService(resource.Service, resource.ID, clientCloudwatch)
-		for _, commonJobDimension := range commonJobDimensions {
-			dimensions = append(dimensions, commonJobDimension)
+	// For every metric of the job
+	for j := range job.Metrics {
+		metric := job.Metrics[j]
+
+		if metric.Length > length {
+			length = metric.Length
 		}
 
-		wg.Add(len(job.Metrics))
-		go func() {
-			for j := range job.Metrics {
-				metric := job.Metrics[j]
-				dimensions = addAdditionalDimensions(dimensions, metric.AdditionalDimensions)
-				resp := getMetricsList(dimensions, resource.Service, metric, clientCloudwatch)
-				defer wg.Done()
-				if resp != nil {
-					for _, fetchedMetrics := range resp.Metrics {
-						for _, stats := range metric.Statistics {
-							id := fmt.Sprintf("id_%d", rand.Int())
-							period := int64(metric.Period)
-							mux.Lock()
-							getMetricDatas = append(getMetricDatas, cloudwatchData{
-								ID:                     resource.ID,
-								MetricID:               &id,
-								Metric:                 &metric.Name,
-								Service:                resource.Service,
-								Statistics:             []string{stats},
-								NilToZero:              &metric.NilToZero,
-								AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
-								Tags:                   metricTags,
-								Dimensions:             fetchedMetrics.Dimensions,
-								Region:                 &job.Region,
-								Period:                 &period,
-							})
-							mux.Unlock()
-						}
+		// Get the full list of metrics
+		// This includes, for this metric the possible combinations
+		// of dimensions and value of dimensions with data
+		tagSemaphore <- struct{}{}
+		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
+		<-tagSemaphore
+
+		// For every resource
+		for i := range resources {
+			resource := resources[i]
+			metricTags := resource.metricTags(tagsOnMetrics)
+
+			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
+			dimensionsWithValue := detectDimensionsByService(resource.Service, resource.ID, fullMetricsList)
+
+			// Adds the dimensions with values of that specific metric of the job
+			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
+
+			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
+
+			if metricsToAdd != nil {
+				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
+				if len(metricsToAdd.Metrics) > 0 {
+					mux.Lock()
+					awsInfoData = append(awsInfoData, resource)
+					mux.Unlock()
+				}
+				for _, fetchedMetrics := range metricsToAdd.Metrics {
+					for _, stats := range metric.Statistics {
+						id := fmt.Sprintf("id_%d", rand.Int())
+						period := int64(metric.Period)
+						mux.Lock()
+						getMetricDatas = append(getMetricDatas, cloudwatchData{
+							ID:                     resource.ID,
+							MetricID:               &id,
+							Metric:                 &metric.Name,
+							Service:                resource.Service,
+							Statistics:             []string{stats},
+							NilToZero:              &metric.NilToZero,
+							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
+							Tags:                   metricTags,
+							Dimensions:             fetchedMetrics.Dimensions,
+							Region:                 &job.Region,
+							Period:                 &period,
+						})
+						mux.Unlock()
 					}
 				}
 			}
-		}()
+		}
 	}
 	wg.Wait()
-	maxMetricCount := 100
+	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 	wg.Add(partition)
