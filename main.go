@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -16,10 +17,13 @@ var version = "custom-build"
 var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	debug                 = flag.Bool("debug", false, "Add verbose logging")
+	debug                 = flag.Bool("debug", false, "Add verbose logging.")
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
-	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API")
-	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API")
+	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API.")
+	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API.")
+	scrapingInterval      = flag.Int("scraping-interval", 300, "Seconds to wait between scraping the AWS metrics if decoupled scraping.")
+	decoupledScraping     = flag.Bool("decoupled-scraping", true, "Decouples scraping and serving of metrics.")
+	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 
 	supportedServices = []string{
 		"alb",
@@ -37,10 +41,13 @@ var (
 		"kafka",
 		"kinesis",
 		"lambda",
+		"ngw",
 		"nlb",
 		"rds",
+		"r53r",
 		"s3",
 		"sqs",
+		"tgw",
 		"vpn",
 	}
 
@@ -60,7 +67,7 @@ func init() {
 
 }
 
-func metricsHandler(w http.ResponseWriter, req *http.Request) {
+func updateMetrics(registry *prometheus.Registry) {
 	tagsData, cloudwatchData := scrapeAwsData(config)
 
 	var metrics []*PrometheusMetric
@@ -68,18 +75,12 @@ func metricsHandler(w http.ResponseWriter, req *http.Request) {
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
-	registry := prometheus.NewRegistry()
 	registry.MustRegister(NewPrometheusCollector(metrics))
 	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter} {
 		if err := registry.Register(counter); err != nil {
 			log.Warning("Could not publish cloudwatch api metric")
 		}
 	}
-	handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
-		DisableCompression: false,
-	})
-
-	handler.ServeHTTP(w, req)
 }
 
 func main() {
@@ -98,7 +99,21 @@ func main() {
 	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)
 	tagSemaphore = make(chan struct{}, *tagConcurrency)
 
+	registry := prometheus.NewRegistry()
+
 	log.Println("Startup completed")
+
+	if *decoupledScraping {
+		go func() {
+			for {
+				newRegistry := prometheus.NewRegistry()
+				updateMetrics(newRegistry)
+				log.Debug("Metrics scraped.")
+				registry = newRegistry
+				time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+			}
+		}()
+	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
@@ -110,6 +125,18 @@ func main() {
 		</html>`))
 	})
 
-	http.HandleFunc("/metrics", metricsHandler)
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		if !(*decoupledScraping) {
+			newRegistry := prometheus.NewRegistry()
+			updateMetrics(newRegistry)
+			log.Debug("Metrics scraped.")
+			registry = newRegistry
+		}
+		handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
+			DisableCompression: false,
+		})
+		handler.ServeHTTP(w, r)
+	})
+
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
