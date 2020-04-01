@@ -343,13 +343,6 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 }
 
 func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensionResourceName *string) {
-	if err != nil {
-		log.Warning(err)
-		return (nil)
-	}
-
-	cloudwatchAPICounter.Inc()
-
 	resp := filterMetricsBasedOnDimensionsWithValues(dimensions, nil, fullMetricsList)
   
 	return getDimensionValueForName(resourceName, resp)
