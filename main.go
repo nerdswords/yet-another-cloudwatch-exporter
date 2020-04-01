@@ -28,6 +28,7 @@ var (
 	supportedServices = []string{
 		"alb",
 		"asg",
+		"cf",
 		"dynamodb",
 		"ebs",
 		"ec",

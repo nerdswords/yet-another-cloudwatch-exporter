@@ -250,6 +250,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ApplicationELB"
 	case "asg":
 		ns = "AWS/AutoScaling"
+	case "cf":
+		ns = "AWS/CloudFront"
 	case "dynamodb":
 		ns = "AWS/DynamoDB"
 	case "ebs":
@@ -486,6 +488,9 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
+	case "cf":
+		dimensions = buildBaseDimension(arnParsed.Resource, "DistributionId", "distribution/")
+		dimensions = append(dimensions, buildDimension("Region", "Global"))
 	case "dynamodb":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
 	case "ebs":
