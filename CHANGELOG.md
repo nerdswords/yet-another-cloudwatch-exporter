@@ -1,3 +1,10 @@
+# 0.16.0-alpha
+* Hugh rewrite: Rewrite of metric gathering to reduce API Limit problems. Thanks so much daviddetorres!
+* Hugh rewrite: Decouple scraping and serving metrics. Thanks so much daviddetorres!
+* Improvment of ALB data gathering and filtering (daviddetorres)
+* Detect and fix bug after merge (deanrock)
+* Add cloudfront support (mentos1386)
+
 # 0.15.0-alpha
 * Fixed docker run command in README.md (daviddetorres)
 * Added support for Nat Gateway / Transit Gateway / Route 53 Resolver (j-nix)
