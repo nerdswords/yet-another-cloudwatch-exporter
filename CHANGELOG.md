@@ -1,6 +1,12 @@
 # 0.16.0-alpha
-* Hugh rewrite: Rewrite of metric gathering to reduce API Limit problems. Thanks so much daviddetorres!
 * Hugh rewrite: Decouple scraping and serving metrics. Thanks so much daviddetorres!
+* *BREAKING CHANGE* Decoupled scraping and set scraping interval to 5 minutes.
+```
+The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in background in fixed intervals, in stead of each time that the '/metrics' endpoint is fetched. This protects from the abuse of API requests that can cause extra billing in AWS account. This flag is activated by default.
+
+If the flag 'decoupled-scraping' is activated, the flag 'scraping-interval' defines the seconds between scrapes. Its default value is 300.
+```
+* Hugh rewrite: Rewrite of metric gathering to reduce API Limit problems. Thanks so much daviddetorres!
 * Improvment of ALB data gathering and filtering (daviddetorres)
 * Detect and fix bug after merge (deanrock)
 * Add cloudfront support (mentos1386)
