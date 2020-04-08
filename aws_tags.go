@@ -65,6 +65,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "alb":
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/app"))
 		filter = append(filter, aws.String("elasticloadbalancing:targetgroup"))
+	case "appsync":
+		filter = append(filter, aws.String("appsync"))
 	case "cf":
 		filter = append(filter, aws.String("cloudfront"))
 	case "asg":

@@ -27,6 +27,7 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"appsync",
 		"asg",
 		"cf",
 		"dynamodb",
