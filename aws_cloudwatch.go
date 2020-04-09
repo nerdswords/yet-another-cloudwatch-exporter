@@ -92,20 +92,18 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		ExtendedStatistics: extendedStatistics,
 	}
 
-	if *debug {
-		if len(statistics) != 0 {
-			log.Println("CLI helper - " +
-				"aws cloudwatch get-metric-statistics" +
-				" --metric-name " + metric.Name +
-				" --dimensions " + dimensionsToCliString(dimensions) +
-				" --namespace " + *namespace +
-				" --statistics " + *statistics[0] +
-				" --period " + strconv.FormatInt(period, 10) +
-				" --start-time " + startTime.Format(time.RFC3339) +
-				" --end-time " + endTime.Format(time.RFC3339))
-		}
-		log.Println(*output)
+	if len(statistics) != 0 {
+		log.Debug("CLI helper - " +
+			"aws cloudwatch get-metric-statistics" +
+			" --metric-name " + metric.Name +
+			" --dimensions " + dimensionsToCliString(dimensions) +
+			" --namespace " + *namespace +
+			" --statistics " + *statistics[0] +
+			" --period " + strconv.FormatInt(period, 10) +
+			" --start-time " + startTime.Format(time.RFC3339) +
+			" --end-time " + endTime.Format(time.RFC3339))
 	}
+	log.Debug(*output)
 	return output
 }
 
@@ -193,15 +191,11 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
-	if *debug {
-		log.Println(filter)
-	}
+	log.Debug(filter)
 
 	resp, err := c.GetMetricStatistics(filter)
 
-	if *debug {
-		log.Println(resp)
-	}
+	log.Debug(resp)
 
 	cloudwatchAPICounter.Inc()
 	cloudwatchGetMetricStatisticsAPICounter.Inc()
