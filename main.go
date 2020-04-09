@@ -92,9 +92,13 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	log.Println("Parse config..")
 	if err := config.load(configFile); err != nil {
-		log.Fatal("Couldn't read ", *configFile, ":", err)
+		log.Fatal("Couldn't read ", *configFile, ": ", err)
 	}
 
 	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)
