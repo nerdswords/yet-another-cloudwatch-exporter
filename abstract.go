@@ -237,8 +237,8 @@ func scrapeDiscoveryJobUsingMetricData(
 					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
-							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
-							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
+							getMetricData.GetMetricDataPoint = &MetricDataResult.Values[0]
+							getMetricData.GetMetricDataTimestamps = &MetricDataResult.Timestamps[0]
 						}
 						mux.Lock()
 						cw = append(cw, &getMetricData)
