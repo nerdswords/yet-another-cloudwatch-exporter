@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling/autoscalingiface"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
-	"github.com/aws/aws-sdk-go-v2/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
-	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,23 +33,33 @@ func createTagSession(region *string, roleArn string) *resourcegroupstaggingapi.
 
 	// TODO: Set max retries somehow?
 	//maxResourceGroupTaggingRetries := 5
-	config := &aws.Config{Region: *region}
+
+	cfg, err := external.LoadDefaultAWSConfig()
+	if err != nil {
+		panic(fmt.Sprintf("failed loading config, %v", err))
+	}
+	cfg.Region = *region
+
 	if roleArn != "" {
-		config.Credentials = stscreds.NewAssumeRoleProvider(sts.New(*config), roleArn)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(sts.New(cfg), roleArn)
 	}
 
-	return resourcegroupstaggingapi.New(*config)
+	return resourcegroupstaggingapi.New(cfg)
 }
 
 func createASGSession(region *string, roleArn string) autoscalingiface.ClientAPI {
 	// TODO: Set max retries somehow?
 	//maxAutoScalingAPIRetries := 5
-	config := &aws.Config{Region: *region}
+	cfg, err := external.LoadDefaultAWSConfig()
+	if err != nil {
+		panic(fmt.Sprintf("failed loading config, %v", err))
+	}
+	cfg.Region = *region
 	if roleArn != "" {
-		config.Credentials = stscreds.NewAssumeRoleProvider(sts.New(*config), roleArn)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(sts.New(cfg), roleArn)
 	}
 
-	return autoscaling.New(*config)
+	return autoscaling.New(cfg)
 }
 
 func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
