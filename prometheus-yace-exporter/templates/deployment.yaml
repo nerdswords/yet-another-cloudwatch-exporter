@@ -84,6 +84,11 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ include "prometheus-yace-exporter.fullname" . }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
     {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
