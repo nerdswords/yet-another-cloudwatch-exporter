@@ -318,6 +318,7 @@ The following IAM permissions are required for YACE to work.
 
 ```json
 "tag:GetResources",
+"cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
 ```
