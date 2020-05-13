@@ -88,6 +88,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("elasticmapreduce:cluster"))
 	case "es":
 		filter = append(filter, aws.String("es:domain"))
+	case "fsx":
+		filter = append(filter, aws.String("fsx:file-system"))
 	case "kinesis":
 		filter = append(filter, aws.String("kinesis:stream"))
 	case "lambda":

@@ -29,6 +29,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * elb - Elastic Load Balancer
   * emr - Elastic MapReduce
   * es - ElasticSearch
+  * fsx - FSx File System
   * kinesis - Kinesis Data Stream
   * ngw - Nat Gateway
   * lambda - Lambda Functions
