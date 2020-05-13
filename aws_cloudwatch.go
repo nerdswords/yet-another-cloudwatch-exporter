@@ -268,6 +268,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
+	case "fsx":
+		ns = "AWS/FSx"
 	case "kafka":
 		ns = "AWS/Kafka"
 	case "kinesis":
@@ -338,7 +340,7 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 
 func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensionResourceName *string) {
 	resp := filterMetricsBasedOnDimensionsWithValues(dimensions, nil, fullMetricsList)
-  
+
 	return getDimensionValueForName(resourceName, resp)
 }
 
@@ -513,6 +515,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "es":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "fsx":
+		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
 	case "kinesis":
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "lambda":

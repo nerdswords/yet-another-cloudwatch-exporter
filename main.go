@@ -39,6 +39,7 @@ var (
 		"elb",
 		"emr",
 		"es",
+		"fsx",
 		"kafka",
 		"kinesis",
 		"lambda",
