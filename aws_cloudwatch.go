@@ -244,6 +244,8 @@ func getNamespace(service *string) *string {
 	switch *service {
 	case "alb":
 		ns = "AWS/ApplicationELB"
+	case "appsync":
+		ns = "AWS/AppSync"
 	case "asg":
 		ns = "AWS/AutoScaling"
 	case "cf":
@@ -483,6 +485,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	switch *service {
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+	case "appsync":
+		dimensions = buildBaseDimension(arnParsed.Resource, "GraphQLAPIId", "apis/")
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "cf":
