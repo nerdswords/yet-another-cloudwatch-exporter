@@ -1,3 +1,7 @@
+# 0.17.0-alpha
+* Added support for sns / firehose (rhys-evans)
+* Added support for fsx / appsync (arnitolog)
+
 # 0.16.0-alpha
 * Hugh rewrite: Decouple scraping and serving metrics. Thanks so much daviddetorres!
 * *BREAKING CHANGE* Decoupled scraping and set scraping interval to 5 minutes.
