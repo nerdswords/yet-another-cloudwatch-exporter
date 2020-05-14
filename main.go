@@ -27,6 +27,7 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"appsync",
 		"asg",
 		"cf",
 		"dynamodb",
@@ -39,6 +40,7 @@ var (
 		"elb",
 		"emr",
 		"es",
+		"firehose",
 		"fsx",
 		"kafka",
 		"kinesis",
@@ -48,6 +50,7 @@ var (
 		"rds",
 		"r53r",
 		"s3",
+		"sns",
 		"sqs",
 		"tgw",
 		"vpn",

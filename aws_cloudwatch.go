@@ -244,6 +244,8 @@ func getNamespace(service *string) *string {
 	switch *service {
 	case "alb":
 		ns = "AWS/ApplicationELB"
+	case "appsync":
+		ns = "AWS/AppSync"
 	case "asg":
 		ns = "AWS/AutoScaling"
 	case "cf":
@@ -268,6 +270,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
+  case "firehose":
+		ns = "AWS/Firehose"
 	case "fsx":
 		ns = "AWS/FSx"
 	case "kafka":
@@ -286,6 +290,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Route53Resolver"
 	case "s3":
 		ns = "AWS/S3"
+	case "sns":
+		ns = "AWS/SNS"
 	case "sqs":
 		ns = "AWS/SQS"
 	case "tgw":
@@ -485,6 +491,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	switch *service {
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+	case "appsync":
+		dimensions = buildBaseDimension(arnParsed.Resource, "GraphQLAPIId", "apis/")
 	case "asg":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "cf":
@@ -515,9 +523,11 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "es":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "firehose":
+		dimensions = buildBaseDimension(arnParsed.Resource, "DeliveryStreamName", "deliverystream/")
 	case "fsx":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-	case "kinesis":
+  case "kinesis":
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "lambda":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
@@ -532,6 +542,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 		break
+	case "sns":
+		dimensions = buildBaseDimension(arnParsed.Resource, "TopicName", "")
 	case "sqs":
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
