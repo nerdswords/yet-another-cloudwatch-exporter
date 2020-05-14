@@ -41,6 +41,7 @@ var (
 		"emr",
 		"es",
 		"firehose",
+		"fsx",
 		"kafka",
 		"kinesis",
 		"lambda",
