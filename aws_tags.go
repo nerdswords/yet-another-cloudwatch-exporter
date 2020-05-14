@@ -65,6 +65,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "alb":
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/app"))
 		filter = append(filter, aws.String("elasticloadbalancing:targetgroup"))
+	case "appsync":
+		filter = append(filter, aws.String("appsync"))
 	case "cf":
 		filter = append(filter, aws.String("cloudfront"))
 	case "asg":
@@ -88,7 +90,9 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("elasticmapreduce:cluster"))
 	case "es":
 		filter = append(filter, aws.String("es:domain"))
-	case "fsx":
+	case "firehose":
+		filter = append(filter, aws.String("firehose"))
+  case "fsx":
 		filter = append(filter, aws.String("fsx:file-system"))
 	case "kinesis":
 		filter = append(filter, aws.String("kinesis:stream"))
@@ -104,6 +108,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
 		filter = append(filter, aws.String("s3"))
+	case "sns":
+		filter = append(filter, aws.String("sns"))
 	case "sqs":
 		filter = append(filter, aws.String("sqs"))
 	case "tgw":

@@ -18,6 +18,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Supported services with auto discovery through tags:
 
   * alb - Application Load Balancer
+  * appsync - AppSync
   * cf - Cloud Front
   * dynamodb - NoSQL Online Datenbank Service
   * ebs - Elastic Block Storage
@@ -42,6 +43,8 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
+  * firehose - Managed Streaming Service
+  * sns - Simple Notification Service
 
 ## Image
 
@@ -375,9 +378,9 @@ spec:
 ```
 ## Options
 ### Requests concurrency
-The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5. 
+The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5.
 
-Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API. 
+Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API.
 
 ### Decoupled scraping
 The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in background in fixed intervals, in stead of each time that the '/metrics' endpoint is fetched. This protects from the abuse of API requests that can cause extra billing in AWS account. This flag is activated by default.
