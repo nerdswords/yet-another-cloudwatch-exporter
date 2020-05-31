@@ -45,6 +45,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * kafka - Managed Apache Kafka
   * firehose - Managed Streaming Service
   * sns - Simple Notification Service
+  * sfn - Step Functions
 
 ## Image
 
