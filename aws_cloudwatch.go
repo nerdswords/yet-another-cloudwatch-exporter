@@ -547,7 +547,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "sfn":
 		// The value of StateMachineArn returned is the Name, not the ARN
 		// We are setting the value to the ARN in order to correlate dimensions with metric values
-		// (The name will be added back as a label of `stateMachineName`)
+		// (StateMachineArn will be set back to the name later, once all the filtering is complete)
 		// https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html
 		dimensions = append(dimensions, buildDimension("StateMachineArn", *resourceArn))
 	case "sns":
@@ -719,12 +719,6 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				promLabels := make(map[string]string)
 				promLabels["name"] = *c.ID
 
-				// Inject the sfn name back as a label
-				switch serviceName {
-				case "sfn":
-					promLabels["stateMachineName"] = getStateMachineNameFromArn(*c.ID)
-				}
-
 				for _, label := range c.CustomTags {
 					promLabels["custom_tag_"+label.Key] = label.Value
 				}
@@ -734,6 +728,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 
 				for _, dimension := range c.Dimensions {
 					promLabels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
+				}
+
+				// Inject the sfn name back as a label
+				switch serviceName {
+				case "sfn":
+					promLabels["dimension_StateMachineArn"] = getStateMachineNameFromArn(*c.ID)
 				}
 
 				promLabels["region"] = *c.Region
