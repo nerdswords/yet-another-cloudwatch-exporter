@@ -290,6 +290,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/Route53Resolver"
 	case "s3":
 		ns = "AWS/S3"
+	case "sfn":
+		ns = "AWS/States"
 	case "sns":
 		ns = "AWS/SNS"
 	case "sqs":
@@ -527,7 +529,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "DeliveryStreamName", "deliverystream/")
 	case "fsx":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-  case "kinesis":
+	case "kinesis":
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "lambda":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
@@ -542,6 +544,12 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 		break
+	case "sfn":
+		// The value of StateMachineArn returned is the Name, not the ARN
+		// We are setting the value to the ARN in order to correlate dimensions with metric values
+		// (The name will be added back as a label of `stateMachineName`)
+		// https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html
+		dimensions = append(dimensions, buildDimension("StateMachineArn", *resourceArn))
 	case "sns":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TopicName", "")
 	case "sqs":
@@ -620,12 +628,23 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 	return promString(*serviceName) + suffixName
 }
 
+func getStateMachineNameFromArn(resourceArn string) string {
+	arnParsed, err := arn.Parse(resourceArn)
+	if err != nil {
+		log.Warning(err)
+		return ""
+	}
+	parsedResource := strings.Split(arnParsed.Resource, ":")
+	return parsedResource[1]
+}
+
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
-			name := "aws_" + fixServiceName(c.Service, c.Dimensions) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+			serviceName := fixServiceName(c.Service, c.Dimensions)
+			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			var exportedDatapoint *float64
 			var averageDataPoints []*float64
 			var timestamp time.Time
@@ -699,6 +718,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			if exportedDatapoint != nil {
 				promLabels := make(map[string]string)
 				promLabels["name"] = *c.ID
+
+				// Inject the sfn name back as a label
+				switch serviceName {
+				case "sfn":
+					promLabels["stateMachineName"] = getStateMachineNameFromArn(*c.ID)
+				}
 
 				for _, label := range c.CustomTags {
 					promLabels["custom_tag_"+label.Key] = label.Value
