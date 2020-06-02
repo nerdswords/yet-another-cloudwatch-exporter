@@ -270,7 +270,7 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
-  case "firehose":
+	case "firehose":
 		ns = "AWS/Firehose"
 	case "fsx":
 		ns = "AWS/FSx"
@@ -527,7 +527,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "DeliveryStreamName", "deliverystream/")
 	case "fsx":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-  case "kinesis":
+	case "kinesis":
 		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
 	case "lambda":
 		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
