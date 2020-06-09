@@ -16,16 +16,6 @@ var (
 	tagSemaphore        chan struct{}
 )
 
-func getRegions(region string, regions []string) []string {
-	if region != "" {
-		return []string{region}
-	} else if (len(regions)) > 0 {
-		return regions
-	}
-
-	return []string{""}
-}
-
 func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
@@ -37,7 +27,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	for i := range config.Discovery.Jobs {
 		job := config.Discovery.Jobs[i]
 
-		regions := getRegions(job.Region, job.Regions)
+		regions := job.Regions
 
 		for i := 0; i < len(regions); i++ {
 			region := &regions[i]
@@ -55,7 +45,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 				}
 				var resources []*tagsData
 				var metrics []*cloudwatchData
-				resources, metrics = scrapeDiscoveryJobUsingMetricData(job, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+				resources, metrics = scrapeDiscoveryJobUsingMetricData(job, *region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
 				mux.Lock()
 				awsInfoData = append(awsInfoData, resources...)
 				cwData = append(cwData, metrics...)
@@ -69,20 +59,20 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	for i := range config.Static {
 		job := config.Static[i]
 
-		regions := getRegions(job.Region, job.Regions)
+		regions := job.Regions
 
-		for i := range config.Discovery.Jobs {
+		for i := 0; i < len(regions); i++ {
+			region := regions[i]
 			wg.Add(1)
 
 			go func() {
-				region := &regions[i]
 				roleArn := job.RoleArn
 
 				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(region, roleArn),
+					client: createCloudwatchSession(&region, roleArn),
 				}
 
-				metrics := scrapeStaticJob(job, clientCloudwatch)
+				metrics := scrapeStaticJob(job, region, clientCloudwatch)
 
 				mux.Lock()
 				cwData = append(cwData, metrics...)
@@ -96,7 +86,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	return awsInfoData, cwData
 }
 
-func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
+func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -122,7 +112,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
-				Region:                 &resource.Region,
+				Region:                 &region,
 			}
 
 			filter := createGetMetricStatisticsInput(
@@ -146,6 +136,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 
 func scrapeDiscoveryJobUsingMetricData(
 	job job,
+	region string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
@@ -163,11 +154,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.get(job)
+	resources, err := clientTag.get(job, region)
 	<-tagSemaphore
 
 	if err != nil {
-		log.Printf("Couldn't describe resources for region %s: %s\n", job.Region, err.Error())
+		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
 		return
 	}
 	// Get the awsDimensions of the job configuration
@@ -224,7 +215,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 							Tags:                   metricTags,
 							Dimensions:             fetchedMetrics.Dimensions,
-							Region:                 &job.Region,
+							Region:                 &region,
 							Period:                 &period,
 						})
 						mux.Unlock()
