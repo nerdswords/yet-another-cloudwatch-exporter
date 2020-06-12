@@ -312,8 +312,8 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForName(name string, resp *cloudwatch.ListMetricsOutput) (value *string) {
-	for _, metric := range resp.Metrics {
+func getDimensionValueForResource(name string,fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
+	for _, metric := range fullMetricsList.Metrics {
 		for _, dim := range metric.Dimensions {
 			if strings.Compare(*dim.Name, name) == 0 {
 				return dim.Value
@@ -342,12 +342,6 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 		}
 	}
 	return &output
-}
-
-func getResourceValue(resourceName string, dimensions []*cloudwatch.Dimension, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensionResourceName *string) {
-	resp := filterMetricsBasedOnDimensionsWithValues(dimensions, nil, fullMetricsList)
-
-	return getDimensionValueForName(resourceName, resp)
 }
 
 func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
@@ -458,6 +452,13 @@ func dimensionIsInListWithoutValues(
 	return false
 }
 
+func getDimensionfromMetric(resp *cloudwatch.ListMetricsOutput) []*cloudwatch.Dimension {
+	for _, metric := range resp.Metrics {
+		return metric.Dimensions
+	}
+	return nil
+}
+
 func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 
 	if !strings.HasSuffix(*namespace, "ApplicationELB") {
@@ -467,9 +468,9 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 
 	if strings.HasPrefix(resource, "targetgroup/") {
 		dimensions = append(dimensions, buildDimension("TargetGroup", resource))
-		loadBalancerName := getResourceValue("LoadBalancer", dimensions, namespace, fullMetricsList)
-		if loadBalancerName != nil {
-			dimensions = append(dimensions, buildDimension("LoadBalancer", *loadBalancerName))
+		resp := filterMetricsBasedOnDimensionsWithValues(dimensions, []*cloudwatch.Dimension{buildDimensionWithoutValue("LoadBalancer")}, fullMetricsList)
+		if resp != nil {
+			dimensions = getDimensionfromMetric(resp)
 		}
 
 	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
