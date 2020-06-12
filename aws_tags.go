@@ -92,7 +92,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("es:domain"))
 	case "firehose":
 		filter = append(filter, aws.String("firehose"))
-  case "fsx":
+	case "fsx":
 		filter = append(filter, aws.String("fsx:file-system"))
 	case "kinesis":
 		filter = append(filter, aws.String("kinesis:stream"))
@@ -108,6 +108,8 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
 		filter = append(filter, aws.String("s3"))
+	case "sfn":
+		filter = append(filter, aws.String("states"))
 	case "sns":
 		filter = append(filter, aws.String("sns"))
 	case "sqs":

@@ -50,6 +50,7 @@ var (
 		"rds",
 		"r53r",
 		"s3",
+		"sfn",
 		"sns",
 		"sqs",
 		"tgw",
