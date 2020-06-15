@@ -56,7 +56,7 @@ func createASGSession(region *string, roleArn string) autoscalingiface.AutoScali
 	return autoscaling.New(sess, config)
 }
 
-func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
+func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
 	c := iface.client
 
 	var filter []*string
@@ -70,7 +70,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 	case "cf":
 		filter = append(filter, aws.String("cloudfront"))
 	case "asg":
-		return iface.getTaggedAutoscalingGroups(job)
+		return iface.getTaggedAutoscalingGroups(job, region)
 	case "dynamodb":
 		filter = append(filter, aws.String("dynamodb:table"))
 	case "ebs":
@@ -137,7 +137,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 			resource.ID = resourceTagMapping.ResourceARN
 
 			resource.Service = &job.Type
-			resource.Region = &job.Region
+			resource.Region = &region
 
 			for _, t := range resourceTagMapping.Tags {
 				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
@@ -152,7 +152,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 }
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted
-func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tagsData, err error) {
+func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (resources []*tagsData, err error) {
 	ctx := context.Background()
 	pageNum := 0
 	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -168,7 +168,7 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tag
 				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
 
 				resource.Service = &job.Type
-				resource.Region = &job.Region
+				resource.Region = &region
 
 				for _, t := range asg.Tags {
 					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
