@@ -270,7 +270,7 @@ func getNamespace(service *string) *string {
 		ns = "AWS/ElasticMapReduce"
 	case "es":
 		ns = "AWS/ES"
-  case "firehose":
+	case "firehose":
 		ns = "AWS/Firehose"
 	case "fsx":
 		ns = "AWS/FSx"

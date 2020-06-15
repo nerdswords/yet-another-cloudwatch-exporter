@@ -81,7 +81,7 @@ exportedTagsOnMetrics:
 
 | Key                  | Description                                                                                |
 | -------------------- | ------------------------------------------------------------------------------------------ |
-| region               | AWS region                                                                                 |
+| regions              | List of AWS regions                                                                        |
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
 | delay                | If set it will request metrics up until `current_time - d
@@ -117,7 +117,7 @@ searchTags:
 
 | Key        | Description                                                |
 | ---------- | ---------------------------------------------------------- |
-| region     | AWS region                                                 |
+| regions    | List of AWS regions                                        |
 | roleArn    | IAM role to assume                                         |
 | namespace  | CloudWatch namespace                                       |
 | name       | Must be set with multiple block definitions per namespace  |
@@ -135,8 +135,9 @@ discovery:
     ebs:
       - VolumeId
   jobs:
-  - region: eu-west-1
-    type: es
+  - type: es
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: ^(easteregg|k8s)$
@@ -162,7 +163,8 @@ discovery:
         period: 600
         length: 60
   - type: elb
-    region: eu-west-1
+    regions:
+      - eu-west-1
     length: 900
     delay: 120
     awsDimensions:
@@ -184,7 +186,8 @@ discovery:
         delay: 300 #(this will be ignored)
         nilToZero: true
   - type: alb
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
@@ -194,7 +197,8 @@ discovery:
         period: 60
         length: 600
   - type: vpn
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
@@ -205,7 +209,8 @@ discovery:
         period: 60
         length: 300
   - type: kinesis
-    region: eu-west-1
+    regions:
+      - eu-west-1
     metrics:
       - name: PutRecords.Success
         statistics:
@@ -213,7 +218,8 @@ discovery:
         period: 60
         length: 300
   - type: s3
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: public
@@ -235,7 +241,8 @@ discovery:
           - name: StorageType
             value: StandardStorage
   - type: ebs
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: public
@@ -247,7 +254,8 @@ discovery:
         length: 600
         addCloudwatchTimestamp: true
   - type: kafka
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: env
         Value: dev
@@ -263,7 +271,8 @@ discovery:
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
-    region: eu-west-1
+    regions:
+      - eu-west-1
     dimensions:
      - name: AutoScalingGroupName
        value: Test
