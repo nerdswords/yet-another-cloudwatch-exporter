@@ -1,3 +1,22 @@
+# 0.18.0-alpha
+* *BREAKING CHANGE* Add support for multiple regions (goya)
+```yaml
+# Before
+---
+discovery:
+  jobs:
+  - type: rds
+    region: eu-west-1
+# After
+discovery:
+  jobs:
+  - type: rds
+    regions:
+    - eu-west-1
+```
+* Fix missing alb target group metrics (abhi4890 )
+* Added support for step functions (smcavallo)
+
 # 0.17.0-alpha
 * Added support for sns / firehose (rhys-evans)
 * Added support for fsx / appsync (arnitolog)
