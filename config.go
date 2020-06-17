@@ -26,6 +26,7 @@ type job struct {
 	RoleArn       string   `yaml:"roleArn"`
 	AwsDimensions []string `yaml:"awsDimensions"`
 	SearchTags    []tag    `yaml:"searchTags"`
+	CustomTags    []tag    `yaml:"customTags"`
 	Metrics       []metric `yaml:"metrics"`
 	Length        int      `yaml:"length"`
 	Delay         int      `yaml:"delay"`

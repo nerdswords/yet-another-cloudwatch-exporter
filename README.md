@@ -84,10 +84,11 @@ exportedTagsOnMetrics:
 | regions              | List of AWS regions                                                                        |
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
-| delay                | If set it will request metrics up until `current_time - d
+| delay                | If set it will request metrics up until `current_time - d                                  |
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | roleArn              | IAM role to assume (optional)                                                              |
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
+| customTags           | Custom tags to be added as a list of Key/Value pairs                                       |
 | metrics              | List of metric definitions                                                                 |
 | additionalDimensions | List of dimensions to return beyond the default list per service                           |
 
