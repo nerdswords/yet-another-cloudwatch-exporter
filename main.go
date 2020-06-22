@@ -27,6 +27,7 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"apigateway",
 		"appsync",
 		"asg",
 		"cf",
@@ -82,7 +83,7 @@ func updateMetrics(registry *prometheus.Registry) {
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
-	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter} {
+	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter} {
 		if err := registry.Register(counter); err != nil {
 			log.Warning("Could not publish cloudwatch api metric")
 		}

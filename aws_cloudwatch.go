@@ -239,11 +239,14 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 	return &resp
 }
 
+// https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html
 func getNamespace(service *string) *string {
 	var ns string
 	switch *service {
 	case "alb":
 		ns = "AWS/ApplicationELB"
+	case "apigateway":
+		ns = "AWS/ApiGateway"
 	case "appsync":
 		ns = "AWS/AppSync"
 	case "asg":
@@ -483,8 +486,9 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 	return dimensions
 }
 
-func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
-	arnParsed, err := arn.Parse(*resourceArn)
+func detectDimensionsByService(service *string, resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
+	resourceArn  := *resource.ID
+	arnParsed, err := arn.Parse(resourceArn)
 
 	if err != nil {
 		log.Warning(err)
@@ -494,6 +498,34 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	switch *service {
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+	case "apigateway":
+		// https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
+		dimensions = buildBaseDimension(*resource.Matcher, "ApiName", "")
+		gatewayType := strings.Split(arnParsed.Resource, "/")[1]
+		switch gatewayType {
+		case "restapis", "apis":
+			// /stages/stage-name
+			stageRegex := regexp.MustCompile(`stages/(\S+)`)
+			stageMatches := stageRegex.FindStringSubmatch(arnParsed.Resource)
+			if len(stageMatches) > 0 {
+				dimensions = append(dimensions, buildDimension("Stage", stageMatches[1]))
+			}
+			// /resources/resource-id
+			resourceRegex := regexp.MustCompile(`resources/(\S+)`)
+			resourceMatches := resourceRegex.FindStringSubmatch(arnParsed.Resource)
+			if len(resourceMatches) > 0 {
+				dimensions = append(dimensions, buildDimension("Resources", resourceMatches[1]))
+			}
+			// /methods/http-method
+			// only for restapis
+			if gatewayType == "restapis" {
+				methodRegex := regexp.MustCompile(`methods/(\S+)`)
+				methodMatches := methodRegex.FindStringSubmatch(arnParsed.Resource)
+				if len(methodMatches) > 0 {
+					dimensions = append(dimensions, buildDimension("Method", methodMatches[1]))
+				}
+			}
+		}
 	case "appsync":
 		dimensions = buildBaseDimension(arnParsed.Resource, "GraphQLAPIId", "apis/")
 	case "asg":
@@ -550,7 +582,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		// We are setting the value to the ARN in order to correlate dimensions with metric values
 		// (StateMachineArn will be set back to the name later, once all the filtering is complete)
 		// https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html
-		dimensions = append(dimensions, buildDimension("StateMachineArn", *resourceArn))
+		dimensions = append(dimensions, buildDimension("StateMachineArn", resourceArn))
 	case "sns":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TopicName", "")
 	case "sqs":
@@ -637,6 +669,14 @@ func getStateMachineNameFromArn(resourceArn string) string {
 	}
 	parsedResource := strings.Split(arnParsed.Resource, ":")
 	return parsedResource[1]
+}
+
+func promLabelExists(promLabels map[string]string, key string) bool {
+	if _, ok := promLabels[key]; ok {
+		return true
+	} else {
+		return false
+	}
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
@@ -735,6 +775,18 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				switch serviceName {
 				case "sfn":
 					promLabels["dimension_StateMachineArn"] = getStateMachineNameFromArn(*c.ID)
+				case "apigateway":
+					// The same dimensions are required on all metrics by prometheus
+					if !promLabelExists(promLabels, "dimension_Stage"){
+						promLabels["dimension_Stage"] = ""
+					}
+					if !promLabelExists(promLabels, "dimension_Resource"){
+						promLabels["dimension_Resource"] = ""
+					}
+					// only for restapis
+					if !promLabelExists(promLabels, "dimension_Method"){
+						promLabels["dimension_Method"] = ""
+					}
 				}
 
 				promLabels["region"] = *c.Region
