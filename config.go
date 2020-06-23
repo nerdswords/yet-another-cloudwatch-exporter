@@ -77,7 +77,7 @@ func (c *conf) load(file *string) error {
 		}
 
 		for _, metric := range job.Metrics {
-			if metric.Length < 300 {
+			if job.Length < 300 && metric.Length < 300 {
 				log.Warn("WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
 			}
 
