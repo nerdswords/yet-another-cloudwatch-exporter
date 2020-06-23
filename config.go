@@ -21,14 +21,16 @@ type discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type job struct {
-	Regions       []string `yaml:"regions"`
-	Type          string   `yaml:"type"`
-	RoleArn       string   `yaml:"roleArn"`
-	AwsDimensions []string `yaml:"awsDimensions"`
-	SearchTags    []tag    `yaml:"searchTags"`
-	Metrics       []metric `yaml:"metrics"`
-	Length        int      `yaml:"length"`
-	Delay         int      `yaml:"delay"`
+	Regions                 []string `yaml:"regions"`
+	Type                    string   `yaml:"type"`
+	RoleArn                 string   `yaml:"roleArn"`
+	AwsDimensions           []string `yaml:"awsDimensions"`
+	SearchTags              []tag    `yaml:"searchTags"`
+	Metrics                 []metric `yaml:"metrics"`
+	Length                  int      `yaml:"length"`
+	Delay                   int      `yaml:"delay"`
+	Period                  int      `yaml:"period"`
+	AddCloudwatchTimestamp  bool     `yaml:"addCloudwatchTimestamp"`
 }
 
 type static struct {
@@ -81,7 +83,7 @@ func (c *conf) load(file *string) error {
 				log.Warn("WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
 			}
 
-			if metric.Period < 1 {
+			if job.Period < 1 && metric.Period < 1 {
 				return fmt.Errorf("Period value should be a positive integer")
 			}
 		}
