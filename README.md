@@ -56,10 +56,17 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 ### Top level configuration
 
-| Key       | Description                   |
-| --------- | ----------------------------- |
-| discovery | Auto-discovery configuration  |
-| static    | List of static configurations |
+| Key          | Description                                              |
+| ------------ | -------------------------------------------------------- |
+| discovery    | Auto-discovery configuration                             |
+| static       | List of static configurations                            |
+| translations | A list of name -> value mapping for output compatibility |
+
+### Translations configuration
+
+| Key      | Description                             |
+| -------- | --------------------------------------- |
+| services | A map of service names -> output values |
 
 ### Auto-discovery configuration
 
@@ -128,6 +135,9 @@ searchTags:
 ### Example of config File
 
 ```yaml
+translations:
+  services:
+    ec: elasticache
 discovery:
   exportedTagsOnMetrics:
     ec2:

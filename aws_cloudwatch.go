@@ -638,6 +638,11 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 			}
 		}
 	}
+
+    if svcTranslation, ok := config.Translations.Services[*serviceName]; ok {
+        *serviceName = svcTranslation
+    }
+
 	return promString(*serviceName) + suffixName
 }
 
