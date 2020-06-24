@@ -191,6 +191,9 @@ func scrapeDiscoveryJobUsingMetricData(
 			// Adds the dimensions with values of that specific metric of the job
 			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
 
+			// Filter the commonJob Dimensions by the discovered/added dimensions as duplicates cause no metrics to be discovered
+			commonJobDimensions = filterDimensionsWithoutValueByDimensionsWithValue(commonJobDimensions, dimensionsWithValue)
+
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
 
 			if metricsToAdd != nil {
