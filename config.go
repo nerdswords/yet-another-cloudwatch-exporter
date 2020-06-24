@@ -9,8 +9,13 @@ import (
 )
 
 type conf struct {
-	Discovery discovery `yaml:"discovery"`
-	Static    []static  `yaml:"static"`
+	Discovery           discovery   `yaml:"discovery"`
+	Static              []static    `yaml:"static"`
+	Translations        translation `yaml:"translations"`
+}
+
+type translation struct {
+    Services      map[string]string `yaml:"services"`
 }
 
 type discovery struct {
