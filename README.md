@@ -85,7 +85,6 @@ exportedTagsOnMetrics:
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
 | delay                | If set it will request metrics up until `current_time - d
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | roleArn              | IAM role to assume (optional)                                                              |
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
 | metrics              | List of metric definitions                                                                 |
