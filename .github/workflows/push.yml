@@ -12,6 +12,7 @@ jobs:
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       run: |
         VERSION=$(_ci/version.sh)
         DOCKER_IMAGE="$ECR_REPOSITORY:$VERSION"
