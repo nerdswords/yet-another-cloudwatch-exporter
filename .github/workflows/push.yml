@@ -6,6 +6,15 @@ jobs:
     name: Build docker image
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Build docker image
-      run: docker build -t yace --build-arg VERSION=${GITHUB_REF#refs/tags/} .
+    - uses: actions/checkout@v2
+    - name: Build and Push to AWS ECR
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        VERSION=$(lambda/_ci/version.sh)
+        DOCKER_IMAGE="$ECR_REPOSITORY:$VERSION"
+        eval $(aws ecr get-login --no-include-email --region eu-west-1)
+        docker build --no-cache -t "$DOCKER_IMAGE" .
+        docker push "$DOCKER_IMAGE"
