@@ -18,6 +18,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Supported services with auto discovery through tags:
 
   * alb - Application Load Balancer
+  * appsync - AppSync
   * cf - Cloud Front
   * dynamodb - NoSQL Online Datenbank Service
   * ebs - Elastic Block Storage
@@ -29,6 +30,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * elb - Elastic Load Balancer
   * emr - Elastic MapReduce
   * es - ElasticSearch
+  * fsx - FSx File System
   * kinesis - Kinesis Data Stream
   * ngw - Nat Gateway
   * lambda - Lambda Functions
@@ -41,6 +43,9 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
+  * firehose - Managed Streaming Service
+  * sns - Simple Notification Service
+  * sfn - Step Functions
 
 ## Image
 
@@ -76,7 +81,7 @@ exportedTagsOnMetrics:
 
 | Key                  | Description                                                                                |
 | -------------------- | ------------------------------------------------------------------------------------------ |
-| region               | AWS region                                                                                 |
+| regions              | List of AWS regions                                                                        |
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
 | delay                | If set it will request metrics up until `current_time - d
@@ -112,7 +117,7 @@ searchTags:
 
 | Key        | Description                                                |
 | ---------- | ---------------------------------------------------------- |
-| region     | AWS region                                                 |
+| regions    | List of AWS regions                                        |
 | roleArn    | IAM role to assume                                         |
 | namespace  | CloudWatch namespace                                       |
 | name       | Must be set with multiple block definitions per namespace  |
@@ -130,8 +135,9 @@ discovery:
     ebs:
       - VolumeId
   jobs:
-  - region: eu-west-1
-    type: es
+  - type: es
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: ^(easteregg|k8s)$
@@ -157,7 +163,8 @@ discovery:
         period: 600
         length: 60
   - type: elb
-    region: eu-west-1
+    regions:
+      - eu-west-1
     length: 900
     delay: 120
     awsDimensions:
@@ -179,7 +186,8 @@ discovery:
         delay: 300 #(this will be ignored)
         nilToZero: true
   - type: alb
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
@@ -189,7 +197,8 @@ discovery:
         period: 60
         length: 600
   - type: vpn
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: kubernetes.io/service-name
         Value: .*
@@ -200,7 +209,8 @@ discovery:
         period: 60
         length: 300
   - type: kinesis
-    region: eu-west-1
+    regions:
+      - eu-west-1
     metrics:
       - name: PutRecords.Success
         statistics:
@@ -208,7 +218,8 @@ discovery:
         period: 60
         length: 300
   - type: s3
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: public
@@ -230,7 +241,8 @@ discovery:
           - name: StorageType
             value: StandardStorage
   - type: ebs
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: type
         Value: public
@@ -242,7 +254,8 @@ discovery:
         length: 600
         addCloudwatchTimestamp: true
   - type: kafka
-    region: eu-west-1
+    regions:
+      - eu-west-1
     searchTags:
       - Key: env
         Value: dev
@@ -258,7 +271,8 @@ discovery:
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
-    region: eu-west-1
+    regions:
+      - eu-west-1
     dimensions:
      - name: AutoScalingGroupName
        value: Test
@@ -318,6 +332,7 @@ The following IAM permissions are required for YACE to work.
 
 ```json
 "tag:GetResources",
+"cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
 ```
@@ -373,9 +388,9 @@ spec:
 ```
 ## Options
 ### Requests concurrency
-The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5. 
+The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5.
 
-Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API. 
+Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API.
 
 ### Decoupled scraping
 The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in background in fixed intervals, in stead of each time that the '/metrics' endpoint is fetched. This protects from the abuse of API requests that can cause extra billing in AWS account. This flag is activated by default.

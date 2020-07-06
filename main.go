@@ -27,6 +27,7 @@ var (
 
 	supportedServices = []string{
 		"alb",
+		"appsync",
 		"asg",
 		"cf",
 		"dynamodb",
@@ -39,6 +40,8 @@ var (
 		"elb",
 		"emr",
 		"es",
+		"firehose",
+		"fsx",
 		"kafka",
 		"kinesis",
 		"lambda",
@@ -47,6 +50,8 @@ var (
 		"rds",
 		"r53r",
 		"s3",
+		"sfn",
+		"sns",
 		"sqs",
 		"tgw",
 		"vpn",
@@ -92,9 +97,13 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	log.Println("Parse config..")
 	if err := config.load(configFile); err != nil {
-		log.Fatal("Couldn't read ", *configFile, ":", err)
+		log.Fatal("Couldn't read ", *configFile, ": ", err)
 	}
 
 	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)

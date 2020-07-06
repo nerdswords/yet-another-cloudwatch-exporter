@@ -25,57 +25,68 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 	var wg sync.WaitGroup
 
 	for i := range config.Discovery.Jobs {
-		wg.Add(1)
 		job := config.Discovery.Jobs[i]
-		go func() {
-			region := &job.Region
+
+		regions := job.Regions
+
+		for i := 0; i < len(regions); i++ {
+			region := &regions[i]
 			roleArn := job.RoleArn
+			wg.Add(1)
 
-			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region, roleArn),
-			}
+			go func() {
+				clientCloudwatch := cloudwatchInterface{
+					client: createCloudwatchSession(region, roleArn),
+				}
 
-			clientTag := tagsInterface{
-				client:    createTagSession(region, roleArn),
-				asgClient: createASGSession(region, roleArn),
-			}
-			var resources []*tagsData
-			var metrics []*cloudwatchData
-			resources, metrics = scrapeDiscoveryJobUsingMetricData(job, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
-			mux.Lock()
-			awsInfoData = append(awsInfoData, resources...)
-			cwData = append(cwData, metrics...)
-			mux.Unlock()
-			wg.Done()
+				clientTag := tagsInterface{
+					client:    createTagSession(region, roleArn),
+					asgClient: createASGSession(region, roleArn),
+				}
+				var resources []*tagsData
+				var metrics []*cloudwatchData
+				resources, metrics = scrapeDiscoveryJobUsingMetricData(job, *region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+				mux.Lock()
+				awsInfoData = append(awsInfoData, resources...)
+				cwData = append(cwData, metrics...)
+				mux.Unlock()
+				wg.Done()
 
-		}()
+			}()
+		}
 	}
 
 	for i := range config.Static {
-		wg.Add(1)
 		job := config.Static[i]
-		go func() {
-			region := &job.Region
-			roleArn := job.RoleArn
 
-			clientCloudwatch := cloudwatchInterface{
-				client: createCloudwatchSession(region, roleArn),
-			}
+		regions := job.Regions
 
-			metrics := scrapeStaticJob(job, clientCloudwatch)
+		for i := 0; i < len(regions); i++ {
+			region := regions[i]
+			wg.Add(1)
 
-			mux.Lock()
-			cwData = append(cwData, metrics...)
-			mux.Unlock()
+			go func() {
+				roleArn := job.RoleArn
 
-			wg.Done()
-		}()
+				clientCloudwatch := cloudwatchInterface{
+					client: createCloudwatchSession(&region, roleArn),
+				}
+
+				metrics := scrapeStaticJob(job, region, clientCloudwatch)
+
+				mux.Lock()
+				cwData = append(cwData, metrics...)
+				mux.Unlock()
+
+				wg.Done()
+			}()
+		}
 	}
 	wg.Wait()
 	return awsInfoData, cwData
 }
 
-func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
+func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -101,7 +112,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 				AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
-				Region:                 &resource.Region,
+				Region:                 &region,
 			}
 
 			filter := createGetMetricStatisticsInput(
@@ -125,6 +136,7 @@ func scrapeStaticJob(resource static, clientCloudwatch cloudwatchInterface) (cw 
 
 func scrapeDiscoveryJobUsingMetricData(
 	job job,
+	region string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
@@ -142,11 +154,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.get(job)
+	resources, err := clientTag.get(job, region)
 	<-tagSemaphore
 
 	if err != nil {
-		log.Printf("Couldn't describe resources for region %s: %s\n", job.Region, err.Error())
+		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
 		return
 	}
 	// Get the awsDimensions of the job configuration
@@ -203,7 +215,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 							Tags:                   metricTags,
 							Dimensions:             fetchedMetrics.Dimensions,
-							Region:                 &job.Region,
+							Region:                 &region,
 							Period:                 &period,
 						})
 						mux.Unlock()

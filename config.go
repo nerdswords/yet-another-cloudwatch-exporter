@@ -21,7 +21,7 @@ type discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type job struct {
-	Region        string   `yaml:"region"`
+	Regions       []string `yaml:"regions"`
 	Type          string   `yaml:"type"`
 	RoleArn       string   `yaml:"roleArn"`
 	AwsDimensions []string `yaml:"awsDimensions"`
@@ -33,7 +33,7 @@ type job struct {
 
 type static struct {
 	Name       string      `yaml:"name"`
-	Region     string      `yaml:"region"`
+	Regions    []string    `yaml:"regions"`
 	RoleArn    string      `yaml:"roleArn"`
 	Namespace  string      `yaml:"namespace"`
 	CustomTags []tag       `yaml:"customTags"`

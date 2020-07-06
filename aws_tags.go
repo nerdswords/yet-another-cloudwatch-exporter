@@ -56,19 +56,21 @@ func createASGSession(region *string, roleArn string) autoscalingiface.AutoScali
 	return autoscaling.New(sess, config)
 }
 
-func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
+func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
 	c := iface.client
 
 	var filter []*string
 
 	switch job.Type {
 	case "alb":
-		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer"))
+		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/app"))
 		filter = append(filter, aws.String("elasticloadbalancing:targetgroup"))
+	case "appsync":
+		filter = append(filter, aws.String("appsync"))
 	case "cf":
 		filter = append(filter, aws.String("cloudfront"))
 	case "asg":
-		return iface.getTaggedAutoscalingGroups(job)
+		return iface.getTaggedAutoscalingGroups(job, region)
 	case "dynamodb":
 		filter = append(filter, aws.String("dynamodb:table"))
 	case "ebs":
@@ -88,6 +90,10 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("elasticmapreduce:cluster"))
 	case "es":
 		filter = append(filter, aws.String("es:domain"))
+	case "firehose":
+		filter = append(filter, aws.String("firehose"))
+	case "fsx":
+		filter = append(filter, aws.String("fsx:file-system"))
 	case "kinesis":
 		filter = append(filter, aws.String("kinesis:stream"))
 	case "lambda":
@@ -102,6 +108,10 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
 		filter = append(filter, aws.String("s3"))
+	case "sfn":
+		filter = append(filter, aws.String("states"))
+	case "sns":
+		filter = append(filter, aws.String("sns"))
 	case "sqs":
 		filter = append(filter, aws.String("sqs"))
 	case "tgw":
@@ -127,7 +137,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 			resource.ID = resourceTagMapping.ResourceARN
 
 			resource.Service = &job.Type
-			resource.Region = &job.Region
+			resource.Region = &region
 
 			for _, t := range resourceTagMapping.Tags {
 				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
@@ -142,7 +152,7 @@ func (iface tagsInterface) get(job job) (resources []*tagsData, err error) {
 }
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted
-func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tagsData, err error) {
+func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (resources []*tagsData, err error) {
 	ctx := context.Background()
 	pageNum := 0
 	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -158,7 +168,7 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job) (resources []*tag
 				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
 
 				resource.Service = &job.Type
-				resource.Region = &job.Region
+				resource.Region = &region
 
 				for _, t := range asg.Tags {
 					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
