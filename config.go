@@ -24,6 +24,7 @@ type job struct {
 	Regions       []string `yaml:"regions"`
 	Type          string   `yaml:"type"`
 	RoleArn       string   `yaml:"roleArn"`
+	RoleArns      []string `yaml:"roleArns"`
 	AwsDimensions []string `yaml:"awsDimensions"`
 	SearchTags    []tag    `yaml:"searchTags"`
 	Metrics       []metric `yaml:"metrics"`
@@ -35,6 +36,7 @@ type static struct {
 	Name       string      `yaml:"name"`
 	Regions    []string    `yaml:"regions"`
 	RoleArn    string      `yaml:"roleArn"`
+	RoleArns   []string    `yaml:"roleArns"`
 	Namespace  string      `yaml:"namespace"`
 	CustomTags []tag       `yaml:"customTags"`
 	Dimensions []dimension `yaml:"dimensions"`
@@ -84,6 +86,9 @@ func (c *conf) load(file *string) error {
 			if metric.Period < 1 {
 				return fmt.Errorf("Period value should be a positive integer")
 			}
+		}
+		if job.RoleArn != "" {
+			job.RoleArns = []string{job.RoleArn}
 		}
 	}
 	return nil
