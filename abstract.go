@@ -157,6 +157,16 @@ func scrapeDiscoveryJobUsingMetricData(
 	resources, err := clientTag.get(job, region)
 	<-tagSemaphore
 
+	// If the job property inlyInfoIfData is not true
+	// Add the info tags of all the resources
+	if job.OnlyInfoIfData != true {
+		for _, resource := range resources {
+			mux.Lock()
+			awsInfoData = append(awsInfoData, resource)
+			mux.Unlock()
+		}
+	}
+
 	if err != nil {
 		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
 		return
@@ -193,12 +203,15 @@ func scrapeDiscoveryJobUsingMetricData(
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
 
+			// If the job property inlyInfoIfData is true
 			if metricsToAdd != nil {
-				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
-				if len(metricsToAdd.Metrics) > 0 {
-					mux.Lock()
-					awsInfoData = append(awsInfoData, resource)
-					mux.Unlock()
+				if job.OnlyInfoIfData == true {
+					// If the resource has metrics, add it to the awsInfoData to appear with the metrics
+					if len(metricsToAdd.Metrics) > 0 {
+						mux.Lock()
+						awsInfoData = append(awsInfoData, resource)
+						mux.Unlock()
+					}
 				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
