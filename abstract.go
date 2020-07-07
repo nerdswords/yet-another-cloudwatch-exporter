@@ -24,62 +24,53 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 
 	var wg sync.WaitGroup
 
-	for i := range config.Discovery.Jobs {
-		job := config.Discovery.Jobs[i]
+	for _, job := range config.Discovery.Jobs {
+		for _, roleArn := range job.RoleArns {
+			for _, region := range job.Regions {
+				wg.Add(1)
 
-		regions := job.Regions
+				go func(region string, roleArn string) {
+					clientCloudwatch := cloudwatchInterface{
+						client: createCloudwatchSession(&region, roleArn),
+					}
 
-		for i := 0; i < len(regions); i++ {
-			region := &regions[i]
-			roleArn := job.RoleArn
-			wg.Add(1)
+					clientTag := tagsInterface{
+						client:    createTagSession(&region, roleArn),
+						asgClient: createASGSession(&region, roleArn),
+					}
+					var resources []*tagsData
+					var metrics []*cloudwatchData
+					resources, metrics = scrapeDiscoveryJobUsingMetricData(job, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+					mux.Lock()
+					awsInfoData = append(awsInfoData, resources...)
+					cwData = append(cwData, metrics...)
+					mux.Unlock()
+					wg.Done()
 
-			go func() {
-				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(region, roleArn),
-				}
-
-				clientTag := tagsInterface{
-					client:    createTagSession(region, roleArn),
-					asgClient: createASGSession(region, roleArn),
-				}
-				var resources []*tagsData
-				var metrics []*cloudwatchData
-				resources, metrics = scrapeDiscoveryJobUsingMetricData(job, *region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
-				mux.Lock()
-				awsInfoData = append(awsInfoData, resources...)
-				cwData = append(cwData, metrics...)
-				mux.Unlock()
-				wg.Done()
-
-			}()
+				}(region, roleArn)
+			}
 		}
 	}
 
-	for i := range config.Static {
-		job := config.Static[i]
+	for _, job := range config.Static {
+		for _, roleArn := range job.RoleArns {
+			for _, region := range job.Regions {
+				wg.Add(1)
 
-		regions := job.Regions
+				go func(region string, roleArn string) {
+					clientCloudwatch := cloudwatchInterface{
+						client: createCloudwatchSession(&region, roleArn),
+					}
 
-		for i := 0; i < len(regions); i++ {
-			region := regions[i]
-			wg.Add(1)
+					metrics := scrapeStaticJob(job, region, clientCloudwatch)
 
-			go func() {
-				roleArn := job.RoleArn
+					mux.Lock()
+					cwData = append(cwData, metrics...)
+					mux.Unlock()
 
-				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(&region, roleArn),
-				}
-
-				metrics := scrapeStaticJob(job, region, clientCloudwatch)
-
-				mux.Lock()
-				cwData = append(cwData, metrics...)
-				mux.Unlock()
-
-				wg.Done()
-			}()
+					wg.Done()
+				}(region, roleArn)
+			}
 		}
 	}
 	wg.Wait()
