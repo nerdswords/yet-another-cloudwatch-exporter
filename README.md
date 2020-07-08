@@ -55,6 +55,12 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 ## Configuration
 
+### Command Line Options
+
+| Option            | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| labels-snake-case | Causes labels on metrics to be output in snake case instead of camel case |
+
 ### Top level configuration
 
 | Key       | Description                   |
