@@ -286,6 +286,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/NetworkELB"
 	case "rds":
 		ns = "AWS/RDS"
+	case "redshift":
+		ns = "AWS/Redshift"
 	case "r53r":
 		ns = "AWS/Route53Resolver"
 	case "s3":
@@ -540,6 +542,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+	case "redshift":
+		dimensions = buildBaseDimension(arnParsed.Resource, "ClusterIdentifier", "cluster:")
 	case "r53r":
 		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
