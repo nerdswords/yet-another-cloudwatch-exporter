@@ -90,7 +90,6 @@ exportedTagsOnMetrics:
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
 | metrics              | List of metric definitions                                                                 |
 | additionalDimensions | List of dimensions to return beyond the default list per service                           |
-| onlyInfoIfData       | If set to 'true', only adds the info metrics of the resources with data. Optional and 'false' by default.  |
 
 searchTags example:
 
