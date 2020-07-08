@@ -286,6 +286,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/NetworkELB"
 	case "rds":
 		ns = "AWS/RDS"
+	case "redshift":
+		ns = "AWS/Redshift"
 	case "r53r":
 		ns = "AWS/Route53Resolver"
 	case "s3":
@@ -314,7 +316,7 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForResource(name string,fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
+func getDimensionValueForResource(name string, fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
 	for _, metric := range fullMetricsList.Metrics {
 		for _, dim := range metric.Dimensions {
 			if strings.Compare(*dim.Name, name) == 0 {
@@ -540,6 +542,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+	case "redshift":
+		dimensions = buildBaseDimension(arnParsed.Resource, "ClusterIdentifier", "cluster:")
 	case "r53r":
 		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
@@ -721,7 +725,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				promLabels["name"] = *c.ID
 
 				for _, label := range c.CustomTags {
-					promLabels["custom_tag_"+label.Key] = label.Value
+					promLabels["custom_tag_"+promStringTag(label.Key)] = label.Value
 				}
 				for _, tag := range c.Tags {
 					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value

@@ -104,6 +104,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/net"))
 	case "rds":
 		filter = append(filter, aws.String("rds:db"))
+	case "redshift":
+		filter = append(filter, aws.String("redshift:cluster"))
 	case "r53r":
 		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
@@ -165,7 +167,7 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 
 				// Transform the ASG ARN into something which looks more like an ARN from the ResourceGroupTaggingAPI
 				parts := strings.Split(*asg.AutoScalingGroupARN, ":")
-				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
+				resource.ID = aws.String(fmt.Sprintf("arn:%s:autoscaling:%s:%s:%s", parts[1], parts[3], parts[4], parts[7]))
 
 				resource.Service = &job.Type
 				resource.Region = &region
