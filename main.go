@@ -48,6 +48,7 @@ var (
 		"ngw",
 		"nlb",
 		"rds",
+		"redshift",
 		"r53r",
 		"s3",
 		"sfn",

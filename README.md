@@ -35,6 +35,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ngw - Nat Gateway
   * lambda - Lambda Functions
   * nlb - Network Load Balancer
+  * redshift - Redshift Database
   * rds - Relational Database Service
   * r53r - Route53 Resolver
   * s3 - Object Storage
