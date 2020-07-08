@@ -40,6 +40,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * s3 - Object Storage
   * sqs - Simple Queue Service
   * tgw - Transit Gateway
+  * tgwa - Transit Gateway Attachments
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka

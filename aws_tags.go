@@ -10,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	log "github.com/sirupsen/logrus"
@@ -26,6 +28,7 @@ type tagsData struct {
 type tagsInterface struct {
 	client    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient autoscalingiface.AutoScalingAPI
+	ec2Client ec2iface.EC2API
 }
 
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
@@ -117,7 +120,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "tgw":
 		filter = append(filter, aws.String("ec2:transit-gateway"))
 	case "tgwa":
-		filter = append(filter, aws.String("ec2:transit-gateway-attachment"))
+		return iface.getTaggedTransitGatewayAttachments(job, region)
 	case "vpn":
 		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":
@@ -155,6 +158,34 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted
 func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+		func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+			pageNum++
+			autoScalingAPICounter.Inc()
+
+			for _, tgwa := range page.TransitGatewayAttachments {
+				resource := tagsData{}
+
+				resource.ID = aws.String(fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId))
+
+				resource.Service = &job.Type
+				resource.Region = &region
+
+				for _, t := range tgwa.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		})
+}
+
+func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region string) (resources []*tagsData, err error) {
 	ctx := context.Background()
 	pageNum := 0
 	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
