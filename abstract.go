@@ -214,6 +214,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							NilToZero:              &metric.NilToZero,
 							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 							Tags:                   metricTags,
+							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
 							Region:                 &region,
 							Period:                 &period,
