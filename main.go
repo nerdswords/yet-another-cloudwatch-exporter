@@ -54,6 +54,7 @@ var (
 		"sns",
 		"sqs",
 		"tgw",
+		"tgwa",
 		"vpn",
 	}
 

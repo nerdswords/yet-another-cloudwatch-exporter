@@ -116,6 +116,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		filter = append(filter, aws.String("sqs"))
 	case "tgw":
 		filter = append(filter, aws.String("ec2:transit-gateway"))
+	case "tgwa":
+		filter = append(filter, aws.String("ec2:transit-gateway-attachment"))
 	case "vpn":
 		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":
