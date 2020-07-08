@@ -165,7 +165,7 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 
 				// Transform the ASG ARN into something which looks more like an ARN from the ResourceGroupTaggingAPI
 				parts := strings.Split(*asg.AutoScalingGroupARN, ":")
-				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
+				resource.ID = aws.String(fmt.Sprintf("arn:%s:autoscaling:%s:%s:%s", parts[1], parts[3], parts[4], parts[7]))
 
 				resource.Service = &job.Type
 				resource.Region = &region
