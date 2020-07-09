@@ -42,6 +42,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 				clientTag := tagsInterface{
 					client:    createTagSession(region, roleArn),
 					asgClient: createASGSession(region, roleArn),
+					ec2Client: createEC2Session(region, roleArn),
 				}
 				var resources []*tagsData
 				var metrics []*cloudwatchData

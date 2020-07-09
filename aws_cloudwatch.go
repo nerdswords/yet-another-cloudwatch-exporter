@@ -488,7 +488,7 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
-	if err != nil {
+	if err != nil && *service != "tgwa" {
 		log.Warning(err)
 		return (dimensions)
 	}
@@ -559,11 +559,13 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
-  case "tgwa":
+    case "tgwa":
+		fmt.Printf("log_test_attach_arn: %s\n", *resourceArn)
 		fmt.Printf("log_test_attach_arn: %s\n", arnParsed.Resource)
-		parsedResource := strings.Split(arnParsed.Resource, "/")
+		parsedResource := strings.Split(*resourceArn, "/")
+		fmt.Printf("log_test_attach_parsed: %s\n", parsedResource)
 		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
-		fmt.Printf("log_test_attach: %s\n", dimensions)
+	    fmt.Printf("log_test_attach: %s\n", dimensions)
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
