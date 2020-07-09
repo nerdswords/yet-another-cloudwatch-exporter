@@ -39,9 +39,7 @@ func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAP
 	maxResourceGroupTaggingRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxResourceGroupTaggingRetries}
 	if roleArn != "" {
-		log.Warnf("log - getTaggedTransitGatewayAttachments - 5 arn %s " , roleArn)
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
-		log.Warnf("log - getTaggedTransitGatewayAttachments - 5 cred %s " , config.Credentials)
 	}
 
 	return r.New(sess, config)
@@ -69,9 +67,7 @@ func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
 	if roleArn != "" {
-		log.Warnf("log - getTaggedTransitGatewayAttachments - 4 arn %s " , roleArn)
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
-		log.Warnf("log - getTaggedTransitGatewayAttachments - 4 cred %s " , config.Credentials)
 	}
 
 	return ec2.New(sess, config)
@@ -206,17 +202,14 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 }
 
 func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region string) (resources []*tagsData, err error) {
-	log.Warnf("log - getTaggedTransitGatewayAttachments - 1")
 	ctx := context.Background()
 	pageNum := 0
 	return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
 		func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
-			log.Warnf("log - getTaggedTransitGatewayAttachments - 2")
 			pageNum++
 			ec2APICounter.Inc()
 
 			for _, tgwa := range page.TransitGatewayAttachments {
-				log.Warnf("log - getTaggedTransitGatewayAttachments - 3 %s %s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)
 				resource := tagsData{}
 
 				resource.ID = aws.String(fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId))

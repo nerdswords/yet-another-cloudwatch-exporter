@@ -560,12 +560,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
     case "tgwa":
-		fmt.Printf("log_test_attach_arn: %s\n", *resourceArn)
-		fmt.Printf("log_test_attach_arn: %s\n", arnParsed.Resource)
 		parsedResource := strings.Split(*resourceArn, "/")
-		fmt.Printf("log_test_attach_parsed: %s\n", parsedResource)
 		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
-	    fmt.Printf("log_test_attach: %s\n", dimensions)
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
