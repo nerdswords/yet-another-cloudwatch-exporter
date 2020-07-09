@@ -338,6 +338,14 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:ListMetrics"
 ```
 
+The following IAM permissions are required for the transit gateway attachment (twga) metrics to work.
+```json
+"ec2:DescribeTags",
+"ec2:DescribeInstances",
+"ec2:DescribeRegions",
+"ec2:DescribeTransitGateway*"
+```
+
 ## Running locally
 
 ```shell
