@@ -30,7 +30,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 				wg.Add(1)
 
 				go func(region string, roleArn string) {
-                                        defer wg.Done()
+					defer wg.Done()
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn),
 					}
@@ -46,7 +46,6 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-
 				}(region, roleArn)
 			}
 		}
