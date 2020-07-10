@@ -300,6 +300,12 @@ func getNamespace(service *string) *string {
 		ns = "AWS/TransitGateway"
 	case "vpn":
 		ns = "AWS/VPN"
+	case "acm_certificates":
+		ns = "ACM/Certificates"
+	case "yle_ec2":
+		ns = "Yle/EC2"
+	case "yle_ecs":
+		ns = "Yle/ECS"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
@@ -314,7 +320,7 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForResource(name string,fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
+func getDimensionValueForResource(name string, fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
 	for _, metric := range fullMetricsList.Metrics {
 		for _, dim := range metric.Dimensions {
 			if strings.Compare(*dim.Name, name) == 0 {
@@ -562,6 +568,13 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
+	case "acm_certificates":
+		dimensions = buildBaseDimension(arnParsed.Resource, "AccountId", "account-id/")
+	case "yle_ec2":
+		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
+	case "yle_ecs":
+		parsedResource := strings.Split(arnParsed.Resource, "/")
+		dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
