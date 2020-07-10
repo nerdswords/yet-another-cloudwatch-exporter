@@ -124,6 +124,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "yle-ec2":
 		filter = append(filter, aws.String("ec2:image"))
 	case "yle-ecs":
+		filter = append(filter, aws.String("ecs:cluster"))
+		filter = append(filter, aws.String("ecs:service"))
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
