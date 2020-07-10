@@ -300,6 +300,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/SQS"
 	case "tgw":
 		ns = "AWS/TransitGateway"
+	case "tgwa":
+		ns = "AWS/TransitGateway"
 	case "vpn":
 		ns = "AWS/VPN"
 	default:
@@ -488,7 +490,7 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
-	if err != nil {
+	if err != nil && *service != "tgwa" {
 		log.Warning(err)
 		return (dimensions)
 	}
@@ -561,6 +563,9 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
+    case "tgwa":
+		parsedResource := strings.Split(*resourceArn, "/")
+		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
