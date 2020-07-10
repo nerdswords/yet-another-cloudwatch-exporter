@@ -350,6 +350,18 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 	return &output
 }
 
+func filterDimensionsWithoutValueByDimensionsWithValue(
+    dimensionsWithoutValue []*cloudwatch.Dimension,
+    dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
+
+    for _, dimension := range dimensionsWithoutValue {
+        if ! dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
+            dimensions = append(dimensions, dimension)
+        }
+    }
+    return dimensions
+}
+
 func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 	for _, awsDimension := range job.AwsDimensions {
 		dimensions = append(dimensions, buildDimensionWithoutValue(awsDimension))
