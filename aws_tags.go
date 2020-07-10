@@ -120,6 +120,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":
 		filter = append(filter, aws.String("kafka:cluster"))
+	case "acm-certificates":
+	case "yle-ec2":
+		filter = append(filter, aws.String("ec2:image"))
+	case "yle-ecs":
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
