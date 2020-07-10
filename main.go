@@ -55,6 +55,9 @@ var (
 		"sqs",
 		"tgw",
 		"vpn",
+		"acm-certificates",
+		"yle-ec2",
+		"yle-ecs",
 	}
 
 	config = conf{}
