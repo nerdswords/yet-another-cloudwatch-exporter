@@ -41,6 +41,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * s3 - Object Storage
   * sqs - Simple Queue Service
   * tgw - Transit Gateway
+  * tgwa - Transit Gateway Attachments
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
@@ -342,6 +343,14 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
+```
+
+The following IAM permissions are required for the transit gateway attachment (twga) metrics to work.
+```json
+"ec2:DescribeTags",
+"ec2:DescribeInstances",
+"ec2:DescribeRegions",
+"ec2:DescribeTransitGateway*"
 ```
 
 ## Running locally
