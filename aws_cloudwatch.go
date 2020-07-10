@@ -569,7 +569,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	case "acm-certificates":
-		log.Debugf("detectDimensionsByService / acm-certificates with %v", arnParsed)
+		log.Debugf("detectDimensionsByService /  with %v", arnParsed)
+		log.Debugf("fullMetricList %v", fullMetricsList)
 		dimensions = buildBaseDimension(arnParsed.Resource, "AccountId", "account-id/")
 	case "yle-ec2":
 		log.Debugf("detectDimensionsByService / yle-ec2 with %v", arnParsed)
