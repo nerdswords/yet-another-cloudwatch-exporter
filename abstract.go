@@ -38,6 +38,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					clientTag := tagsInterface{
 						client:    createTagSession(&region, roleArn),
 						asgClient: createASGSession(&region, roleArn),
+  					ec2Client: createEC2Session(region, roleArn),
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
@@ -46,7 +47,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-
+          wg.Done()
 				}(region, roleArn)
 			}
 		}
@@ -148,6 +149,13 @@ func scrapeDiscoveryJobUsingMetricData(
 	resources, err := clientTag.get(job, region)
 	<-tagSemaphore
 
+	// Add the info tags of all the resources
+	for _, resource := range resources {
+		mux.Lock()
+		awsInfoData = append(awsInfoData, resource)
+		mux.Unlock()
+	}
+
 	if err != nil {
 		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
 		return
@@ -184,13 +192,8 @@ func scrapeDiscoveryJobUsingMetricData(
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
 
+			// If the job property inlyInfoIfData is true
 			if metricsToAdd != nil {
-				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
-				if len(metricsToAdd.Metrics) > 0 {
-					mux.Lock()
-					awsInfoData = append(awsInfoData, resource)
-					mux.Unlock()
-				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
@@ -205,6 +208,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							NilToZero:              &metric.NilToZero,
 							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 							Tags:                   metricTags,
+							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
 							Region:                 &region,
 							Period:                 &period,

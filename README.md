@@ -35,11 +35,13 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ngw - Nat Gateway
   * lambda - Lambda Functions
   * nlb - Network Load Balancer
+  * redshift - Redshift Database
   * rds - Relational Database Service
   * r53r - Route53 Resolver
   * s3 - Object Storage
   * sqs - Simple Queue Service
   * tgw - Transit Gateway
+  * tgwa - Transit Gateway Attachments
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
@@ -53,6 +55,12 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * See [Releases](https://github.com/ivx/yet-another-cloudwatch-exporter/releases) for binaries
 
 ## Configuration
+
+### Command Line Options
+
+| Option            | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| labels-snake-case | Causes labels on metrics to be output in snake case instead of camel case |
 
 ### Top level configuration
 
@@ -84,11 +92,11 @@ exportedTagsOnMetrics:
 | regions              | List of AWS regions                                                                        |
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
-| delay                | If set it will request metrics up until `current_time - d
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
+| delay                | If set it will request metrics up until `current_time - d                                  |
 | roleArn              | IAM role to assume (optional)                                                              |
 | roleArns             | List of IAM roles to assume (optional)                                                              |
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
+| customTags           | Custom tags to be added as a list of Key/Value pairs                                       |
 | metrics              | List of metric definitions                                                                 |
 | additionalDimensions | List of dimensions to return beyond the default list per service                           |
 
@@ -337,6 +345,14 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
+```
+
+The following IAM permissions are required for the transit gateway attachment (twga) metrics to work.
+```json
+"ec2:DescribeTags",
+"ec2:DescribeInstances",
+"ec2:DescribeRegions",
+"ec2:DescribeTransitGateway*"
 ```
 
 ## Running locally
