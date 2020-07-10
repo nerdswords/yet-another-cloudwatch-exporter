@@ -2,5 +2,3 @@ config.yml
 yet-another-cloudwatch-exporter
 vendor
 dist
-yace
-.idea/
