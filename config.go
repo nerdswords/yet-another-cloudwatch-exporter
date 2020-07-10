@@ -75,7 +75,7 @@ func (c *conf) load(file *string) error {
 	}
 	for _, job := range c.Discovery.Jobs {
 		if !stringInSlice(job.Type, supportedServices) {
-			return fmt.Errorf("Service is not in known list!: %v", job.Type)
+			return fmt.Errorf("Service is not in known list!: '%v'", job.Type)
 		}
 
 		for _, metric := range job.Metrics {
