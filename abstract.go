@@ -47,7 +47,6 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-					wg.Done()
 				}(region, roleArn)
 			}
 		}
