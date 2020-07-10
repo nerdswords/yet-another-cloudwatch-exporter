@@ -300,11 +300,11 @@ func getNamespace(service *string) *string {
 		ns = "AWS/TransitGateway"
 	case "vpn":
 		ns = "AWS/VPN"
-	case "acm_certificates":
+	case "acm-certificates":
 		ns = "ACM/Certificates"
-	case "yle_ec2":
+	case "yle-ec2":
 		ns = "Yle/EC2"
-	case "yle_ecs":
+	case "yle-ecs":
 		ns = "Yle/ECS"
 	default:
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
@@ -568,11 +568,11 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
-	case "acm_certificates":
+	case "acm-certificates":
 		dimensions = buildBaseDimension(arnParsed.Resource, "AccountId", "account-id/")
-	case "yle_ec2":
+	case "yle-ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
-	case "yle_ecs":
+	case "yle-ecs":
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 	default:
