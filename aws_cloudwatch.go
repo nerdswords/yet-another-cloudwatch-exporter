@@ -569,23 +569,26 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	case "acm-certificates":
-		log.Debugf("detectDimensionsByService /  with %v", arnParsed)
-		log.Debugf("fullMetricList %v", fullMetricsList)
+		log.Infof("detectDimensionsByService /  with %v", arnParsed)
+		log.Infof("fullMetricList %v / ParsedResource %v", fullMetricsList, arnParsed.Resource)
 		dimensions = buildBaseDimension(arnParsed.Resource, "AccountId", "account-id/")
 	case "yle-ec2":
-		log.Debugf("detectDimensionsByService / yle-ec2 with %v", arnParsed)
-		log.Debugf("fullMetricList %v", fullMetricsList)
+		log.Infof("detectDimensionsByService / yle-ec2 with %v", arnParsed)
+		log.Infof("fullMetricList %v / ParsedResource %v", fullMetricsList, arnParsed.Resource)
 		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
 	case "yle-ecs":
-		log.Debugf("detectDimensionsByService / yle-ecs with %v", arnParsed)
-		log.Debugf("fullMetricList %v", fullMetricsList)
+		log.Infof("detectDimensionsByService / yle-ecs with %v", arnParsed)
+		log.Infof("fullMetricList %v", fullMetricsList)
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
+			log.Infof("ADDING %s,%s TO LIST", parsedResource[0], parsedResource[1])
 			dimensions = append(
 				dimensions,
 				buildDimension("ClusterName", parsedResource[1]),
 				buildDimension("ServiceName", parsedResource[2]),
 			)
+		} else {
+			log.Infof("SKIPPED %v", arnParsed.Resource)
 		}
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
