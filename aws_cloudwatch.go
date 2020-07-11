@@ -578,7 +578,6 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
 	case "yle-ecs":
 		log.Infof("detectDimensionsByService / yle-ecs with %v", arnParsed)
-		log.Infof("fullMetricList %v", fullMetricsList)
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
 			log.Infof("ADDING %s,%s TO LIST", parsedResource[0], parsedResource[1])
@@ -587,8 +586,10 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 				buildDimension("ClusterName", parsedResource[1]),
 				buildDimension("ServiceName", parsedResource[2]),
 			)
-		} else {
+		} else if parsedResource[0] == "service" {
 			log.Infof("SKIPPED %v", arnParsed.Resource)
+		} else {
+			log.Infof("NO MATCH %v", fullMetricsList)
 		}
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
