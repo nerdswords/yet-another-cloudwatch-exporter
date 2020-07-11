@@ -468,7 +468,6 @@ func getDimensionfromMetric(resp *cloudwatch.ListMetricsOutput) []*cloudwatch.Di
 }
 
 func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
-
 	if !strings.HasSuffix(*namespace, "ApplicationELB") {
 		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
 		return nil
@@ -569,27 +568,22 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	case "acm-certificates":
-		log.Infof("detectDimensionsByService /  with %v", arnParsed)
-		log.Infof("fullMetricList %v / ParsedResource %v", fullMetricsList, arnParsed.Resource)
-		dimensions = buildBaseDimension(arnParsed.Resource, "AccountId", "account-id/")
+		dimensions = buildBaseDimension("Age", arnParsed.AccountID, "")
 	case "yle-ec2":
 		log.Infof("detectDimensionsByService / yle-ec2 with %v", arnParsed)
 		log.Infof("fullMetricList %v / ParsedResource %v", fullMetricsList, arnParsed.Resource)
 		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
 	case "yle-ecs":
-		log.Infof("detectDimensionsByService / yle-ecs with %v", arnParsed)
+		// arnParsed: arn:aws:ecs:eu-west-1:765705526948:cluster/test-test
+		// fullMetricsList
+		// {Metrics:[{Dimensions:[{Name:"ServiceName",Value:"badger-test"},{Name:"ClusterName",Value:"test-test"}],
+		//            MetricName:"Age",Namespace:"Yle/ECS"},
+		//           {Dimensions:[{Name:"ServiceName", Value:"test-logstash-test"},{Name:"ClusterName",Value:"test-test\"\n }],
+		//            MetricName:"Age",Namespace:"Yle/ECS"}, ...]
+		// }
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
-			log.Infof("ADDING %s,%s TO LIST", parsedResource[0], parsedResource[1])
-			dimensions = append(
-				dimensions,
-				buildDimension("ClusterName", parsedResource[1]),
-				buildDimension("ServiceName", parsedResource[2]),
-			)
-		} else if parsedResource[0] == "service" {
-			log.Infof("SKIPPED %v", arnParsed.Resource)
-		} else {
-			log.Infof("NO MATCH %v", fullMetricsList)
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 		}
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
