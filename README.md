@@ -93,7 +93,6 @@ exportedTagsOnMetrics:
 | type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
 | length (Default 120) | How far back to request data for in seconds                                                |
 | delay                | If set it will request metrics up until `current_time - d                                  |
-| roleArn              | IAM role to assume (optional)                                                              |
 | roleArns             | List of IAM roles to assume (optional)                                                              |
 | searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
 | customTags           | Custom tags to be added as a list of Key/Value pairs                                       |
@@ -127,7 +126,6 @@ searchTags:
 | Key        | Description                                                |
 | ---------- | ---------------------------------------------------------- |
 | regions    | List of AWS regions                                        |
-| roleArn    | IAM role to assume                                         |
 | roleArns   | List of IAM roles to assume                                |
 | namespace  | CloudWatch namespace                                       |
 | name       | Must be set with multiple block definitions per namespace  |
@@ -405,6 +403,28 @@ spec:
           name: yace
 ```
 ## Options
+### RoleArns
+
+Multiple roleArns are useful, when you are monitoring multi-account setup, where all accounts are using same AWS services. For example, you are running yace in monitoring account and you have number of accounts (for example newspapers, radio and television) running ECS clusters. Each account gives yace permissions to assume local IAM role, which has all the necessary permissions for Cloudwatch metrics. On this kind of setup, you could simply list:
+```yaml
+  jobs:
+    - type: ecs-svc
+      regions:
+        - eu-north-1
+      roleArns:
+        - "arn:aws:iam::111111111111:role/prometheus" # newspaper
+        - "arn:aws:iam:2222222222222:role/prometheus" # radio
+        - "arn:aws:iam:3333333333333:role/prometheus" # television
+      metrics:
+        - name: MemoryReservation
+          statistics:
+            - Average
+            - Minimum
+            - Maximum
+          period: 600
+          length: 600
+```
+
 ### Requests concurrency
 The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5.
 
