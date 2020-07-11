@@ -23,7 +23,6 @@ type exportedTagsOnMetrics map[string][]string
 type job struct {
 	Regions       []string `yaml:"regions"`
 	Type          string   `yaml:"type"`
-	RoleArn       string   `yaml:"roleArn"`
 	RoleArns      []string `yaml:"roleArns"`
 	AwsDimensions []string `yaml:"awsDimensions"`
 	SearchTags    []tag    `yaml:"searchTags"`
@@ -36,7 +35,6 @@ type job struct {
 type static struct {
 	Name       string      `yaml:"name"`
 	Regions    []string    `yaml:"regions"`
-	RoleArn    string      `yaml:"roleArn"`
 	RoleArns   []string    `yaml:"roleArns"`
 	Namespace  string      `yaml:"namespace"`
 	CustomTags []tag       `yaml:"customTags"`
@@ -74,7 +72,10 @@ func (c *conf) load(file *string) error {
 	if err != nil {
 		return err
 	}
-	for _, job := range c.Discovery.Jobs {
+	for n, job := range c.Discovery.Jobs {
+		if len(job.RoleArns) == 0 {
+			c.Discovery.Jobs[n].RoleArns = []string{""} // use current IAM role
+		}
 		if !stringInSlice(job.Type, supportedServices) {
 			return fmt.Errorf("Service is not in known list!: %v", job.Type)
 		}
@@ -88,8 +89,10 @@ func (c *conf) load(file *string) error {
 				return fmt.Errorf("Period value should be a positive integer")
 			}
 		}
-		if job.RoleArn != "" {
-			job.RoleArns = []string{job.RoleArn}
+	}
+	for n, job := range c.Static {
+		if len(job.RoleArns) == 0 {
+			c.Static[n].RoleArns = []string{""} // use current IAM role
 		}
 	}
 	return nil
