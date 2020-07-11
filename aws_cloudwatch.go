@@ -286,6 +286,8 @@ func getNamespace(service *string) *string {
 		ns = "AWS/NetworkELB"
 	case "rds":
 		ns = "AWS/RDS"
+	case "redshift":
+		ns = "AWS/Redshift"
 	case "r53r":
 		ns = "AWS/Route53Resolver"
 	case "s3":
@@ -297,6 +299,8 @@ func getNamespace(service *string) *string {
 	case "sqs":
 		ns = "AWS/SQS"
 	case "tgw":
+		ns = "AWS/TransitGateway"
+	case "tgwa":
 		ns = "AWS/TransitGateway"
 	case "vpn":
 		ns = "AWS/VPN"
@@ -314,7 +318,7 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForResource(name string,fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
+func getDimensionValueForResource(name string, fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
 	for _, metric := range fullMetricsList.Metrics {
 		for _, dim := range metric.Dimensions {
 			if strings.Compare(*dim.Name, name) == 0 {
@@ -344,6 +348,18 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 		}
 	}
 	return &output
+}
+
+func filterDimensionsWithoutValueByDimensionsWithValue(
+    dimensionsWithoutValue []*cloudwatch.Dimension,
+    dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
+
+    for _, dimension := range dimensionsWithoutValue {
+        if ! dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
+            dimensions = append(dimensions, dimension)
+        }
+    }
+    return dimensions
 }
 
 func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
@@ -486,7 +502,7 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	arnParsed, err := arn.Parse(*resourceArn)
 
-	if err != nil {
+	if err != nil && *service != "tgwa" {
 		log.Warning(err)
 		return (dimensions)
 	}
@@ -540,6 +556,8 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
 	case "rds":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+	case "redshift":
+		dimensions = buildBaseDimension(arnParsed.Resource, "ClusterIdentifier", "cluster:")
 	case "r53r":
 		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
@@ -557,6 +575,9 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
+    case "tgwa":
+		parsedResource := strings.Split(*resourceArn, "/")
+		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
 	case "vpn":
 		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
@@ -721,7 +742,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				promLabels["name"] = *c.ID
 
 				for _, label := range c.CustomTags {
-					promLabels["custom_tag_"+label.Key] = label.Value
+					promLabels["custom_tag_"+promStringTag(label.Key)] = label.Value
 				}
 				for _, tag := range c.Tags {
 					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value
