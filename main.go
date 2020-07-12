@@ -84,6 +84,7 @@ func updateMetrics(registry *prometheus.Registry) {
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
+	log.Debugf("updateMetrics with %d metrics", len(metrics))
 	registry.MustRegister(NewPrometheusCollector(metrics))
 	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter} {
 		if err := registry.Register(counter); err != nil {

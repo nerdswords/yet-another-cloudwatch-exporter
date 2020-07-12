@@ -73,6 +73,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		}
 	}
 	wg.Wait()
+	log.Debugf("awsInfoData length=%d, cwData length=%d\")
 	return awsInfoData, cwData
 }
 
