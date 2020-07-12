@@ -84,7 +84,7 @@ func updateMetrics(registry *prometheus.Registry) {
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
-	log.Debugf("updateMetrics with %d metrics", len(metrics))
+	log.Infof("updateMetrics with %d metrics", len(metrics))
 	registry.MustRegister(NewPrometheusCollector(metrics))
 	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter} {
 		if err := registry.Register(counter); err != nil {
@@ -122,7 +122,7 @@ func main() {
 			for {
 				newRegistry := prometheus.NewRegistry()
 				updateMetrics(newRegistry)
-				log.Debug("Metrics scraped.")
+				log.Info("Metrics scraped.")
 				registry = newRegistry
 				time.Sleep(time.Duration(*scrapingInterval) * time.Second)
 			}
@@ -143,7 +143,7 @@ func main() {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
 			updateMetrics(newRegistry)
-			log.Debug("Metrics scraped.")
+			log.Info("Metrics scraped.")
 			registry = newRegistry
 		}
 		handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{

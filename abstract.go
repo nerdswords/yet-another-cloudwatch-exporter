@@ -73,7 +73,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		}
 	}
 	wg.Wait()
-	log.Debugf("awsInfoData length=%d, cwData length=%d\n", len(awsInfoData), len(cwData))
+	log.Infof("awsInfoData length=%d, cwData length=%d\n", len(awsInfoData), len(cwData))
 	return awsInfoData, cwData
 }
 
@@ -252,7 +252,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		}(i)
 	}
 	wg.Wait()
-	log.Debugf("scraped awsInfoData=%d, cw=%v", len(awsInfoData), len(cw))
+	log.Infof("scraped awsInfoData=%d, cw=%v", len(awsInfoData), len(cw))
 	return awsInfoData, cw
 }
 
