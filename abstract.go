@@ -31,6 +31,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 
 				go func(region string, roleArn string) {
 					defer wg.Done()
+					log.Infof("Assuming sessions with %s role in %s region", region, roleArn)
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn),
 					}
@@ -146,6 +147,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.get(job, region)
+	log.Infof("clientTag.get returned %v resources and %v err", resources, err)
 	<-tagSemaphore
 
 	if err != nil {
@@ -155,6 +157,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	// Get the awsDimensions of the job configuration
 	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(job)
+	log.Infof("commonJobDimensions: %v", commonJobDimensions)
 
 	// For every metric of the job
 	for j := range job.Metrics {
@@ -169,20 +172,24 @@ func scrapeDiscoveryJobUsingMetricData(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
+		log.Infof("fullMetricsList: %v", fullMetricsList)
 		<-tagSemaphore
 
 		// For every resource
 		for i := range resources {
 			resource := resources[i]
 			metricTags := resource.metricTags(tagsOnMetrics)
+			log.Infof("resource: %v, metricTags: %v", resource, metricTags)
 
 			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
 			dimensionsWithValue := detectDimensionsByService(resource.Service, resource.ID, fullMetricsList)
 
 			// Adds the dimensions with values of that specific metric of the job
 			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
+			log.Infof("resource: %v, dimensionsWithValue: %v", resource, dimensionsWithValue)
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
+			log.Infof("resource: %v, metricsToAdd: %v", resource, metricsToAdd)
 
 			if metricsToAdd != nil {
 				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
@@ -193,6 +200,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
+						log.Infof("resource: %v, fetchedMetrics: %v, stats: %v", resource, fetchedMetrics, stats)
 						id := fmt.Sprintf("id_%d", rand.Int())
 						period := int64(metric.Period)
 						mux.Lock()
