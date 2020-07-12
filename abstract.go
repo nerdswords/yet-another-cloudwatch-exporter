@@ -252,7 +252,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		}(i)
 	}
 	wg.Wait()
-	log.Debugf("scraped awsInfoData=%d, cw=%v", awsInfoData, cw)
+	log.Debugf("scraped awsInfoData=%d, cw=%v", len(awsInfoData), len(cw))
 	return awsInfoData, cw
 }
 
