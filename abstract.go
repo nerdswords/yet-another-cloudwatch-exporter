@@ -147,7 +147,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.get(job, region)
-	log.Infof("clientTag.get returned %v resources and %v err", resources, err)
+	log.Infof("clientTag.get returned %d resources and %v err", len(resources), err)
 	<-tagSemaphore
 
 	if err != nil {
@@ -157,7 +157,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	// Get the awsDimensions of the job configuration
 	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(job)
-	log.Infof("commonJobDimensions: %v", commonJobDimensions)
+	log.Infof("job: %s, commonJobDimensions: %v", job.Type, commonJobDimensions)
 
 	// For every metric of the job
 	for j := range job.Metrics {
@@ -172,24 +172,24 @@ func scrapeDiscoveryJobUsingMetricData(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
-		log.Infof("fullMetricsList: %v", fullMetricsList)
+		log.Infof("job: %s, fullMetricsList: %v", job.Type, fullMetricsList)
 		<-tagSemaphore
 
 		// For every resource
 		for i := range resources {
 			resource := resources[i]
 			metricTags := resource.metricTags(tagsOnMetrics)
-			log.Infof("resource: %v/%v, metricTags: %v", resource.Service, resource.ID, metricTags)
+			log.Infof("job: %s, resource: %v/%v, metricTags: %v", job.Type, *resource.Service, *resource.ID, metricTags)
 
 			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
 			dimensionsWithValue := detectDimensionsByService(resource.Service, resource.ID, fullMetricsList)
 
 			// Adds the dimensions with values of that specific metric of the job
 			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
-			log.Infof("resource: %v/%v, dimensionsWithValue: %v", resource.Service, resource.ID, dimensionsWithValue)
+			log.Infof("job: %s, resource: %v/%v, dimensionsWithValue: %v", job.Type, *resource.Service, *resource.ID, dimensionsWithValue)
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
-			log.Infof("resource: %v/%v, metricsToAdd: %v", resource.Service, resource.ID, metricsToAdd)
+			log.Infof("job: %s, resource: %v/%v, metricsToAdd: %v", job.Type, *resource.Service, *resource.ID, metricsToAdd)
 
 			if metricsToAdd != nil {
 				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
@@ -200,7 +200,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
-						log.Infof("resource: %v/%v, fetchedMetrics: %v, stats: %v", resource.Service, resource.ID, fetchedMetrics, stats)
+						log.Infof("job: %s, resource: %v/%v, fetchedMetrics: %v, stats: %v", job.Type, *resource.Service, *resource.ID, fetchedMetrics, stats)
 						id := fmt.Sprintf("id_%d", rand.Int())
 						period := int64(metric.Period)
 						mux.Lock()
