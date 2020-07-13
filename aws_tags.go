@@ -132,10 +132,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 	log.Infof("job.Type: %s, filter:%v", job.Type, filter)
 	inputparams := r.GetResourcesInput{ResourceTypeFilters: filter}
-	log.Infof("job.Type: %s, inputparams:%v", job.Type, inputparams)
 	ctx := context.Background()
 	pageNum := 0
 	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
+		log.Infof("page ... %v", page)
 		pageNum++
 		resourceGroupTaggingAPICounter.Inc()
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
