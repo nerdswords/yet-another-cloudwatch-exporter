@@ -147,7 +147,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.get(job, region)
-	log.Infof("clientTag.get returned %d resources and %v err", len(resources), err)
+	log.Infof("job: %s, clientTag.get returned %d resources and %v err", job.Type, len(resources), err)
 	<-tagSemaphore
 
 	if err != nil {
@@ -157,7 +157,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	// Get the awsDimensions of the job configuration
 	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(job)
-	log.Infof("job: %s, commonJobDimensions: %v", job.Type, commonJobDimensions)
+	log.Infof("job.Type: %s, job.Metrics: %v, commonJobDimensions: %v", job.Type, job.Metrics, commonJobDimensions)
 
 	// For every metric of the job
 	for j := range job.Metrics {
@@ -172,7 +172,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
-		log.Infof("job: %s, fullMetricsList: %v", job.Type, fullMetricsList)
+		log.Infof("job: %s, metric: %s, fullMetricsList: %v", job.Type, metric, fullMetricsList)
 		<-tagSemaphore
 
 		// For every resource

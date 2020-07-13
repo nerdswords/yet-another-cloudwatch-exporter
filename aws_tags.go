@@ -130,8 +130,9 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
 
+	log.Infof("job.Type: %s, filter:%v", job.Type, filter)
 	inputparams := r.GetResourcesInput{ResourceTypeFilters: filter}
-
+	log.Infof("job.Type: %s, inputparams:%v", job.Type, inputparams)
 	ctx := context.Background()
 	pageNum := 0
 	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
@@ -141,7 +142,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 			resource := tagsData{}
 
 			resource.ID = resourceTagMapping.ResourceARN
-
 			resource.Service = &job.Type
 			resource.Region = &region
 
@@ -150,7 +150,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 			}
 
 			if resource.filterThroughTags(job.SearchTags) {
+				log.Info("resource %s WAS added to list", resource.ID)
 				resources = append(resources, &resource)
+			} else {
+				log.Info("resource %s WAS NOT added to list", resource.ID)
 			}
 		}
 		return pageNum < 100
