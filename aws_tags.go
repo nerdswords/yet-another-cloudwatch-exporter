@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	log "github.com/sirupsen/logrus"
@@ -121,11 +122,11 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "kafka":
 		filter = append(filter, aws.String("kafka:cluster"))
 	case "acm-certificates":
+		fallthrough
 	case "yle-ec2":
-		filter = append(filter, aws.String("ec2:image"))
+		fallthrough
 	case "yle-ecs":
-		filter = append(filter, aws.String("ecs:cluster"))
-		filter = append(filter, aws.String("ecs:service"))
+		return []*tagsData{}, nil // covered by detectResourcesByMetrics
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
@@ -135,7 +136,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	ctx := context.Background()
 	pageNum := 0
 	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
-		log.Infof("page ... %v", page)
 		pageNum++
 		resourceGroupTaggingAPICounter.Inc()
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
@@ -150,14 +150,26 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 			}
 
 			if resource.filterThroughTags(job.SearchTags) {
-				log.Infof("resource %s WAS added to list", *resource.ID)
 				resources = append(resources, &resource)
-			} else {
-				log.Infof("resource %s WAS NOT added to list", *resource.ID)
 			}
 		}
 		return pageNum < 100
 	})
+}
+
+func detectResourcesByService(jobType string, region string, metrics []*cloudwatch.Metric) (resources []*tagsData) {
+	switch jobType {
+	case "acm-certificates":
+	case "yle-ec2":
+		for _, metric := range metrics {
+			resource := tagsData{ID: (*metric).Dimensions[0].Value, Service: &jobType, Tags: []*tag{}, Region: &region}
+			resources = append(resources, &resource)
+		}
+		fallthrough
+	default:
+		log.Fatal("Not implemented resources:" + jobType)
+	}
+	return resources
 }
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted

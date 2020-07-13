@@ -132,6 +132,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface) (awsInfoData []*tagsData, cw []*cloudwatchData) {
+	var resources []*tagsData
 
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
@@ -146,7 +147,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.get(job, region)
+	commonResources, err := clientTag.get(job, region)
 	log.Infof("job: %s, clientTag.get returned %d resources and %v err", job.Type, len(resources), err)
 	<-tagSemaphore
 
@@ -172,8 +173,13 @@ func scrapeDiscoveryJobUsingMetricData(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
-		log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
 		<-tagSemaphore
+		log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
+		if len(commonResources) == 0 {
+			resources = detectResourcesByService(job.Type, region, fullMetricsList.Metrics)
+		} else {
+			resources = commonResources
+		}
 
 		// For every resource
 		for i := range resources {
