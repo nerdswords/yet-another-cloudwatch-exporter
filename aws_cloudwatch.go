@@ -572,7 +572,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "yle-ec2":
 		log.Infof("detectDimensionsByService / yle-ec2 with %v", arnParsed)
 		log.Infof("fullMetricList %v / ParsedResource %v", fullMetricsList, arnParsed.Resource)
-		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "image-id/")
+		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "")
 	case "yle-ecs":
 		// arnParsed: arn:aws:ecs:eu-west-1:765705526948:cluster/test-test
 		// fullMetricsList

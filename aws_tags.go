@@ -162,6 +162,7 @@ func detectResourcesByService(jobType string, region string, metrics []*cloudwat
 	case "acm-certificates":
 	case "yle-ec2":
 		for _, metric := range metrics {
+			// Add ami-... as ID for resource
 			resource := tagsData{ID: (*metric).Dimensions[0].Value, Service: &jobType, Tags: []*tag{}, Region: &region}
 			resources = append(resources, &resource)
 		}
