@@ -172,7 +172,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
-		log.Infof("job: %s, metric: %s, fullMetricsList: %v", job.Type, metric, fullMetricsList)
+		log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
 		<-tagSemaphore
 
 		// For every resource
