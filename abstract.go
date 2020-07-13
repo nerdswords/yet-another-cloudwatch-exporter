@@ -231,6 +231,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		}
 	}
 	wg.Wait()
+	log.Infof("fetched data: %v", getMetricDatas)
 	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
@@ -258,6 +259,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 						}
+						log.Infof("getMetricData=%v", getMetricData)
 						mux.Lock()
 						cw = append(cw, &getMetricData)
 						mux.Unlock()
