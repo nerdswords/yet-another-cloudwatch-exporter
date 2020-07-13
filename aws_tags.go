@@ -150,10 +150,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 			}
 
 			if resource.filterThroughTags(job.SearchTags) {
-				log.Info("resource %s WAS added to list", *resource.ID)
+				log.Infof("resource %s WAS added to list", *resource.ID)
 				resources = append(resources, &resource)
 			} else {
-				log.Info("resource %s WAS NOT added to list", *resource.ID)
+				log.Infof("resource %s WAS NOT added to list", *resource.ID)
 			}
 		}
 		return pageNum < 100
