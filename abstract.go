@@ -258,11 +258,15 @@ func scrapeDiscoveryJobUsingMetricData(
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
+							log.Infof("job.Type: %s, getMetricData.GetMetricDataPoint=%v, getMetricData=%v", job.Type, getMetricData.GetMetricDataPoint, getMetricData)
+						} else {
+							log.Infof("job.Type: %s, findGetMetricDataById did not find values", job.Type)
 						}
-						log.Infof("getMetricData=%v", getMetricData)
 						mux.Lock()
 						cw = append(cw, &getMetricData)
 						mux.Unlock()
+					} else {
+						log.Errorf("job.Type: %s findGetMetricDataById returned err: %v", job.Type, err)
 					}
 				}
 			}
