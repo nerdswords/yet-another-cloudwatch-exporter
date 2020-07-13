@@ -176,6 +176,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		<-tagSemaphore
 		log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
 		if len(commonResources) == 0 {
+			log.Info("fetching resources from detectResourcesByService")
 			resources = detectResourcesByService(job.Type, region, fullMetricsList.Metrics)
 		} else {
 			resources = commonResources

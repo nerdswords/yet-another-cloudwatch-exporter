@@ -122,9 +122,9 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "kafka":
 		filter = append(filter, aws.String("kafka:cluster"))
 	case "acm-certificates":
-		fallthrough
+		return []*tagsData{}, nil // covered by detectResourcesByMetrics
 	case "yle-ec2":
-		fallthrough
+		return []*tagsData{}, nil // covered by detectResourcesByMetrics
 	case "yle-ecs":
 		return []*tagsData{}, nil // covered by detectResourcesByMetrics
 	default:
@@ -165,7 +165,6 @@ func detectResourcesByService(jobType string, region string, metrics []*cloudwat
 			resource := tagsData{ID: (*metric).Dimensions[0].Value, Service: &jobType, Tags: []*tag{}, Region: &region}
 			resources = append(resources, &resource)
 		}
-		fallthrough
 	default:
 		log.Fatal("Not implemented resources:" + jobType)
 	}
