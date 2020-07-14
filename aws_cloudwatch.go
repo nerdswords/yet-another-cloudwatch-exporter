@@ -585,6 +585,9 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 		}
+		if parsedResource[0] == "cluster" {
+			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]))
+		}
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
