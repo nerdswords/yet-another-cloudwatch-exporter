@@ -162,11 +162,11 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 func detectResourcesByService(jobType string, region string, metrics []*cloudwatch.Metric) (resources []*tagsData) {
 	if len(metrics) == 0 {
-		log.Warning("detectResourcesByService failed to find metrics for %s in %s", jobType, region)
+		log.Warningf("detectResourcesByService failed to find metrics for %s in %s", jobType, region)
 		return resources
 	}
 	if len((*metrics[0]).Dimensions) == 0 {
-		log.Warning("detectResourcesByService failed to find dimensions for %s in %s", jobType, region)
+		log.Warningf("detectResourcesByService failed to find dimensions for %s in %s", jobType, region)
 		return resources
 	}
 	log.Infof("dimensions[0]=%v", (*metrics[0]).Dimensions[0])
