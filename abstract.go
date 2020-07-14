@@ -231,10 +231,10 @@ func scrapeDiscoveryJobUsingMetricData(
 		}
 	}
 	wg.Wait()
-	log.Infof("fetched data: %v", getMetricDatas)
 	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	log.Infof("job.Type: %s, metricDataLength: %d, maxMetricCount: %d, partition: %d", job.Type, metricDataLength, maxMetricCount, partition)
 	wg.Add(partition)
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
@@ -252,6 +252,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
+				log.Infof("jov.Type: %s, clientCloudwatch.getMetricData(%v) was not nil", job.Type, filter)
 				for _, MetricDataResult := range data.MetricDataResults {
 					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
 					if err == nil {
@@ -260,7 +261,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 							log.Infof("job.Type: %s, getMetricData.GetMetricDataPoint=%v, getMetricData=%v", job.Type, getMetricData.GetMetricDataPoint, getMetricData)
 						} else {
-							log.Infof("job.Type: %s, findGetMetricDataById did not find values", job.Type)
+							log.Infof("job.Type: %s, findGetMetricDataById (len=%d, %v) did not find values", job.Type, (end - i), *MetricDataResult.Id)
 						}
 						mux.Lock()
 						cw = append(cw, &getMetricData)
