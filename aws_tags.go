@@ -160,6 +160,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 func detectResourcesByService(jobType string, region string, metrics []*cloudwatch.Metric) (resources []*tagsData) {
 	switch jobType {
 	case "acm-certificates":
+		resource := tagsData{ID: (*metrics[0]).Dimensions[0].Value, Service: &jobType, Tags: []*tag{}, Region: &region}
+		resources = append(resources, &resource)
 	case "yle-ec2":
 		for _, metric := range metrics {
 			// Add ami-... as ID for resource
