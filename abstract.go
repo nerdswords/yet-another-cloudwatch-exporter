@@ -252,22 +252,17 @@ func scrapeDiscoveryJobUsingMetricData(
 
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
-				log.Infof("jov.Type: %s, clientCloudwatch.getMetricData(%v) was not nil", job.Type, filter)
 				for _, MetricDataResult := range data.MetricDataResults {
 					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
-							log.Infof("job.Type: %s, getMetricData.GetMetricDataPoint=%v, getMetricData=%v", job.Type, getMetricData.GetMetricDataPoint, getMetricData)
-						} else {
-							log.Infof("job.Type: %s, findGetMetricDataById (len=%d, %v) did not find values", job.Type, (end - i), *MetricDataResult.Id)
 						}
+						log.Infof("job.Type: %s, adding result into cw", job.Type)
 						mux.Lock()
 						cw = append(cw, &getMetricData)
 						mux.Unlock()
-					} else {
-						log.Errorf("job.Type: %s findGetMetricDataById returned err: %v", job.Type, err)
 					}
 				}
 			}
