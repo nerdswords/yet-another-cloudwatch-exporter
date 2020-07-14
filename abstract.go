@@ -265,7 +265,7 @@ func scrapeDiscoveryJobUsingMetricData(
 						cw = append(cw, &getMetricData)
 						mux.Unlock()
 					} else {
-						log.Warningf("job.Type: %s, findMetricDataById failed due to %v", err)
+						log.Warningf("job.Type: %s, findMetricDataById failed due to %v", job.Type, err)
 					}
 				}
 			} else {
