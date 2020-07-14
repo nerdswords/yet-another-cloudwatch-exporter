@@ -141,6 +141,7 @@ func replaceWithUnderscores(text string) string {
 		":", "_",
 		"=", "_",
 		"“", "_",
+		"@", "_",
 	)
 	return replacer.Replace(text)
 }
