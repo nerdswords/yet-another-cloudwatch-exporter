@@ -126,7 +126,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "yle-ec2":
 		return []*tagsData{}, nil // covered by detectResourcesByMetrics
 	case "yle-ecs":
-		return []*tagsData{}, nil // covered by detectResourcesByMetrics
+		filter = append(filter, aws.String("ecs:cluster"))
+		filter = append(filter, aws.String("ecs:service"))
 	default:
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
@@ -166,6 +167,13 @@ func detectResourcesByService(jobType string, region string, metrics []*cloudwat
 		for _, metric := range metrics {
 			// Add ami-... as ID for resource
 			resource := tagsData{ID: (*metric).Dimensions[0].Value, Service: &jobType, Tags: []*tag{}, Region: &region}
+			resources = append(resources, &resource)
+		}
+	case "yle-ecs": // temporary measure until we opt-in for ecs services tagging
+		for _, metric := range metrics {
+			id := *(*metric).Dimensions[1].Value + "/" + *(*metric).Dimensions[0].Value
+			// Add ami-... as ID for resource
+			resource := tagsData{ID: &id, Service: &jobType, Tags: []*tag{}, Region: &region}
 			resources = append(resources, &resource)
 		}
 	default:
