@@ -490,9 +490,7 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 
 func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	switch *service {
-	case "acm-certificates":
-		fallthrough
-	case "yle-ecs":
+	case "acm-certificates", "yle-ec2", "yle-ecs":
 		return dimensions
 	}
 	arnParsed, err := arn.Parse(*resourceArn)
@@ -572,8 +570,6 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
-	case "yle-ec2":
-		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "")
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
