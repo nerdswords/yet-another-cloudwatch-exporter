@@ -582,6 +582,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		//            MetricName:"Age",Namespace:"Yle/ECS"}, ...]
 		// }
 		parsedResource := strings.Split(arnParsed.Resource, "/")
+		log.Infof("*service: %s, parsedRessource: %v", *service, parsedResource)
 		if parsedResource[0] == "service" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]), buildDimension("ServiceName", parsedResource[2]))
 		}
