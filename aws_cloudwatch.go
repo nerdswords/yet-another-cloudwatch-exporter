@@ -489,11 +489,14 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 }
 
 func detectDimensionsByService(service *string, resourceArn *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
+	switch *service {
+	case "yle-ecs":
+		return dimensions
+	}
 	arnParsed, err := arn.Parse(*resourceArn)
-
 	if err != nil {
 		log.Warningf("Unable to parse ARN (%s) due to %v", *resourceArn, err)
-		return (dimensions)
+		return dimensions
 	}
 
 	switch *service {
@@ -571,16 +574,6 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.AccountID, "AccountId", "")
 	case "yle-ec2":
 		dimensions = buildBaseDimension(arnParsed.Resource, "ImageId", "")
-	case "yle-ecs":
-		// arnParsed: arn:aws:ecs:eu-west-1:765705526948:cluster/test-test
-		// fullMetricsList
-		// {Metrics:[{Dimensions:[{Name:"ServiceName",Value:"badger-test"},{Name:"ClusterName",Value:"test-test"}],
-		//            MetricName:"Age",Namespace:"Yle/ECS"},
-		//           {Dimensions:[{Name:"ServiceName", Value:"test-logstash-test"},{Name:"ClusterName",Value:"test-test\"\n }],
-		//            MetricName:"Age",Namespace:"Yle/ECS"}, ...]
-		// }
-		parsedResource := strings.Split(arnParsed.Resource, "/")
-		dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[0]), buildDimension("ServiceName", parsedResource[1]))
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
 	}
