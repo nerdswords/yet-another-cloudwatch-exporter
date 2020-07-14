@@ -132,7 +132,9 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		log.Fatal("Not implemented resources:" + job.Type)
 	}
 
-	log.Infof("job.Type: %s, filter:%v", job.Type, filter)
+	if job.Type == "acm-certificates" {
+		log.Infof("job.Type: %s, filter:%v", job.Type, filter)
+	}
 	inputparams := r.GetResourcesInput{ResourceTypeFilters: filter}
 	ctx := context.Background()
 	pageNum := 0

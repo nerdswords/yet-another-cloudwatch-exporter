@@ -148,7 +148,9 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	tagSemaphore <- struct{}{}
 	commonResources, err := clientTag.get(job, region)
-	log.Infof("job: %s, clientTag.get returned %d resources and %v err", job.Type, len(resources), err)
+	if job.Type == "acm-certificates" {
+		log.Infof("job: %s, clientTag.get returned %d resources and %v err", job.Type, len(resources), err)
+	}
 	<-tagSemaphore
 
 	if err != nil {
@@ -158,7 +160,9 @@ func scrapeDiscoveryJobUsingMetricData(
 	// Get the awsDimensions of the job configuration
 	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(job)
-	log.Infof("job.Type: %s, job.Metrics: %v, commonJobDimensions: %v", job.Type, job.Metrics, commonJobDimensions)
+	if job.Type == "acm-certificates" {
+		log.Infof("job.Type: %s, job.Metrics: %v, commonJobDimensions: %v", job.Type, job.Metrics, commonJobDimensions)
+	}
 
 	// For every metric of the job
 	for j := range job.Metrics {
@@ -174,9 +178,13 @@ func scrapeDiscoveryJobUsingMetricData(
 		tagSemaphore <- struct{}{}
 		fullMetricsList := getFullMetricsList(&job.Type, metric, clientCloudwatch)
 		<-tagSemaphore
-		log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
+		if job.Type == "acm-certificates" {
+			log.Infof("job: %s, metric: %v, fullMetricsList: %v", job.Type, metric, fullMetricsList)
+		}
 		if len(commonResources) == 0 {
-			log.Info("NO commonresources, fetching resources from detectResourcesByService")
+			if job.Type == "acm-certificates" {
+				log.Info("NO commonresources, fetching resources from detectResourcesByService")
+			}
 			resources = detectResourcesByService(job.Type, region, fullMetricsList.Metrics)
 		} else {
 			log.Info("GOING WITH commonresources")
@@ -187,7 +195,9 @@ func scrapeDiscoveryJobUsingMetricData(
 		for i := range resources {
 			resource := resources[i]
 			metricTags := resource.metricTags(tagsOnMetrics)
-			log.Infof("job: %s, resource: %v/%v, metricTags: %v", job.Type, *resource.Service, *resource.ID, metricTags)
+			if job.Type == "acm-certificates" {
+				log.Infof("job: %s, resource: %v/%v, metricTags: %v", job.Type, *resource.Service, *resource.ID, metricTags)
+			}
 
 			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
 			dimensionsWithValue := detectDimensionsByService(resource.Service, resource.ID, fullMetricsList)
