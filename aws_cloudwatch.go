@@ -201,7 +201,7 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	cloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
-		log.Warning(err)
+		log.Warning("GetMetricStatics(%v) failed due to %v", filter, err)
 		return nil
 	}
 
@@ -233,7 +233,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 	}
 
 	if err != nil {
-		log.Warning(err)
+		log.Warning("GetMetricDataPages(%v) failed due to %v", filter, err)
 		return nil
 	}
 	return &resp
@@ -380,7 +380,7 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 			})
 		cloudwatchAPICounter.Inc()
 		if err != nil {
-			log.Warning(err)
+			log.Warning("ListMetricsPages(%v) failed due to %v", filter, err)
 		}
 		resp = filterMetricsBasedOnDimensions(dimensions, &res)
 	} else {
@@ -492,7 +492,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 	arnParsed, err := arn.Parse(*resourceArn)
 
 	if err != nil {
-		log.Warning(err)
+		log.Warning("Unable to parse ARN (%s) due to %v", *resourceArn, err)
 		return (dimensions)
 	}
 
@@ -580,7 +580,6 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		//            MetricName:"Age",Namespace:"Yle/ECS"}, ...]
 		// }
 		parsedResource := strings.Split(arnParsed.Resource, "/")
-		log.Infof("*service: %s, parsedRessource: %v", *service, parsedResource)
 		dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[0]), buildDimension("ServiceName", parsedResource[1]))
 	default:
 		log.Fatal("Not implemented cloudwatch metric: " + *service)
@@ -652,7 +651,7 @@ func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) str
 func getStateMachineNameFromArn(resourceArn string) string {
 	arnParsed, err := arn.Parse(resourceArn)
 	if err != nil {
-		log.Warning(err)
+		log.Warning("Unable to parse ARN (%s) due to %v", resourceArn, err)
 		return ""
 	}
 	parsedResource := strings.Split(arnParsed.Resource, ":")
