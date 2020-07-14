@@ -204,10 +204,14 @@ func scrapeDiscoveryJobUsingMetricData(
 
 			// Adds the dimensions with values of that specific metric of the job
 			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
-			log.Infof("job: %s, resource: %v/%v, dimensionsWithValue: %v", job.Type, *resource.Service, *resource.ID, dimensionsWithValue)
+			if job.Type == "acm-certificates" {
+				log.Infof("job: %s, resource: %v/%v, dimensionsWithValue: %v", job.Type, *resource.Service, *resource.ID, dimensionsWithValue)
+			}
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
-			log.Infof("job: %s, resource: %v/%v, metricsToAdd: %v", job.Type, *resource.Service, *resource.ID, metricsToAdd)
+			if job.Type == "acm-certificates" {
+				log.Infof("job: %s, resource: %v/%v, metricsToAdd: %v", job.Type, *resource.Service, *resource.ID, metricsToAdd)
+			}
 
 			if metricsToAdd != nil {
 				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
@@ -218,7 +222,9 @@ func scrapeDiscoveryJobUsingMetricData(
 				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
-						log.Infof("job: %s, resource: %v/%v, fetchedMetrics: %v, stats: %v", job.Type, *resource.Service, *resource.ID, fetchedMetrics, stats)
+						if job.Type == "acm-certificates" {
+							log.Infof("job: %s, resource: %v/%v, fetchedMetrics: %v, stats: %v", job.Type, *resource.Service, *resource.ID, fetchedMetrics, stats)
+						}
 						id := fmt.Sprintf("id_%d", rand.Int())
 						period := int64(metric.Period)
 						mux.Lock()
@@ -245,7 +251,9 @@ func scrapeDiscoveryJobUsingMetricData(
 	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
-	log.Infof("job.Type: %s, metricDataLength: %d, maxMetricCount: %d, partition: %d", job.Type, metricDataLength, maxMetricCount, partition)
+	if job.Type == "acm-certificates" {
+		log.Infof("job.Type: %s, metricDataLength: %d, maxMetricCount: %d, partition: %d", job.Type, metricDataLength, maxMetricCount, partition)
+	}
 	wg.Add(partition)
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
