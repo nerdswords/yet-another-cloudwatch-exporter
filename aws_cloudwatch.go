@@ -109,9 +109,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 
 func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloudwatchData, error) {
 	var g cloudwatchData
-	log.Infof("getMetricDatas len %d", len(getMetricDatas))
 	for _, getMetricData := range getMetricDatas {
-		log.Infof("*getMetricData.MetricID=%v, value=%v", *getMetricData.MetricID, value)
 		if *getMetricData.MetricID == value {
 			return getMetricData, nil
 		}

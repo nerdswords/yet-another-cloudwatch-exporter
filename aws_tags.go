@@ -172,7 +172,6 @@ func detectResourcesByService(jobType string, region string, metrics []*cloudwat
 	case "yle-ecs": // temporary measure until we opt-in for ecs services tagging
 		for _, metric := range metrics {
 			id := *(*metric).Dimensions[1].Value + "/" + *(*metric).Dimensions[0].Value
-			log.Infof("Added %s into yle-ecs resources", id)
 			resource := tagsData{ID: &id, Service: &jobType, Tags: []*tag{}, Region: &region}
 			resources = append(resources, &resource)
 		}
