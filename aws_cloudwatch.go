@@ -469,24 +469,44 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		return (dimensions)
 	}
 
+	type baseParams struct {
+		Key    string
+		Prefix string
+	}
+	baseDimension := map[string]baseParams{
+		"appsync":  {Key: "GraphQLAPIId", Prefix: "apis/"},
+		"asg":      {Key: "AutoScalingGroupName", Prefix: "autoScalingGroupName/"},
+		"dynamodb": {Key: "TableName", Prefix: "table/"},
+		"ebs":      {Key: "VolumeId", Prefix: "volume/"},
+		"ec":       {Key: "CacheClusterId", Prefix: "cluster:"},
+		"ec2":      {Key: "InstanceId", Prefix: "instance/"},
+		"efs":      {Key: "FileSystemId", Prefix: "file-system/"},
+		"elb":      {Key: "LoadBalancerName", Prefix: "loadbalancer/"},
+		"emr":      {Key: "JobFlowId", Prefix: "cluster/"},
+		"firehose": {Key: "DeliveryStreamName", Prefix: "deliverystream/"},
+		"fsx":      {Key: "FileSystemId", Prefix: "file-system/"},
+		"kinesis":  {Key: "StreamName", Prefix: "stream/"},
+		"lambda":   {Key: "FunctionName", Prefix: "function:"},
+		"ngw":      {Key: "NatGatewayId", Prefix: "natgateway/"},
+		"nlb":      {Key: "LoadBalancer", Prefix: "loadbalancer/"},
+		"rds":      {Key: "DBInstanceIdentifier", Prefix: "db:"},
+		"redshift": {Key: "ClusterIdentifier", Prefix: "cluster:"},
+		"r53r":     {Key: "EndpointId", Prefix: "resolver-endpoint/"},
+		"s3":       {Key: "BucketName", Prefix: ""},
+		"sns":      {Key: "TopicName", Prefix: ""},
+		"sqs":      {Key: "QueueName", Prefix: ""},
+		"tgw":      {Key: "TransitGateway", Prefix: "transit-gateway/"},
+		"vpn":      {Key: "VpnId", Prefix: "vpn-connection/"},
+	}
+	if params, ok := baseDimension[*service]; ok {
+		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
+	}
 	switch *service {
 	case "alb":
 		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
-	case "appsync":
-		dimensions = buildBaseDimension(arnParsed.Resource, "GraphQLAPIId", "apis/")
-	case "asg":
-		dimensions = buildBaseDimension(arnParsed.Resource, "AutoScalingGroupName", "autoScalingGroupName/")
 	case "cf":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DistributionId", "distribution/")
 		dimensions = append(dimensions, buildDimension("Region", "Global"))
-	case "dynamodb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "TableName", "table/")
-	case "ebs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VolumeId", "volume/")
-	case "ec":
-		dimensions = buildBaseDimension(arnParsed.Resource, "CacheClusterId", "cluster:")
-	case "ec2":
-		dimensions = buildBaseDimension(arnParsed.Resource, "InstanceId", "instance/")
 	case "ecs-svc", "ecs-containerinsights":
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
@@ -495,52 +515,18 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		if parsedResource[0] == "cluster" {
 			dimensions = append(dimensions, buildDimension("ClusterName", parsedResource[1]))
 		}
-	case "efs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-	case "elb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancerName", "loadbalancer/")
-	case "emr":
-		dimensions = buildBaseDimension(arnParsed.Resource, "JobFlowId", "cluster/")
 	case "es":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
-	case "firehose":
-		dimensions = buildBaseDimension(arnParsed.Resource, "DeliveryStreamName", "deliverystream/")
-	case "fsx":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FileSystemId", "file-system/")
-	case "kinesis":
-		dimensions = buildBaseDimension(arnParsed.Resource, "StreamName", "stream/")
-	case "lambda":
-		dimensions = buildBaseDimension(arnParsed.Resource, "FunctionName", "function:")
-	case "ngw":
-		dimensions = buildBaseDimension(arnParsed.Resource, "NatGatewayId", "natgateway/")
-	case "nlb":
-		dimensions = buildBaseDimension(arnParsed.Resource, "LoadBalancer", "loadbalancer/")
-	case "rds":
-		dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
-	case "redshift":
-		dimensions = buildBaseDimension(arnParsed.Resource, "ClusterIdentifier", "cluster:")
-	case "r53r":
-		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
-	case "s3":
-		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
 	case "sfn":
 		// The value of StateMachineArn returned is the Name, not the ARN
 		// We are setting the value to the ARN in order to correlate dimensions with metric values
 		// (StateMachineArn will be set back to the name later, once all the filtering is complete)
 		// https://docs.aws.amazon.com/step-functions/latest/dg/procedure-cw-metrics.html
 		dimensions = append(dimensions, buildDimension("StateMachineArn", *resourceArn))
-	case "sns":
-		dimensions = buildBaseDimension(arnParsed.Resource, "TopicName", "")
-	case "sqs":
-		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
-	case "tgw":
-		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
 	case "tgwa":
 		parsedResource := strings.Split(*resourceArn, "/")
 		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
-	case "vpn":
-		dimensions = buildBaseDimension(arnParsed.Resource, "VpnId", "vpn-connection/")
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
