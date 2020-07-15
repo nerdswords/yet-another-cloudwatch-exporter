@@ -24,63 +24,53 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 
 	var wg sync.WaitGroup
 
-	for i := range config.Discovery.Jobs {
-		job := config.Discovery.Jobs[i]
+	for _, job := range config.Discovery.Jobs {
+		for _, roleArn := range job.RoleArns {
+			for _, region := range job.Regions {
+				wg.Add(1)
 
-		regions := job.Regions
+				go func(region string, roleArn string) {
+					defer wg.Done()
+					clientCloudwatch := cloudwatchInterface{
+						client: createCloudwatchSession(&region, roleArn),
+					}
 
-		for i := 0; i < len(regions); i++ {
-			region := &regions[i]
-			roleArn := job.RoleArn
-			wg.Add(1)
-
-			go func() {
-				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(region, roleArn),
-				}
-
-				clientTag := tagsInterface{
-					client:    createTagSession(region, roleArn),
-					asgClient: createASGSession(region, roleArn),
-					ec2Client: createEC2Session(region, roleArn),
-				}
-				var resources []*tagsData
-				var metrics []*cloudwatchData
-				resources, metrics = scrapeDiscoveryJobUsingMetricData(job, *region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
-				mux.Lock()
-				awsInfoData = append(awsInfoData, resources...)
-				cwData = append(cwData, metrics...)
-				mux.Unlock()
-				wg.Done()
-
-			}()
+					clientTag := tagsInterface{
+						client:    createTagSession(&region, roleArn),
+						asgClient: createASGSession(&region, roleArn),
+						ec2Client: createEC2Session(&region, roleArn),
+					}
+					var resources []*tagsData
+					var metrics []*cloudwatchData
+					resources, metrics = scrapeDiscoveryJobUsingMetricData(job, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+					mux.Lock()
+					awsInfoData = append(awsInfoData, resources...)
+					cwData = append(cwData, metrics...)
+					mux.Unlock()
+				}(region, roleArn)
+			}
 		}
 	}
 
-	for i := range config.Static {
-		job := config.Static[i]
+	for _, job := range config.Static {
+		for _, roleArn := range job.RoleArns {
+			for _, region := range job.Regions {
+				wg.Add(1)
 
-		regions := job.Regions
+				go func(region string, roleArn string) {
+					clientCloudwatch := cloudwatchInterface{
+						client: createCloudwatchSession(&region, roleArn),
+					}
 
-		for i := 0; i < len(regions); i++ {
-			region := regions[i]
-			wg.Add(1)
+					metrics := scrapeStaticJob(job, region, clientCloudwatch)
 
-			go func() {
-				roleArn := job.RoleArn
+					mux.Lock()
+					cwData = append(cwData, metrics...)
+					mux.Unlock()
 
-				clientCloudwatch := cloudwatchInterface{
-					client: createCloudwatchSession(&region, roleArn),
-				}
-
-				metrics := scrapeStaticJob(job, region, clientCloudwatch)
-
-				mux.Lock()
-				cwData = append(cwData, metrics...)
-				mux.Unlock()
-
-				wg.Done()
-			}()
+					wg.Done()
+				}(region, roleArn)
+			}
 		}
 	}
 	wg.Wait()
@@ -146,12 +136,20 @@ func scrapeDiscoveryJobUsingMetricData(
 	var wg sync.WaitGroup
 	var getMetricDatas []cloudwatchData
 	var length int
+	var jobPeriod int
 
 	// Why is this here? 120?
 	if job.Length == 0 {
 		length = 120
 	} else {
 		length = job.Length
+	}
+
+	// Set a default period
+	if job.Period == 0 {
+	    jobPeriod = 300
+	} else {
+	    jobPeriod = job.Period
 	}
 
 	tagSemaphore <- struct{}{}
@@ -209,7 +207,13 @@ func scrapeDiscoveryJobUsingMetricData(
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
-						period := int64(metric.Period)
+
+						period := int64(jobPeriod)
+						if(metric.Period != 0) {
+						    period = int64(metric.Period)
+						}
+						addCloudwatchTimestamp := job.AddCloudwatchTimestamp || metric.AddCloudwatchTimestamp
+
 						mux.Lock()
 						getMetricDatas = append(getMetricDatas, cloudwatchData{
 							ID:                     resource.ID,
@@ -218,7 +222,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							Service:                resource.Service,
 							Statistics:             []string{stats},
 							NilToZero:              &metric.NilToZero,
-							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
+							AddCloudwatchTimestamp: &addCloudwatchTimestamp,
 							Tags:                   metricTags,
 							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
