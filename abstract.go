@@ -142,6 +142,16 @@ func getMetricDataInputLength(job job) int {
 	return length
 }
 
+func metricPeriod(job job, metric metric) int64 {
+	if metric.Period != 0 {
+		return int64(metric.Period)
+	}
+	if job.Period != 0 {
+		return int64(job.Period)
+	}
+	return int64(300)
+}
+
 func scrapeDiscoveryJobUsingMetricData(
 	job job,
 	region string,
@@ -152,13 +162,13 @@ func scrapeDiscoveryJobUsingMetricData(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	var getMetricDatas []cloudwatchData
-	var jobPeriod int
+	var length int
 
-	// Set a default period
-	if job.Period == 0 {
-		jobPeriod = 300
+	// Why is this here? 120?
+	if job.Length == 0 {
+		length = 120
 	} else {
-		jobPeriod = job.Period
+		length = job.Length
 	}
 
 	tagSemaphore <- struct{}{}
@@ -213,10 +223,6 @@ func scrapeDiscoveryJobUsingMetricData(
 					for _, stats := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
 
-						period := int64(jobPeriod)
-						if metric.Period != 0 {
-							period = int64(metric.Period)
-						}
 						addCloudwatchTimestamp := job.AddCloudwatchTimestamp || metric.AddCloudwatchTimestamp
 
 						mux.Lock()
@@ -232,7 +238,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
 							Region:                 &region,
-							Period:                 &period,
+							Period:                 metricPeriod(job, metric),
 						})
 						mux.Unlock()
 					}
