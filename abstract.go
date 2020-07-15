@@ -142,7 +142,7 @@ func getMetricDataInputLength(job job) int {
 	return length
 }
 
-func metricPeriod(job job, metric metric) int64 {
+func getMetricPeriod(job job, metric metric) int64 {
 	if metric.Period != 0 {
 		return int64(metric.Period)
 	}
@@ -238,7 +238,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
 							Region:                 &region,
-							Period:                 metricPeriod(job, metric),
+							Period:                 getMetricPeriod(job, metric),
 						})
 						mux.Unlock()
 					}
