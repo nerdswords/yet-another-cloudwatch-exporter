@@ -24,12 +24,12 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 
 	var wg sync.WaitGroup
 
-	for _, job := range config.Discovery.Jobs {
-		for _, roleArn := range job.RoleArns {
-			for _, region := range job.Regions {
+	for _, discoveryJob := range config.Discovery.Jobs {
+		for _, roleArn := range discoveryJob.RoleArns {
+			for _, region := range discoveryJob.Regions {
 				wg.Add(1)
 
-				go func(region string, roleArn string) {
+				go func(discoveryJob job, region string, roleArn string) {
 					defer wg.Done()
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn),
@@ -42,34 +42,34 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
-					resources, metrics = scrapeDiscoveryJobUsingMetricData(job, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+					resources, metrics = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-				}(region, roleArn)
+				}(discoveryJob, region, roleArn)
 			}
 		}
 	}
 
-	for _, job := range config.Static {
-		for _, roleArn := range job.RoleArns {
-			for _, region := range job.Regions {
+	for _, staticJob := range config.Static {
+		for _, roleArn := range staticJob.RoleArns {
+			for _, region := range staticJob.Regions {
 				wg.Add(1)
 
-				go func(region string, roleArn string) {
+				go func(staticJob static, region string, roleArn string) {
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn),
 					}
 
-					metrics := scrapeStaticJob(job, region, clientCloudwatch)
+					metrics := scrapeStaticJob(staticJob, region, clientCloudwatch)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
 
 					wg.Done()
-				}(region, roleArn)
+				}(staticJob, region, roleArn)
 			}
 		}
 	}
