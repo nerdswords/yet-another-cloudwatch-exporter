@@ -35,11 +35,13 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ngw - Nat Gateway
   * lambda - Lambda Functions
   * nlb - Network Load Balancer
+  * redshift - Redshift Database
   * rds - Relational Database Service
   * r53r - Route53 Resolver
   * s3 - Object Storage
   * sqs - Simple Queue Service
   * tgw - Transit Gateway
+  * tgwa - Transit Gateway Attachments
   * vpn - VPN connection
   * asg - Auto Scaling Group
   * kafka - Managed Apache Kafka
@@ -53,6 +55,12 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * See [Releases](https://github.com/ivx/yet-another-cloudwatch-exporter/releases) for binaries
 
 ## Configuration
+
+### Command Line Options
+
+| Option            | Description                                                               |
+| ----------------- | ------------------------------------------------------------------------- |
+| labels-snake-case | Causes labels on metrics to be output in snake case instead of camel case |
 
 ### Top level configuration
 
@@ -79,18 +87,19 @@ exportedTagsOnMetrics:
 
 ### Auto-discovery job
 
-| Key                  | Description                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| regions              | List of AWS regions                                                                        |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
-| length (Default 120) | How far back to request data for in seconds                                                |
-| delay                | If set it will request metrics up until `current_time - d
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                       |
-| roleArn              | IAM role to assume (optional)                                                              |
-| roleArns             | List of IAM roles to assume (optional)                                                              |
-| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.   |
-| metrics              | List of metric definitions                                                                 |
-| additionalDimensions | List of dimensions to return beyond the default list per service                           |
+| Key                  | Description                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| regions              | List of AWS regions                                                                                      |
+| type                 | Service name, e.g. "ec2", "s3", etc.                                                                     |
+| length (Default 120) | How far back to request data for in seconds                                                              |
+| delay                | If set it will request metrics up until `current_time - d` |                                                |
+| roleArns             | List of IAM roles to assume (optional)                                                                   |
+| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
+| period                 | Statistic period in seconds (General Setting for all metrics in this job)                              |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job) |
+| customTags           | Custom tags to be added as a list of Key/Value pairs                                                     |
+| metrics              | List of metric definitions                                                                               |
+| additionalDimensions | List of dimensions to return beyond the default list per service                                         |
 
 searchTags example:
 
@@ -102,24 +111,25 @@ searchTags:
 
 ### Metric definition
 
-| Key                    | Description |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                                           |
-| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                         |
-| period                 | Statistic period in seconds                                                      |
-| length                 | How far back to request data for in seconds(for static jobs)                     |
-| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)  |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                           |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp                         |
+| Key                    | Description                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                                                 |
+| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                               |
+| period                 | Statistic period in seconds (Overrides job level setting)                              |
+| length                 | How far back to request data for in seconds(for static jobs)                           |
+| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)        |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                 |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting) |
 
 * **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
+* **Setting Inheritance: Some settings at the job level are overridden by settings at the metric level.  This allows for a specific setting to override a 
+general setting.  The currently inherited settings are period, and addCloudwatchTimestamp**
 
 ### Static configuration
 
 | Key        | Description                                                |
 | ---------- | ---------------------------------------------------------- |
 | regions    | List of AWS regions                                        |
-| roleArn    | IAM role to assume                                         |
 | roleArns   | List of IAM roles to assume                                |
 | namespace  | CloudWatch namespace                                       |
 | name       | Must be set with multiple block definitions per namespace  |
@@ -339,6 +349,14 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:ListMetrics"
 ```
 
+The following IAM permissions are required for the transit gateway attachment (twga) metrics to work.
+```json
+"ec2:DescribeTags",
+"ec2:DescribeInstances",
+"ec2:DescribeRegions",
+"ec2:DescribeTransitGateway*"
+```
+
 ## Running locally
 
 ```shell
@@ -389,6 +407,28 @@ spec:
           name: yace
 ```
 ## Options
+### RoleArns
+
+Multiple roleArns are useful, when you are monitoring multi-account setup, where all accounts are using same AWS services. For example, you are running yace in monitoring account and you have number of accounts (for example newspapers, radio and television) running ECS clusters. Each account gives yace permissions to assume local IAM role, which has all the necessary permissions for Cloudwatch metrics. On this kind of setup, you could simply list:
+```yaml
+  jobs:
+    - type: ecs-svc
+      regions:
+        - eu-north-1
+      roleArns:
+        - "arn:aws:iam::111111111111:role/prometheus" # newspaper
+        - "arn:aws:iam:2222222222222:role/prometheus" # radio
+        - "arn:aws:iam:3333333333333:role/prometheus" # television
+      metrics:
+        - name: MemoryReservation
+          statistics:
+            - Average
+            - Minimum
+            - Maximum
+          period: 600
+          length: 600
+```
+
 ### Requests concurrency
 The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of concurrent request to cloudwatch metrics and tags. Their default value is 5.
 

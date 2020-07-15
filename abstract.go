@@ -39,6 +39,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					clientTag := tagsInterface{
 						client:    createTagSession(&region, roleArn),
 						asgClient: createASGSession(&region, roleArn),
+						ec2Client: createEC2Session(&region, roleArn),
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
@@ -138,6 +139,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	var wg sync.WaitGroup
 	var getMetricDatas []cloudwatchData
 	var length int
+	var jobPeriod int
 
 	// Why is this here? 120?
 	if job.Length == 0 {
@@ -146,12 +148,26 @@ func scrapeDiscoveryJobUsingMetricData(
 		length = job.Length
 	}
 
+	// Set a default period
+	if job.Period == 0 {
+	    jobPeriod = 300
+	} else {
+	    jobPeriod = job.Period
+	}
+
 	tagSemaphore <- struct{}{}
 	commonResources, err := clientTag.get(job, region)
 	if job.Type == "acm-certificates" {
 		log.Infof("job: %s, clientTag.get returned %d resources and %v err", job.Type, len(resources), err)
 	}
 	<-tagSemaphore
+
+	// Add the info tags of all the resources
+	for _, resource := range resources {
+		mux.Lock()
+		awsInfoData = append(awsInfoData, resource)
+		mux.Unlock()
+	}
 
 	if err != nil {
 		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
@@ -208,25 +224,29 @@ func scrapeDiscoveryJobUsingMetricData(
 				log.Infof("job: %s, resource: %v/%v, dimensionsWithValue: %v", job.Type, *resource.Service, *resource.ID, dimensionsWithValue)
 			}
 
+			// Filter the commonJob Dimensions by the discovered/added dimensions as duplicates cause no metrics to be discovered
+			commonJobDimensions = filterDimensionsWithoutValueByDimensionsWithValue(commonJobDimensions, dimensionsWithValue)
+
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
 			if job.Type == "acm-certificates" {
 				log.Infof("job: %s, resource: %v/%v, metricsToAdd: %v", job.Type, *resource.Service, *resource.ID, metricsToAdd)
 			}
 
+			// If the job property inlyInfoIfData is true
 			if metricsToAdd != nil {
-				// If the resource has metrics, add it to the awsInfoData to appear with the metrics
-				if len(metricsToAdd.Metrics) > 0 {
-					mux.Lock()
-					awsInfoData = append(awsInfoData, resource)
-					mux.Unlock()
-				}
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
 						if job.Type == "acm-certificates" {
 							log.Infof("job: %s, resource: %v/%v, fetchedMetrics: %v, stats: %v", job.Type, *resource.Service, *resource.ID, fetchedMetrics, stats)
 						}
 						id := fmt.Sprintf("id_%d", rand.Int())
-						period := int64(metric.Period)
+
+						period := int64(jobPeriod)
+						if(metric.Period != 0) {
+						    period = int64(metric.Period)
+						}
+						addCloudwatchTimestamp := job.AddCloudwatchTimestamp || metric.AddCloudwatchTimestamp
+
 						mux.Lock()
 						getMetricDatas = append(getMetricDatas, cloudwatchData{
 							ID:                     resource.ID,
@@ -235,8 +255,9 @@ func scrapeDiscoveryJobUsingMetricData(
 							Service:                resource.Service,
 							Statistics:             []string{stats},
 							NilToZero:              &metric.NilToZero,
-							AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
+							AddCloudwatchTimestamp: &addCloudwatchTimestamp,
 							Tags:                   metricTags,
+							CustomTags:             job.CustomTags,
 							Dimensions:             fetchedMetrics.Dimensions,
 							Region:                 &region,
 							Period:                 &period,

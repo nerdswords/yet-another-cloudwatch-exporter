@@ -27,6 +27,7 @@ type tagsData struct {
 type tagsInterface struct {
 	client    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient autoscalingiface.AutoScalingAPI
+	ec2Client ec2iface.EC2API
 }
 
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
@@ -55,6 +56,20 @@ func createASGSession(region *string, roleArn string) autoscalingiface.AutoScali
 	}
 
 	return autoscaling.New(sess, config)
+}
+
+func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
+	sess, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	maxEC2APIRetries := 10
+	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+
+	return ec2.New(sess, config)
 }
 
 func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
@@ -105,6 +120,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/net"))
 	case "rds":
 		filter = append(filter, aws.String("rds:db"))
+	case "redshift":
+		filter = append(filter, aws.String("redshift:cluster"))
 	case "r53r":
 		filter = append(filter, aws.String("route53resolver"))
 	case "s3":
@@ -117,6 +134,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		filter = append(filter, aws.String("sqs"))
 	case "tgw":
 		filter = append(filter, aws.String("ec2:transit-gateway"))
+	case "tgwa":
+		return iface.getTaggedTransitGatewayAttachments(job, region)
 	case "vpn":
 		filter = append(filter, aws.String("ec2:vpn-connection"))
 	case "kafka":
@@ -206,12 +225,40 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 
 				// Transform the ASG ARN into something which looks more like an ARN from the ResourceGroupTaggingAPI
 				parts := strings.Split(*asg.AutoScalingGroupARN, ":")
-				resource.ID = aws.String(fmt.Sprintf("arn:aws:autoscaling:%s:%s:%s", parts[3], parts[4], parts[7]))
+				resource.ID = aws.String(fmt.Sprintf("arn:%s:autoscaling:%s:%s:%s", parts[1], parts[3], parts[4], parts[7]))
 
 				resource.Service = &job.Type
 				resource.Region = &region
 
 				for _, t := range asg.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		})
+}
+
+func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region string) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+		func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+			pageNum++
+			ec2APICounter.Inc()
+
+			for _, tgwa := range page.TransitGatewayAttachments {
+				resource := tagsData{}
+
+				resource.ID = aws.String(fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId))
+
+				resource.Service = &job.Type
+				resource.Region = &region
+
+				for _, t := range tgwa.Tags {
 					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
 				}
 
