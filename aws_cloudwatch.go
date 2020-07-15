@@ -241,70 +241,42 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 
 func getNamespace(service *string) *string {
 	var ns string
-	switch *service {
-	case "alb":
-		ns = "AWS/ApplicationELB"
-	case "appsync":
-		ns = "AWS/AppSync"
-	case "asg":
-		ns = "AWS/AutoScaling"
-	case "cf":
-		ns = "AWS/CloudFront"
-	case "dynamodb":
-		ns = "AWS/DynamoDB"
-	case "ebs":
-		ns = "AWS/EBS"
-	case "ec":
-		ns = "AWS/ElastiCache"
-	case "ec2":
-		ns = "AWS/EC2"
-	case "ecs-svc":
-		ns = "AWS/ECS"
-	case "ecs-containerinsights":
-		ns = "ECS/ContainerInsights"
-	case "efs":
-		ns = "AWS/EFS"
-	case "elb":
-		ns = "AWS/ELB"
-	case "emr":
-		ns = "AWS/ElasticMapReduce"
-	case "es":
-		ns = "AWS/ES"
-	case "firehose":
-		ns = "AWS/Firehose"
-	case "fsx":
-		ns = "AWS/FSx"
-	case "kafka":
-		ns = "AWS/Kafka"
-	case "kinesis":
-		ns = "AWS/Kinesis"
-	case "lambda":
-		ns = "AWS/Lambda"
-	case "ngw":
-		ns = "AWS/NATGateway"
-	case "nlb":
-		ns = "AWS/NetworkELB"
-	case "rds":
-		ns = "AWS/RDS"
-	case "redshift":
-		ns = "AWS/Redshift"
-	case "r53r":
-		ns = "AWS/Route53Resolver"
-	case "s3":
-		ns = "AWS/S3"
-	case "sfn":
-		ns = "AWS/States"
-	case "sns":
-		ns = "AWS/SNS"
-	case "sqs":
-		ns = "AWS/SQS"
-	case "tgw":
-		ns = "AWS/TransitGateway"
-	case "tgwa":
-		ns = "AWS/TransitGateway"
-	case "vpn":
-		ns = "AWS/VPN"
-	default:
+	var ok bool
+
+	namespaces := map[string]string{
+		"alb":                   "AWS/ApplicationELB",
+		"appsync":               "AWS/AppSync",
+		"asg":                   "AWS/AutoScaling",
+		"cf":                    "AWS/CloudFront",
+		"dynamodb":              "AWS/DynamoDB",
+		"ebs":                   "AWS/EBS",
+		"ec":                    "AWS/ElastiCache",
+		"ec2":                   "AWS/EC2",
+		"ecs-svc":               "AWS/ECS",
+		"ecs-containerinsights": "ECS/ContainerInsights",
+		"efs":                   "AWS/EFS",
+		"elb":                   "AWS/ELB",
+		"emr":                   "AWS/ElasticMapReduce",
+		"es":                    "AWS/ES",
+		"firehose":              "AWS/Firehose",
+		"fsx":                   "AWS/FSx",
+		"kafka":                 "AWS/Kafka",
+		"kinesis":               "AWS/Kinesis",
+		"lambda":                "AWS/Lambda",
+		"ngw":                   "AWS/NATGateway",
+		"nlb":                   "AWS/NetworkELB",
+		"rds":                   "AWS/RDS",
+		"redshift":              "AWS/Redshift",
+		"r53r":                  "AWS/Route53Resolver",
+		"s3":                    "AWS/S3",
+		"sfn":                   "AWS/States",
+		"sns":                   "AWS/SNS",
+		"sqs":                   "AWS/SQS",
+		"tgw":                   "AWS/TransitGateway",
+		"tgwa":                  "AWS/TransitGateway",
+		"vpn":                   "AWS/VPN",
+	}
+	if ns, ok = namespaces[*service]; !ok {
 		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
 	}
 	return &ns
@@ -351,15 +323,15 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 }
 
 func filterDimensionsWithoutValueByDimensionsWithValue(
-    dimensionsWithoutValue []*cloudwatch.Dimension,
-    dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
+	dimensionsWithoutValue []*cloudwatch.Dimension,
+	dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
 
-    for _, dimension := range dimensionsWithoutValue {
-        if ! dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
-            dimensions = append(dimensions, dimension)
-        }
-    }
-    return dimensions
+	for _, dimension := range dimensionsWithoutValue {
+		if !dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
+			dimensions = append(dimensions, dimension)
+		}
+	}
+	return dimensions
 }
 
 func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
@@ -575,7 +547,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
-    case "tgwa":
+	case "tgwa":
 		parsedResource := strings.Split(*resourceArn, "/")
 		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
 	case "vpn":
