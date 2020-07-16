@@ -162,14 +162,6 @@ func scrapeDiscoveryJobUsingMetricData(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	var getMetricDatas []cloudwatchData
-	var length int
-
-	// Why is this here? 120?
-	if job.Length == 0 {
-		length = 120
-	} else {
-		length = job.Length
-	}
 
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.get(job, region)
