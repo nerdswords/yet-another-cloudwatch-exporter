@@ -222,9 +222,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
 			cloudwatchAPICounter.Inc()
 			cloudwatchGetMetricDataAPICounter.Inc()
-			for _, metricData := range page.MetricDataResults {
-				resp.MetricDataResults = append(resp.MetricDataResults, metricData)
-			}
+			resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
 			return !lastPage
 		})
 
@@ -355,9 +353,7 @@ func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, met
 		var res cloudwatch.ListMetricsOutput
 		err := c.ListMetricsPages(filter,
 			func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-				for _, metric := range page.Metrics {
-					res.Metrics = append(res.Metrics, metric)
-				}
+				res.Metrics = append(res.Metrics, page.Metrics...)
 				return !lastPage
 			})
 		cloudwatchAPICounter.Inc()
@@ -377,9 +373,7 @@ func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch clo
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-			for _, metric := range page.Metrics {
-				res.Metrics = append(res.Metrics, metric)
-			}
+			res.Metrics = append(res.Metrics, page.Metrics...)
 			return !lastPage
 		})
 	cloudwatchAPICounter.Inc()
@@ -403,11 +397,11 @@ func filterMetricsBasedOnDimensionsWithValues(
 				shouldAddMetric = shouldAddMetric &&
 					(dimensionIsInListWithValues(metricDimension, dimensionsWithValue) ||
 						dimensionIsInListWithoutValues(metricDimension, dimensionsWithoutValue))
-				if shouldAddMetric == false {
+				if !shouldAddMetric {
 					break
 				}
 			}
-			if shouldAddMetric == true {
+			if shouldAddMetric {
 				output.Metrics = append(output.Metrics, metric)
 			}
 		}
@@ -418,12 +412,10 @@ func filterMetricsBasedOnDimensionsWithValues(
 func dimensionIsInListWithValues(
 	dimension *cloudwatch.Dimension,
 	dimensionsList []*cloudwatch.Dimension) bool {
-	if dimensionsList != nil {
-		for _, dimensionInList := range dimensionsList {
-			if *dimension.Name == *dimensionInList.Name &&
-				*dimension.Value == *dimensionInList.Value {
-				return true
-			}
+	for _, dimensionInList := range dimensionsList {
+		if *dimension.Name == *dimensionInList.Name &&
+			*dimension.Value == *dimensionInList.Value {
+			return true
 		}
 	}
 	return false
@@ -432,11 +424,9 @@ func dimensionIsInListWithValues(
 func dimensionIsInListWithoutValues(
 	dimension *cloudwatch.Dimension,
 	dimensionsList []*cloudwatch.Dimension) bool {
-	if dimensionsList != nil {
-		for _, dimensionInList := range dimensionsList {
-			if *dimension.Name == *dimensionInList.Name {
-				return true
-			}
+	for _, dimensionInList := range dimensionsList {
+		if *dimension.Name == *dimensionInList.Name {
+			return true
 		}
 	}
 	return false
@@ -534,7 +524,6 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "EndpointId", "resolver-endpoint/")
 	case "s3":
 		dimensions = buildBaseDimension(arnParsed.Resource, "BucketName", "")
-		break
 	case "sfn":
 		// The value of StateMachineArn returned is the Name, not the ARN
 		// We are setting the value to the ARN in order to correlate dimensions with metric values
