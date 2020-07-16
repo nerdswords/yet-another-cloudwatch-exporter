@@ -147,9 +147,9 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	// Set a default period
 	if job.Period == 0 {
-	    jobPeriod = 300
+		jobPeriod = 300
 	} else {
-	    jobPeriod = job.Period
+		jobPeriod = job.Period
 	}
 
 	tagSemaphore <- struct{}{}
@@ -209,8 +209,8 @@ func scrapeDiscoveryJobUsingMetricData(
 						id := fmt.Sprintf("id_%d", rand.Int())
 
 						period := int64(jobPeriod)
-						if(metric.Period != 0) {
-						    period = int64(metric.Period)
+						if metric.Period != 0 {
+							period = int64(metric.Period)
 						}
 						addCloudwatchTimestamp := job.AddCloudwatchTimestamp || metric.AddCloudwatchTimestamp
 
