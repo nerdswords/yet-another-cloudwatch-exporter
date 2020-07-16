@@ -351,15 +351,15 @@ func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cl
 }
 
 func filterDimensionsWithoutValueByDimensionsWithValue(
-    dimensionsWithoutValue []*cloudwatch.Dimension,
-    dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
+	dimensionsWithoutValue []*cloudwatch.Dimension,
+	dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
 
-    for _, dimension := range dimensionsWithoutValue {
-        if ! dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
-            dimensions = append(dimensions, dimension)
-        }
-    }
-    return dimensions
+	for _, dimension := range dimensionsWithoutValue {
+		if !dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
+			dimensions = append(dimensions, dimension)
+		}
+	}
+	return dimensions
 }
 
 func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
@@ -575,7 +575,7 @@ func detectDimensionsByService(service *string, resourceArn *string, fullMetrics
 		dimensions = buildBaseDimension(arnParsed.Resource, "QueueName", "")
 	case "tgw":
 		dimensions = buildBaseDimension(arnParsed.Resource, "TransitGateway", "transit-gateway/")
-    case "tgwa":
+	case "tgwa":
 		parsedResource := strings.Split(*resourceArn, "/")
 		dimensions = append(dimensions, buildDimension("TransitGateway", parsedResource[0]), buildDimension("TransitGatewayAttachment", parsedResource[1]))
 	case "vpn":

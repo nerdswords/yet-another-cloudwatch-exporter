@@ -123,9 +123,9 @@ func promString(text string) string {
 }
 
 func promStringTag(text string) string {
-    if *labelsSnakeCase {
-        return promString(text)
-    }
+	if *labelsSnakeCase {
+		return promString(text)
+	}
 	return replaceWithUnderscores(text)
 }
 
