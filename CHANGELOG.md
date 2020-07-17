@@ -1,4 +1,9 @@
-# 0.19.0-alpha (unreleased)
+# 0.19.0-alpha
+Wow what a release. Thanks to all contributors. This is
+our biggest release and it made me a lot of fun to see all those
+contributions. From small doc changes (love those) to major rewrites
+of big components or new complex features. Thanks!
+
 * *BREAKING CHANGE* Add support for multiple roleArns (jylitalo)
 ```yaml
 # Before
@@ -14,6 +19,23 @@ discovery:
     roleArns:
     - "arn:aws:iam::123456789012:role/Prometheus"
 ```
+* Upgrade golang from 1.12 to 1.14
+* Major linting of code and improving global code quality. (jylitalo)
+* Improve logging (jylitalo)
+* Add config validation. (daviddetorres)
+* Added support for tags with '@' char included (afroschauer )
+* Added Transit Gateway Attachment Metrics (rhys-evans)
+* Fix information gathering if no data is retrieved by cloudwatch (daviddetorres)
+* Improve docs (calvinbui)
+* Add redshift support (smcavallo)
+* Allow easier configuration through adding period / addCloudwatchTimestamp setting additionally
+  to job level. (rrusso1982)
+* Add initial unit tests (smcavallo)
+* Add new configuration to allow snake case labels (rrusso1982)
+* Fix complex metric dimension bug (rrusso1982)
+* Upgrade golang packages (smcavallo)
+* Set up correct partition for ASG for AWS China and GovCloud Regions (smcavallo)
+* Add ability to set custom tags to discovery job metrics (goya)
 
 # 0.18.0-alpha
 * *BREAKING CHANGE* Add support for multiple regions (goya)
