@@ -31,46 +31,33 @@ type tagsInterface struct {
 	ec2Client ec2iface.EC2API
 }
 
-func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
+func createSession(roleArn string, config *aws.Config) *session.Session {
 	sess, err := session.NewSession()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to create session due to %v", err)
 	}
-	maxResourceGroupTaggingRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxResourceGroupTaggingRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
+	return sess
+}
 
-	return r.New(sess, config)
+func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
+	maxResourceGroupTaggingRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxResourceGroupTaggingRetries}
+	return r.New(createSession(roleArn, config), config)
 }
 
 func createASGSession(region *string, roleArn string) autoscalingiface.AutoScalingAPI {
-	sess, err := session.NewSession()
-	if err != nil {
-		log.Fatal(err)
-	}
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
-	if roleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, roleArn)
-	}
-
-	return autoscaling.New(sess, config)
+	return autoscaling.New(createSession(roleArn, config), config)
 }
 
 func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
-	sess, err := session.NewSession()
-	if err != nil {
-		log.Fatal(err)
-	}
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
-	if roleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, roleArn)
-	}
-
-	return ec2.New(sess, config)
+	return ec2.New(createSession(roleArn, config), config)
 }
 
 func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
