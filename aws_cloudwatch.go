@@ -41,7 +41,7 @@ type cloudwatchData struct {
 	Tags                    []tag
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
-	Period                  *int64
+	Period                  int64
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
@@ -120,19 +120,19 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	for _, data := range getMetricData {
-		meticStat := &cloudwatch.MetricStat{
+		metricStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: data.Dimensions,
 				MetricName: data.Metric,
 				Namespace:  namespace,
 			},
-			Period: data.Period,
+			Period: &data.Period,
 			Stat:   &data.Statistics[0],
 		}
 		ReturnData := true
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
 			Id:         data.MetricID,
-			MetricStat: meticStat,
+			MetricStat: metricStat,
 			ReturnData: &ReturnData,
 		})
 
