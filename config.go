@@ -74,22 +74,10 @@ func (c *conf) load(file *string) error {
 	if err != nil {
 		return err
 	}
+
 	for n, job := range c.Discovery.Jobs {
 		if len(job.RoleArns) == 0 {
 			c.Discovery.Jobs[n].RoleArns = []string{""} // use current IAM role
-		}
-		if !stringInSlice(job.Type, supportedServices) {
-			return fmt.Errorf("Service is not in known list!: %v", job.Type)
-		}
-
-		for _, metric := range job.Metrics {
-			if job.Length < 300 && metric.Length < 300 {
-				log.Warn("WATCH OUT! - Metric length of less than 5 minutes configured which is default for most cloudwatch metrics e.g. ELBs")
-			}
-
-			if job.Period < 1 && metric.Period < 1 {
-				return fmt.Errorf("Period value should be a positive integer")
-			}
 		}
 	}
 	for n, job := range c.Static {
@@ -97,5 +85,113 @@ func (c *conf) load(file *string) error {
 			c.Static[n].RoleArns = []string{""} // use current IAM role
 		}
 	}
+
+	err = c.validate()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *conf) validate() error {
+	if c.Discovery.Jobs == nil && c.Static == nil {
+		return fmt.Errorf("At least 1 Discovery job or 1 Static must be defined")
+	}
+
+	if c.Discovery.Jobs != nil {
+		for idx, job := range c.Discovery.Jobs {
+			err := c.validateDiscoveryJob(job, idx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if c.Static != nil {
+		for idx, job := range c.Static {
+			err := c.validateStaticJob(job, idx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
+	if j.Regions != nil {
+		if len(j.Regions) == 0 {
+			return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
+		}
+	} else {
+		return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
+	}
+	if j.Type != "" {
+		if !stringInSlice(j.Type, supportedServices) {
+			return fmt.Errorf("Discovery job [%v]: Service is not in known list!: %v", jobIdx, j.Type)
+		}
+	} else {
+		return fmt.Errorf("Discovery job [%v]: Type should not be empty", jobIdx)
+	}
+	if j.Metrics != nil {
+		if len(j.Metrics) == 0 {
+			return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
+		}
+	} else {
+		return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
+	}
+	for metricIdx, metric := range j.Metrics {
+		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Discovery job [%v]", jobIdx))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *conf) validateStaticJob(j static, jobIdx int) error {
+	if j.Name == "" {
+		return fmt.Errorf("Static job [%v]: Name should not be empty", jobIdx)
+	}
+	if j.Namespace == "" {
+		return fmt.Errorf("Static job [%v]: Namespace should not be empty", jobIdx)
+	}
+	if j.Regions != nil {
+		if len(j.Regions) == 0 {
+			return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
+		}
+	} else {
+		return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
+	}
+	for metricIdx, metric := range j.Metrics {
+		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Static job [%v]", jobIdx))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *conf) validateMetric(m metric, metricIdx int, parent string) error {
+	if m.Name == "" {
+		return fmt.Errorf("Metric [%v] in %v: Name should not be empty", metricIdx, parent)
+	}
+	if m.Statistics != nil {
+		if len(m.Statistics) == 0 {
+			return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
+		}
+	} else {
+		return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
+	}
+	if m.Period < 1 {
+		return fmt.Errorf("Metric [%v] in %v: Period value should be a positive integer", metricIdx, parent)
+	}
+	if m.Length < m.Period {
+		log.Warn("Metric [%v] in %v: length is smaller than period. This can cause that the data requested is not ready and generate data gaps", metricIdx, parent)
+	}
+
 	return nil
 }
