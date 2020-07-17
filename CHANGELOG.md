@@ -1,3 +1,20 @@
+# 0.19.0-alpha (unreleased)
+* *BREAKING CHANGE* Add support for multiple roleArns (jylitalo)
+```yaml
+# Before
+---
+discovery:
+  jobs:
+  - type: rds
+    roleArn: "arn:aws:iam::123456789012:role/Prometheus"
+# After
+discovery:
+  jobs:
+  - type: rds
+    roleArns:
+    - "arn:aws:iam::123456789012:role/Prometheus"
+```
+
 # 0.18.0-alpha
 * *BREAKING CHANGE* Add support for multiple regions (goya)
 ```yaml
