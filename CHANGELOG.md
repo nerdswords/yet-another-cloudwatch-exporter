@@ -1,3 +1,7 @@
+# 0.19.1-alpha
+
+- Remove error during build
+
 # 0.19.0-alpha
 Wow what a release. Thanks to all contributors. This is
 our biggest release and it made me a lot of fun to see all those
