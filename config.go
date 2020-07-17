@@ -190,7 +190,7 @@ func (c *conf) validateMetric(m metric, metricIdx int, parent string) error {
 		return fmt.Errorf("Metric [%v] in %v: Period value should be a positive integer", metricIdx, parent)
 	}
 	if m.Length < m.Period {
-		log.Warn("Metric [%v] in %v: length is smaller than period. This can cause that the data requested is not ready and generate data gaps", metricIdx, parent)
+		log.Warnf("Metric [%v] in %v: length is smaller than period. This can cause that the data requested is not ready and generate data gaps", metricIdx, parent)
 	}
 
 	return nil
