@@ -30,6 +30,9 @@ var (
 		Name: "yace_cloudwatch_autoscalingapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	apiGatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_apigatewayapi_requests_total",
+	})
 	ec2APICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_ec2api_requests_total",
 		Help: "Help is not implemented yet.",
