@@ -70,6 +70,7 @@ type tag struct {
 	Value string `yaml:"Value"`
 }
 
+// s3elements parses bucket and key from s3://bucket_name/key_name string
 func (c *conf) s3elements(url string) (bucket, key string) {
 	fields := strings.SplitN(url, "/", 4)
 	if len(fields) < 4 {
@@ -80,27 +81,28 @@ func (c *conf) s3elements(url string) (bucket, key string) {
 	return bucket, key
 }
 
+// loadContent from s3 bucket or local file
 func (c *conf) loadContent(file string) ([]byte, error) {
 	if strings.HasPrefix(file, "s3://") {
 		bucket, key := c.s3elements(file)
-		sess, err := session.NewSession(&aws.Config{})
-		if err != nil {
-			return nil, err
-		}
+		sess := session.Must(session.NewSessionWithOptions(session.Options{
+			SharedConfigState: session.SharedConfigEnable,
+		}))
 		downloader := s3manager.NewDownloader(sess)
 		buf := aws.NewWriteAtBuffer([]byte{})
-		_, err = downloader.Download(buf,
+		nBytes, err := downloader.Download(buf,
 			&s3.GetObjectInput{
 				Bucket: aws.String(bucket),
 				Key:    aws.String(key),
 			})
+		log.Debugf("Downloaded %d bytes from %s", nBytes, file)
 		return buf.Bytes(), err
 	}
 	return ioutil.ReadFile(file)
 }
 
-func (c *conf) load(file *string) error {
-	yamlFile, err := c.loadContent(*file)
+func (c *conf) load(file string) error {
+	yamlFile, err := c.loadContent(file)
 	if err != nil {
 		return err
 	}
