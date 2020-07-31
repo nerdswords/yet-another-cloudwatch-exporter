@@ -18,8 +18,12 @@ RUN go build -v -ldflags "-X main.version=$VERSION" -o yace
 FROM alpine:latest
 
 EXPOSE 5000
+
+ENV AWS_REGION eu-west-1
+ENV CONFIG_FILE /tmp/config.yml
+
 ENTRYPOINT ["yace"]
-CMD ["--config.file=/tmp/config.yml"]
+CMD ["--config.file=${CONFIG_FILE}"]
 RUN addgroup -g 1000 exporter && \
     adduser -u 1000 -D -G exporter exporter -h /exporter
 
