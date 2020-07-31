@@ -1,3 +1,9 @@
+# 0.20.0-alpha
+
+- Add api-gateway support (smcavallo)
+- Improve metrics validation (jylitalo)
+- Fix metrics with '<', '>' chars
+
 # 0.19.1-alpha
 
 - Remove error during build
