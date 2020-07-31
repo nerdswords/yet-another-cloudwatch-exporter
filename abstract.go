@@ -36,9 +36,10 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					}
 
 					clientTag := tagsInterface{
-						client:    createTagSession(&region, roleArn),
-						asgClient: createASGSession(&region, roleArn),
-						ec2Client: createEC2Session(&region, roleArn),
+						client:           createTagSession(&region, roleArn),
+						apiGatewayClient: createAPIGatewaySession(&region, roleArn),
+						asgClient:        createASGSession(&region, roleArn),
+						ec2Client:        createEC2Session(&region, roleArn),
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
@@ -199,7 +200,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			metricTags := resource.metricTags(tagsOnMetrics)
 
 			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
-			dimensionsWithValue := detectDimensionsByService(resource.Service, resource.ID, fullMetricsList)
+			dimensionsWithValue := detectDimensionsByService(resource, fullMetricsList)
 
 			// Adds the dimensions with values of that specific metric of the job
 			dimensionsWithValue = addAdditionalDimensions(dimensionsWithValue, metric.AdditionalDimensions)
