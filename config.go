@@ -120,29 +120,22 @@ func (c *conf) validate() error {
 }
 
 func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
-	if j.Regions != nil {
-		if len(j.Regions) == 0 {
-			return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
-		}
-	} else {
-		return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
-	}
 	if j.Type != "" {
 		if !stringInSlice(j.Type, supportedServices) {
-			return fmt.Errorf("Discovery job [%v]: Service is not in known list!: %v", jobIdx, j.Type)
+			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
-		return fmt.Errorf("Discovery job [%v]: Type should not be empty", jobIdx)
+		return fmt.Errorf("Discovery job [%d]: Type should not be empty", jobIdx)
 	}
-	if j.Metrics != nil {
-		if len(j.Metrics) == 0 {
-			return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
-		}
-	} else {
-		return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
+	if len(j.Regions) == 0 {
+		return fmt.Errorf("Discovery job [%s/%d]: Regions should not be empty", j.Type, jobIdx)
+	}
+	if len(j.Metrics) == 0 {
+		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Type, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Discovery job [%v]", jobIdx))
+		parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
+		err := c.validateMetric(metric, metricIdx, parent, &j)
 		if err != nil {
 			return err
 		}
@@ -156,17 +149,13 @@ func (c *conf) validateStaticJob(j static, jobIdx int) error {
 		return fmt.Errorf("Static job [%v]: Name should not be empty", jobIdx)
 	}
 	if j.Namespace == "" {
-		return fmt.Errorf("Static job [%v]: Namespace should not be empty", jobIdx)
+		return fmt.Errorf("Static job [%s/%d]: Namespace should not be empty", j.Name, jobIdx)
 	}
-	if j.Regions != nil {
-		if len(j.Regions) == 0 {
-			return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
-		}
-	} else {
-		return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
+	if len(j.Regions) == 0 {
+		return fmt.Errorf("Static job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Static job [%v]", jobIdx))
+		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx), nil)
 		if err != nil {
 			return err
 		}
@@ -175,22 +164,28 @@ func (c *conf) validateStaticJob(j static, jobIdx int) error {
 	return nil
 }
 
-func (c *conf) validateMetric(m metric, metricIdx int, parent string) error {
+func (c *conf) validateMetric(m metric, metricIdx int, parent string, discovery *job) error {
 	if m.Name == "" {
-		return fmt.Errorf("Metric [%v] in %v: Name should not be empty", metricIdx, parent)
+		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
-	if m.Statistics != nil {
-		if len(m.Statistics) == 0 {
-			return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
-		}
-	} else {
-		return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
+	if len(m.Statistics) == 0 {
+		return fmt.Errorf("Metric [%s/%d] in %v: Statistics should not be empty", m.Name, metricIdx, parent)
 	}
-	if m.Period < 1 {
-		return fmt.Errorf("Metric [%v] in %v: Period value should be a positive integer", metricIdx, parent)
+	mPeriod := m.Period
+	if mPeriod == 0 && discovery != nil {
+		mPeriod = discovery.Period
 	}
-	if m.Length < m.Period {
-		log.Warningf("Metric [%v] in %v: length is smaller than period. This can cause that the data requested is not ready and generate data gaps", metricIdx, parent)
+	if mPeriod < 1 {
+		return fmt.Errorf("Metric [%s/%d] in %v: Period value should be a positive integer", m.Name, metricIdx, parent)
+	}
+	mLength := m.Length
+	if mLength == 0 && discovery != nil {
+		mLength = discovery.Length
+	}
+	if mLength < mPeriod {
+		log.Warningf(
+			"Metric [%s/%d] in %v: length(%d) is smaller than period(%d). This can cause that the data requested is not ready and generate data gaps",
+			m.Name, metricIdx, parent, mLength, mPeriod)
 	}
 
 	return nil
