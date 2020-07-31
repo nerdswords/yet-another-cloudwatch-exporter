@@ -120,11 +120,7 @@ func (c *conf) validate() error {
 }
 
 func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
-	if j.Regions != nil {
-		if len(j.Regions) == 0 {
-			return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
-		}
-	} else {
+	if len(j.Regions) == 0 {
 		return fmt.Errorf("Discovery job [%v]: Regions should not be empty", jobIdx)
 	}
 	if j.Type != "" {
@@ -134,11 +130,7 @@ func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
 	} else {
 		return fmt.Errorf("Discovery job [%v]: Type should not be empty", jobIdx)
 	}
-	if j.Metrics != nil {
-		if len(j.Metrics) == 0 {
-			return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
-		}
-	} else {
+	if len(j.Metrics) == 0 {
 		return fmt.Errorf("Discovery job [%v]: Metrics should not be empty", jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
@@ -158,11 +150,7 @@ func (c *conf) validateStaticJob(j static, jobIdx int) error {
 	if j.Namespace == "" {
 		return fmt.Errorf("Static job [%v]: Namespace should not be empty", jobIdx)
 	}
-	if j.Regions != nil {
-		if len(j.Regions) == 0 {
-			return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
-		}
-	} else {
+	if len(j.Regions) == 0 {
 		return fmt.Errorf("Static job [%v]: Regions should not be empty", jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
@@ -179,11 +167,7 @@ func (c *conf) validateMetric(m metric, metricIdx int, parent string) error {
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%v] in %v: Name should not be empty", metricIdx, parent)
 	}
-	if m.Statistics != nil {
-		if len(m.Statistics) == 0 {
-			return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
-		}
-	} else {
+	if len(m.Statistics) == 0 {
 		return fmt.Errorf("Metric [%v] in %v: Statistics should not be empty", metricIdx, parent)
 	}
 	if m.Period < 1 {
