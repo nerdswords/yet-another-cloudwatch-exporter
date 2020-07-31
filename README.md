@@ -18,6 +18,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Supported services with auto discovery through tags:
 
   * alb - Application Load Balancer
+  * apigateway - Api Gateway
   * appsync - AppSync
   * cf - Cloud Front
   * dynamodb - NoSQL Online Datenbank Service

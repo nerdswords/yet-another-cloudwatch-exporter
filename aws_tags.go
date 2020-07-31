@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,6 +21,7 @@ import (
 
 type tagsData struct {
 	ID      *string
+	Matcher *string
 	Tags    []*tag
 	Service *string
 	Region  *string
@@ -26,9 +29,10 @@ type tagsData struct {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	client    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asgClient autoscalingiface.AutoScalingAPI
-	ec2Client ec2iface.EC2API
+	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	asgClient        autoscalingiface.AutoScalingAPI
+	apiGatewayClient apigatewayiface.APIGatewayAPI
+	ec2Client        ec2iface.EC2API
 }
 
 func createSession(roleArn string, config *aws.Config) *session.Session {
@@ -60,6 +64,20 @@ func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
 	return ec2.New(createSession(roleArn, config), config)
 }
 
+func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.APIGatewayAPI {
+	sess, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	maxApiGatewaygAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+
+	return apigateway.New(sess, config)
+}
+
 func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
 	c := iface.client
 
@@ -69,6 +87,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	case "alb":
 		filter = append(filter, aws.String("elasticloadbalancing:loadbalancer/app"))
 		filter = append(filter, aws.String("elasticloadbalancing:targetgroup"))
+	case "apigateway":
+		filter = append(filter, aws.String("apigateway"))
 	case "appsync":
 		filter = append(filter, aws.String("appsync"))
 	case "cf":
@@ -136,7 +156,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 	ctx := context.Background()
 	pageNum := 0
-	return resources, c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
+	resourcePages := c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 		pageNum++
 		resourceGroupTaggingAPICounter.Inc()
 		for _, resourceTagMapping := range page.ResourceTagMappingList {
@@ -157,9 +177,33 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		}
 		return pageNum < 100
 	})
+
+	switch job.Type {
+	case "apigateway":
+		// Get all the api gateways from aws
+		apiGateways, _ := iface.getTaggedApiGateway()
+		var filteredResources []*tagsData
+		for _, r := range resources {
+			// For each tagged resource, find the associated restApi
+			// And swap out the ID with the name
+			if strings.Contains(*r.ID, "/restapis") {
+				restApiId := strings.Split(*r.ID, "/")[2]
+				for _, apiGateway := range apiGateways.Items {
+					if *apiGateway.Id == restApiId {
+						r.Matcher = apiGateway.Name
+					}
+				}
+				filteredResources = append(filteredResources, r)
+			}
+		}
+		resources = filteredResources
+	}
+
+	return resources, resourcePages
 }
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted
+// https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/
 func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (resources []*tagsData, err error) {
 	ctx := context.Background()
 	pageNum := 0
@@ -188,6 +232,13 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 			}
 			return pageNum < 100
 		})
+}
+
+// Get all ApiGateways REST
+func (iface tagsInterface) getTaggedApiGateway() (*apigateway.GetRestApisOutput, error) {
+	ctx := context.Background()
+	apiGatewayAPICounter.Inc()
+	return iface.apiGatewayClient.GetRestApisWithContext(ctx, &apigateway.GetRestApisInput{})
 }
 
 func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region string) (resources []*tagsData, err error) {
