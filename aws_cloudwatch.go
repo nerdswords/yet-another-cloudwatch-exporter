@@ -651,7 +651,7 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	case "apigateway":
 		// The same dimensions are required on all metrics by prometheus
 		for _, key := range []string{"Stage", "Resource", "Method"} {
-			labels["dimension_"+key] = ""
+			labels["dimension_"+promStringTag(key)] = ""
 		}
 	}
 
