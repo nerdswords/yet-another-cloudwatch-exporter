@@ -44,6 +44,8 @@ type cloudwatchData struct {
 	Period                  int64
 }
 
+var labelMap = make(map[string][]string)
+
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -647,6 +649,27 @@ func promLabelExists(promLabels map[string]string, key string) bool {
 	}
 }
 
+func recordLabelsForMetric(metricName string, promLabels map[string]string) {
+    var workingLabelsCopy []string
+    if _, ok := labelMap[metricName]; ok {
+        copy(labelMap[metricName], workingLabelsCopy)
+    }
+
+    for k, _ := range promLabels {
+        workingLabelsCopy = append(workingLabelsCopy, k)
+    }
+    sort.Strings(workingLabelsCopy)
+    j := 0
+    for i := 1; i < len(workingLabelsCopy); i++ {
+        if workingLabelsCopy[j] == workingLabelsCopy[i] {
+            continue
+        }
+        j++
+        workingLabelsCopy[j] = workingLabelsCopy[i]
+    }
+    labelMap[metricName] = workingLabelsCopy[:j+1]
+}
+
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
@@ -758,6 +781,8 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				}
 
 				promLabels["region"] = *c.Region
+
+				recordLabelsForMetric(name, promLabels)
 
 				p := PrometheusMetric{
 					name:             &name,
