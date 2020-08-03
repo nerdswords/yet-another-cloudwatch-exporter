@@ -647,7 +647,7 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	// Inject the sfn name back as a label
 	switch *cwd.Service {
 	case "sfn":
-		labels["dimension_StateMachineArn"] = getStateMachineNameFromArn(*cwd.ID)
+		labels["dimension_"+promStringTag("StateMachineArn")] = getStateMachineNameFromArn(*cwd.ID)
 	case "apigateway":
 		// The same dimensions are required on all metrics by prometheus
 		for _, key := range []string{"Stage", "Resource", "Method"} {
