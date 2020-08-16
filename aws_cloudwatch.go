@@ -641,12 +641,34 @@ func getStateMachineNameFromArn(resourceArn string) string {
 	return parsedResource[1]
 }
 
-func promLabelExists(promLabels map[string]string, key string) bool {
-	if _, ok := promLabels[key]; ok {
-		return true
-	} else {
-		return false
+func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
+	labels := make(map[string]string)
+	labels["name"] = *cwd.ID
+	labels["region"] = *cwd.Region
+
+	// Inject the sfn name back as a label
+	switch *cwd.Service {
+	case "sfn":
+		labels["dimension_"+promStringTag("StateMachineArn")] = getStateMachineNameFromArn(*cwd.ID)
+	case "apigateway":
+		// The same dimensions are required on all metrics by prometheus
+		for _, key := range []string{"Stage", "Resource", "Method"} {
+			labels["dimension_"+promStringTag(key)] = ""
+		}
 	}
+
+	for _, dimension := range cwd.Dimensions {
+		labels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
+	}
+
+	for _, label := range cwd.CustomTags {
+		labels["custom_tag_"+promStringTag(label.Key)] = label.Value
+	}
+	for _, tag := range cwd.Tags {
+		labels["tag_"+promStringTag(tag.Key)] = tag.Value
+	}
+
+	return labels
 }
 
 func recordLabelsForMetric(metricName string, promLabels map[string]string) {
@@ -770,42 +792,9 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 				includeTimestamp = false
 			}
 			if exportedDatapoint != nil {
-				promLabels := make(map[string]string)
-				promLabels["name"] = *c.ID
 
-				for _, label := range c.CustomTags {
-					promLabels["custom_tag_"+promStringTag(label.Key)] = label.Value
-				}
-				for _, tag := range c.Tags {
-					promLabels["tag_"+promStringTag(tag.Key)] = tag.Value
-				}
-
-				for _, dimension := range c.Dimensions {
-					promLabels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
-				}
-
-				// Inject the sfn name back as a label
-				switch serviceName {
-				case "sfn":
-					promLabels["dimension_StateMachineArn"] = getStateMachineNameFromArn(*c.ID)
-				case "apigateway":
-					// The same dimensions are required on all metrics by prometheus
-					if !promLabelExists(promLabels, "dimension_Stage") {
-						promLabels["dimension_Stage"] = ""
-					}
-					if !promLabelExists(promLabels, "dimension_Resource") {
-						promLabels["dimension_Resource"] = ""
-					}
-					// only for restapis
-					if !promLabelExists(promLabels, "dimension_Method") {
-						promLabels["dimension_Method"] = ""
-					}
-				}
-
-				promLabels["region"] = *c.Region
-
-				recordLabelsForMetric(name, promLabels)
-
+                promLabels := createPrometheusLabels(c)
+                recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,
 					labels:           promLabels,
