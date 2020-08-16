@@ -670,6 +670,28 @@ func recordLabelsForMetric(metricName string, promLabels map[string]string) {
     labelMap[metricName] = workingLabelsCopy[:j+1]
 }
 
+func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
+    var updatedMetrics []*PrometheusMetric
+
+    for _, prometheusMetric := range metrics {
+        metricName := prometheusMetric.name
+        metricLabels := prometheusMetric.labels
+
+        consistentMetricLabels := make(map[string]string)
+
+        for _, recordedLabel := range labelMap[*metricName] {
+            if value, ok := metricLabels[recordedLabel]; ok {
+                consistentMetricLabels[recordedLabel] = value
+            } else {
+                consistentMetricLabels[recordedLabel] = ""
+            }
+        }
+        prometheusMetric.labels = consistentMetricLabels
+        updatedMetrics = append(updatedMetrics, prometheusMetric)
+    }
+    return updatedMetrics
+}
+
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
