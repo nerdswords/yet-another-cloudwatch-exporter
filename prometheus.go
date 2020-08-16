@@ -57,7 +57,11 @@ func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	}
 }
 
-func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {}
+func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
+	for _, metric := range p.metrics {
+		descs <- createDesc(metric)
+	}
+}
 
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	for _, metric := range p.metrics {
