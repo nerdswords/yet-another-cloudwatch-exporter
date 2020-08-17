@@ -649,11 +649,6 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	switch *cwd.Service {
 	case "sfn":
 		labels["dimension_"+promStringTag("StateMachineArn")] = getStateMachineNameFromArn(*cwd.ID)
-	case "apigateway":
-		// The same dimensions are required on all metrics by prometheus
-		for _, key := range []string{"Stage", "Resource", "Method"} {
-			labels["dimension_"+promStringTag(key)] = ""
-		}
 	}
 
 	for _, dimension := range cwd.Dimensions {
@@ -671,46 +666,46 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 }
 
 func recordLabelsForMetric(metricName string, promLabels map[string]string) {
-    var workingLabelsCopy []string
-    if _, ok := labelMap[metricName]; ok {
-        copy(labelMap[metricName], workingLabelsCopy)
-    }
+	var workingLabelsCopy []string
+	if _, ok := labelMap[metricName]; ok {
+		copy(labelMap[metricName], workingLabelsCopy)
+	}
 
-    for k, _ := range promLabels {
-        workingLabelsCopy = append(workingLabelsCopy, k)
-    }
-    sort.Strings(workingLabelsCopy)
-    j := 0
-    for i := 1; i < len(workingLabelsCopy); i++ {
-        if workingLabelsCopy[j] == workingLabelsCopy[i] {
-            continue
-        }
-        j++
-        workingLabelsCopy[j] = workingLabelsCopy[i]
-    }
-    labelMap[metricName] = workingLabelsCopy[:j+1]
+	for k, _ := range promLabels {
+		workingLabelsCopy = append(workingLabelsCopy, k)
+	}
+	sort.Strings(workingLabelsCopy)
+	j := 0
+	for i := 1; i < len(workingLabelsCopy); i++ {
+		if workingLabelsCopy[j] == workingLabelsCopy[i] {
+			continue
+		}
+		j++
+		workingLabelsCopy[j] = workingLabelsCopy[i]
+	}
+	labelMap[metricName] = workingLabelsCopy[:j+1]
 }
 
 func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-    var updatedMetrics []*PrometheusMetric
+	var updatedMetrics []*PrometheusMetric
 
-    for _, prometheusMetric := range metrics {
-        metricName := prometheusMetric.name
-        metricLabels := prometheusMetric.labels
+	for _, prometheusMetric := range metrics {
+		metricName := prometheusMetric.name
+		metricLabels := prometheusMetric.labels
 
-        consistentMetricLabels := make(map[string]string)
+		consistentMetricLabels := make(map[string]string)
 
-        for _, recordedLabel := range labelMap[*metricName] {
-            if value, ok := metricLabels[recordedLabel]; ok {
-                consistentMetricLabels[recordedLabel] = value
-            } else {
-                consistentMetricLabels[recordedLabel] = ""
-            }
-        }
-        prometheusMetric.labels = consistentMetricLabels
-        updatedMetrics = append(updatedMetrics, prometheusMetric)
-    }
-    return updatedMetrics
+		for _, recordedLabel := range labelMap[*metricName] {
+			if value, ok := metricLabels[recordedLabel]; ok {
+				consistentMetricLabels[recordedLabel] = value
+			} else {
+				consistentMetricLabels[recordedLabel] = ""
+			}
+		}
+		prometheusMetric.labels = consistentMetricLabels
+		updatedMetrics = append(updatedMetrics, prometheusMetric)
+	}
+	return updatedMetrics
 }
 
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
@@ -792,8 +787,8 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			}
 			if exportedDatapoint != nil {
 
-                promLabels := createPrometheusLabels(c)
-                recordLabelsForMetric(name, promLabels)
+				promLabels := createPrometheusLabels(c)
+				recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,
 					labels:           promLabels,
