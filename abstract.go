@@ -191,14 +191,15 @@ func getMetricDataForQueries(
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
 					for _, stats := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
-
+						name := metric.Name
+						nilToZero := metric.NilToZero
 						getMetricDatas = append(getMetricDatas, cloudwatchData{
 							ID:                     resource.ID,
 							MetricID:               &id,
-							Metric:                 &metric.Name,
+							Metric:                 &name,
 							Service:                resource.Service,
 							Statistics:             []string{stats},
-							NilToZero:              &metric.NilToZero,
+							NilToZero:              &nilToZero,
 							AddCloudwatchTimestamp: &addCloudwatchTimestamp,
 							Tags:                   metricTags,
 							CustomTags:             discoveryJob.CustomTags,
