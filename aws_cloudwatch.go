@@ -443,7 +443,7 @@ func getDimensionfromMetric(resp *cloudwatch.ListMetricsOutput) []*cloudwatch.Di
 
 func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 
-	if !strings.HasSuffix(*namespace, "ApplicationELB") {
+	if !strings.HasSuffix(*namespace, "ApplicationELB") && !strings.HasSuffix(*namespace, "NetworkELB") {
 		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
 		return nil
 	}
@@ -455,11 +455,10 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 			dimensions = getDimensionfromMetric(resp)
 		}
 
-	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
+	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "net/") || strings.HasPrefix(resource, "app/") {
 		trimmedDimensionValue := strings.Replace(resource, "loadbalancer/", "", -1)
 		dimensions = append(dimensions, buildDimension("LoadBalancer", trimmedDimensionValue))
 	}
-
 	return dimensions
 }
 
@@ -492,7 +491,6 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"kinesis":  {Key: "StreamName", Prefix: "stream/"},
 		"lambda":   {Key: "FunctionName", Prefix: "function:"},
 		"ngw":      {Key: "NatGatewayId", Prefix: "natgateway/"},
-		"nlb":      {Key: "LoadBalancer", Prefix: "loadbalancer/"},
 		"rds":      {Key: "DBInstanceIdentifier", Prefix: "db:"},
 		"redshift": {Key: "ClusterIdentifier", Prefix: "cluster:"},
 		"r53r":     {Key: "EndpointId", Prefix: "resolver-endpoint/"},
@@ -505,9 +503,10 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	if params, ok := baseDimension[*service]; ok {
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
-	switch *service {
-	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+	switch service {
+	case "alb", "nlb":
+		namespace, _ := getNamespace(service)
+		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
 	case "apigateway":
 		// https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
 		dimensions = buildBaseDimension(*resource.Matcher, "ApiName", "")
@@ -602,14 +601,14 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
 	var suffixName string
 
-	if *serviceName == "alb" {
+	if *serviceName == "alb" || *serviceName == "nlb" {
 		var albSuffix, tgSuffix string
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
 				tgSuffix = "tg"
 			}
 			if *dimension.Name == "LoadBalancer" {
-				albSuffix = "alb"
+				albSuffix = *serviceName
 			}
 		}
 		if albSuffix != "" && tgSuffix != "" {
