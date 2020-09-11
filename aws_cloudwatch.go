@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	"github.com/fatih/structs"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -291,17 +290,6 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForResource(name string, fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
-	for _, metric := range fullMetricsList.Metrics {
-		for _, dim := range metric.Dimensions {
-			if strings.Compare(*dim.Name, name) == 0 {
-				return dim.Value
-			}
-		}
-	}
-	return nil
-}
-
 func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
 	for _, dimension := range dimensions {
 		keys = append(keys, *dimension.Name)
@@ -340,34 +328,6 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 		dimensions = append(dimensions, buildDimensionWithoutValue(awsDimension))
 	}
 	return dimensions
-}
-
-func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
-	c := clientCloudwatch.client
-	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	callListMetrics := false
-	for _, dimension := range dimensions {
-		if structs.HasZero(dimension) {
-			callListMetrics = true
-			break
-		}
-	}
-	if callListMetrics {
-		var res cloudwatch.ListMetricsOutput
-		err := c.ListMetricsPages(filter,
-			func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-				res.Metrics = append(res.Metrics, page.Metrics...)
-				return !lastPage
-			})
-		cloudwatchAPICounter.Inc()
-		if err != nil {
-			log.Warningf("Unable to list metrics due to %v", err)
-		}
-		resp = filterMetricsBasedOnDimensions(dimensions, &res)
-	} else {
-		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
-	}
-	return resp
 }
 
 func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
@@ -708,83 +668,79 @@ func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*Prometheus
 	return updatedMetrics
 }
 
+func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
+	sort.Slice(datapoints, func(i, j int) bool {
+		jTimestamp := *datapoints[j].Timestamp
+		return datapoints[i].Timestamp.Before(jTimestamp)
+	})
+	return datapoints
+}
+
+func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
+	if cwd.GetMetricDataPoint != nil {
+		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps
+	}
+	var averageDataPoints []*cloudwatch.Datapoint
+
+	// sorting by timestamps so we can consistently export the most updated datapoint
+	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
+	for _, datapoint := range sortByTimestamp(cwd.Points) {
+		switch {
+		case statistic == "Maximum":
+			if datapoint.Maximum != nil {
+				return datapoint.Maximum, *datapoint.Timestamp
+			}
+		case statistic == "Minimum":
+			if datapoint.Minimum != nil {
+				return datapoint.Minimum, *datapoint.Timestamp
+			}
+		case statistic == "Sum":
+			if datapoint.Sum != nil {
+				return datapoint.Sum, *datapoint.Timestamp
+			}
+		case statistic == "Average":
+			if datapoint.Average != nil {
+				averageDataPoints = append(averageDataPoints, datapoint)
+			}
+		case percentile.MatchString(statistic):
+			if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
+				return data, *datapoint.Timestamp
+			}
+		default:
+			log.Fatal("Not implemented statistics: " + statistic)
+		}
+	}
+
+	if len(averageDataPoints) > 0 {
+		var total float64
+		var timestamp time.Time
+
+		for _, p := range averageDataPoints {
+			if p.Timestamp.After(timestamp) {
+				timestamp = *p.Timestamp
+			}
+			total += *p.Average
+		}
+		average := total / float64(len(averageDataPoints))
+		return &average, timestamp
+	}
+	return nil, time.Time{}
+}
+
 func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
-			serviceName := fixServiceName(c.Service, c.Dimensions)
-			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
-			var exportedDatapoint *float64
-			var averageDataPoints []*float64
-			var timestamp time.Time
-			if c.GetMetricDataPoint != nil {
-				exportedDatapoint = c.GetMetricDataPoint
-				timestamp = *c.GetMetricDataTimestamps
-			} else {
-				datapoints := c.Points
-				// sorting by timestamps so we can consistently export the most updated datapoint
-				// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
-				sort.Slice(datapoints, func(i, j int) bool {
-					jTimestamp := *datapoints[j].Timestamp
-					return datapoints[i].Timestamp.Before(jTimestamp)
-				})
-
-				for _, datapoint := range datapoints {
-					switch {
-					case statistic == "Maximum":
-						if datapoint.Maximum != nil {
-							exportedDatapoint = datapoint.Maximum
-							timestamp = *datapoint.Timestamp
-							break
-						}
-					case statistic == "Minimum":
-						if datapoint.Minimum != nil {
-							exportedDatapoint = datapoint.Minimum
-							timestamp = *datapoint.Timestamp
-							break
-						}
-					case statistic == "Sum":
-						if datapoint.Sum != nil {
-							exportedDatapoint = datapoint.Sum
-							timestamp = *datapoint.Timestamp
-							break
-						}
-					case statistic == "Average":
-						if datapoint.Average != nil {
-							if datapoint.Timestamp.After(timestamp) {
-								timestamp = *datapoint.Timestamp
-							}
-							averageDataPoints = append(averageDataPoints, datapoint.Average)
-						}
-					case percentile.MatchString(statistic):
-						if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
-							exportedDatapoint = data
-							timestamp = *datapoint.Timestamp
-							break
-						}
-					default:
-						log.Fatal("Not implemented statistics: " + statistic)
-					}
-				}
-
-			}
-
-			var exportedAverage float64
-			if len(averageDataPoints) > 0 {
-				var total float64
-				for _, p := range averageDataPoints {
-					total += *p
-				}
-				exportedAverage = total / float64(len(averageDataPoints))
-				exportedDatapoint = &exportedAverage
-			}
-			var zero float64
 			includeTimestamp := *c.AddCloudwatchTimestamp
+			exportedDatapoint, timestamp := getDatapoint(c, statistic)
 			if exportedDatapoint == nil && *c.NilToZero {
+				var zero float64 = 0
 				exportedDatapoint = &zero
 				includeTimestamp = false
 			}
+			serviceName := fixServiceName(c.Service, c.Dimensions)
+			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
 
 				promLabels := createPrometheusLabels(c)

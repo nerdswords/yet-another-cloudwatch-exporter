@@ -5,8 +5,8 @@ WORKDIR /opt/
 COPY go.mod go.sum ./
 RUN go mod download
 
-Add ./*.go ./
-RUN go test
+COPY ./*.go ./config_test.yml ./
+RUN go test -cover
 
 ENV GOOS linux
 ENV GOARCH amd64
