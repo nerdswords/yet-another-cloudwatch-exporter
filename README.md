@@ -300,6 +300,8 @@ static:
         length: 300
 ```
 
+[Source: [config_test.yml](config_test.yml)]
+
 ## Metrics Examples
 
 ```text
