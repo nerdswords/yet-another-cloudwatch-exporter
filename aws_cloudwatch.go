@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	"github.com/fatih/structs"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -339,34 +338,6 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 		dimensions = append(dimensions, buildDimensionWithoutValue(awsDimension))
 	}
 	return dimensions
-}
-
-func getMetricsList(dimensions []*cloudwatch.Dimension, serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
-	c := clientCloudwatch.client
-	filter := createListMetricsInput(dimensions, getNamespace(serviceName), &metric.Name)
-	callListMetrics := false
-	for _, dimension := range dimensions {
-		if structs.HasZero(dimension) {
-			callListMetrics = true
-			break
-		}
-	}
-	if callListMetrics {
-		var res cloudwatch.ListMetricsOutput
-		err := c.ListMetricsPages(filter,
-			func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-				res.Metrics = append(res.Metrics, page.Metrics...)
-				return !lastPage
-			})
-		cloudwatchAPICounter.Inc()
-		if err != nil {
-			log.Warningf("Unable to list metrics due to %v", err)
-		}
-		resp = filterMetricsBasedOnDimensions(dimensions, &res)
-	} else {
-		resp = createListMetricsOutput(dimensions, getNamespace(serviceName), &metric.Name)
-	}
-	return resp
 }
 
 func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
