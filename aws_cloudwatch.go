@@ -289,17 +289,6 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getDimensionValueForResource(name string, fullMetricsList *cloudwatch.ListMetricsOutput) (value *string) {
-	for _, metric := range fullMetricsList.Metrics {
-		for _, dim := range metric.Dimensions {
-			if strings.Compare(*dim.Name, name) == 0 {
-				return dim.Value
-			}
-		}
-	}
-	return nil
-}
-
 func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
 	for _, dimension := range dimensions {
 		keys = append(keys, *dimension.Name)
