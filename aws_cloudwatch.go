@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -294,20 +293,6 @@ func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
 		keys = append(keys, *dimension.Name)
 	}
 	return keys
-}
-
-func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
-	var output cloudwatch.ListMetricsOutput
-	selectedDimensionKeys := keysofDimension(dimensions)
-	sort.Strings(selectedDimensionKeys)
-	for _, metric := range resp.Metrics {
-		metricsDimensionkeys := keysofDimension(metric.Dimensions)
-		sort.Strings(metricsDimensionkeys)
-		if reflect.DeepEqual(metricsDimensionkeys, selectedDimensionKeys) {
-			output.Metrics = append(output.Metrics, metric)
-		}
-	}
-	return &output
 }
 
 func filterDimensionsWithoutValueByDimensionsWithValue(
