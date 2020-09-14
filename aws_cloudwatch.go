@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -224,7 +225,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 }
 
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html
-func getNamespace(service *string) *string {
+func getNamespace(service string) (string, error) {
 	var ns string
 	var ok bool
 
@@ -262,10 +263,10 @@ func getNamespace(service *string) *string {
 		"tgwa":                  "AWS/TransitGateway",
 		"vpn":                   "AWS/VPN",
 	}
-	if ns, ok = namespaces[*service]; !ok {
-		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
+	if ns, ok = namespaces[service]; !ok {
+		return "", errors.New("Not implemented namespace for cloudwatch metric: " + service)
 	}
-	return &ns
+	return ns, nil
 }
 
 func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
@@ -302,9 +303,9 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 	return dimensions
 }
 
-func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+func getFullMetricsList(namespace string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
-	filter := createListMetricsInput(nil, getNamespace(serviceName), &metric.Name)
+	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
@@ -398,11 +399,11 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 
 func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	resourceArn := *resource.ID
-	service := resource.Service
+	service := *resource.Service
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil && *service != "tgwa" {
-		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, *service, err)
+	if err != nil && service != "tgwa" {
+		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}
 
@@ -435,12 +436,13 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"tgw":      {Key: "TransitGateway", Prefix: "transit-gateway/"},
 		"vpn":      {Key: "VpnId", Prefix: "vpn-connection/"},
 	}
-	if params, ok := baseDimension[*service]; ok {
+	if params, ok := baseDimension[service]; ok {
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
-	switch *service {
+	switch service {
 	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+		namespace, _ := getNamespace(service)
+		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
 	case "apigateway":
 		// https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
 		dimensions = buildBaseDimension(*resource.Matcher, "ApiName", "")
@@ -496,7 +498,7 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	default:
-		log.Fatal("Not implemented cloudwatch metric: " + *service)
+		log.Fatal("Not implemented cloudwatch metric: " + service)
 	}
 
 	return dimensions
