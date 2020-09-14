@@ -167,19 +167,6 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	return output
 }
 
-func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
-	Metrics := []*cloudwatch.Metric{{
-		MetricName: metricsName,
-		Dimensions: dimensions,
-		Namespace:  namespace,
-	}}
-	output = &cloudwatch.ListMetricsOutput{
-		Metrics:   Metrics,
-		NextToken: nil,
-	}
-	return output
-}
-
 func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	for _, dim := range dimensions {
 		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
