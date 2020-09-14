@@ -164,13 +164,14 @@ func getMetricDataForQueries(
 	// Get the awsDimensions of the job configuration
 	// Common for all the metrics of the job
 	commonJobDimensions := getAwsDimensions(discoveryJob)
+	namespace, _ := getNamespace(discoveryJob.Type)
 	// For every metric of the job
 	for _, metric := range discoveryJob.Metrics {
 		// Get the full list of metrics
 		// This includes, for this metric the possible combinations
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
-		fullMetricsList := getFullMetricsList(&discoveryJob.Type, metric, clientCloudwatch)
+		fullMetricsList := getFullMetricsList(namespace, metric, clientCloudwatch)
 		<-tagSemaphore
 
 		// For every resource
@@ -222,9 +223,13 @@ func scrapeDiscoveryJobUsingMetricData(
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface) (resources []*tagsData, cw []*cloudwatchData) {
 
+	namespace, err := getNamespace(job.Type)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	// Add the info tags of all the resources
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.get(job, region)
+	resources, err = clientTag.get(job, region)
 	<-tagSemaphore
 	if err != nil {
 		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
@@ -247,13 +252,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			if end > metricDataLength {
 				end = metricDataLength
 			}
-			filter := createGetMetricDataInput(
-				getMetricDatas[i:end],
-				getNamespace(resources[0].Service),
-				length,
-				job.Delay,
-			)
-
+			filter := createGetMetricDataInput(getMetricDatas[i:end], &namespace, length, job.Delay)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				for _, MetricDataResult := range data.MetricDataResults {
