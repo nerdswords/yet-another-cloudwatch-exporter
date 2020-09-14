@@ -157,7 +157,11 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	switch job.Type {
 	case "apigateway":
 		// Get all the api gateways from aws
-		apiGateways, _ := iface.getTaggedApiGateway()
+		apiGateways, errGet := iface.getTaggedApiGateway()
+		if errGet != nil {
+			log.Errorf("tagsInterface.get: apigateway: getTaggedApiGateway: %v", errGet)
+			return resources, errGet
+		}
 		var filteredResources []*tagsData
 		for _, r := range resources {
 			// For each tagged resource, find the associated restApi
@@ -168,6 +172,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 					if *apiGateway.Id == restApiId {
 						r.Matcher = apiGateway.Name
 					}
+				}
+				if r.Matcher == nil {
+					log.Errorf("tagsInterface.get: apigateway: resource=%s restApiId=%s could not find gateway", *r.ID, restApiId)
+					continue // exclude resource to avoid crash later
 				}
 				filteredResources = append(filteredResources, r)
 			}
@@ -214,7 +222,17 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 func (iface tagsInterface) getTaggedApiGateway() (*apigateway.GetRestApisOutput, error) {
 	ctx := context.Background()
 	apiGatewayAPICounter.Inc()
-	return iface.apiGatewayClient.GetRestApisWithContext(ctx, &apigateway.GetRestApisInput{})
+	var limit int64 = 500 // max number of results per page. default=25, max=500
+	const maxPages = 10
+	input := apigateway.GetRestApisInput{Limit: &limit}
+	output := apigateway.GetRestApisOutput{}
+	var pageNum int
+	err := iface.apiGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+		pageNum++
+		output.Items = append(output.Items, page.Items...)
+		return pageNum <= maxPages
+	})
+	return &output, err
 }
 
 func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region string) (resources []*tagsData, err error) {
