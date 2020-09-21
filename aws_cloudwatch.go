@@ -277,13 +277,6 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
-	for _, dimension := range dimensions {
-		keys = append(keys, *dimension.Name)
-	}
-	return keys
-}
-
 func filterDimensionsWithoutValueByDimensionsWithValue(
 	dimensionsWithoutValue []*cloudwatch.Dimension,
 	dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
