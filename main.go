@@ -59,6 +59,7 @@ var (
 		"tgw",
 		"tgwa",
 		"vpn",
+		"wafv2",
 	}
 
 	config = conf{}
