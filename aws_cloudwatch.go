@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -42,6 +42,8 @@ type cloudwatchData struct {
 	Region                  *string
 	Period                  int64
 }
+
+var labelMap = make(map[string][]string)
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -166,23 +168,9 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	return output
 }
 
-func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
-	Metrics := []*cloudwatch.Metric{{
-		MetricName: metricsName,
-		Dimensions: dimensions,
-		Namespace:  namespace,
-	}}
-	output = &cloudwatch.ListMetricsOutput{
-		Metrics:   Metrics,
-		NextToken: nil,
-	}
-	return output
-}
-
 func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	for _, dim := range dimensions {
 		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
-		fmt.Println(output)
 	}
 	return output
 }
@@ -237,7 +225,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 }
 
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html
-func getNamespace(service *string) *string {
+func getNamespace(service string) (string, error) {
 	var ns string
 	var ok bool
 
@@ -275,10 +263,10 @@ func getNamespace(service *string) *string {
 		"tgwa":                  "AWS/TransitGateway",
 		"vpn":                   "AWS/VPN",
 	}
-	if ns, ok = namespaces[*service]; !ok {
-		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
+	if ns, ok = namespaces[service]; !ok {
+		return "", errors.New("Not implemented namespace for cloudwatch metric: " + service)
 	}
-	return &ns
+	return ns, nil
 }
 
 func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
@@ -287,27 +275,6 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	}
 
 	return output
-}
-
-func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
-	for _, dimension := range dimensions {
-		keys = append(keys, *dimension.Name)
-	}
-	return keys
-}
-
-func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
-	var output cloudwatch.ListMetricsOutput
-	selectedDimensionKeys := keysofDimension(dimensions)
-	sort.Strings(selectedDimensionKeys)
-	for _, metric := range resp.Metrics {
-		metricsDimensionkeys := keysofDimension(metric.Dimensions)
-		sort.Strings(metricsDimensionkeys)
-		if reflect.DeepEqual(metricsDimensionkeys, selectedDimensionKeys) {
-			output.Metrics = append(output.Metrics, metric)
-		}
-	}
-	return &output
 }
 
 func filterDimensionsWithoutValueByDimensionsWithValue(
@@ -329,9 +296,9 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 	return dimensions
 }
 
-func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+func getFullMetricsList(namespace string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
-	filter := createListMetricsInput(nil, getNamespace(serviceName), &metric.Name)
+	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
@@ -425,11 +392,11 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 
 func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	resourceArn := *resource.ID
-	service := resource.Service
+	service := *resource.Service
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil && *service != "tgwa" {
-		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, *service, err)
+	if err != nil && service != "tgwa" {
+		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}
 
@@ -462,12 +429,13 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"tgw":      {Key: "TransitGateway", Prefix: "transit-gateway/"},
 		"vpn":      {Key: "VpnId", Prefix: "vpn-connection/"},
 	}
-	if params, ok := baseDimension[*service]; ok {
+	if params, ok := baseDimension[service]; ok {
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
-	switch *service {
+	switch service {
 	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+		namespace, _ := getNamespace(service)
+		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
 	case "apigateway":
 		// https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
 		dimensions = buildBaseDimension(*resource.Matcher, "ApiName", "")
@@ -523,7 +491,7 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
 	default:
-		log.Fatal("Not implemented cloudwatch metric: " + *service)
+		log.Fatal("Not implemented cloudwatch metric: " + service)
 	}
 
 	return dimensions
@@ -608,11 +576,6 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	switch *cwd.Service {
 	case "sfn":
 		labels["dimension_"+promStringTag("StateMachineArn")] = getStateMachineNameFromArn(*cwd.ID)
-	case "apigateway":
-		// The same dimensions are required on all metrics by prometheus
-		for _, key := range []string{"Stage", "Resource", "Method"} {
-			labels["dimension_"+promStringTag(key)] = ""
-		}
 	}
 
 	for _, dimension := range cwd.Dimensions {
@@ -627,6 +590,49 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	}
 
 	return labels
+}
+
+func recordLabelsForMetric(metricName string, promLabels map[string]string) {
+	var workingLabelsCopy []string
+	if _, ok := labelMap[metricName]; ok {
+		copy(labelMap[metricName], workingLabelsCopy)
+	}
+
+	for k, _ := range promLabels {
+		workingLabelsCopy = append(workingLabelsCopy, k)
+	}
+	sort.Strings(workingLabelsCopy)
+	j := 0
+	for i := 1; i < len(workingLabelsCopy); i++ {
+		if workingLabelsCopy[j] == workingLabelsCopy[i] {
+			continue
+		}
+		j++
+		workingLabelsCopy[j] = workingLabelsCopy[i]
+	}
+	labelMap[metricName] = workingLabelsCopy[:j+1]
+}
+
+func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
+	var updatedMetrics []*PrometheusMetric
+
+	for _, prometheusMetric := range metrics {
+		metricName := prometheusMetric.name
+		metricLabels := prometheusMetric.labels
+
+		consistentMetricLabels := make(map[string]string)
+
+		for _, recordedLabel := range labelMap[*metricName] {
+			if value, ok := metricLabels[recordedLabel]; ok {
+				consistentMetricLabels[recordedLabel] = value
+			} else {
+				consistentMetricLabels[recordedLabel] = ""
+			}
+		}
+		prometheusMetric.labels = consistentMetricLabels
+		updatedMetrics = append(updatedMetrics, prometheusMetric)
+	}
+	return updatedMetrics
 }
 
 func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
@@ -703,9 +709,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			serviceName := fixServiceName(c.Service, c.Dimensions)
 			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
+
+				promLabels := createPrometheusLabels(c)
+				recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,
-					labels:           createPrometheusLabels(c),
+					labels:           promLabels,
 					value:            exportedDatapoint,
 					timestamp:        timestamp,
 					includeTimestamp: includeTimestamp,
