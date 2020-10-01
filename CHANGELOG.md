@@ -1,3 +1,10 @@
+# 0.21.0-alpha
+
+- Big tidy up of code, remove old methods and refactor used ones (jylitalo)
+- Fix crashes where labels are not collected correctly (rrusso1982)
+- Fix pointer bug causing metrics to be missing (jylitalo)
+- Allow more then 25 apigateways to be discovered (udhos)
+
 # 0.20.0-alpha
 
 - Add api-gateway support (smcavallo)
