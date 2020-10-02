@@ -49,6 +49,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * firehose - Managed Streaming Service
   * sns - Simple Notification Service
   * sfn - Step Functions
+  * wafv2 - Web Application Firewall v2
 
 ## Image
 
