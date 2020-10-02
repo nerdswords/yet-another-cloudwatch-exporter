@@ -125,6 +125,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"tgw":                   {"ec2:transit-gateway"},
 		"vpn":                   {"ec2:vpn-connection"},
 		"kafka":                 {"kafka:cluster"},
+		"wafv2":                 {"wafv2"},
 	}
 	var inputparams r.GetResourcesInput
 	if resourceTypeFilters, ok := allResourceTypesFilters[job.Type]; ok {
