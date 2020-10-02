@@ -1,3 +1,8 @@
+# 0.22.0-alpha
+
+- Fix alb issues (reddoggad)
+- Add nlb support (reddoggad)
+
 # 0.21.0-alpha
 
 - Big tidy up of code, remove old methods and refactor used ones (jylitalo)
