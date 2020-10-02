@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +35,7 @@ type tagsInterface struct {
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
 	ec2Client        ec2iface.EC2API
+	elbv2Client      elbv2.ELBV2
 }
 
 func createSession(roleArn string, config *aws.Config) *session.Session {
@@ -79,6 +81,11 @@ func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.API
 	return apigateway.New(sess, config)
 }
 
+func createELBV2Session(region *string, roleArn string) elbv2.ELBV2 {
+	config := &aws.Config{Region: region}
+	return *elbv2.New(createSession(roleArn, config), config)
+}
+
 func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
 	switch job.Type {
 	case "asg":
@@ -107,7 +114,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"kinesis":               {"kinesis:stream"},
 		"lambda":                {"lambda:function"},
 		"ngw":                   {"ec2:natgateway"},
-		"nlb":                   {"elasticloadbalancing:loadbalancer/net"},
+		"nlb":                   {"elasticloadbalancing:loadbalancer/net", "elasticloadbalancing:targetgroup"},
 		"rds":                   {"rds:db"},
 		"redshift":              {"redshift:cluster"},
 		"r53r":                  {"route53resolver"},
@@ -155,6 +162,47 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	})
 
 	switch job.Type {
+	case "alb", "nlb":
+		var filteredResources []*tagsData
+		var arnFilter []*string
+		var arnBalancers []*string
+		for _, r := range resources {
+			if strings.Contains(*r.ID, "targetgroup/") {
+				arnFilter = append(arnFilter, aws.String(*r.ID))
+			} else {
+				// Add all resources except target groups
+				filteredResources = append(filteredResources, r)
+				arnBalancers = append(arnBalancers, r.ID)
+			}
+		}
+		describeInput := &elbv2.DescribeTargetGroupsInput{
+			TargetGroupArns: arnFilter,
+		}
+		result, err := iface.elbv2Client.DescribeTargetGroups(describeInput)
+		if err != nil {
+			log.Errorf("Error describeTargetGroups for %s , err: %s", job.Type, err)
+			// Do not clear the resource list. The old behavior.
+			break
+		}
+		for _, tg := range result.TargetGroups {
+			if len(tg.LoadBalancerArns) == 0 {
+				log.Debugf("Not found balancer in targetGroup %s", *tg.TargetGroupArn)
+				continue
+			}
+			for _, balancer := range arnBalancers {
+				for _, b := range tg.LoadBalancerArns {
+					if *balancer == *b {
+						for _, res := range resources {
+							if *res.ID == *tg.TargetGroupArn {
+								filteredResources = append(filteredResources, res)
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+		resources = filteredResources
 	case "apigateway":
 		// Get all the api gateways from aws
 		apiGateways, errGet := iface.getTaggedApiGateway()
@@ -182,7 +230,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		}
 		resources = filteredResources
 	}
-
 	return resources, resourcePages
 }
 

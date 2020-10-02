@@ -40,6 +40,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 						apiGatewayClient: createAPIGatewaySession(&region, roleArn),
 						asgClient:        createASGSession(&region, roleArn),
 						ec2Client:        createEC2Session(&region, roleArn),
+						elbv2Client:      createELBV2Session(&region, roleArn),
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
@@ -186,7 +187,7 @@ func getMetricDataForQueries(
 			commonJobDimensions = filterDimensionsWithoutValueByDimensionsWithValue(commonJobDimensions, dimensionsWithValue)
 
 			metricsToAdd := filterMetricsBasedOnDimensionsWithValues(dimensionsWithValue, commonJobDimensions, fullMetricsList)
-			if metricsToAdd != nil {
+			if metricsToAdd != nil && len(metricsToAdd.Metrics) > 0 {
 				addCloudwatchTimestamp := discoveryJob.AddCloudwatchTimestamp || metric.AddCloudwatchTimestamp
 				metricTags := resource.metricTags(tagsOnMetrics)
 				for _, fetchedMetrics := range metricsToAdd.Metrics {
