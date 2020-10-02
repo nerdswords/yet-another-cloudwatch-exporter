@@ -122,6 +122,7 @@ searchTags:
 | nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                 |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting) |
 
+* Available statistics: Maximum, Minimum, Sum, SampleCount, Average, pXX.
 * **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
 * **Setting Inheritance: Some settings at the job level are overridden by settings at the metric level.  This allows for a specific setting to override a 
 general setting.  The currently inherited settings are period, and addCloudwatchTimestamp**

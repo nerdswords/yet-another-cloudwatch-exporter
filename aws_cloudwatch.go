@@ -663,6 +663,10 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 			if datapoint.Sum != nil {
 				return datapoint.Sum, *datapoint.Timestamp
 			}
+		case statistic == "SampleCount":
+			if datapoint.SampleCount != nil {
+				return datapoint.SampleCount, *datapoint.Timestamp
+			}
 		case statistic == "Average":
 			if datapoint.Average != nil {
 				averageDataPoints = append(averageDataPoints, datapoint)
