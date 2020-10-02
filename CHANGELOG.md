@@ -1,3 +1,8 @@
+# 0.23.0-alpha
+
+- Add sampleCount statistics (udhos)
+- Add WAFv2 support (mksh)
+
 # 0.22.0-alpha
 
 - Fix alb issues (reddoggad)
