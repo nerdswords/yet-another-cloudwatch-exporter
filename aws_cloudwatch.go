@@ -394,9 +394,13 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	resourceArn := *resource.ID
 	service := *resource.Service
+	if service == "ec2Spot" {
+		return dimensions
+
+	}
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil &&  (service != "tgwa" || service!= "ec2Spot")  {
+	if err != nil &&  service != "tgwa"  {
 		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}
