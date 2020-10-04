@@ -60,6 +60,7 @@ var (
 		"tgwa",
 		"vpn",
 		"wafv2",
+		"ec2Spot",
 	}
 
 	config = conf{}

@@ -92,6 +92,8 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		return iface.getTaggedAutoscalingGroups(job, region)
 	case "tgwa":
 		return iface.getTaggedTransitGatewayAttachments(job, region)
+	case "ec2Spot":
+		return iface.getTaggedEC2SpotInstances(job, region)
 	}
 
 	allResourceTypesFilters := map[string][]string{
@@ -311,6 +313,33 @@ func (iface tagsInterface) getTaggedTransitGatewayAttachments(job job, region st
 		})
 }
 
+func (iface tagsInterface) getTaggedEC2SpotInstances(job job, region string) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
+		func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
+			pageNum++
+			ec2APICounter.Inc()
+
+			for _, ec2Spot := range page.SpotFleetRequestConfigs{
+				resource := tagsData{}
+
+				resource.ID = aws.String(fmt.Sprintf("%s", *ec2Spot.SpotFleetRequestId))
+
+				resource.Service = &job.Type
+				resource.Region = &region
+
+				for _, t := range ec2Spot.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		})
+}
 func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 

@@ -263,6 +263,7 @@ func getNamespace(service string) (string, error) {
 		"tgwa":                  "AWS/TransitGateway",
 		"vpn":                   "AWS/VPN",
 		"wafv2":                 "AWS/WAFV2",
+		"ec2Spot":               "AWS/EC2Spot",
 	}
 	if ns, ok = namespaces[service]; !ok {
 		return "", errors.New("Not implemented namespace for cloudwatch metric: " + service)
@@ -395,7 +396,7 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	service := *resource.Service
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil && service != "tgwa" {
+	if err != nil &&  (service != "tgwa" || service!= "ec2Spot")  {
 		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}
