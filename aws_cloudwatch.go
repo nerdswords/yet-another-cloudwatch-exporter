@@ -400,7 +400,7 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	}
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil &&  service != "tgwa"  {
+	if err != nil && service != "tgwa" {
 		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}

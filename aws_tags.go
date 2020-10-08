@@ -340,6 +340,7 @@ func (iface tagsInterface) getTaggedEC2SpotInstances(job job, region string) (re
 			return pageNum < 100
 		})
 }
+
 func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 

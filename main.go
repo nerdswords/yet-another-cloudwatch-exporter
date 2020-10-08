@@ -36,6 +36,7 @@ var (
 		"ebs",
 		"ec",
 		"ec2",
+		"ec2Spot",
 		"ecs-svc",
 		"ecs-containerinsights",
 		"efs",
@@ -60,7 +61,6 @@ var (
 		"tgwa",
 		"vpn",
 		"wafv2",
-		"ec2Spot",
 	}
 
 	config = conf{}
