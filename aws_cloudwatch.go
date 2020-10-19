@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -35,6 +36,7 @@ type cloudwatchData struct {
 	GetMetricDataPoint      *float64
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
+	NilToNaN                *bool
 	AddCloudwatchTimestamp  *bool
 	CustomTags              []tag
 	Tags                    []tag
@@ -710,6 +712,10 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			if exportedDatapoint == nil && *c.NilToZero {
 				var zero float64 = 0
 				exportedDatapoint = &zero
+				includeTimestamp = false
+			} else if exportedDatapoint == nil && *c.NilToNaN {
+				var nan float64 = math.NaN()
+				exportedDatapoint = &nan
 				includeTimestamp = false
 			}
 			serviceName := fixServiceName(c.Service, c.Dimensions)

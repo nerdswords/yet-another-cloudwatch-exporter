@@ -52,6 +52,7 @@ type metric struct {
 	Length                 int         `yaml:"length"`
 	Delay                  int         `yaml:"delay"`
 	NilToZero              bool        `yaml:"nilToZero"`
+	NilToNaN               bool        `yaml:"nilToNaN"`
 	AddCloudwatchTimestamp bool        `yaml:"addCloudwatchTimestamp"`
 }
 
@@ -187,6 +188,8 @@ func (c *conf) validateMetric(m metric, metricIdx int, parent string, discovery 
 			"Metric [%s/%d] in %v: length(%d) is smaller than period(%d). This can cause that the data requested is not ready and generate data gaps",
 			m.Name, metricIdx, parent, mLength, mPeriod)
 	}
-
+	if m.NilToZero && m.NilToNaN {
+		return fmt.Errorf("Metric [%s/%d] in %v: nilToZero and nilToNaN are mutually exclusive", m.Name, metricIdx, parent)
+	}
 	return nil
 }

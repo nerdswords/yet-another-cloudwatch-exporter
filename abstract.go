@@ -102,6 +102,7 @@ func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatch
 				Service:                &service,
 				Statistics:             metric.Statistics,
 				NilToZero:              &metric.NilToZero,
+				NilToNaN:               &metric.NilToNaN,
 				AddCloudwatchTimestamp: &metric.AddCloudwatchTimestamp,
 				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
@@ -195,6 +196,7 @@ func getMetricDataForQueries(
 						id := fmt.Sprintf("id_%d", rand.Int())
 						name := metric.Name
 						nilToZero := metric.NilToZero
+						nilToNaN := metric.NilToNaN
 						getMetricDatas = append(getMetricDatas, cloudwatchData{
 							ID:                     resource.ID,
 							MetricID:               &id,
@@ -202,6 +204,7 @@ func getMetricDataForQueries(
 							Service:                resource.Service,
 							Statistics:             []string{stats},
 							NilToZero:              &nilToZero,
+							NilToNaN:               &nilToNaN,
 							AddCloudwatchTimestamp: &addCloudwatchTimestamp,
 							Tags:                   metricTags,
 							CustomTags:             discoveryJob.CustomTags,
