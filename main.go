@@ -78,9 +78,8 @@ func init() {
 
 }
 
-func updateMetrics(registry *prometheus.Registry) {
-	tagsData, cloudwatchData := scrapeAwsData(config)
-
+func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
+	tagsData, cloudwatchData, nendtime := scrapeAwsData(config, now)
 	var metrics []*PrometheusMetric
 
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
@@ -94,6 +93,7 @@ func updateMetrics(registry *prometheus.Registry) {
 			log.Warning("Could not publish cloudwatch api metric")
 		}
 	}
+	return *nendtime
 }
 
 func main() {
@@ -119,16 +119,30 @@ func main() {
 	registry := prometheus.NewRegistry()
 
 	log.Println("Startup completed")
+	//swtich this to perdiod right now testing it for 5 minutes granuality and roundtime time to 5 minutes for exaple 12:00,12:05 etc etc
+	var now time.Time
 
 	if *decoupledScraping {
+
 		go func() {
 			for {
+				t0 := time.Now()
+				log.Println("Starting metrics scrape at ....", t0, "with Scrape interval as ", *scrapingInterval)
 				newRegistry := prometheus.NewRegistry()
-				updateMetrics(newRegistry)
+				nendtime := updateMetrics(newRegistry, now)
+				//TBD remove this line
+				log.Println("Old Start time was ", now)
+				now = nendtime
+				//TBD remove this line
+				log.Println("New Start time is ", now)
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
+				t1 := time.Now()
+				processingtime := t1.Sub(t0)
+				log.Println("***************Duration for Job time scrape  to run", processingtime)
 				time.Sleep(time.Duration(*scrapingInterval) * time.Second)
 			}
+
 		}()
 	}
 
@@ -145,7 +159,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			updateMetrics(newRegistry)
+			updateMetrics(newRegistry, now)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}

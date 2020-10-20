@@ -41,6 +41,7 @@ type cloudwatchData struct {
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	Period                  int64
+	nendtime                time.Time
 }
 
 var labelMap = make(map[string][]string)
@@ -118,7 +119,7 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("Metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	for _, data := range getMetricData {
 		metricStat := &cloudwatch.MetricStat{
@@ -138,8 +139,18 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		})
 
 	}
-	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
-	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	var endTime time.Time
+	var startTime time.Time
+	if now.IsZero() {
+		//This is first run
+		fmt.Printf("No date has been set, %s\n", now)
+		now = time.Now().Round(5 * time.Minute)
+		endTime = now.Add(-time.Duration(delay) * time.Second)
+		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	} else {
+		endTime = now.Add(time.Duration(length) * time.Second)
+		startTime = now
+	}
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
 		EndTime:           &endTime,
