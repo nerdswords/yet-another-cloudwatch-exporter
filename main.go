@@ -96,6 +96,12 @@ func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
 	return *nendtime
 }
 
+func inTimeSpan(start, end, check time.Time) bool {
+	log.Println("Start time in timSpan function", start, "Endtime in intimeSpan function", end, "Given time stamp", check)
+	log.Println(check.After(end), check.Before(start))
+	return check.After(end) || check.Before(start)
+}
+
 func main() {
 	flag.Parse()
 
@@ -120,7 +126,10 @@ func main() {
 
 	log.Println("Startup completed")
 	//swtich this to perdiod right now testing it for 5 minutes granuality and roundtime time to 5 minutes for exaple 12:00,12:05 etc etc
+	//Variables to hold last scrape time
 	var now time.Time
+	//variable to hold total processing time.
+	var processingtimeTotal time.Duration
 
 	if *decoupledScraping {
 
@@ -139,8 +148,45 @@ func main() {
 				registry = newRegistry
 				t1 := time.Now()
 				processingtime := t1.Sub(t0)
-				log.Println("***************Duration for Job time scrape  to run", processingtime)
-				time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+				processingtimeTotal = processingtimeTotal + processingtime
+				log.Println("***************Duration for Job time scrape  to run", processingtime, "Total Delay at this point is ", processingtimeTotal)
+				//we need to function here
+				//1. safety check to make sure we are not Starting time in future.
+				//time.Now() current time
+				//time.Now().Add(-(delay)*.time.Seconds)
+				//now
+
+				//2. Incase where we have to process too many metrics make sure we dont fall too much behind
+				processinglag := false
+				if processingtimeTotal.Seconds() > 60.0 {
+					sleepinterval := *scrapingInterval - int(processingtimeTotal.Seconds())
+					//reset processingtimeTotal
+					processingtimeTotal = 0
+					if sleepinterval <= 0 {
+						//TBD use cases is when metrics like EC2 and EBS take more scrapping interval like 6 to 7 minutes to finish
+						log.Println("Unable to sleep since we lagging behind please try adjusting your scrape interval")
+						continue
+					} else {
+						log.Println("Sleeping smaller intervals to catchup with lag", sleepinterval)
+						time.Sleep(time.Duration(sleepinterval) * time.Second)
+						processinglag = true
+					}
+
+				} else {
+					log.Println("Sleeping at regular sleep interval ", *scrapingInterval)
+					time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+				}
+				//We add this check only after sleep or else we tend to delay scraping by 10 minutes
+				currentime := time.Now()
+				//since we are working on 5 minute interval 5 minutes almost all the time is true putting it at 4 minute
+				currentimewithdelay := currentime.Add(-(4) * time.Minute)
+				//Findout how to get delay for now hardcoding values to 5 minutes
+				if inTimeSpan(currentime, currentimewithdelay, now) && !processinglag {
+					log.Println("Function is too close to getting futre timestamps we should add a sleep interval here")
+					time.Sleep(5 * time.Minute)
+
+				}
+
 			}
 
 		}()
