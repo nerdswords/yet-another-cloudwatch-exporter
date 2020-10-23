@@ -96,12 +96,6 @@ func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
 	return *nendtime
 }
 
-func inTimeSpan(start, end, check time.Time) bool {
-	log.Println("Start time in timSpan function", start, "Endtime in intimeSpan function", end, "Given time stamp", check)
-	log.Println(check.After(end), check.Before(start))
-	return check.After(end) || check.Before(start)
-}
-
 func main() {
 	flag.Parse()
 
@@ -127,9 +121,23 @@ func main() {
 	log.Println("Startup completed")
 	//swtich this to perdiod right now testing it for 5 minutes granuality and roundtime time to 5 minutes for exaple 12:00,12:05 etc etc
 	//Variables to hold last scrape time
-	var now time.Time
+	now := time.Now().Round(5 * time.Minute)
 	//variable to hold total processing time.
 	var processingtimeTotal time.Duration
+	maxjoblength := 0
+	for _, discoveryJob := range config.Discovery.Jobs {
+		joblenght := getMetricDataInputLength(discoveryJob)
+		//S3 can have upto 1 day to day will need to address it in seprate block
+		//TBD
+		if (maxjoblength < joblenght) && (discoveryJob.Type != "s3") {
+			maxjoblength = joblenght
+		}
+	}
+
+	//To aviod future timestamp issue we need make sure scrape intervel is atleast at the same level as that of highest job length
+	if *scrapingInterval < maxjoblength {
+		*scrapingInterval = maxjoblength
+	}
 
 	if *decoupledScraping {
 
@@ -157,7 +165,7 @@ func main() {
 				//now
 
 				//2. Incase where we have to process too many metrics make sure we dont fall too much behind
-				processinglag := false
+				//processinglag := false
 				if processingtimeTotal.Seconds() > 60.0 {
 					sleepinterval := *scrapingInterval - int(processingtimeTotal.Seconds())
 					//reset processingtimeTotal
@@ -169,7 +177,7 @@ func main() {
 					} else {
 						log.Println("Sleeping smaller intervals to catchup with lag", sleepinterval)
 						time.Sleep(time.Duration(sleepinterval) * time.Second)
-						processinglag = true
+						//processinglag = true
 					}
 
 				} else {
@@ -177,15 +185,15 @@ func main() {
 					time.Sleep(time.Duration(*scrapingInterval) * time.Second)
 				}
 				//We add this check only after sleep or else we tend to delay scraping by 10 minutes
-				currentime := time.Now()
+				//currentime := time.Now()
 				//since we are working on 5 minute interval 5 minutes almost all the time is true putting it at 4 minute
-				currentimewithdelay := currentime.Add(-(4) * time.Minute)
+				//currentimewithdelay := currentime.Add(-(4) * time.Minute)
 				//Findout how to get delay for now hardcoding values to 5 minutes
-				if inTimeSpan(currentime, currentimewithdelay, now) && !processinglag {
-					log.Println("Function is too close to getting futre timestamps we should add a sleep interval here")
-					time.Sleep(5 * time.Minute)
-
-				}
+				//if inTimeSpan(currentime, currentimewithdelay, now) && !processinglag {
+				//	log.Println("Function is too close to getting futre timestamps we should add a sleep interval here")
+				//	time.Sleep(5 * time.Minute)
+				//
+				//}
 
 			}
 
