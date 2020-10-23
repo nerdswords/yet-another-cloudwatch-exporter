@@ -126,11 +126,11 @@ func main() {
 	var processingtimeTotal time.Duration
 	maxjoblength := 0
 	for _, discoveryJob := range config.Discovery.Jobs {
-		joblenght := getMetricDataInputLength(discoveryJob)
+		length := getMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		if (maxjoblength < joblenght) && (discoveryJob.Type != "s3") {
-			maxjoblength = joblenght
+		if (maxjoblength < length) && (discoveryJob.Type != "s3") {
+			maxjoblength = length
 		}
 	}
 
