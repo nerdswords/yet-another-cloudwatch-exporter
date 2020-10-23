@@ -140,8 +140,18 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 
 	}
 
-	endTime := now.Add(-time.Duration(delay) * time.Second)
-	startTime := now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	var endTime time.Time
+	var startTime time.Time
+	if now.IsZero() {
+		//This is first run
+		fmt.Printf("No date has been set, %s\n", now)
+		now = time.Now().Round(5 * time.Minute)
+		endTime = now.Add(-time.Duration(delay) * time.Second)
+		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	} else {
+		endTime = now.Add(time.Duration(length) * time.Second)
+		startTime = now
+	}
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{

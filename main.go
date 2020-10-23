@@ -121,7 +121,7 @@ func main() {
 	log.Println("Startup completed")
 	//swtich this to perdiod right now testing it for 5 minutes granuality and roundtime time to 5 minutes for exaple 12:00,12:05 etc etc
 	//Variables to hold last scrape time
-	now := time.Now().Round(5 * time.Minute)
+	var now time.Time
 	//variable to hold total processing time.
 	var processingtimeTotal time.Duration
 	maxjoblength := 0
