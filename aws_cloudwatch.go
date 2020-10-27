@@ -139,6 +139,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		})
 
 	}
+
 	var endTime time.Time
 	var startTime time.Time
 	if now.IsZero() {
@@ -151,6 +152,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		endTime = now.Add(time.Duration(length) * time.Second)
 		startTime = now
 	}
+
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
 		EndTime:           &endTime,
