@@ -143,8 +143,6 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 	var endTime time.Time
 	var startTime time.Time
 	if now.IsZero() {
-		//This is first run
-		fmt.Printf("No date has been set, %s\n", now)
 		now = time.Now().Round(5 * time.Minute)
 		endTime = now.Add(-time.Duration(delay) * time.Second)
 		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
@@ -653,7 +651,6 @@ func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*Prometheus
 func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
 	sort.Slice(datapoints, func(i, j int) bool {
 		jTimestamp := *datapoints[j].Timestamp
-
 		return datapoints[i].Timestamp.Before(jTimestamp)
 	})
 	return datapoints
