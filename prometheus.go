@@ -37,6 +37,10 @@ var (
 		Name: "yace_cloudwatch_ec2api_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	lambdaAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_lambda_requests_total",
+		Help: "Total number of calls to Lambda API.",
+	})
 )
 
 type PrometheusMetric struct {

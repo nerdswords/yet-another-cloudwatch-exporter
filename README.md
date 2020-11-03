@@ -51,6 +51,10 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * sfn - Step Functions
   * wafv2 - Web Application Firewall v2
 
+* Supported services with auto discovery of untagged resources:
+
+  * lambda - Lambda Functions
+
 ## Image
 
 * `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
@@ -89,19 +93,20 @@ exportedTagsOnMetrics:
 
 ### Auto-discovery job
 
-| Key                  | Description                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------- |
-| regions              | List of AWS regions                                                                                      |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                                     |
-| length (Default 120) | How far back to request data for in seconds                                                              |
-| delay                | If set it will request metrics up until `current_time - delay`                                           |
-| roleArns             | List of IAM roles to assume (optional)                                                                   |
-| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
-| period                 | Statistic period in seconds (General Setting for all metrics in this job)                              |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job) |
-| customTags           | Custom tags to be added as a list of Key/Value pairs                                                     |
-| metrics              | List of metric definitions                                                                               |
-| additionalDimensions | List of dimensions to return beyond the default list per service                                         |
+| Key                    | Description                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| regions                | List of AWS regions                                                                                         |
+| type                   | Service name, e.g. "ec2", "s3", etc.                                                                        |
+| length (Default 120)   | How far back to request data for in seconds                                                                 |
+| delay                  | If set it will request metrics up until `current_time - delay`                                              |
+| roleArns               | List of IAM roles to assume (optional)                                                                      |
+| searchTags             | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                    |
+| period                 | Statistic period in seconds (General Setting for all metrics in this job)                                   |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)      |
+| customTags             | Custom tags to be added as a list of Key/Value pairs                                                        |
+| metrics                | List of metric definitions                                                                                  |
+| additionalDimensions   | List of dimensions to return beyond the default list per service                                            |
+| addUntagged            | Also collect metrics from untagged resources (only on supported types, cannot be combined with `searchTags` |
 
 searchTags example:
 
@@ -110,6 +115,8 @@ searchTags:
   - Key: env
     Value: production
 ```
+
+`addUntagged` allows you to export metrics from environments without tags, where you cannot just add them.  The metrics will appear with just the resource ARN as the `name`.
 
 ### Metric definition
 

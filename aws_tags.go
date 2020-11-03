@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	log "github.com/sirupsen/logrus"
@@ -36,6 +37,7 @@ type tagsInterface struct {
 	apiGatewayClient apigatewayiface.APIGatewayAPI
 	ec2Client        ec2iface.EC2API
 	elbv2Client      elbv2.ELBV2
+	lambdaClient     lambda.Lambda
 }
 
 func createSession(roleArn string, config *aws.Config) *session.Session {
@@ -84,6 +86,11 @@ func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.API
 func createELBV2Session(region *string, roleArn string) elbv2.ELBV2 {
 	config := &aws.Config{Region: region}
 	return *elbv2.New(createSession(roleArn, config), config)
+}
+
+func createLambdaSession(region *string, roleArn string) lambda.Lambda {
+	config := &aws.Config{Region: region}
+	return *lambda.New(createSession(roleArn, config), config)
 }
 
 func (iface tagsInterface) get(job job, region string) (resources []*tagsData, err error) {
@@ -230,6 +237,34 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 			}
 		}
 		resources = filteredResources
+	case "lambda":
+		// if configured and no search tags are specified,
+		// fetch & add any untagged lambda functions
+		if job.AddUntagged && len(job.SearchTags) == 0 {
+			// Get all the lambdas
+			lambdaFunctions, err := iface.getAllLambdaFunctions(
+				job,
+				region,
+			)
+			if err != nil {
+				log.Errorf("tagsInterface.get: lambda: getAllLambdaFunctions: %v", err)
+			}
+
+			// Collect any lambda functions that didn't
+			// come back from resourcegroupstaggingapi
+			resourceIDs := map[string]bool{}
+			for _, r := range resources {
+				resourceIDs[*r.ID] = true
+			}
+			for _, f := range lambdaFunctions {
+				if !resourceIDs[*f.ID] {
+					resources = append(resources, f)
+					log.WithFields(log.Fields{
+						"function_arn": *f.ID,
+					}).Debug("Adding untagged lambda function")
+				}
+			}
+		}
 	}
 	return resources, resourcePages
 }
@@ -261,6 +296,27 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job job, region string) (r
 				if resource.filterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				}
+			}
+			return pageNum < 100
+		})
+}
+
+// Get all Lambdas, tagged or not
+func (iface tagsInterface) getAllLambdaFunctions(job job, region string) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.lambdaClient.ListFunctionsPagesWithContext(ctx, &lambda.ListFunctionsInput{},
+		func(page *lambda.ListFunctionsOutput, more bool) bool {
+			pageNum++
+			lambdaAPICounter.Inc()
+
+			for _, function := range page.Functions {
+				resource := tagsData{}
+
+				resource.ID = function.FunctionArn
+				resource.Service = &job.Type
+				resource.Region = &region
+				resources = append(resources, &resource)
 			}
 			return pageNum < 100
 		})

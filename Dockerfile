@@ -5,7 +5,7 @@ WORKDIR /opt/
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ./*.go ./config_test.yml ./
+COPY ./*.go ./config_*.yml ./
 RUN go test -cover
 
 ENV GOOS linux

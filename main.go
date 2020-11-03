@@ -89,7 +89,7 @@ func updateMetrics(registry *prometheus.Registry) {
 	metrics = ensureLabelConsistencyForMetrics(metrics)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
-	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter} {
+	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter, lambdaAPICounter} {
 		if err := registry.Register(counter); err != nil {
 			log.Warning("Could not publish cloudwatch api metric")
 		}

@@ -32,6 +32,7 @@ type job struct {
 	Delay                  int      `yaml:"delay"`
 	Period                 int      `yaml:"period"`
 	AddCloudwatchTimestamp bool     `yaml:"addCloudwatchTimestamp"`
+	AddUntagged            bool     `yaml:"addUntagged"`
 }
 
 type static struct {
@@ -64,6 +65,12 @@ type tag struct {
 	Key   string `yaml:"Key"`
 	Value string `yaml:"Value"`
 }
+
+var (
+	supportsUntaggedDiscovery = []string{
+		"lambda",
+	}
+)
 
 func (c *conf) load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
@@ -139,6 +146,15 @@ func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if j.AddUntagged && !stringInSlice(j.Type, supportsUntaggedDiscovery) {
+		return fmt.Errorf("Discovery job [%s/%d]: addUntagged is not yet implemented for type %s", j.Type, jobIdx, j.Type)
+	}
+	if j.AddUntagged && len(j.SearchTags) > 0 {
+		return fmt.Errorf(
+			"Discovery job [%s/%d]: addUntagged cannot be used with searchTags (it would never match)", j.Type, jobIdx,
+		)
 	}
 
 	return nil

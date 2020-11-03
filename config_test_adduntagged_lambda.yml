@@ -1,0 +1,13 @@
+discovery:
+  jobs:
+
+  - type: lambda
+    regions:
+      - eu-west-1
+    addUntagged: True
+    period: 300
+    length: 300
+    metrics:
+      - name: Invocations
+        statistics:
+          - Sum
