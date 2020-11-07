@@ -115,7 +115,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"lambda":                {"lambda:function"},
 		"ngw":                   {"ec2:natgateway"},
 		"nlb":                   {"elasticloadbalancing:loadbalancer/net", "elasticloadbalancing:targetgroup"},
-		"rds":                   {"rds:db"},
+		"rds":                   {"rds:db", "rds:cluster"},
 		"redshift":              {"redshift:cluster"},
 		"r53r":                  {"route53resolver"},
 		"s3":                    {"s3"},
