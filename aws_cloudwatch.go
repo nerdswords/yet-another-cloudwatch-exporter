@@ -597,7 +597,7 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 func recordLabelsForMetric(metricName string, promLabels map[string]string) {
 	var workingLabelsCopy []string
 	if _, ok := labelMap[metricName]; ok {
-		copy(labelMap[metricName], workingLabelsCopy)
+		workingLabelsCopy = append(workingLabelsCopy, labelMap[metricName]...)
 	}
 
 	for k, _ := range promLabels {
