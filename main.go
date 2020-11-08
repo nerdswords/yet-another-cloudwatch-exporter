@@ -36,6 +36,7 @@ var (
 		"ebs",
 		"ec",
 		"ec2",
+		"ec2Spot",
 		"ecs-svc",
 		"ecs-containerinsights",
 		"efs",

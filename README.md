@@ -25,6 +25,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * ebs - Elastic Block Storage
   * ec - ElastiCache
   * ec2 - Elastic Compute Cloud
+  * ec2Spot - Elastic Compute Cloud for Spot Instances
   * ecs-svc - Elastic Container Service (Service Metrics)
   * ecs-containerinsights - ECS/ContainerInsights (Fargate metrics)
   * efs - Elastic File System
