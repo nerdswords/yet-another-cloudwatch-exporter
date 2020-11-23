@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: "v0.23.0-alpha"
+description: A Helm chart for deploying yet-another-cloudwatch-exporter
+name: yet-another-cloudwatch-exporter
+version: 0.0.5
+maintainers:
+  - name: Rushan
+    email: rushankhan123@gmail.com
+

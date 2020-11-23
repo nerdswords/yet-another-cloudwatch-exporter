@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
+  labels:
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        configmap.reloader.stakater.com/reload: {{ template "yet-another-cloudwatch-exporter.fullname" . }}
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "yet-another-cloudwatch-exporter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: cfg-volume
+          configMap:
+            name: {{ template "yet-another-cloudwatch-exporter.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.extraArgs }}
+          {{- with .Values.extraArgs }}
+          args:
+            - --config.file=/tmp/config.yml
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.liveness_probe }}
+              port: http
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readiness_probe }}
+              port: http
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - mountPath: /tmp
+            name: cfg-volume
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

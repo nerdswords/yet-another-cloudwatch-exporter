@@ -1,0 +1,93 @@
+# Default values for yet-another-cloudwatch-exporter.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+
+image:
+  repository: quay.io/invisionag/yet-another-cloudwatch-exporter
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v0.23.0-alpha"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  limits:
+    memory: 1024Mi
+    cpu: 500m
+  requests:
+    memory: 512Mi
+    cpu: 100m
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+hpa_enabled: no
+liveness_probe: "/"
+readiness_probe: "/"
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5000"
+  prometheus.io/path: "/metrics"
+
+yace:
+  config: |-
+    discovery:
+      exportedTagsOnMetrics:
+        vpn:
+          - Team
+      jobs:
+      - type: vpn
+        regions:
+          - eu-west-1
+        awsDimensions:
+          - VpnId
+        metrics:
+          - name: TunnelState
+            statistics:
+              - Average
+            period: 60
+            length: 300
+
+extraArgs:
+  - --listen-address=:5000
+  - --debug=false
+  - --cloudwatch-concurrency=5
+  - --tag-concurrency=5
+  - --scraping-interval=300
+  - --decoupled-scraping=true
+  - --metrics-per-query=500
+  - --labels-snake-case=false
+
+

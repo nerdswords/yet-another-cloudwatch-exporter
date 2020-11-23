@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "yet-another-cloudwatch-exporter.fullname" . }}
+  labels:
+    app: {{ template "yet-another-cloudwatch-exporter.name" . }}
+    chart: {{ template "yet-another-cloudwatch-exporter.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  config.yml: {{ toJson .Values.yace.config }}
