@@ -1,16 +1,16 @@
 builds:
-- binary: yace
-  goarch:
-    - amd64
-  env:
-  - CGO_ENABLED=0
+  - binary: yace
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
 archive:
   replacements:
     darwin: Darwin
     linux: Linux
     amd64: x86_64
   files:
-  - none*
+    - none*
 changelog:
   skip: true
 checksum:
