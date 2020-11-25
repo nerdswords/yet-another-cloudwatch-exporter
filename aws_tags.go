@@ -49,18 +49,35 @@ func createSession(roleArn string, config *aws.Config) *session.Session {
 func createTagSession(region *string, roleArn string) *r.ResourceGroupsTaggingAPI {
 	maxResourceGroupTaggingRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxResourceGroupTaggingRetries}
+	if *fips {
+		// ToDo: Resource Groups Tagging API does not have FIPS compliant endpoints
+		// https://docs.aws.amazon.com/general/latest/gr/arg.html
+		// endpoint := fmt.Sprintf("https://tagging-fips.%s.amazonaws.com", *region)
+		// config.Endpoint = aws.String(endpoint)
+	}
 	return r.New(createSession(roleArn, config), config)
 }
 
 func createASGSession(region *string, roleArn string) autoscalingiface.AutoScalingAPI {
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
+	if *fips {
+		// ToDo: Autoscaling does not have a FIPS endpoint
+		// https://docs.aws.amazon.com/general/latest/gr/autoscaling_region.html
+		// endpoint := fmt.Sprintf("https://autoscaling-plans-fips.%s.amazonaws.com", *region)
+		// config.Endpoint = aws.String(endpoint)
+	}
 	return autoscaling.New(createSession(roleArn, config), config)
 }
 
 func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
+	if *fips {
+		// https://docs.aws.amazon.com/general/latest/gr/ec2-service.html
+		endpoint := fmt.Sprintf("https://ec2-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
 	return ec2.New(createSession(roleArn, config), config)
 }
 
@@ -73,6 +90,11 @@ func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.API
 	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+	if *fips {
+		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
+		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
 	}
 
 	return apigateway.New(sess, config)
