@@ -139,7 +139,6 @@ func main() {
 	}
 
 	if *decoupledScraping {
-
 		go func() {
 			for {
 				t0 := time.Now()
