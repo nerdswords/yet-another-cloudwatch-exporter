@@ -80,7 +80,7 @@ func init() {
 }
 
 func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
-	tagsData, cloudwatchData, nendtime := scrapeAwsData(config, now)
+	tagsData, cloudwatchData, endtime := scrapeAwsData(config, now)
 	var metrics []*PrometheusMetric
 
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
@@ -94,7 +94,7 @@ func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
 			log.Warning("Could not publish cloudwatch api metric")
 		}
 	}
-	return *nendtime
+	return *endtime
 }
 
 func main() {
@@ -147,8 +147,8 @@ func main() {
 				t0 := time.Now()
 				log.Println("Starting metrics scrape at ....", t0, "with Scrape interval as ", *scrapingInterval)
 				newRegistry := prometheus.NewRegistry()
-				nendtime := updateMetrics(newRegistry, now)
-				now = nendtime
+				endtime := updateMetrics(newRegistry, now)
+				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
 				t1 := time.Now()

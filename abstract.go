@@ -22,7 +22,7 @@ func scrapeAwsData(config conf, now time.Time) ([]*tagsData, []*cloudwatchData, 
 
 	cwData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*tagsData, 0)
-	var nendtime time.Time
+	var endtime time.Time
 	var wg sync.WaitGroup
 
 	for _, discoveryJob := range config.Discovery.Jobs {
@@ -45,7 +45,7 @@ func scrapeAwsData(config conf, now time.Time) ([]*tagsData, []*cloudwatchData, 
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
-					resources, metrics, nendtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now)
+					resources, metrics, endtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -77,7 +77,7 @@ func scrapeAwsData(config conf, now time.Time) ([]*tagsData, []*cloudwatchData, 
 		}
 	}
 	wg.Wait()
-	return awsInfoData, cwData, &nendtime
+	return awsInfoData, cwData, &endtime
 }
 
 func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
@@ -223,7 +223,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	region string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
-	clientCloudwatch cloudwatchInterface, now time.Time) (resources []*tagsData, cw []*cloudwatchData, nendtime time.Time) {
+	clientCloudwatch cloudwatchInterface, now time.Time) (resources []*tagsData, cw []*cloudwatchData, endtime time.Time) {
 
 	namespace, err := getNamespace(job.Type)
 	if err != nil {
@@ -270,14 +270,14 @@ func scrapeDiscoveryJobUsingMetricData(
 					}
 				}
 			}
-			nendtime = *filter.EndTime
+			endtime = *filter.EndTime
 
 			log.Println("Start time ", *filter.StartTime, "End time ", *filter.EndTime)
 		}(i)
 	}
 	//here set end time as start time
 	wg.Wait()
-	return resources, cw, nendtime
+	return resources, cw, endtime
 }
 
 func (r tagsData) filterThroughTags(filterTags []tag) bool {
