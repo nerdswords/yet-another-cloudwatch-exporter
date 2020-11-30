@@ -271,8 +271,6 @@ func scrapeDiscoveryJobUsingMetricData(
 				}
 			}
 			endtime = *filter.EndTime
-
-			log.Println("Start time ", *filter.StartTime, "End time ", *filter.EndTime)
 		}(i)
 	}
 	//here set end time as start time
