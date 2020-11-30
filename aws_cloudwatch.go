@@ -419,7 +419,6 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"kinesis":  {Key: "StreamName", Prefix: "stream/"},
 		"lambda":   {Key: "FunctionName", Prefix: "function:"},
 		"ngw":      {Key: "NatGatewayId", Prefix: "natgateway/"},
-		"rds":      {Key: "DBInstanceIdentifier", Prefix: "db:"},
 		"redshift": {Key: "ClusterIdentifier", Prefix: "cluster:"},
 		"r53r":     {Key: "EndpointId", Prefix: "resolver-endpoint/"},
 		"s3":       {Key: "BucketName", Prefix: ""},
@@ -432,6 +431,12 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
 	switch service {
+	case "rds":
+		if strings.HasPrefix(arnParsed.Resource, "cluster:") {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBClusterIdentifier", "cluster:")
+		} else {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+		}
 	case "alb", "nlb":
 		namespace, _ := getNamespace(service)
 		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
