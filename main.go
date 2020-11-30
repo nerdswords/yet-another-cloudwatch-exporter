@@ -145,6 +145,7 @@ func main() {
 		go func() {
 			for {
 				t0 := time.Now()
+				log.Println("Starting metrics scrape at ....", t0, "with Scrape interval as ", *scrapingInterval)
 				newRegistry := prometheus.NewRegistry()
 				nendtime := updateMetrics(newRegistry, now)
 				now = nendtime
@@ -159,12 +160,15 @@ func main() {
 					processingtimeTotal = 0
 					if sleepinterval <= 0 {
 						//TBD use cases is when metrics like EC2 and EBS take more scrapping interval like 6 to 7 minutes to finish
+						log.Println("Unable to sleep since we lagging behind please try adjusting your scrape interval or running this instance with less number of metrics")
 						continue
 					} else {
+						log.Println("Sleeping smaller intervals to catchup with lag", sleepinterval)
 						time.Sleep(time.Duration(sleepinterval) * time.Second)
 					}
 
 				} else {
+					log.Println("Sleeping at regular sleep interval ", *scrapingInterval)
 					time.Sleep(time.Duration(*scrapingInterval) * time.Second)
 				}
 
