@@ -59,6 +59,7 @@ var (
 		"tgw",
 		"tgwa",
 		"vpn",
+		"wafv2",
 	}
 
 	config = conf{}
@@ -77,12 +78,13 @@ func init() {
 
 }
 
-func updateMetrics(registry *prometheus.Registry) {
-	tagsData, cloudwatchData := scrapeAwsData(config)
-
+func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
+	tagsData, cloudwatchData, endtime := scrapeAwsData(config, now)
 	var metrics []*PrometheusMetric
 
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
+	metrics = ensureLabelConsistencyForMetrics(metrics)
+
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
@@ -91,6 +93,7 @@ func updateMetrics(registry *prometheus.Registry) {
 			log.Warning("Could not publish cloudwatch api metric")
 		}
 	}
+	return *endtime
 }
 
 func main() {
@@ -116,16 +119,57 @@ func main() {
 	registry := prometheus.NewRegistry()
 
 	log.Println("Startup completed")
+	//Variables to hold last scrape time
+	var now time.Time
+	//variable to hold total processing time.
+	var processingtimeTotal time.Duration
+	maxjoblength := 0
+	for _, discoveryJob := range config.Discovery.Jobs {
+		length := getMetricDataInputLength(discoveryJob)
+		//S3 can have upto 1 day to day will need to address it in seprate block
+		//TBD
+		if (maxjoblength < length) && (discoveryJob.Type != "s3") {
+			maxjoblength = length
+		}
+	}
+
+	//To aviod future timestamp issue we need make sure scrape intervel is atleast at the same level as that of highest job length
+	if *scrapingInterval < maxjoblength {
+		*scrapingInterval = maxjoblength
+	}
 
 	if *decoupledScraping {
 		go func() {
 			for {
+				t0 := time.Now()
 				newRegistry := prometheus.NewRegistry()
-				updateMetrics(newRegistry)
+				endtime := updateMetrics(newRegistry, now)
+				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
-				time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+				t1 := time.Now()
+				processingtime := t1.Sub(t0)
+				processingtimeTotal = processingtimeTotal + processingtime
+				if processingtimeTotal.Seconds() > 60.0 {
+					sleepinterval := *scrapingInterval - int(processingtimeTotal.Seconds())
+					//reset processingtimeTotal
+					processingtimeTotal = 0
+					if sleepinterval <= 0 {
+						//TBD use cases is when metrics like EC2 and EBS take more scrapping interval like 6 to 7 minutes to finish
+						log.Debug("Unable to sleep since we lagging behind please try adjusting your scrape interval or running this instance with less number of metrics")
+						continue
+					} else {
+						log.Debug("Sleeping smaller intervals to catchup with lag", sleepinterval)
+						time.Sleep(time.Duration(sleepinterval) * time.Second)
+					}
+
+				} else {
+					log.Debug("Sleeping at regular sleep interval ", *scrapingInterval)
+					time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+				}
+
 			}
+
 		}()
 	}
 
@@ -142,7 +186,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			updateMetrics(newRegistry)
+			updateMetrics(newRegistry, now)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}

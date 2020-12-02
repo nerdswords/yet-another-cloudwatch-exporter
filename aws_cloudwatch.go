@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -41,7 +41,10 @@ type cloudwatchData struct {
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	Period                  int64
+	endtime                time.Time
 }
+
+var labelMap = make(map[string][]string)
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -116,7 +119,7 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("Metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	for _, data := range getMetricData {
 		metricStat := &cloudwatch.MetricStat{
@@ -136,8 +139,19 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		})
 
 	}
-	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
-	startTime := time.Now().Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+
+	var endTime time.Time
+	var startTime time.Time
+	if now.IsZero() {
+		//This is first run
+		now = time.Now().Round(5 * time.Minute)
+		endTime = now.Add(-time.Duration(delay) * time.Second)
+		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	} else {
+		endTime = now.Add(time.Duration(length) * time.Second)
+		startTime = now
+	}
+
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
 		EndTime:           &endTime,
@@ -166,23 +180,9 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 	return output
 }
 
-func createListMetricsOutput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsOutput) {
-	Metrics := []*cloudwatch.Metric{{
-		MetricName: metricsName,
-		Dimensions: dimensions,
-		Namespace:  namespace,
-	}}
-	output = &cloudwatch.ListMetricsOutput{
-		Metrics:   Metrics,
-		NextToken: nil,
-	}
-	return output
-}
-
 func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	for _, dim := range dimensions {
 		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
-		fmt.Println(output)
 	}
 	return output
 }
@@ -237,7 +237,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 }
 
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html
-func getNamespace(service *string) *string {
+func getNamespace(service string) (string, error) {
 	var ns string
 	var ok bool
 
@@ -274,11 +274,12 @@ func getNamespace(service *string) *string {
 		"tgw":                   "AWS/TransitGateway",
 		"tgwa":                  "AWS/TransitGateway",
 		"vpn":                   "AWS/VPN",
+		"wafv2":                 "AWS/WAFV2",
 	}
-	if ns, ok = namespaces[*service]; !ok {
-		log.Fatal("Not implemented namespace for cloudwatch metric: " + *service)
+	if ns, ok = namespaces[service]; !ok {
+		return "", errors.New("Not implemented namespace for cloudwatch metric: " + service)
 	}
-	return &ns
+	return ns, nil
 }
 
 func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
@@ -287,27 +288,6 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	}
 
 	return output
-}
-
-func keysofDimension(dimensions []*cloudwatch.Dimension) (keys []string) {
-	for _, dimension := range dimensions {
-		keys = append(keys, *dimension.Name)
-	}
-	return keys
-}
-
-func filterMetricsBasedOnDimensions(dimensions []*cloudwatch.Dimension, resp *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
-	var output cloudwatch.ListMetricsOutput
-	selectedDimensionKeys := keysofDimension(dimensions)
-	sort.Strings(selectedDimensionKeys)
-	for _, metric := range resp.Metrics {
-		metricsDimensionkeys := keysofDimension(metric.Dimensions)
-		sort.Strings(metricsDimensionkeys)
-		if reflect.DeepEqual(metricsDimensionkeys, selectedDimensionKeys) {
-			output.Metrics = append(output.Metrics, metric)
-		}
-	}
-	return &output
 }
 
 func filterDimensionsWithoutValueByDimensionsWithValue(
@@ -329,9 +309,9 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 	return dimensions
 }
 
-func getFullMetricsList(serviceName *string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+func getFullMetricsList(namespace string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
-	filter := createListMetricsInput(nil, getNamespace(serviceName), &metric.Name)
+	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
@@ -403,7 +383,7 @@ func getDimensionfromMetric(resp *cloudwatch.ListMetricsOutput) []*cloudwatch.Di
 
 func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 
-	if !strings.HasSuffix(*namespace, "ApplicationELB") {
+	if !strings.HasSuffix(*namespace, "ApplicationELB") && !strings.HasSuffix(*namespace, "NetworkELB") {
 		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
 		return nil
 	}
@@ -415,21 +395,20 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 			dimensions = getDimensionfromMetric(resp)
 		}
 
-	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "app/") {
+	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "net/") || strings.HasPrefix(resource, "app/") {
 		trimmedDimensionValue := strings.Replace(resource, "loadbalancer/", "", -1)
 		dimensions = append(dimensions, buildDimension("LoadBalancer", trimmedDimensionValue))
 	}
-
 	return dimensions
 }
 
 func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	resourceArn := *resource.ID
-	service := resource.Service
+	service := *resource.Service
 	arnParsed, err := arn.Parse(resourceArn)
 
-	if err != nil && *service != "tgwa" {
-		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, *service, err)
+	if err != nil && service != "tgwa" {
+		log.Warningf("Unable to parse ARN (%s) on %s due to %v", resourceArn, service, err)
 		return dimensions
 	}
 
@@ -452,8 +431,6 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"kinesis":  {Key: "StreamName", Prefix: "stream/"},
 		"lambda":   {Key: "FunctionName", Prefix: "function:"},
 		"ngw":      {Key: "NatGatewayId", Prefix: "natgateway/"},
-		"nlb":      {Key: "LoadBalancer", Prefix: "loadbalancer/"},
-		"rds":      {Key: "DBInstanceIdentifier", Prefix: "db:"},
 		"redshift": {Key: "ClusterIdentifier", Prefix: "cluster:"},
 		"r53r":     {Key: "EndpointId", Prefix: "resolver-endpoint/"},
 		"s3":       {Key: "BucketName", Prefix: ""},
@@ -462,12 +439,19 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"tgw":      {Key: "TransitGateway", Prefix: "transit-gateway/"},
 		"vpn":      {Key: "VpnId", Prefix: "vpn-connection/"},
 	}
-	if params, ok := baseDimension[*service]; ok {
+	if params, ok := baseDimension[service]; ok {
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
-	switch *service {
-	case "alb":
-		dimensions = queryAvailableDimensions(arnParsed.Resource, getNamespace(service), fullMetricsList)
+	switch service {
+	case "rds":
+		if strings.HasPrefix(arnParsed.Resource, "cluster:") {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBClusterIdentifier", "cluster:")
+		} else {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+		}
+	case "alb", "nlb":
+		namespace, _ := getNamespace(service)
+		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
 	case "apigateway":
 		// https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
 		dimensions = buildBaseDimension(*resource.Matcher, "ApiName", "")
@@ -522,8 +506,11 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	case "kafka":
 		cluster := strings.Split(arnParsed.Resource, "/")[1]
 		dimensions = append(dimensions, buildDimension("Cluster Name", cluster))
+	case "wafv2":
+		aclId := strings.Split(resourceArn, "/")[2]
+		dimensions = append(dimensions, buildDimension("WebACL", aclId))
 	default:
-		log.Fatal("Not implemented cloudwatch metric: " + *service)
+		log.Fatal("Not implemented cloudwatch metric: " + service)
 	}
 
 	return dimensions
@@ -562,14 +549,14 @@ func buildDimension(key string, value string) *cloudwatch.Dimension {
 func fixServiceName(serviceName *string, dimensions []*cloudwatch.Dimension) string {
 	var suffixName string
 
-	if *serviceName == "alb" {
+	if *serviceName == "alb" || *serviceName == "nlb" {
 		var albSuffix, tgSuffix string
 		for _, dimension := range dimensions {
 			if *dimension.Name == "TargetGroup" {
 				tgSuffix = "tg"
 			}
 			if *dimension.Name == "LoadBalancer" {
-				albSuffix = "alb"
+				albSuffix = *serviceName
 			}
 		}
 		if albSuffix != "" && tgSuffix != "" {
@@ -608,11 +595,6 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	switch *cwd.Service {
 	case "sfn":
 		labels["dimension_"+promStringTag("StateMachineArn")] = getStateMachineNameFromArn(*cwd.ID)
-	case "apigateway":
-		// The same dimensions are required on all metrics by prometheus
-		for _, key := range []string{"Stage", "Resource", "Method"} {
-			labels["dimension_"+promStringTag(key)] = ""
-		}
 	}
 
 	for _, dimension := range cwd.Dimensions {
@@ -629,10 +611,53 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	return labels
 }
 
+func recordLabelsForMetric(metricName string, promLabels map[string]string) {
+	var workingLabelsCopy []string
+	if _, ok := labelMap[metricName]; ok {
+		workingLabelsCopy = append(workingLabelsCopy, labelMap[metricName]...)
+	}
+
+	for k, _ := range promLabels {
+		workingLabelsCopy = append(workingLabelsCopy, k)
+	}
+	sort.Strings(workingLabelsCopy)
+	j := 0
+	for i := 1; i < len(workingLabelsCopy); i++ {
+		if workingLabelsCopy[j] == workingLabelsCopy[i] {
+			continue
+		}
+		j++
+		workingLabelsCopy[j] = workingLabelsCopy[i]
+	}
+	labelMap[metricName] = workingLabelsCopy[:j+1]
+}
+
+func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
+	var updatedMetrics []*PrometheusMetric
+
+	for _, prometheusMetric := range metrics {
+		metricName := prometheusMetric.name
+		metricLabels := prometheusMetric.labels
+
+		consistentMetricLabels := make(map[string]string)
+
+		for _, recordedLabel := range labelMap[*metricName] {
+			if value, ok := metricLabels[recordedLabel]; ok {
+				consistentMetricLabels[recordedLabel] = value
+			} else {
+				consistentMetricLabels[recordedLabel] = ""
+			}
+		}
+		prometheusMetric.labels = consistentMetricLabels
+		updatedMetrics = append(updatedMetrics, prometheusMetric)
+	}
+	return updatedMetrics
+}
+
 func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
 	sort.Slice(datapoints, func(i, j int) bool {
 		jTimestamp := *datapoints[j].Timestamp
-		return datapoints[i].Timestamp.Before(jTimestamp)
+		return datapoints[i].Timestamp.After(jTimestamp)
 	})
 	return datapoints
 }
@@ -658,6 +683,10 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 		case statistic == "Sum":
 			if datapoint.Sum != nil {
 				return datapoint.Sum, *datapoint.Timestamp
+			}
+		case statistic == "SampleCount":
+			if datapoint.SampleCount != nil {
+				return datapoint.SampleCount, *datapoint.Timestamp
 			}
 		case statistic == "Average":
 			if datapoint.Average != nil {
@@ -703,9 +732,12 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			serviceName := fixServiceName(c.Service, c.Dimensions)
 			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
+
+				promLabels := createPrometheusLabels(c)
+				recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,
-					labels:           createPrometheusLabels(c),
+					labels:           promLabels,
 					value:            exportedDatapoint,
 					timestamp:        timestamp,
 					includeTimestamp: includeTimestamp,
