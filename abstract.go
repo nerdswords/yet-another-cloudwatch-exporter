@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -16,12 +17,12 @@ var (
 	tagSemaphore        chan struct{}
 )
 
-func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
+func scrapeAwsData(config conf, now time.Time) ([]*tagsData, []*cloudwatchData, *time.Time) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*tagsData, 0)
-
+	var endtime time.Time
 	var wg sync.WaitGroup
 
 	for _, discoveryJob := range config.Discovery.Jobs {
@@ -44,7 +45,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
-					resources, metrics = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch)
+					resources, metrics, endtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -76,7 +77,7 @@ func scrapeAwsData(config conf) ([]*tagsData, []*cloudwatchData) {
 		}
 	}
 	wg.Wait()
-	return awsInfoData, cwData
+	return awsInfoData, cwData, &endtime
 }
 
 func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
@@ -222,7 +223,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	region string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
-	clientCloudwatch cloudwatchInterface) (resources []*tagsData, cw []*cloudwatchData) {
+	clientCloudwatch cloudwatchInterface, now time.Time) (resources []*tagsData, cw []*cloudwatchData, endtime time.Time) {
 
 	namespace, err := getNamespace(job.Type)
 	if err != nil {
@@ -253,7 +254,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			if end > metricDataLength {
 				end = metricDataLength
 			}
-			filter := createGetMetricDataInput(getMetricDatas[i:end], &namespace, length, job.Delay)
+			filter := createGetMetricDataInput(getMetricDatas[i:end], &namespace, length, job.Delay, now)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				for _, MetricDataResult := range data.MetricDataResults {
@@ -269,10 +270,12 @@ func scrapeDiscoveryJobUsingMetricData(
 					}
 				}
 			}
+			endtime = *filter.EndTime
 		}(i)
 	}
+	//here set end time as start time
 	wg.Wait()
-	return resources, cw
+	return resources, cw, endtime
 }
 
 func (r tagsData) filterThroughTags(filterTags []tag) bool {
