@@ -239,6 +239,7 @@ func getNamespace(service string) (string, error) {
 		"ebs":                   "AWS/EBS",
 		"ec":                    "AWS/ElastiCache",
 		"ec2":                   "AWS/EC2",
+		"ec2Spot":               "AWS/EC2Spot",
 		"ecs-svc":               "AWS/ECS",
 		"ecs-containerinsights": "ECS/ContainerInsights",
 		"efs":                   "AWS/EFS",
@@ -263,7 +264,6 @@ func getNamespace(service string) (string, error) {
 		"tgwa":                  "AWS/TransitGateway",
 		"vpn":                   "AWS/VPN",
 		"wafv2":                 "AWS/WAFV2",
-		"ec2Spot":               "AWS/EC2Spot",
 	}
 	if ns, ok = namespaces[service]; !ok {
 		return "", errors.New("Not implemented namespace for cloudwatch metric: " + service)

@@ -90,10 +90,11 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	switch job.Type {
 	case "asg":
 		return iface.getTaggedAutoscalingGroups(job, region)
-	case "tgwa":
-		return iface.getTaggedTransitGatewayAttachments(job, region)
 	case "ec2Spot":
 		return iface.getTaggedEC2SpotInstances(job, region)
+	case "tgwa":
+		return iface.getTaggedTransitGatewayAttachments(job, region)
+
 	}
 
 	allResourceTypesFilters := map[string][]string{
