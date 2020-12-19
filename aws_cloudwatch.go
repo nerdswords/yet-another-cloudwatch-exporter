@@ -313,7 +313,6 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getFullMetricsList(namespace string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
-
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
