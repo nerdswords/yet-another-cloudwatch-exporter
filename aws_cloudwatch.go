@@ -259,6 +259,7 @@ func getNamespace(service string) (string, error) {
 		"es":                    "AWS/ES",
 		"firehose":              "AWS/Firehose",
 		"fsx":                   "AWS/FSx",
+		"gamelift":              "AWS/GameLift",
 		"kafka":                 "AWS/Kafka",
 		"kinesis":               "AWS/Kinesis",
 		"lambda":                "AWS/Lambda",
@@ -312,6 +313,7 @@ func getAwsDimensions(job job) (dimensions []*cloudwatch.Dimension) {
 func getFullMetricsList(namespace string, metric metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
+
 	var res cloudwatch.ListMetricsOutput
 	err := c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
@@ -428,6 +430,7 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		"emr":      {Key: "JobFlowId", Prefix: "cluster/"},
 		"firehose": {Key: "DeliveryStreamName", Prefix: "deliverystream/"},
 		"fsx":      {Key: "FileSystemId", Prefix: "file-system/"},
+		"gamelift": {Key: "FleetId", Prefix: "fleet/"},
 		"kinesis":  {Key: "StreamName", Prefix: "stream/"},
 		"lambda":   {Key: "FunctionName", Prefix: "function:"},
 		"ngw":      {Key: "NatGatewayId", Prefix: "natgateway/"},

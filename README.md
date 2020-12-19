@@ -32,6 +32,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * emr - Elastic MapReduce
   * es - ElasticSearch
   * fsx - FSx File System
+  * gamelift - GameLift
   * kinesis - Kinesis Data Stream
   * ngw - Nat Gateway
   * lambda - Lambda Functions
