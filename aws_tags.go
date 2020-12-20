@@ -100,6 +100,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"appsync":               {"appsync"},
 		"cf":                    {"cloudfront"},
 		"dynamodb":              {"dynamodb:table"},
+		"docdb":				 {"rds:db", "rds:cluster"},
 		"ebs":                   {"ec2:volume"},
 		"ec":                    {"elasticache:cluster"},
 		"ec2":                   {"ec2:instance"},

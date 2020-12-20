@@ -248,6 +248,7 @@ func getNamespace(service string) (string, error) {
 		"asg":                   "AWS/AutoScaling",
 		"cf":                    "AWS/CloudFront",
 		"dynamodb":              "AWS/DynamoDB",
+		"docdb":				 "AWS/DocDB",
 		"ebs":                   "AWS/EBS",
 		"ec":                    "AWS/ElastiCache",
 		"ec2":                   "AWS/EC2",
@@ -443,12 +444,6 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 		return buildBaseDimension(arnParsed.Resource, params.Key, params.Prefix)
 	}
 	switch service {
-	case "rds":
-		if strings.HasPrefix(arnParsed.Resource, "cluster:") {
-			dimensions = buildBaseDimension(arnParsed.Resource, "DBClusterIdentifier", "cluster:")
-		} else {
-			dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
-		}
 	case "alb", "nlb":
 		namespace, _ := getNamespace(service)
 		dimensions = queryAvailableDimensions(arnParsed.Resource, &namespace, fullMetricsList)
@@ -483,6 +478,12 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	case "cf":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DistributionId", "distribution/")
 		dimensions = append(dimensions, buildDimension("Region", "Global"))
+	case "docdb":
+		if strings.HasPrefix(arnParsed.Resource, "cluster:") {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBClusterIdentifier", "cluster:")
+		} else {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+		}
 	case "ecs-svc", "ecs-containerinsights":
 		parsedResource := strings.Split(arnParsed.Resource, "/")
 		if parsedResource[0] == "service" {
@@ -494,6 +495,12 @@ func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.L
 	case "es":
 		dimensions = buildBaseDimension(arnParsed.Resource, "DomainName", "domain/")
 		dimensions = append(dimensions, buildDimension("ClientId", arnParsed.AccountID))
+	case "rds":
+		if strings.HasPrefix(arnParsed.Resource, "cluster:") {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBClusterIdentifier", "cluster:")
+		} else {
+			dimensions = buildBaseDimension(arnParsed.Resource, "DBInstanceIdentifier", "db:")
+		}
 	case "sfn":
 		// The value of StateMachineArn returned is the Name, not the ARN
 		// We are setting the value to the ARN in order to correlate dimensions with metric values

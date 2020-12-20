@@ -33,6 +33,7 @@ var (
 		"asg",
 		"cf",
 		"dynamodb",
+		"docdb",
 		"ebs",
 		"ec",
 		"ec2",
