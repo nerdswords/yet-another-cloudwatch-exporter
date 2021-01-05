@@ -56,6 +56,12 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 
 	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
 
+	if *fips {
+		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
+		endpoint := fmt.Sprintf("https://monitoring-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
 	if *debug {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}

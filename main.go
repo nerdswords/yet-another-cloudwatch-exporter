@@ -18,6 +18,7 @@ var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
 	debug                 = flag.Bool("debug", false, "Add verbose logging.")
+	fips                  = flag.Bool("fips", false, "Use FIPS compliant aws api.")
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
 	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API.")
 	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API.")
