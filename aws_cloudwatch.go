@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -729,10 +730,14 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 		for _, statistic := range c.Statistics {
 			includeTimestamp := *c.AddCloudwatchTimestamp
 			exportedDatapoint, timestamp := getDatapoint(c, statistic)
-			if exportedDatapoint == nil && *c.NilToZero {
-				var zero float64 = 0
-				exportedDatapoint = &zero
+			if exportedDatapoint == nil {
+				var nan float64 = math.NaN()
+				exportedDatapoint = &nan
 				includeTimestamp = false
+				if *c.NilToZero {
+					var zero float64 = 0
+					exportedDatapoint = &zero
+				}
 			}
 			serviceName := fixServiceName(c.Service, c.Dimensions)
 			name := "aws_" + serviceName + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
