@@ -5,6 +5,7 @@
 - Add autodiscovery for DocumentDB (haarchri)
 - Add autodiscovery for GameLift (jp)
 - Added support for fips compliant endpoints (smcavallo)
+- Update deps and build with golang 1.15 (smcavallo)
 
 # 0.24.0-alpha
 
