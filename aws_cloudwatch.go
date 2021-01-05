@@ -251,6 +251,7 @@ func getNamespace(service string) (string, error) {
 		"ebs":                   "AWS/EBS",
 		"ec":                    "AWS/ElastiCache",
 		"ec2":                   "AWS/EC2",
+		"ec2Spot":               "AWS/EC2Spot",
 		"ecs-svc":               "AWS/ECS",
 		"ecs-containerinsights": "ECS/ContainerInsights",
 		"efs":                   "AWS/EFS",
@@ -405,6 +406,10 @@ func queryAvailableDimensions(resource string, namespace *string, fullMetricsLis
 func detectDimensionsByService(resource *tagsData, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
 	resourceArn := *resource.ID
 	service := *resource.Service
+	if service == "ec2Spot" {
+		return dimensions
+
+	}
 	arnParsed, err := arn.Parse(resourceArn)
 
 	if err != nil && service != "tgwa" {
