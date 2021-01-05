@@ -45,6 +45,7 @@ var (
 		"es",
 		"firehose",
 		"fsx",
+		"gamelift",
 		"kafka",
 		"kinesis",
 		"lambda",
