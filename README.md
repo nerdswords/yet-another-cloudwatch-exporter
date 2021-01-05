@@ -21,6 +21,7 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
   * apigateway - Api Gateway
   * appsync - AppSync
   * cf - Cloud Front
+  * docdb - DocumentDB (with MongoDB compatibility)
   * dynamodb - NoSQL Online Datenbank Service
   * ebs - Elastic Block Storage
   * ec - ElastiCache
