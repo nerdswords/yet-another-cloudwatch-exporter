@@ -32,6 +32,7 @@ var (
 		"appsync",
 		"asg",
 		"cf",
+		"docdb",
 		"dynamodb",
 		"ebs",
 		"ec",
