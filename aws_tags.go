@@ -168,45 +168,37 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 	switch job.Type {
 	case "alb", "nlb":
 		var filteredResources []*tagsData
-		var arnFilter []*string
-		var arnBalancers []*string
+		var chunkedFilteredResources []*tagsData
+		var targetGroupArns []*string
+		var albArns []*string
 		for _, r := range resources {
 			if strings.Contains(*r.ID, "targetgroup/") {
-				arnFilter = append(arnFilter, aws.String(*r.ID))
+				targetGroupArns = append(targetGroupArns, aws.String(*r.ID))
 			} else {
 				// Add all resources except target groups
 				filteredResources = append(filteredResources, r)
-				arnBalancers = append(arnBalancers, r.ID)
+				albArns = append(albArns, r.ID)
 			}
 		}
-		describeInput := &elbv2.DescribeTargetGroupsInput{
-			TargetGroupArns: arnFilter,
-		}
-		result, err := iface.elbv2Client.DescribeTargetGroups(describeInput)
-		if err != nil {
-			log.Errorf("Error describeTargetGroups for %s , err: %s", job.Type, err)
-			// Do not clear the resource list. The old behavior.
-			break
-		}
-		for _, tg := range result.TargetGroups {
-			if len(tg.LoadBalancerArns) == 0 {
-				log.Debugf("Not found balancer in targetGroup %s", *tg.TargetGroupArn)
-				continue
+		// You can only describe 20 target groups at a time
+		// Break the array of strings of target group names to multiple arrays
+		// Each with a max size of 20
+		chunkSize := 20
+		var chunkedTargetGroupArns = chunkArrayOfStrings(targetGroupArns, chunkSize)
+
+		// Loop through our target group sets (manual pagination!)
+		for _, chunkedTargetGroupArnSet := range chunkedTargetGroupArns {
+			// Describe the target groups and filter ones which have a matching alb
+			targetGroupFilteredResults, err := iface.getTargetGroups(resources, chunkedTargetGroupArnSet, albArns)
+			if err != nil {
+				log.Errorf("Error describeTargetGroups for %s , err: %s", job.Type, err)
+				// Do not clear the resource list. The old behavior.
+				break
 			}
-			for _, balancer := range arnBalancers {
-				for _, b := range tg.LoadBalancerArns {
-					if *balancer == *b {
-						for _, res := range resources {
-							if *res.ID == *tg.TargetGroupArn {
-								filteredResources = append(filteredResources, res)
-								break
-							}
-						}
-					}
-				}
-			}
+			chunkedFilteredResources = append(chunkedFilteredResources, targetGroupFilteredResults...)
 		}
-		resources = filteredResources
+		// Replace the list of resources which contained both albs and target groups with our filtered list
+		resources = chunkedFilteredResources
 	case "apigateway":
 		// Get all the api gateways from aws
 		apiGateways, errGet := iface.getTaggedApiGateway()
@@ -235,6 +227,59 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		resources = filteredResources
 	}
 	return resources, resourcePages
+}
+
+// Breaks a single array of strings into a multiple array of strings
+func chunkArrayOfStrings(targetGroupArns []*string, chunkSize int)(chunkedTargetGroupArns [][]*string){
+	for i := 0; i < len(targetGroupArns); i += chunkSize {
+		end := i + chunkSize
+		if end > len(targetGroupArns) {
+			end = len(targetGroupArns)
+		}
+		chunkedTargetGroupArns = append(chunkedTargetGroupArns, targetGroupArns[i:end])
+	}
+	return chunkedTargetGroupArns
+}
+
+// We want to make this request in a background thread with pagination
+// https://docs.aws.amazon.com/sdk-for-go/api/service/elbv2/#ELBV2.DescribeTargetGroups
+func (iface tagsInterface) getTargetGroups(resources []*tagsData, targetGroupArns []*string, albArns []*string) (filteredResources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	// You cannot describe more than '20' target groups at a time
+	// It feels like pageSize would handle this but it does not.
+	// Using pageSize anyways
+	pageSize := aws.Int64(20)
+	return filteredResources, iface.elbv2Client.DescribeTargetGroupsPagesWithContext(ctx, &elbv2.DescribeTargetGroupsInput{TargetGroupArns: targetGroupArns, PageSize: pageSize},
+		func(page *elbv2.DescribeTargetGroupsOutput, more bool) bool {
+			pageNum++
+			targetGroupsAPICounter.Inc()
+
+			// For each of the target groups
+			for _, tg := range page.TargetGroups {
+				if len(tg.LoadBalancerArns) == 0 {
+					log.Debugf("No LoadBalancerArns in targetGroup %s", *tg.TargetGroupArn)
+					continue
+				}
+				// for each alb associated with this target group
+				for _, tgLoadBalancerArn := range tg.LoadBalancerArns {
+					// check each alb ARN
+					for _, albArn := range albArns {
+						if *albArn == *tgLoadBalancerArn {
+							for _, res := range resources {
+								// If our resource list has an entry for this target group
+								// Which has an associated alb, add it to our filtered list
+								if *res.ID == *tg.TargetGroupArn {
+									filteredResources = append(filteredResources, res)
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+			return pageNum < 100
+		})
 }
 
 // Once the resourcemappingapi supports ASGs then this workaround method can be deleted
