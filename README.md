@@ -114,15 +114,15 @@ searchTags:
 
 ### Metric definition
 
-| Key                    | Description                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                                                 |
-| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                               |
-| period                 | Statistic period in seconds (Overrides job level setting)                              |
-| length                 | How far back to request data for in seconds(for static jobs)                           |
-| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)        |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                 |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting) |
+| Key                    | Description                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                                                  |
+| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                                |
+| period                 | Statistic period in seconds (Overrides job level setting)                               |
+| length                 | How far back to request data for in seconds(for static jobs)                            |
+| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)         |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all. By default NaN will be reported |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting)  |
 
 * Available statistics: Maximum, Minimum, Sum, SampleCount, Average, pXX.
 * **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
