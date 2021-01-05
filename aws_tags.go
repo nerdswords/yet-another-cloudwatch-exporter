@@ -114,6 +114,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"es":                    {"es:domain"},
 		"firehose":              {"firehose"},
 		"fsx":                   {"fsx:file-system"},
+		"gamelift":              {"gamelift"},
 		"kinesis":               {"kinesis:stream"},
 		"lambda":                {"lambda:function"},
 		"ngw":                   {"ec2:natgateway"},
