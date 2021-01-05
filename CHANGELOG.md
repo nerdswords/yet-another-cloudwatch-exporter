@@ -1,3 +1,11 @@
+# 0.25.0-alpha
+
+- *BREAKING CHANGE* Use NaN as default if AWS returns nil (arnitolog)
+- Add autodiscovery for AWS/EC2Spot (singhjagmohan1000)
+- Add autodiscovery for DocumentDB (haarchri)
+- Add autodiscovery for GameLift (jp)
+- Added support for fips compliant endpoints (smcavallo)
+
 # 0.24.0-alpha
 
 - Add API Gateway IAM info to README (Botono)
