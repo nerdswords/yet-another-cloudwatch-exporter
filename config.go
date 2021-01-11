@@ -35,13 +35,14 @@ type job struct {
 }
 
 type static struct {
-	Name       string      `yaml:"name"`
-	Regions    []string    `yaml:"regions"`
-	RoleArns   []string    `yaml:"roleArns"`
-	Namespace  string      `yaml:"namespace"`
-	CustomTags []tag       `yaml:"customTags"`
-	Dimensions []dimension `yaml:"dimensions"`
-	Metrics    []metric    `yaml:"metrics"`
+	Name                       string      `yaml:"name"`
+	Regions                    []string    `yaml:"regions"`
+	RoleArns                   []string    `yaml:"roleArns"`
+	Namespace                  string      `yaml:"namespace"`
+	CustomTags                 []tag       `yaml:"customTags"`
+	Dimensions                 []dimension `yaml:"dimensions"`
+	Metrics                    []metric    `yaml:"metrics"`
+	PopulateNamelessDimensions bool        `yaml:"populateNamlessDimensions"`
 }
 
 type metric struct {

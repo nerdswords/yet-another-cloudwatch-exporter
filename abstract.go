@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"math"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -58,26 +61,119 @@ func scrapeAwsData(config conf, now time.Time) ([]*tagsData, []*cloudwatchData, 
 	for _, staticJob := range config.Static {
 		for _, roleArn := range staticJob.RoleArns {
 			for _, region := range staticJob.Regions {
-				wg.Add(1)
+				clientCloudwatch := cloudwatchInterface{
+					client: createCloudwatchSession(&region, roleArn),
+				}
+				expandedStaticJobs, err := resolveStaticDimensions(staticJob, clientCloudwatch)
+				if err != nil {
+					// don't fail hard if we can't resolve the unspecified dimensions of the job, there may still be scrapeable metrics
+					log.Error("Could not resolve unspecified dimensions of static job: ", err)
+					log.Warn("Proceeding as if populateNamlessDimensions = false due to error resolving unspecified dimensions")
+					expandedStaticJobs = []*static{&staticJob}
+				}
+				for _, job := range expandedStaticJobs {
+					wg.Add(1)
 
-				go func(staticJob static, region string, roleArn string) {
-					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(&region, roleArn),
-					}
+					go func(staticJob static, region string, roleArn string) {
+						clientCloudwatch := cloudwatchInterface{
+							client: createCloudwatchSession(&region, roleArn),
+						}
 
-					metrics := scrapeStaticJob(staticJob, region, clientCloudwatch)
+						metrics := scrapeStaticJob(staticJob, region, clientCloudwatch)
 
-					mux.Lock()
-					cwData = append(cwData, metrics...)
-					mux.Unlock()
+						mux.Lock()
+						cwData = append(cwData, metrics...)
+						mux.Unlock()
 
-					wg.Done()
-				}(staticJob, region, roleArn)
+						wg.Done()
+					}(*job, region, roleArn)
+				}
 			}
 		}
 	}
 	wg.Wait()
 	return awsInfoData, cwData, &endtime
+}
+
+func mapToOrderedStringHelper(m map[string]string) (s string) {
+	orderedKeys := make([]string, 0, len(m))
+	for k := range m {
+		orderedKeys = append(orderedKeys, k)
+	}
+	sort.Strings(orderedKeys)
+	template := "%s: %v,"
+	for _, key := range orderedKeys {
+		keyValueString := fmt.Sprintf(template, key, m[key])
+		s = s + keyValueString
+	}
+	return s
+}
+
+func resolveStaticDimensions(resource static, clientCloudwatch cloudwatchInterface) ([]*static, error) {
+	if !resource.PopulateNamelessDimensions {
+		return []*static{&resource}, nil
+	}
+
+	// create dimensionFilters for Cloudwatch query.  Separate cases are necessary because Cloudwatch does not allow value == ""
+	dimensionFilters := []*cloudwatch.DimensionFilter{}
+	for _, dimension := range resource.Dimensions {
+		var filter cloudwatch.DimensionFilter
+		if dimension.Value == "" {
+			filter = cloudwatch.DimensionFilter{
+				Name: aws.String(dimension.Name),
+			}
+		} else {
+			filter = cloudwatch.DimensionFilter{
+				Name:  aws.String(dimension.Name),
+				Value: aws.String(dimension.Value),
+			}
+		}
+		dimensionFilters = append(dimensionFilters, &filter)
+	}
+
+	// because multiple metrics may have the same dimension values available, we will need to de-duplicate
+	deduplicatedDimensions := [][]dimension{}
+	dimensionSet := map[string]bool{}
+
+	for _, metric := range resource.Metrics {
+		// fetch metadata about the dimensions available for each of these metrics
+		result, err := clientCloudwatch.client.ListMetrics(&cloudwatch.ListMetricsInput{
+			MetricName: aws.String(metric.Name),
+			Namespace:  aws.String(resource.Namespace),
+			Dimensions: dimensionFilters,
+		})
+		if err != nil {
+			log.Error("could not list metrics ", err)
+			return nil, err
+		}
+		for _, metricMetadata := range result.Metrics {
+			dimensionValues := map[string]string{}
+			resolvedDimension := []dimension{}
+			for _, dim := range metricMetadata.Dimensions {
+				dimensionValues[*dim.Name] = *dim.Value
+				resolvedDimension = append(resolvedDimension, dimension{
+					Name:  *dim.Name,
+					Value: *dim.Value,
+				})
+			}
+			// because AWS won't accept more than 10 dimensions per query, we can assume len(dimensions) <= 10
+			// therefore sorting dimensionValues in every iteration is O(1), making this less expensive than an n^2 de-duplication
+			dimensionsAsString := mapToOrderedStringHelper(dimensionValues)
+			if _, ok := dimensionSet[dimensionsAsString]; !ok {
+				deduplicatedDimensions = append(deduplicatedDimensions, resolvedDimension)
+			}
+			dimensionSet[dimensionsAsString] = true
+		}
+	}
+
+	// for each unique set of dimensions with values, create a new static job
+	var newStaticJobs []*static
+	for _, dimensions := range deduplicatedDimensions {
+		resolvedResource := resource
+		resolvedResource.Dimensions = dimensions
+		newStaticJobs = append(newStaticJobs, &resolvedResource)
+	}
+	return newStaticJobs, nil
 }
 
 func scrapeStaticJob(resource static, region string, clientCloudwatch cloudwatchInterface) (cw []*cloudwatchData) {
