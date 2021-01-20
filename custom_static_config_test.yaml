@@ -1,0 +1,21 @@
+static:
+  - namespace: logstash-s3
+    name: logstash_s3
+    regions:
+      - us-east-1
+    dimensions:
+     - name: Operation
+       value: ProcessTask
+     - name: ShardId
+    metrics:
+      - name: MillisBehindLatest
+        statistics:
+        - Average
+        period: 60
+        length: 300
+      - name: RecordsProcessed
+        statistics:
+        - Average
+        period: 60
+        length: 300 
+    populateNamlessDimensions: true
