@@ -637,7 +637,7 @@ func recordLabelsForMetric(metricName string, promLabels map[string]string) {
 		workingLabelsCopy = append(workingLabelsCopy, labelMap[metricName]...)
 	}
 
-	for k, _ := range promLabels {
+	for k := range promLabels {
 		workingLabelsCopy = append(workingLabelsCopy, k)
 	}
 	sort.Strings(workingLabelsCopy)
