@@ -253,7 +253,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 }
 
 // Breaks a single array of strings into a multiple array of strings
-func chunkArrayOfStrings(targetGroupArns []*string, chunkSize int)(chunkedTargetGroupArns [][]*string){
+func chunkArrayOfStrings(targetGroupArns []*string, chunkSize int) (chunkedTargetGroupArns [][]*string) {
 	for i := 0; i < len(targetGroupArns); i += chunkSize {
 		end := i + chunkSize
 		if end > len(targetGroupArns) {
@@ -390,10 +390,10 @@ func (iface tagsInterface) getTaggedEC2SpotInstances(job job, region string) (re
 			pageNum++
 			ec2APICounter.Inc()
 
-			for _, ec2Spot := range page.SpotFleetRequestConfigs{
+			for _, ec2Spot := range page.SpotFleetRequestConfigs {
 				resource := tagsData{}
 
-				resource.ID = aws.String(fmt.Sprintf("%s", *ec2Spot.SpotFleetRequestId))
+				resource.ID = aws.String(*ec2Spot.SpotFleetRequestId)
 
 				resource.Service = &job.Type
 				resource.Region = &region
