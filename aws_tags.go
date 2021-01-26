@@ -190,7 +190,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 	switch job.Type {
 	case "alb", "nlb":
-		var filteredResources []*tagsData
 		var chunkedFilteredResources []*tagsData
 		var targetGroupArns []*string
 		var albArns []*string
@@ -199,7 +198,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 				targetGroupArns = append(targetGroupArns, aws.String(*r.ID))
 			} else {
 				// Add all resources except target groups
-				filteredResources = append(filteredResources, r)
 				albArns = append(albArns, r.ID)
 			}
 		}
