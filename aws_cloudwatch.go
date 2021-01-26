@@ -42,7 +42,6 @@ type cloudwatchData struct {
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	Period                  int64
-	endtime                time.Time
 }
 
 var labelMap = make(map[string][]string)
