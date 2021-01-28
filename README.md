@@ -104,14 +104,13 @@ exportedTagsOnMetrics:
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job) |
 | customTags           | Custom tags to be added as a list of Key/Value pairs                                                     |
 | metrics              | List of metric definitions                                                                               |
-| additionalDimensions | List of dimensions to return beyond the default list per service                                         |
 
 searchTags example:
 
 ```yaml
 searchTags:
-  - Key: env
-    Value: production
+  - key: env
+    value: production
 ```
 
 ### Metric definition
@@ -247,17 +246,11 @@ discovery:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: AllStorageTypes
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: StandardStorage
   - type: ebs
     regions:
       - eu-west-1

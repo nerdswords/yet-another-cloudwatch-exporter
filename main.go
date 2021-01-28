@@ -26,46 +26,6 @@ var (
 	decoupledScraping     = flag.Bool("decoupled-scraping", true, "Decouples scraping and serving of metrics.")
 	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
-
-	supportedServices = []string{
-		"alb",
-		"apigateway",
-		"appsync",
-		"asg",
-		"cf",
-		"docdb",
-		"dynamodb",
-		"ebs",
-		"ec",
-		"ec2",
-		"ec2Spot",
-		"ecs-svc",
-		"ecs-containerinsights",
-		"efs",
-		"elb",
-		"emr",
-		"es",
-		"firehose",
-		"fsx",
-		"gamelift",
-		"kafka",
-		"kinesis",
-		"lambda",
-		"ngw",
-		"nlb",
-		"rds",
-		"redshift",
-		"r53r",
-		"s3",
-		"sfn",
-		"sns",
-		"sqs",
-		"tgw",
-		"tgwa",
-		"vpn",
-		"wafv2",
-	}
-
 	config = conf{}
 )
 

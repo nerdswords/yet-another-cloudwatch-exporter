@@ -47,7 +47,6 @@ type static struct {
 type metric struct {
 	Name                   string      `yaml:"name"`
 	Statistics             []string    `yaml:"statistics"`
-	AdditionalDimensions   []dimension `yaml:"additionalDimensions"`
 	Period                 int         `yaml:"period"`
 	Length                 int         `yaml:"length"`
 	Delay                  int         `yaml:"delay"`
@@ -120,8 +119,8 @@ func (c *conf) validate() error {
 }
 
 func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
-	if j.Type != "" {
-		if !stringInSlice(j.Type, supportedServices) {
+	if j.Namespace != "" {
+		if _, ok := supportedServices[j.Namespace]; !ok {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
