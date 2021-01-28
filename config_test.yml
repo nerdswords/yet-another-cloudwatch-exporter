@@ -1,44 +1,51 @@
 discovery:
   exportedTagsOnMetrics:
-    ec2:
-      - Name
-    ebs:
+    AWS/EBS:
       - VolumeId
+    AWS/EC2:
+      - Name
   jobs:
-  - type: es
+  - namespace: AWS/Billing
+    regions:
+      - us-east-1
+    metrics:
+      - name: EstimatedCharges
+        statistics:
+        - Sum
+        period: 3600
+        length: 87600
+  - namespace: AWS/ES
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: ^(easteregg|k8s)$
+      - key: Environment
+        value: qa
     metrics:
       - name: FreeStorageSpace
         statistics:
         - Sum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.green
         statistics:
         - Minimum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.yellow
         statistics:
         - Maximum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.red
         statistics:
         - Maximum
-        period: 600
-        length: 60
-  - type: elb
+        period: 60
+        length: 600
+  - namespace: AWS/ELB
     regions:
       - eu-west-1
     length: 900
     delay: 120
-    awsDimensions:
-     - AvailabilityZone
     searchTags:
       - Key: KubernetesCluster
         Value: production-19
@@ -55,30 +62,30 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
-  - type: alb
+  - namespace: AWS/ApplicationELB
     regions:
       - eu-west-1
     searchTags:
-      - Key: kubernetes.io/service-name
-        Value: .*
+      - key: kubernetes.io/service-name
+        value: .*
     metrics:
       - name: UnHealthyHostCount
         statistics: [Maximum]
         period: 60
         length: 600
-  - type: vpn
+  - namespace: AWS/VPN
     regions:
       - eu-west-1
     searchTags:
-      - Key: kubernetes.io/service-name
-        Value: .*
+      - key: kubernetes.io/service-name
+        value: .*
     metrics:
       - name: TunnelState
         statistics:
         - p90
         period: 60
         length: 300
-  - type: kinesis
+  - namespace: AWS/Kinesis
     regions:
       - eu-west-1
     metrics:
@@ -87,35 +94,29 @@ discovery:
         - Sum
         period: 60
         length: 300
-  - type: s3
+  - namespace: AWS/S3
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: public
+      - key: type
+        value: public
     metrics:
       - name: NumberOfObjects
         statistics:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: AllStorageTypes
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: StandardStorage
-  - type: ebs
+  - namespace: AWS/EBS
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: public
+      - key: type
+        value: public
     metrics:
       - name: BurstBalance
         statistics:
@@ -123,15 +124,12 @@ discovery:
         period: 600
         length: 600
         addCloudwatchTimestamp: true
-  - type: kafka
+  - namespace: AWS/Kafka
     regions:
       - eu-west-1
     searchTags:
-      - Key: env
-        Value: dev
-    awsDimensions:
-      - Broker ID
-      - Topic
+      - key: env
+        value: dev
     metrics:
       - name: BytesOutPerSec
         statistics:
@@ -147,8 +145,8 @@ static:
      - name: AutoScalingGroupName
        value: Test
     customTags:
-      - Key: CustomTag
-        Value: CustomValue
+      - key: CustomTag
+        value: CustomValue
     metrics:
       - name: GroupInServiceInstances
         statistics:

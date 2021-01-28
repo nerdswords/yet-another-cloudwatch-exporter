@@ -1,311 +1,322 @@
 package main
 
 import (
-	"github.com/ivx/yet-another-cloudwatch-exporter/discovery/ec2spot"
-	"github.com/ivx/yet-another-cloudwatch-exporter/discovery/autoscaling"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 type serviceConfig struct {
-	Resources  []string
-	Dimensions []string
+	ResourceFilters  []*string
+	DimensionRegexps []*string
 }
 
 var (
 	supportedServices = map[string]serviceConfig{
 		"AWS/ApplicationELB": {
-			ResourceFilters: []string{
-				"elasticloadbalancing:loadbalancer/app", 
-				"elasticloadbalancing:targetgroup",
+			ResourceFilters: []*string{
+				aws.String("elasticloadbalancing:loadbalancer/app"),
+				aws.String("elasticloadbalancing:targetgroup"),
 			},
-			DimensionRegexps: []string{
-				":(?P<TargetGroup>targetgroup/.+)",
-				":loadbalancer/(?P<LoadBalancer>.+)$",
+			DimensionRegexps: []*string{
+				aws.String(":(?P<TargetGroup>targetgroup/.+)"),
+				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
 		},
 		"AWS/ApiGateway": {
-			ResourceFilters: []string{"apigateway"},
-			DimensionRegexps: []string{
-				"apis/(?P<ApiName>[^/]+)$",
-				"apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$",
-				"apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)$",
-				"apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)/methods/(?P<Method[^/]+>)$",
+			ResourceFilters: []*string{
+				aws.String("apigateway"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("apis/(?P<ApiName>[^/]+)$"),
+				aws.String("apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)$"),
+				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)/methods/(?P<Method>[^/]+)$"),
 			},
 		},
 		"AWS/AppSync": {
-			ResourceFilters: []string{"appsync"},
-			DimensionRegexps: []string{
-				"apis/(?P<GraphQLAPIId>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("appsync"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("apis/(?P<GraphQLAPIId>[^/]+)"),
 			},
 		},
 		"AWS/AutoScaling": {
-			DimensionRegexps: []string{
-				"autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
-			ResourceDiscovery: autoscaling.getAutoscalingGroups
-			
 		},
 		"AWS/Billing": {},
 		"AWS/CloudFront": {
-			ResourceFilterss: []string{
-				"cloudfront:distribution",
+			ResourceFilters: []*string{
+				aws.String("cloudfront:distribution"),
 			},
-			DimensionRegexps: []string{
-				"distribution/(?P<DistributionId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("distribution/(?P<DistributionId>[^/]+)"),
 			},
 		},
 		"AWS/Cognito": {
-			ResourceFilters: []string{"cognito-idp:userpool"},
-			DimensionRegexps: []string{
-				"userpool/(?P<UserPool>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("cognito-idp:userpool"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("userpool/(?P<UserPool>[^/]+)"),
 			},
 		},
 		"AWS/DocDB": {
-			ResourceFilters: []string{"rds:db", "rds:cluster"},
-			DimensionRegexps: []string{
-				"cluster:(?P<DBClusterIdentifier>[^/]+)",
-				"db:(?P<DBInstanceIdentifier>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("rds:db"),
+				aws.String("rds:cluster"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("cluster:(?P<DBClusterIdentifier>[^/]+)"),
+				aws.String("db:(?P<DBInstanceIdentifier>[^/]+)"),
 			},
 		},
 		"AWS/DynamoDB": {
-			ResourceFilters: []string{"dynamodb:table"},
-			DimensionRegexps: []string{
-				":table/(?P<TableName>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("dynamodb:table"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":table/(?P<TableName>[^/]+)"),
 			},
 		},
 		"AWS/EBS": {
-			ResourceFilters: []string{"ec2:volume"},
-			DimensionRegexps: []string{
-				"volume/(?P<VolumeId>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("ec2:volume"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("volume/(?P<VolumeId>[^/]+)"),
 			},
 		},
 		"AWS/ElastiCache": {
-			ResourceFilters: []string{"elasticache:cluster"},
-			DimensionRegexps: []string{
-				"cluster:(?P<CacheClusterId>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("elasticache:cluster"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("cluster:(?P<CacheClusterId>[^/]+)"),
 			},
 		},
 		"AWS/EC2": {
-			ResourceFilters: []string{"ec2:instance"},
-			DimensionRegexps: []string{
-				"instance/(?P<InstanceId>[^/]+)",
+			ResourceFilters: []*string{
+				aws.String("ec2:instance"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("instance/(?P<InstanceId>[^/]+)"),
 			},
 		},
 		"AWS/EC2Spot": {
-			ResourceDiscovery: ec2spot.getSpotFleetRequests,
-			DimensionRegexps: []string{
-				"(?P<FleetRequestId>.*)",
+			DimensionRegexps: []*string{
+				aws.String("(?P<FleetRequestId>.*)"),
 			},
 		},
 		"AWS/ECS": {
-			ResourceFilters: []string{
-				"ecs:cluster", 
-				"ecs:service",
+			ResourceFilters: []*string{
+				aws.String("ecs:cluster"),
+				aws.String("ecs:service"),
 			},
-			DImensionRegexps: []string{
-				"cluster/(?P<ClusterName>[^/]+)",
-				"service/(?P<ClusterName>[^/]+)/([^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("cluster/(?P<ClusterName>[^/]+)"),
+				aws.String("service/(?P<ClusterName>[^/]+)/([^/]+)"),
 			},
 		},
 		"ECS/ContainerInsights": {
-			ResourceFilters: []string{
-				"ecs:cluster", 
-				"ecs:service",
+			ResourceFilters: []*string{
+				aws.String("ecs:cluster"),
+				aws.String("ecs:service"),
 			},
-			DImensionRegexps: []string{
-				"cluster/(?P<ClusterName>[^/]+)",
-				"service/(?P<ClusterName>[^/]+)/([^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("cluster/(?P<ClusterName>[^/]+)"),
+				aws.String("service/(?P<ClusterName>[^/]+)/([^/]+)"),
 			},
 		},
 		"AWS/EFS": {
-			ResourceFilters: []string{
-				"elasticfilesystem:file-system",
+			ResourceFilters: []*string{
+				aws.String("elasticfilesystem:file-system"),
 			},
-			DImensionRegexps: []string{
-				"file-system/(?P<FileSystemId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("file-system/(?P<FileSystemId>[^/]+)"),
 			},
 		},
 		"AWS/ELB": {
-			ResourceFilters: []string{
-				"elasticloadbalancing:loadbalancer",
+			ResourceFilters: []*string{
+				aws.String("elasticloadbalancing:loadbalancer"),
 			},
-			DImensionRegexps: []string{
-				":loadbalancer/(?P<LoadBalancer>.+)$",
+			DimensionRegexps: []*string{
+				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
 		},
 		"AWS/ElasticMapReduce": {
-			ResourceFilters: []string{
-				"elasticmapreduce:cluster",
+			ResourceFilters: []*string{
+				aws.String("elasticmapreduce:cluster"),
 			},
-			DImensionRegexps: []string{
-				"cluster/(?P<JobFlowId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("cluster/(?P<JobFlowId>[^/]+)"),
 			},
 		},
 		"AWS/ES": {
-			ResourceFilters: []string{
-				"es:domain",
+			ResourceFilters: []*string{
+				aws.String("es:domain"),
 			},
-			DImensionRegexps: []string{
-				":domain/(?P<DomainName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":domain/(?P<DomainName>[^/]+)"),
 			},
 		},
 		"AWS/Firehose": {
-			ResourceFilters: []string{
-				"firehose",
+			ResourceFilters: []*string{
+				aws.String("firehose"),
 			},
-			DImensionRegexps: []string{
-				":deliverystream/(?P<DeliveryStreamName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":deliverystream/(?P<DeliveryStreamName>[^/]+)"),
 			},
 		},
 		"AWS/FSx": {
-			ResourceFilters: []string{
-				"fsx:file-system",
+			ResourceFilters: []*string{
+				aws.String("fsx:file-system"),
 			},
-			DImensionRegexps: []string{
-				"file-system/(?P<FileSystemId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("file-system/(?P<FileSystemId>[^/]+)"),
 			},
 		},
 		"AWS/GameLift": {
-			ResourceFilters: []string{
-				"gamelift",
+			ResourceFilters: []*string{
+				aws.String("gamelift"),
 			},
-			DImensionRegexps: []string{
-				":fleet/(?P<FleetId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":fleet/(?P<FleetId>[^/]+)"),
 			},
 		},
 		"Glue": {
-			ResourceFilters: []string{
-				"glue:job"
+			ResourceFilters: []*string{
+				aws.String("glue:job"),
 			},
-			DImensionRegexps: []string{
-				":job/(?P<JobName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":job/(?P<JobName>[^/]+)"),
 			},
 		},
-		"AWS/IoT": {
-			ResourceFilters: []string{},
-		},
+		"AWS/IoT": {},
 		"AWS/Kafka": {
-			ResourceFilters: []string{
-				"kafka:cluster",
+			ResourceFilters: []*string{
+				aws.String("kafka:cluster"),
 			},
-			DImensionRegexps: []string{
-				":cluster/(?P<Cluster Name>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":cluster/(?P<Cluster_Name>[^/]+)"),
 			},
 		},
 		"AWS/Kinesis": {
-			ResourceFilters: []string{
-				"kinesis:stream",
+			ResourceFilters: []*string{
+				aws.String("kinesis:stream"),
 			},
-			DImensionRegexps: []string{
-				":stream/(?P<StreamName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":stream/(?P<StreamName>[^/]+)"),
 			},
 		},
 		"AWS/Lambda": {
-			ResourceFilters: []string{
-				"lambda:function",
+			ResourceFilters: []*string{
+				aws.String("lambda:function"),
 			},
-			DImensionRegexps: []string{
-				":function:(?P<FunctionName>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":function:(?P<FunctionName>[^/]+)"),
 			},
 		},
 		"AWS/NATGateway": {
-			ResourceFilters: []string{
-				"ec2:natgateway",
+			ResourceFilters: []*string{
+				aws.String("ec2:natgateway"),
 			},
-			DImensionRegexps: []string{
-				"natgateway/(?P<NatGatewayId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("natgateway/(?P<NatGatewayId>[^/]+)"),
 			},
 		},
 		"AWS/NetworkELB": {
-			ResourceFilters: []string{
-				"elasticloadbalancing:loadbalancer/net", 
-				"elasticloadbalancing:targetgroup",
+			ResourceFilters: []*string{
+				aws.String("elasticloadbalancing:loadbalancer/net"),
+				aws.String("elasticloadbalancing:targetgroup"),
 			},
-			DImensionRegexps: []string{
-				":(?P<TargetGroup>targetgroup/.+)",
-				":loadbalancer/(?P<LoadBalancer>.+)$",
+			DimensionRegexps: []*string{
+				aws.String(":(?P<TargetGroup>targetgroup/.+)"),
+				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
 		},
 		"AWS/RDS": {
-			ResourceFilters: []string{
-				"rds:db", 
-				"rds:cluster",
+			ResourceFilters: []*string{
+				aws.String("rds:db"),
+				aws.String("rds:cluster"),
 			},
-			DImensionRegexps: []string{
-				":cluster:(?P<DBClusterIdentifier>[^/]+)",
-				":db:(?P<DBInstanceIdentifier>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":cluster:(?P<DBClusterIdentifier>[^/]+)"),
+				aws.String(":db:(?P<DBInstanceIdentifier>[^/]+)"),
 			},
 		},
 		"AWS/Redshift": {
-			ResourceFilters: []string{
-				"redshift:cluster",
+			ResourceFilters: []*string{
+				aws.String("redshift:cluster"),
 			},
-			DImensionRegexps: []string{
-				":cluster:(?P<ClusterIdentifier>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":cluster:(?P<ClusterIdentifier>[^/]+)"),
 			},
 		},
 		"AWS/Route53Resolver": {
-			ResourceFilters: []string{
-				"route53resolver",
+			ResourceFilters: []*string{
+				aws.String("route53resolver"),
 			},
-			DImensionRegexps: []string{
-				":resolver-endpoint/(?P<EndpointId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":resolver-endpoint/(?P<EndpointId>[^/]+)"),
 			},
 		},
 		"AWS/S3": {
-			ResourceFilters: []string{
-				"s3",
+			ResourceFilters: []*string{
+				aws.String("s3"),
 			},
-			DImensionRegexps: []string{
-				"(?P<BucketName>[^:]+)$",
+			DimensionRegexps: []*string{
+				aws.String("(?P<BucketName>[^:]+)$"),
 			},
 		},
 		"AWS/SES": {},
 		"AWS/States": {
-			ResourceFilters: []string{
-				"states",
+			ResourceFilters: []*string{
+				aws.String("states"),
 			},
-			DImensionRegexps: []string{
-				"(?P<StateMachineArn>.*)",
+			DimensionRegexps: []*string{
+				aws.String("(?P<StateMachineArn>.*)"),
 			},
 		},
 		"AWS/SNS": {
-			ResourceFilters: []string{
-				"sns",
+			ResourceFilters: []*string{
+				aws.String("sns"),
 			},
-			DImensionRegexps: []string{
-				"(?P<TopicName>[^:]+)$",
+			DimensionRegexps: []*string{
+				aws.String("(?P<TopicName>[^:]+)$"),
 			},
 		},
 		"AWS/SQS": {
-			ResourceFilters: []string{
-				"sqs",
+			ResourceFilters: []*string{
+				aws.String("sqs"),
 			},
-			DImensionRegexps: []string{
-				"(?P<QueueName>[^:]+)$",
+			DimensionRegexps: []*string{
+				aws.String("(?P<QueueName>[^:]+)$"),
 			},
 		},
 		"AWS/TransitGateway": {
-			ResourceFilters: []string{
-				"ec2:transit-gateway",
+			ResourceFilters: []*string{
+				aws.String("ec2:transit-gateway"),
 			},
-			DImensionRegexps: []string{
-				":transit-gateway/(?P<TransitGateway>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
 			},
 		},
 		"AWS/VPN": {
-			ResourceFilters: []string{
-				"ec2:vpn-connection",
+			ResourceFilters: []*string{
+				aws.String("ec2:vpn-connection"),
 			},
-			DImensionRegexps: []string{
-				":vpn-connection/(?P<VpnId>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String(":vpn-connection/(?P<VpnId>[^/]+)"),
 			},
 		},
 		"AWS/WAFV2": {
-			ResourceFilters: []string{
-				"wafv2",
+			ResourceFilters: []*string{
+				aws.String("wafv2"),
 			},
-			DImensionRegexps: []string{
-				"/webacl/(?P<WebACL>[^/]+)",
+			DimensionRegexps: []*string{
+				aws.String("/webacl/(?P<WebACL>[^/]+)"),
 			},
 		},
 	}

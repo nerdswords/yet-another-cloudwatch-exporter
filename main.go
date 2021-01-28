@@ -26,7 +26,7 @@ var (
 	decoupledScraping     = flag.Bool("decoupled-scraping", true, "Decouples scraping and serving of metrics.")
 	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
-	config = conf{}
+	config                = conf{}
 )
 
 func init() {
@@ -92,7 +92,7 @@ func main() {
 		length := getMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		if (maxjoblength < length) && (discoveryJob.Type != "s3") {
+		if (maxjoblength < length) && (discoveryJob.Namespace != "AWS/S3" || discoveryJob.Namespace != "AWS/Billing") {
 			maxjoblength = length
 		}
 	}
