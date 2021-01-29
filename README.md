@@ -63,9 +63,10 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 ### Command Line Options
 
-| Option            | Description                                                               |
-| ----------------- | ------------------------------------------------------------------------- |
-| labels-snake-case | Causes labels on metrics to be output in snake case instead of camel case |
+| Option               | Description                                                                       |
+| -------------------- | --------------------------------------------------------------------------------- |
+| labels-snake-case    | Causes labels on metrics to be output in snake case instead of camel case         |
+| floating-time-window | Use a floating start/end time window instead of rounding times to 5 min intervals |
 
 ### Top level configuration
 

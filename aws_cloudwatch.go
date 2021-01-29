@@ -151,7 +151,11 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 	var startTime time.Time
 	if now.IsZero() {
 		//This is first run
-		now = time.Now().Round(5 * time.Minute)
+		if *floatingTimeWindow {
+			now = time.Now()
+		} else {
+			now = time.Now().Round(5 * time.Minute)
+		}
 		endTime = now.Add(-time.Duration(delay) * time.Second)
 		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
 	} else {
