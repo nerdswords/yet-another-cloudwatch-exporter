@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -245,22 +244,13 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 
 func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
 	for _, d := range dimensions {
-		output = append(output, buildDimension(d.Name, d.Value))
+		output = append(output, &cloudwatch.Dimension{
+			Name:  &d.Name,
+			Value: &d.Value,
+		})
 	}
 
 	return output
-}
-
-func filterDimensionsWithoutValueByDimensionsWithValue(
-	dimensionsWithoutValue []*cloudwatch.Dimension,
-	dimensionsWithValue []*cloudwatch.Dimension) (dimensions []*cloudwatch.Dimension) {
-
-	for _, dimension := range dimensionsWithoutValue {
-		if !dimensionIsInListWithoutValues(dimension, dimensionsWithValue) {
-			dimensions = append(dimensions, dimension)
-		}
-	}
-	return dimensions
 }
 
 func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
@@ -277,83 +267,6 @@ func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloud
 		log.Fatalf("Unable to list metrics due to %v", err)
 	}
 	return &res
-}
-
-func filterMetricsBasedOnDimensionsWithValues(
-	dimensionsWithValue []*cloudwatch.Dimension,
-	dimensionsWithoutValue []*cloudwatch.Dimension,
-	metricsToFilter *cloudwatch.ListMetricsOutput) *cloudwatch.ListMetricsOutput {
-
-	var numberOfDimensions = len(dimensionsWithValue) + len(dimensionsWithoutValue)
-	var output cloudwatch.ListMetricsOutput
-	for _, metric := range metricsToFilter.Metrics {
-		if len(metric.Dimensions) == numberOfDimensions {
-			shouldAddMetric := true
-			for _, metricDimension := range metric.Dimensions {
-				shouldAddMetric = shouldAddMetric &&
-					(dimensionIsInListWithValues(metricDimension, dimensionsWithValue) ||
-						dimensionIsInListWithoutValues(metricDimension, dimensionsWithoutValue))
-				if !shouldAddMetric {
-					break
-				}
-			}
-			if shouldAddMetric {
-				output.Metrics = append(output.Metrics, metric)
-			}
-		}
-	}
-	return &output
-}
-
-func dimensionIsInListWithValues(
-	dimension *cloudwatch.Dimension,
-	dimensionsList []*cloudwatch.Dimension) bool {
-	for _, dimensionInList := range dimensionsList {
-		if *dimension.Name == *dimensionInList.Name &&
-			*dimension.Value == *dimensionInList.Value {
-			return true
-		}
-	}
-	return false
-}
-
-func dimensionIsInListWithoutValues(
-	dimension *cloudwatch.Dimension,
-	dimensionsList []*cloudwatch.Dimension) bool {
-	for _, dimensionInList := range dimensionsList {
-		if *dimension.Name == *dimensionInList.Name {
-			return true
-		}
-	}
-	return false
-}
-
-func getDimensionfromMetric(resp *cloudwatch.ListMetricsOutput) []*cloudwatch.Dimension {
-	for _, metric := range resp.Metrics {
-		return metric.Dimensions
-	}
-	return nil
-}
-
-func queryAvailableDimensions(resource string, namespace *string, fullMetricsList *cloudwatch.ListMetricsOutput) (dimensions []*cloudwatch.Dimension) {
-
-	if !strings.HasSuffix(*namespace, "ApplicationELB") && !strings.HasSuffix(*namespace, "NetworkELB") {
-		log.Fatal("Not implemented queryAvailableDimensions: " + *namespace)
-		return nil
-	}
-
-	if strings.HasPrefix(resource, "targetgroup/") {
-		dimensions = append(dimensions, buildDimension("TargetGroup", resource))
-		resp := filterMetricsBasedOnDimensionsWithValues(dimensions, []*cloudwatch.Dimension{buildDimensionWithoutValue("LoadBalancer")}, fullMetricsList)
-		if resp != nil {
-			dimensions = getDimensionfromMetric(resp)
-		}
-
-	} else if strings.HasPrefix(resource, "loadbalancer/") || strings.HasPrefix(resource, "net/") || strings.HasPrefix(resource, "app/") {
-		trimmedDimensionValue := strings.Replace(resource, "loadbalancer/", "", -1)
-		dimensions = append(dimensions, buildDimension("LoadBalancer", trimmedDimensionValue))
-	}
-	return dimensions
 }
 
 func getFilteredMetricDatas(region string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
@@ -419,46 +332,6 @@ func getFilteredMetricDatas(region string, customTags []tag, tagsOnMetrics expor
 		}
 	}
 	return getMetricsData
-}
-
-func addAdditionalDimensions(startingDimensions []*cloudwatch.Dimension, additionalDimensions []dimension) (dimensions []*cloudwatch.Dimension) {
-	// Copy startingDimensions before appending additionalDimensions, since append(x, ...) can modify x
-	dimensions = append(dimensions, startingDimensions...)
-	for _, dimension := range additionalDimensions {
-		dimensions = append(dimensions, buildDimension(dimension.Name, dimension.Value))
-	}
-	return dimensions
-}
-
-func buildBaseDimension(identifier string, dimensionKey string, prefix string) (dimensions []*cloudwatch.Dimension) {
-	helper := strings.TrimPrefix(identifier, prefix)
-	dimensions = append(dimensions, buildDimension(dimensionKey, helper))
-	return dimensions
-}
-
-func buildDimensionWithoutValue(key string) *cloudwatch.Dimension {
-	dimension := cloudwatch.Dimension{
-		Name: &key,
-	}
-	return &dimension
-}
-
-func buildDimension(key string, value string) *cloudwatch.Dimension {
-	dimension := cloudwatch.Dimension{
-		Name:  &key,
-		Value: &value,
-	}
-	return &dimension
-}
-
-func getStateMachineNameFromArn(resourceArn string) string {
-	arnParsed, err := arn.Parse(resourceArn)
-	if err != nil {
-		log.Warningf("Unable to parse ARN (%s) due to %v", resourceArn, err)
-		return ""
-	}
-	parsedResource := strings.Split(arnParsed.Resource, ":")
-	return parsedResource[1]
 }
 
 func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
