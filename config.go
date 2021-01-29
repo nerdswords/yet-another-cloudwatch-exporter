@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -30,7 +31,8 @@ type job struct {
 	Length                 int       `yaml:"length"`
 	Delay                  int       `yaml:"delay"`
 	Period                 int       `yaml:"period"`
-	AddCloudwatchTimestamp bool      `yaml:"addCloudwatchTimestamp"`
+	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
+	NilToZero              *bool     `yaml:"nilToZero"`
 }
 
 type static struct {
@@ -49,8 +51,8 @@ type metric struct {
 	Period                 int      `yaml:"period"`
 	Length                 int      `yaml:"length"`
 	Delay                  int      `yaml:"delay"`
-	NilToZero              bool     `yaml:"nilToZero"`
-	AddCloudwatchTimestamp bool     `yaml:"addCloudwatchTimestamp"`
+	NilToZero              *bool    `yaml:"nilToZero"`
+	AddCloudwatchTimestamp *bool    `yaml:"addCloudwatchTimestamp"`
 }
 
 type dimension struct {
@@ -189,6 +191,33 @@ func (m *metric) validateMetric(metricIdx int, parent string, discovery *job) er
 		}
 	}
 
+	mDelay := m.Delay
+	if mDelay == 0 && discovery != nil {
+		if discovery.Delay != 0 {
+			mDelay = discovery.Delay
+		} else {
+			mDelay = 120
+		}
+	}
+
+	mNilToZero := m.NilToZero
+	if mNilToZero == nil && discovery != nil {
+		if discovery.NilToZero != nil {
+			mNilToZero = discovery.NilToZero
+		} else {
+			mNilToZero = aws.Bool(false)
+		}
+	}
+
+	mAddCloudwatchTimestamp := m.AddCloudwatchTimestamp
+	if mAddCloudwatchTimestamp == nil && discovery != nil {
+		if discovery.AddCloudwatchTimestamp != nil {
+			mAddCloudwatchTimestamp = discovery.AddCloudwatchTimestamp
+		} else {
+			mAddCloudwatchTimestamp = aws.Bool(false)
+		}
+	}
+
 	if mLength < mPeriod {
 		log.Warningf(
 			"Metric [%s/%d] in %v: length(%d) is smaller than period(%d). This can cause that the data requested is not ready and generate data gaps",
@@ -196,6 +225,9 @@ func (m *metric) validateMetric(metricIdx int, parent string, discovery *job) er
 	}
 	m.Length = mLength
 	m.Period = mPeriod
+	m.Delay = mDelay
+	m.NilToZero = mNilToZero
+	m.AddCloudwatchTimestamp = mAddCloudwatchTimestamp
 
 	return nil
 }
