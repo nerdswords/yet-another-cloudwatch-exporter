@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -25,9 +28,10 @@ type tagsData struct {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	client    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asgClient autoscalingiface.AutoScalingAPI
-	ec2Client ec2iface.EC2API
+	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	asgClient        autoscalingiface.AutoScalingAPI
+	apiGatewayClient apigatewayiface.APIGatewayAPI
+	ec2Client        ec2iface.EC2API
 }
 
 func createSession(roleArn string, config *aws.Config) *session.Session {
@@ -76,42 +80,70 @@ func createEC2Session(region *string, roleArn string) ec2iface.EC2API {
 	return ec2.New(createSession(roleArn, config), config)
 }
 
+func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.APIGatewayAPI {
+	sess, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	maxApiGatewaygAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+	if *fips {
+		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
+		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+	return apigateway.New(sess, config)
+}
+
 func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, err error) {
+	if len(supportedServices[job.Namespace].ResourceFilters) > 0 {
+		var inputparams = r.GetResourcesInput{
+			ResourceTypeFilters: supportedServices[job.Namespace].ResourceFilters,
+		}
+		c := iface.client
+		ctx := context.Background()
+		pageNum := 0
+
+		err = c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
+			pageNum++
+			resourceGroupTaggingAPICounter.Inc()
+			for _, resourceTagMapping := range page.ResourceTagMappingList {
+				resource := tagsData{
+					ID:        resourceTagMapping.ResourceARN,
+					Namespace: &job.Namespace,
+					Region:    &region,
+				}
+
+				for _, t := range resourceTagMapping.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		})
+	}
 	switch job.Namespace {
 	case "AWS/AutoScaling":
 		return iface.getTaggedAutoscalingGroups(job, region)
 	case "AWS/EC2Spot":
 		return iface.getTaggedEC2SpotInstances(job, region)
-	}
-	if len(supportedServices[job.Namespace].ResourceFilters) == 0 {
-		return resources, err
-	}
-	var inputparams = r.GetResourcesInput{
-		ResourceTypeFilters: supportedServices[job.Namespace].ResourceFilters,
-	}
-	c := iface.client
-	ctx := context.Background()
-	pageNum := 0
-	err = c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
-		pageNum++
-		resourceGroupTaggingAPICounter.Inc()
-		for _, resourceTagMapping := range page.ResourceTagMappingList {
-			resource := tagsData{
-				ID:        resourceTagMapping.ResourceARN,
-				Namespace: &job.Namespace,
-				Region:    &region,
-			}
-
-			for _, t := range resourceTagMapping.Tags {
-				resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
-			}
-
-			if resource.filterThroughTags(job.SearchTags) {
-				resources = append(resources, &resource)
-			}
+	case "AWS/TransitGateway":
+		resources, err = iface.getTaggedTransitGatewayAttachments(job, region)
+		if err != nil {
+			return nil, err
 		}
-		return pageNum < 100
-	})
+	case "AWS/ApiGateway":
+		resources, err = iface.getTaggedApiGateway(resources)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return resources, err
 }
 
@@ -142,6 +174,61 @@ func (iface tagsInterface) getTaggedAutoscalingGroups(job *job, region string) (
 			}
 			return pageNum < 100
 		})
+}
+
+func (iface tagsInterface) getTaggedApiGateway(inputResources []*tagsData) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	apiGatewayAPICounter.Inc()
+	var limit int64 = 500 // max number of results per page. default=25, max=500
+	const maxPages = 10
+	input := apigateway.GetRestApisInput{Limit: &limit}
+	output := apigateway.GetRestApisOutput{}
+	var pageNum int
+	err = iface.apiGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+		pageNum++
+		output.Items = append(output.Items, page.Items...)
+		return pageNum <= maxPages
+	})
+	for _, resource := range inputResources {
+		for i, gw := range output.Items {
+			if strings.Contains(*resource.ID, *gw.Id) {
+				r := resource
+				r.ID = aws.String(strings.ReplaceAll(*resource.ID, *gw.Id, *gw.Name))
+				resources = append(resources, r)
+				output.Items = append(output.Items[:i], output.Items[i+1:]...)
+				break
+			}
+		}
+	}
+	return resources, err
+}
+
+func (iface tagsInterface) getTaggedTransitGatewayAttachments(job *job, region string) (resources []*tagsData, err error) {
+	ctx := context.Background()
+	pageNum := 0
+	return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+		func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+			pageNum++
+			ec2APICounter.Inc()
+
+			for _, tgwa := range page.TransitGatewayAttachments {
+				resource := tagsData{
+					ID:        aws.String(fmt.Sprintf("transit-gateway-attachment/%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
+					Namespace: &job.Namespace,
+					Region:    &region,
+				}
+
+				for _, t := range tgwa.Tags {
+					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+				}
+
+				if resource.filterThroughTags(job.SearchTags) {
+					resources = append(resources, &resource)
+				}
+			}
+			return pageNum < 100
+		},
+	)
 }
 
 func (iface tagsInterface) getTaggedEC2SpotInstances(job *job, region string) (resources []*tagsData, err error) {

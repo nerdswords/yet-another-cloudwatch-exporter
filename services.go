@@ -301,6 +301,7 @@ var (
 			},
 			DimensionRegexps: []*string{
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
+				aws.String(":transit-gateway-attachment/(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
 			},
 		},
 		"AWS/VPN": {
