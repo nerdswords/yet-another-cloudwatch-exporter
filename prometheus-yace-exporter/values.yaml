@@ -50,6 +50,10 @@ tolerations: []
 
 affinity: {}
 
+podAnnoatations: {}
+
+podLabels: {}
+
 aws:
   role:
 
