@@ -84,6 +84,8 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `ingress.labels`                  | Custom labels                                                           | `{}`                        |
 | `ingress.hosts`                   | Ingress accepted hostnames                                              | `[]`                        |
 | `ingress.tls`                     | Ingress TLS configuration                                               | `[]`                        |
+| `podAnnotations`                  | Custom pod annotations                                                  | `{}`                        |
+| `podLabels`                       | Custom pod labels                                                       | `{}`                        |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
