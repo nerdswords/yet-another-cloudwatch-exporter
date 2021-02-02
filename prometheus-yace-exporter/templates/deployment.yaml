@@ -18,9 +18,15 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- range $key, $val := .Values.podLabels }}
+        {{ $key }}: {{ $val | quote }}
+      {{- end}}
       annotations:
         {{ if .Values.aws.role}}iam.amazonaws.com/role: {{ .Values.aws.role }}{{ end }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- range $key, $val := .Values.podAnnotations }}
+        {{ $key }}: {{ $val | quote }}
+      {{- end}}
     spec:
       containers:
         - name: {{ .Chart.Name }}
