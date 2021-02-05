@@ -193,7 +193,16 @@ var (
 				aws.String(":job/(?P<JobName>[^/]+)"),
 			},
 		},
-		"AWS/IoT": {},
+		"AWS/IoT": {
+			ResourceFilters: []*string{
+				aws.String("iot:rule"),
+				aws.String("iot:provisioningtemplate"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":rule/(?P<RuleName>[^/]+)"),
+				aws.String(":provisioningtemplate/(?P<TemplateName>[^/]+)"),
+			},
+		},
 		"AWS/Kafka": {
 			ResourceFilters: []*string{
 				aws.String("kafka:cluster"),
