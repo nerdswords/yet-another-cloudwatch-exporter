@@ -476,7 +476,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 					exportedDatapoint = &zero
 				}
 			}
-			name := promString(*c.Namespace) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+			name := promString(strings.ToLower(*c.Namespace)) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
 
 				promLabels := createPrometheusLabels(c)
