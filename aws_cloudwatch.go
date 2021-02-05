@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go/service/sts"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -40,11 +41,27 @@ type cloudwatchData struct {
 	Tags                    []tag
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
+	AccountId               *string
 	Period                  int64
 	endtime                 time.Time
 }
 
 var labelMap = make(map[string][]string)
+
+func createStsSession(roleArn string) *sts.STS {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	maxStsRetries := 5
+	config := &aws.Config{MaxRetries: &maxStsRetries}
+	if *debug {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+	if roleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	}
+	return sts.New(sess, config)
+}
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -269,7 +286,7 @@ func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*tagsData
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -326,6 +343,7 @@ func getFilteredMetricDatas(region string, customTags []tag, tagsOnMetrics expor
 					CustomTags:             customTags,
 					Dimensions:             cwMetric.Dimensions,
 					Region:                 &region,
+					AccountId:              accountId,
 					Period:                 int64(m.Period),
 				})
 			}
@@ -338,6 +356,7 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
+	labels["account_id"] = *cwd.AccountId
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
