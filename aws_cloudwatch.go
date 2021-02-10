@@ -355,6 +355,8 @@ func filterMetricsBasedOnDimensionsWithValues(
 			}
 			if shouldAddMetric {
 				output.Metrics = append(output.Metrics, metric)
+			} else {
+				log.Debugf("Skipping metric %s for dimensions %v", *metric.MetricName, metric.Dimensions)
 			}
 		}
 	}
