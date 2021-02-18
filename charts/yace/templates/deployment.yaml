@@ -13,10 +13,10 @@ spec:
       {{- include "yace.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
-        checksum/config: {{ .Values.config | sha256sum }}
-        {{- toYaml . | nindent 8 }}
+        checksum/config: {{ toJson .Values.config | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 6 }}
       {{- end }}
       labels:
         {{- include "yace.selectorLabels" . | nindent 8 }}
