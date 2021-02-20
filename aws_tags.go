@@ -110,6 +110,11 @@ func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, 
 		err = c.GetResourcesPagesWithContext(ctx, &inputparams, func(page *r.GetResourcesOutput, lastPage bool) bool {
 			pageNum++
 			resourceGroupTaggingAPICounter.Inc()
+      
+      if len(page.ResourceTagMappingList) == 0 {
+        log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Type)
+      }
+      
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
 				resource := tagsData{
 					ID:        resourceTagMapping.ResourceARN,
@@ -123,7 +128,9 @@ func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, 
 
 				if resource.filterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
-				}
+				} else {
+          log.Debugf("Skipping resource %s because search tags do not match", *resource.ID)
+        }
 			}
 			return pageNum < 100
 		})

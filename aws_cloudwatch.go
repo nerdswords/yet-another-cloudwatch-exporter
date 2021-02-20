@@ -43,7 +43,6 @@ type cloudwatchData struct {
 	Region                  *string
 	AccountId               *string
 	Period                  int64
-	endtime                 time.Time
 }
 
 var labelMap = make(map[string][]string)
@@ -167,7 +166,11 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 	var startTime time.Time
 	if now.IsZero() {
 		//This is first run
-		now = time.Now().Round(5 * time.Minute)
+		if *floatingTimeWindow {
+			now = time.Now()
+		} else {
+			now = time.Now().Round(5 * time.Minute)
+		}
 		endTime = now.Add(-time.Duration(delay) * time.Second)
 		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
 	} else {
@@ -379,7 +382,7 @@ func recordLabelsForMetric(metricName string, promLabels map[string]string) {
 		workingLabelsCopy = append(workingLabelsCopy, labelMap[metricName]...)
 	}
 
-	for k, _ := range promLabels {
+	for k := range promLabels {
 		workingLabelsCopy = append(workingLabelsCopy, k)
 	}
 	sort.Strings(workingLabelsCopy)

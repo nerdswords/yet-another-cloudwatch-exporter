@@ -171,6 +171,9 @@ func getMetricDataForQueries(
 		tagSemaphore <- struct{}{}
 		metricsList := getFullMetricsList(discoveryJob.Namespace, metric, clientCloudwatch)
 		<-tagSemaphore
+    if len(resources) == 0 {
+			log.Debugf("No resources for metric %s on %s job", metric.Name, discoveryJob.Namespace)
+		}
 		dimensionRegexps := supportedServices[discoveryJob.Namespace].DimensionRegexps
 		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.CustomTags, tagsOnMetrics, dimensionRegexps, resources, metricsList.Metrics, metric)...)
 	}
@@ -203,6 +206,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	wg.Add(partition)
+
+	if metricDataLength == 0 {
+		log.Debugf("No metrics data for %s", job.Namespace)
+	}
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
 			defer wg.Done()
