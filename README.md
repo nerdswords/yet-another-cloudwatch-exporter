@@ -90,6 +90,8 @@ exportedTagsOnMetrics:
     - type
 ```
 
+Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html) are discovered. 
+
 ### Auto-discovery job
 
 | Key                  | Description                                                                                              |
