@@ -190,7 +190,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 
 	switch job.Type {
 	case "alb", "nlb":
-		var filteredResources []*tagsData
 		var chunkedFilteredResources []*tagsData
 		var targetGroupArns []*string
 		var albArns []*string
@@ -199,7 +198,6 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 				targetGroupArns = append(targetGroupArns, aws.String(*r.ID))
 			} else {
 				// Add all resources except target groups
-				filteredResources = append(filteredResources, r)
 				albArns = append(albArns, r.ID)
 			}
 		}
@@ -253,7 +251,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 }
 
 // Breaks a single array of strings into a multiple array of strings
-func chunkArrayOfStrings(targetGroupArns []*string, chunkSize int)(chunkedTargetGroupArns [][]*string){
+func chunkArrayOfStrings(targetGroupArns []*string, chunkSize int) (chunkedTargetGroupArns [][]*string) {
 	for i := 0; i < len(targetGroupArns); i += chunkSize {
 		end := i + chunkSize
 		if end > len(targetGroupArns) {
@@ -390,10 +388,10 @@ func (iface tagsInterface) getTaggedEC2SpotInstances(job job, region string) (re
 			pageNum++
 			ec2APICounter.Inc()
 
-			for _, ec2Spot := range page.SpotFleetRequestConfigs{
+			for _, ec2Spot := range page.SpotFleetRequestConfigs {
 				resource := tagsData{}
 
-				resource.ID = aws.String(fmt.Sprintf("%s", *ec2Spot.SpotFleetRequestId))
+				resource.ID = aws.String(*ec2Spot.SpotFleetRequestId)
 
 				resource.Service = &job.Type
 				resource.Region = &region
