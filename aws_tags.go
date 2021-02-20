@@ -112,7 +112,7 @@ func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, 
 			resourceGroupTaggingAPICounter.Inc()
       
       if len(page.ResourceTagMappingList) == 0 {
-        log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Type)
+        log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Namespace)
       }
       
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
