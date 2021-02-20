@@ -176,6 +176,10 @@ func getMetricDataForQueries(
 		fullMetricsList := getFullMetricsList(namespace, metric, clientCloudwatch)
 		<-tagSemaphore
 
+		if len(resources) == 0 {
+			log.Debugf("No resources for metric %s on %s job", metric.Name, discoveryJob.Type)
+		}
+
 		// For every resource
 		for _, resource := range resources {
 			// Creates the dimensions with values for the resource depending on the namespace of the job (p.e. InstanceId=XXXXXXX)
@@ -247,6 +251,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	wg.Add(partition)
+
+	if metricDataLength == 0 {
+		log.Debugf("No metrics data for %s", job.Type)
+	}
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
 			defer wg.Done()
