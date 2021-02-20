@@ -171,7 +171,7 @@ func getMetricDataForQueries(
 		tagSemaphore <- struct{}{}
 		metricsList := getFullMetricsList(discoveryJob.Namespace, metric, clientCloudwatch)
 		<-tagSemaphore
-    if len(resources) == 0 {
+		if len(resources) == 0 {
 			log.Debugf("No resources for metric %s on %s job", metric.Name, discoveryJob.Namespace)
 		}
 		dimensionRegexps := supportedServices[discoveryJob.Namespace].DimensionRegexps
