@@ -10,6 +10,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/ivx/yet-another-cloudwatch-exporter/pkg"
 )
 
 var version = "custom-build"
@@ -28,7 +30,8 @@ var (
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
 	floatingTimeWindow    = flag.Bool("floating-time-window", false, "Use a floating start/end time window instead of rounding times to 5 min intervals")
 	verifyConfig          = flag.Bool("verify-config", false, "Loads and attempts to parse config file, then exits. Useful for CICD validation")
-	config                = conf{}
+
+	config = exporter.ScrapeConf{}
 )
 
 func init() {
@@ -44,24 +47,6 @@ func init() {
 
 }
 
-func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
-	tagsData, cloudwatchData, endtime := scrapeAwsData(config, now)
-	var metrics []*PrometheusMetric
-
-	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData)...)
-	metrics = ensureLabelConsistencyForMetrics(metrics)
-
-	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
-
-	registry.MustRegister(NewPrometheusCollector(metrics))
-	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter, targetGroupsAPICounter} {
-		if err := registry.Register(counter); err != nil {
-			log.Warning("Could not publish cloudwatch api metric")
-		}
-	}
-	return *endtime
-}
-
 func main() {
 	flag.Parse()
 
@@ -75,7 +60,7 @@ func main() {
 	}
 
 	log.Println("Parse config..")
-	if err := config.load(configFile); err != nil {
+	if err := config.Load(configFile); err != nil {
 		log.Fatal("Couldn't read ", *configFile, ": ", err)
 		os.Exit(1)
 	}
@@ -84,8 +69,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)
-	tagSemaphore = make(chan struct{}, *tagConcurrency)
+	cloudwatchSemaphore := make(chan struct{}, *cloudwatchConcurrency)
+	tagSemaphore := make(chan struct{}, *tagConcurrency)
 
 	registry := prometheus.NewRegistry()
 
@@ -96,10 +81,10 @@ func main() {
 	var processingtimeTotal time.Duration
 	maxjoblength := 0
 	for _, discoveryJob := range config.Discovery.Jobs {
-		length := getMetricDataInputLength(discoveryJob)
+		length := exporter.GetMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		svc := supportedServices.getService(discoveryJob.Type)
+		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
 		if (maxjoblength < length) && svc.IgnoreLength {
 			maxjoblength = length
 		}
@@ -115,7 +100,7 @@ func main() {
 			for {
 				t0 := time.Now()
 				newRegistry := prometheus.NewRegistry()
-				endtime := updateMetrics(newRegistry, now)
+				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *debug, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
 				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
@@ -158,7 +143,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			updateMetrics(newRegistry, now)
+			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *debug, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}
