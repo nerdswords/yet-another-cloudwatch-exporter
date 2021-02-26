@@ -174,7 +174,8 @@ func getMetricDataForQueries(
 		if len(resources) == 0 {
 			log.Debugf("No resources for metric %s on %s job", metric.Name, discoveryJob.Namespace)
 		}
-		dimensionRegexps := supportedServices[discoveryJob.Namespace].DimensionRegexps
+		svc := supportedServices.getService(discoveryJob.Namespace)
+		dimensionRegexps := svc.DimensionRegexps
 		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.CustomTags, tagsOnMetrics, dimensionRegexps, resources, metricsList.Metrics, metric)...)
 	}
 	return getMetricDatas

@@ -121,7 +121,7 @@ func (c *conf) validate() error {
 
 func (j *job) validateDiscoveryJob(jobIdx int) error {
 	if j.Namespace != "" {
-		if _, ok := supportedServices[j.Namespace]; !ok {
+		if supportedServices.getService(j.Namespace) == nil {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Namespace)
 		}
 	} else {

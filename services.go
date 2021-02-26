@@ -4,14 +4,29 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-type serviceConfig struct {
+type serviceFilter struct {
+	Alias            string
 	ResourceFilters  []*string
 	DimensionRegexps []*string
 }
 
+type serviceConfig map[string]serviceFilter
+
+func (sm serviceConfig) getService(serviceType string) *serviceFilter {
+	if _, ok := sm[serviceType]; !ok {
+		for _, sc := range sm {
+			if sc.Alias == serviceType {
+				return &sc
+			}
+		}
+	}
+	return nil
+}
+
 var (
-	supportedServices = map[string]serviceConfig{
+	supportedServices = serviceConfig{
 		"AWS/ApplicationELB": {
+			Alias: "elb-application",
 			ResourceFilters: []*string{
 				aws.String("elasticloadbalancing:loadbalancer/app"),
 				aws.String("elasticloadbalancing:targetgroup"),
@@ -22,6 +37,7 @@ var (
 			},
 		},
 		"AWS/ApiGateway": {
+			Alias: "apigateway",
 			ResourceFilters: []*string{
 				aws.String("apigateway"),
 			},
@@ -33,6 +49,7 @@ var (
 			},
 		},
 		"AWS/AppSync": {
+			Alias: "appsync",
 			ResourceFilters: []*string{
 				aws.String("appsync"),
 			},
@@ -41,12 +58,16 @@ var (
 			},
 		},
 		"AWS/AutoScaling": {
+			Alias: "autoscaling",
 			DimensionRegexps: []*string{
 				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
 		},
-		"AWS/Billing": {},
+		"AWS/Billing": {
+			Alias: "billing",
+		},
 		"AWS/CloudFront": {
+			Alias: "cloudfront",
 			ResourceFilters: []*string{
 				aws.String("cloudfront:distribution"),
 			},
@@ -63,6 +84,7 @@ var (
 			},
 		},
 		"AWS/DocDB": {
+			Alias: "docdb",
 			ResourceFilters: []*string{
 				aws.String("rds:db"),
 				aws.String("rds:cluster"),
@@ -73,6 +95,7 @@ var (
 			},
 		},
 		"AWS/DynamoDB": {
+			Alias: "dynamodb",
 			ResourceFilters: []*string{
 				aws.String("dynamodb:table"),
 			},
@@ -81,6 +104,7 @@ var (
 			},
 		},
 		"AWS/EBS": {
+			Alias: "ebs",
 			ResourceFilters: []*string{
 				aws.String("ec2:volume"),
 			},
@@ -89,6 +113,7 @@ var (
 			},
 		},
 		"AWS/ElastiCache": {
+			Alias: "elasticache",
 			ResourceFilters: []*string{
 				aws.String("elasticache:cluster"),
 			},
@@ -97,6 +122,7 @@ var (
 			},
 		},
 		"AWS/EC2": {
+			Alias: "ec2",
 			ResourceFilters: []*string{
 				aws.String("ec2:instance"),
 			},
@@ -105,11 +131,13 @@ var (
 			},
 		},
 		"AWS/EC2Spot": {
+			Alias: "ec2-spot",
 			DimensionRegexps: []*string{
 				aws.String("(?P<FleetRequestId>.*)"),
 			},
 		},
 		"AWS/ECS": {
+			Alias: "ecs",
 			ResourceFilters: []*string{
 				aws.String("ecs:cluster"),
 				aws.String("ecs:service"),
@@ -120,6 +148,7 @@ var (
 			},
 		},
 		"ECS/ContainerInsights": {
+			Alias: "ecs-containerinsights",
 			ResourceFilters: []*string{
 				aws.String("ecs:cluster"),
 				aws.String("ecs:service"),
@@ -130,6 +159,7 @@ var (
 			},
 		},
 		"AWS/EFS": {
+			Alias: "efs",
 			ResourceFilters: []*string{
 				aws.String("elasticfilesystem:file-system"),
 			},
@@ -138,6 +168,7 @@ var (
 			},
 		},
 		"AWS/ELB": {
+			Alias: "elb",
 			ResourceFilters: []*string{
 				aws.String("elasticloadbalancing:loadbalancer"),
 			},
@@ -146,6 +177,7 @@ var (
 			},
 		},
 		"AWS/ElasticMapReduce": {
+			Alias: "elasticmapreduce",
 			ResourceFilters: []*string{
 				aws.String("elasticmapreduce:cluster"),
 			},
@@ -154,6 +186,7 @@ var (
 			},
 		},
 		"AWS/ES": {
+			Alias: "elasticsearch",
 			ResourceFilters: []*string{
 				aws.String("es:domain"),
 			},
@@ -162,6 +195,7 @@ var (
 			},
 		},
 		"AWS/Firehose": {
+			Alias: "firehose",
 			ResourceFilters: []*string{
 				aws.String("firehose"),
 			},
@@ -170,6 +204,7 @@ var (
 			},
 		},
 		"AWS/FSx": {
+			Alias: "fsx",
 			ResourceFilters: []*string{
 				aws.String("fsx:file-system"),
 			},
@@ -178,6 +213,7 @@ var (
 			},
 		},
 		"AWS/GameLift": {
+			Alias: "gamelift",
 			ResourceFilters: []*string{
 				aws.String("gamelift"),
 			},
@@ -186,6 +222,7 @@ var (
 			},
 		},
 		"Glue": {
+			Alias: "glue",
 			ResourceFilters: []*string{
 				aws.String("glue:job"),
 			},
@@ -194,6 +231,7 @@ var (
 			},
 		},
 		"AWS/IoT": {
+			Alias: "iot",
 			ResourceFilters: []*string{
 				aws.String("iot:rule"),
 				aws.String("iot:provisioningtemplate"),
@@ -204,6 +242,7 @@ var (
 			},
 		},
 		"AWS/Kafka": {
+			Alias: "kafka",
 			ResourceFilters: []*string{
 				aws.String("kafka:cluster"),
 			},
@@ -212,6 +251,7 @@ var (
 			},
 		},
 		"AWS/Kinesis": {
+			Alias: "kinesis",
 			ResourceFilters: []*string{
 				aws.String("kinesis:stream"),
 			},
@@ -220,6 +260,7 @@ var (
 			},
 		},
 		"AWS/Lambda": {
+			Alias: "lambda",
 			ResourceFilters: []*string{
 				aws.String("lambda:function"),
 			},
@@ -228,6 +269,7 @@ var (
 			},
 		},
 		"AWS/NATGateway": {
+			Alias: "natgateway",
 			ResourceFilters: []*string{
 				aws.String("ec2:natgateway"),
 			},
@@ -236,6 +278,7 @@ var (
 			},
 		},
 		"AWS/NetworkELB": {
+			Alias: "elb-network",
 			ResourceFilters: []*string{
 				aws.String("elasticloadbalancing:loadbalancer/net"),
 				aws.String("elasticloadbalancing:targetgroup"),
@@ -246,6 +289,7 @@ var (
 			},
 		},
 		"AWS/RDS": {
+			Alias: "rds",
 			ResourceFilters: []*string{
 				aws.String("rds:db"),
 				aws.String("rds:cluster"),
@@ -256,6 +300,7 @@ var (
 			},
 		},
 		"AWS/Redshift": {
+			Alias: "redshift",
 			ResourceFilters: []*string{
 				aws.String("redshift:cluster"),
 			},
@@ -264,6 +309,7 @@ var (
 			},
 		},
 		"AWS/Route53Resolver": {
+			Alias: "route53-resolver",
 			ResourceFilters: []*string{
 				aws.String("route53resolver"),
 			},
@@ -272,6 +318,7 @@ var (
 			},
 		},
 		"AWS/S3": {
+			Alias: "s3",
 			ResourceFilters: []*string{
 				aws.String("s3"),
 			},
@@ -279,8 +326,11 @@ var (
 				aws.String("(?P<BucketName>[^:]+)$"),
 			},
 		},
-		"AWS/SES": {},
+		"AWS/SES": {
+			Alias: "ses",
+		},
 		"AWS/States": {
+			Alias: "stepfunctions",
 			ResourceFilters: []*string{
 				aws.String("states"),
 			},
@@ -289,6 +339,7 @@ var (
 			},
 		},
 		"AWS/SNS": {
+			Alias: "sns",
 			ResourceFilters: []*string{
 				aws.String("sns"),
 			},
@@ -297,6 +348,7 @@ var (
 			},
 		},
 		"AWS/SQS": {
+			Alias: "sqs",
 			ResourceFilters: []*string{
 				aws.String("sqs"),
 			},
@@ -305,6 +357,7 @@ var (
 			},
 		},
 		"AWS/TransitGateway": {
+			Alias: "transitgateway",
 			ResourceFilters: []*string{
 				aws.String("ec2:transit-gateway"),
 			},
@@ -314,6 +367,7 @@ var (
 			},
 		},
 		"AWS/VPN": {
+			Alias: "vpn",
 			ResourceFilters: []*string{
 				aws.String("ec2:vpn-connection"),
 			},
@@ -322,6 +376,7 @@ var (
 			},
 		},
 		"AWS/WAFV2": {
+			Alias: "waf",
 			ResourceFilters: []*string{
 				aws.String("wafv2"),
 			},

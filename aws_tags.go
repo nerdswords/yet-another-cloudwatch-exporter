@@ -99,9 +99,10 @@ func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.API
 }
 
 func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, err error) {
-	if len(supportedServices[job.Namespace].ResourceFilters) > 0 {
+	svc := supportedServices.getService(job.Namespace)
+	if len(svc.ResourceFilters) > 0 {
 		var inputparams = r.GetResourcesInput{
-			ResourceTypeFilters: supportedServices[job.Namespace].ResourceFilters,
+			ResourceTypeFilters: svc.ResourceFilters,
 		}
 		c := iface.client
 		ctx := context.Background()
