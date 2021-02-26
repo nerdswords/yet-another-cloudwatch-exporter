@@ -4,6 +4,20 @@
 
 YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
 
+## Security
+
+### Supported Versions
+
+Only latest version gets security updates. We won't support older versions.
+
+## Reporting a Vulnerability
+
+In case of a vulnerability please directly contact us via mail - security@invision.de
+
+Do not disclose any specifics in github issues! - Thank you.
+
+We will contact you as soon as possible.
+
 ## Features
 
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
