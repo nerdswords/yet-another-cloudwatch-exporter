@@ -289,7 +289,7 @@ func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, accountId *string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*tagsData
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -318,7 +318,7 @@ func getFilteredMetricDatas(region string, accountId *string, customTags []tag, 
 		skip := false
 		r := &tagsData{
 			ID:        aws.String("global"),
-			Namespace: cwMetric.Namespace,
+			Namespace: &namespace,
 		}
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
@@ -338,7 +338,7 @@ func getFilteredMetricDatas(region string, accountId *string, customTags []tag, 
 					ID:                     r.ID,
 					MetricID:               &id,
 					Metric:                 &m.Name,
-					Namespace:              cwMetric.Namespace,
+					Namespace:              &namespace,
 					Statistics:             []string{stats},
 					NilToZero:              m.NilToZero,
 					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
@@ -498,7 +498,11 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 					exportedDatapoint = &zero
 				}
 			}
-			name := promString(strings.ToLower(*c.Namespace)) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+			promNs := strings.ToLower(*c.Namespace)
+			if !strings.HasPrefix(promNs, "aws") {
+				promNs = "aws_" + promNs
+			}
+			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
 
 				promLabels := createPrometheusLabels(c)

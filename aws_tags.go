@@ -280,7 +280,11 @@ func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {
 	}
 
 	for _, d := range tagData {
-		name := promString(strings.ToLower(*d.Namespace)) + "_info"
+		promNs := strings.ToLower(*d.Namespace)
+		if !strings.HasPrefix(promNs, "aws") {
+			promNs = "aws_" + promNs
+		}
+		name := promString(promNs) + "_info"
 		promLabels := make(map[string]string)
 		promLabels["name"] = *d.ID
 

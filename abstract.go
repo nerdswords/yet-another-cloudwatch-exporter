@@ -156,6 +156,7 @@ func getMetricDataInputLength(job *job) int {
 
 func getMetricDataForQueries(
 	discoveryJob *job,
+	svc *serviceFilter,
 	region string,
 	accountId *string,
 	tagsOnMetrics exportedTagsOnMetrics,
@@ -169,14 +170,13 @@ func getMetricDataForQueries(
 		// This includes, for this metric the possible combinations
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
-		metricsList := getFullMetricsList(discoveryJob.Namespace, metric, clientCloudwatch)
+
+		metricsList := getFullMetricsList(svc.Namespace, metric, clientCloudwatch)
 		<-tagSemaphore
 		if len(resources) == 0 {
-			log.Debugf("No resources for metric %s on %s job", metric.Name, discoveryJob.Namespace)
+			log.Debugf("No resources for metric %s on %s job", metric.Name, svc.Namespace)
 		}
-		svc := supportedServices.getService(discoveryJob.Namespace)
-		dimensionRegexps := svc.DimensionRegexps
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.CustomTags, tagsOnMetrics, dimensionRegexps, resources, metricsList.Metrics, metric)...)
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Namespace, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, metric)...)
 	}
 	return getMetricDatas
 }
@@ -198,7 +198,8 @@ func scrapeDiscoveryJobUsingMetricData(
 		return
 	}
 
-	getMetricDatas := getMetricDataForQueries(job, region, accountId, tagsOnMetrics, clientCloudwatch, resources)
+	svc := supportedServices.getService(job.Namespace)
+	getMetricDatas := getMetricDataForQueries(job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources)
 	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
 	length := getMetricDataInputLength(job)
@@ -219,7 +220,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			if end > metricDataLength {
 				end = metricDataLength
 			}
-			filter := createGetMetricDataInput(getMetricDatas[i:end], &job.Namespace, length, job.Delay, now)
+			filter := createGetMetricDataInput(getMetricDatas[i:end], &svc.Namespace, length, job.Delay, now)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				for _, MetricDataResult := range data.MetricDataResults {
