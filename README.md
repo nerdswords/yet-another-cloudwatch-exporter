@@ -17,43 +17,44 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
 
-  * AWS/ApplicationELB - Application Load Balancer
-  * AWS/ApiGateway - Api Gateway
-  * AWS/AppSync - AppSync
-  * AWS/Billing - Billing
-  * AWS/CloudFront - Cloud Front
-  * AWS/DocDB - DocumentDB (with MongoDB compatibility)
-  * AWS/DynamoDB - NoSQL Online Datenbank Service
-  * AWS/EBS - Elastic Block Storage
-  * AWS/Elasticache - ElastiCache
-  * AWS/EC2 - Elastic Compute Cloud
-  * AWS/EC2Spot - Elastic Compute Cloud for Spot Instances
-  * AWS/ECS - Elastic Container Service (Service Metrics)
-  * ECS/ContainerInsights - ECS/ContainerInsights (Fargate metrics)
-  * AWS/EFS - Elastic File System
-  * AWS/ELB - Elastic Load Balancer
-  * AWS/ElasticMapReduce - Elastic MapReduce
-  * AWS/ES - ElasticSearch
-  * AWS/FSx - FSx File System
-  * AWS/GameLift - GameLift
-  * Glue - AWS Glue Jobs
-  * AWS/Kinesis - Kinesis Data Stream
-  * AWS/NATGateway - Nat Gateway
-  * AWS/Lambda - Lambda Functions
-  * AWS/NetworkELB - Network Load Balancer
-  * AWS/Redshift - Redshift Database
-  * AWS/RDS - Relational Database Service
-  * AWS/Route53Resolver - Route53 Resolver
-  * AWS/S3 - Object Storage
-  * AWS/SQS - Simple Queue Service
-  * AWS/TransitGateway - Transit Gateway
-  * AWS/VPN - VPN connection
-  * AWS/AutoScaling - Auto Scaling Group
-  * AWS/Kafka - Managed Apache Kafka
-  * AWS/Firehose - Managed Streaming Service
-  * AWS/SNS - Simple Notification Service
-  * AWS/States - Step Functions
-  * AWS/WAFV2 - Web Application Firewall v2
+  * elb-application (AWS/ApplicationELB) - Application Load Balancer
+  * apigateway (AWS/ApiGateway) - Api Gateway
+  * appsync (AWS/AppSync) - AppSync
+  * billing (AWS/Billing) - Billing
+  * cloudfront (AWS/CloudFront) - Cloud Front
+  * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
+  * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service
+  * ebs (AWS/EBS) - Elastic Block Storage
+  * elasticache (AWS/Elasticache) - ElastiCache
+  * ec2 (AWS/EC2) - Elastic Compute Cloud
+  * ec2-spot (AWS/EC2Spot) - Elastic Compute Cloud for Spot Instances
+  * ecs (AWS/ECS) - Elastic Container Service (Service Metrics)
+  * ecs-containerinsights (ECS/ContainerInsights) - ECS/ContainerInsights (Fargate metrics)
+  * efs (AWS/EFS) - Elastic File System
+  * elb (AWS/ELB) - Elastic Load Balancer
+  * elasticmapreduce (AWS/ElasticMapReduce) - Elastic MapReduce
+  * elasticsearch (AWS/ES) - ElasticSearch
+  * fsx (AWS/FSx) - FSx File System
+  * gamelift (AWS/GameLift) - GameLift
+  * gluet (Glue) - AWS Glue Jobs
+  * kinesis (AWS/Kinesis) - Kinesis Data Stream
+  * natgateway (AWS/NATGateway) - Nat Gateway
+  * lambda (AWS/Lambda) - Lambda Functions
+  * elb-network (AWS/NetworkELB) - Network Load Balancer
+  * redshift (AWS/Redshift) - Redshift Database
+  * rds (AWS/RDS) - Relational Database Service
+  * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
+  * s3 (AWS/S3) - Object Storage
+  * ses (AWS/SES) - Simple Email Service
+  * sqs (AWS/SQS) - Simple Queue Service
+  * transitgateway (AWS/TransitGateway) - Transit Gateway
+  * vpn (AWS/VPN) - VPN connection
+  * autoscaling (AWS/AutoScaling) - Auto Scaling Group
+  * kafka (AWS/Kafka) - Managed Apache Kafka
+  * firehose (AWS/Firehose) - Managed Streaming Service
+  * sns (AWS/SNS) - Simple Notification Service
+  * stepfunctions (AWS/States) - Step Functions
+  * waf (AWS/WAFV2) - Web Application Firewall v2
 
 ## Image
 
