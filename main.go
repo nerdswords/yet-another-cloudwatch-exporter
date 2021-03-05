@@ -52,6 +52,7 @@ var (
 		"kafka",
 		"kinesis",
 		"lambda",
+		"nfw",
 		"ngw",
 		"nlb",
 		"rds",

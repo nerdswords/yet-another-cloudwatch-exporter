@@ -50,6 +50,7 @@ We will contact you as soon as possible.
   * fsx - FSx File System
   * gamelift - GameLift
   * kinesis - Kinesis Data Stream
+  * nfw - Network Firewall
   * ngw - Nat Gateway
   * lambda - Lambda Functions
   * nlb - Network Load Balancer

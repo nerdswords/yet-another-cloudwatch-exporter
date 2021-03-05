@@ -139,6 +139,7 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 		"gamelift":              {"gamelift"},
 		"kinesis":               {"kinesis:stream"},
 		"lambda":                {"lambda:function"},
+		"nfw":                   {"network-firewall:firewall"},
 		"ngw":                   {"ec2:natgateway"},
 		"nlb":                   {"elasticloadbalancing:loadbalancer/net", "elasticloadbalancing:targetgroup"},
 		"rds":                   {"rds:db", "rds:cluster"},
