@@ -208,6 +208,10 @@ func (iface tagsInterface) get(job job, region string) (resources []*tagsData, e
 				albArns = append(albArns, r.ID)
 			}
 		}
+		if len(targetGroupArns) == 0 && len(albArns) > 0 {
+			return resources, resourcePages
+		}
+
 		// You can only describe 20 target groups at a time
 		// Break the array of strings of target group names to multiple arrays
 		// Each with a max size of 20
