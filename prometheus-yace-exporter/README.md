@@ -68,6 +68,8 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `rbac.create`                     | If true, create & use RBAC resources                                    | `false`                     |
 | `serviceAccount.create`           | Specifies whether a service account should be created.                  | `true`                      |
 | `serviceAccount.name`             | Name of the service account.                                            |                             |
+| `serviceAccount.annotations`      | Custom annotations for service                                          | `{}`                        |
+| `serviceAccount.labels`           | Additional custom labels for the service                                | `{}`                        |
 | `tolerations`                     | Add tolerations                                                         | `[]`                        |
 | `nodeSelector`                    | node labels for pod assignment                                          | `{}`                        |
 | `affinity`                        | node/pod affinities                                                     | `{}`                        |
