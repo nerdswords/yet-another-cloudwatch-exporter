@@ -76,6 +76,7 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `serviceMonitor.enabled`          | Use servicemonitor from prometheus operator                             | `false`                     |
 | `serviceMonitor.namespace`        | Namespace thes Servicemonitor  is installed in                          |                             |
 | `serviceMonitor.interval`         | How frequently Prometheus should scrape                                 |                             |
+| `serviceMonitor.port`             | Specify serviceMonitor object targetPort                                | `http`                      |
 | `serviceMonitor.telemetryPath`    | path to yave telemtery-path                                             |                             |
 | `serviceMonitor.labels`           | labels for the ServiceMonitor passed to Prometheus Operator             | `{}`                        |
 | `serviceMonitor.timeout`          | Timeout after which the scrape is ended                                 |                             |
