@@ -93,7 +93,8 @@ func main() {
 		length := getMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		if (maxjoblength < length) && discoveryJob.Namespace != "AWS/S3" && discoveryJob.Namespace != "AWS/Billing" {
+		svc := supportedServices.getService(discoveryJob.Type)
+		if (maxjoblength < length) && svc.IgnoreLength {
 			maxjoblength = length
 		}
 	}

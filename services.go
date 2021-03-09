@@ -1,14 +1,27 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"strings"
 )
+
+type ResourceFunc func(tagsInterface, *job, string) ([]*tagsData, error)
+
+type FilterFunc func(tagsInterface, []*tagsData) ([]*tagsData, error)
 
 type serviceFilter struct {
 	Namespace        string
 	Alias            string
+	IgnoreLength     bool
 	ResourceFilters  []*string
 	DimensionRegexps []*string
+	ResourceFunc     ResourceFunc
+	FilterFunc       FilterFunc
 }
 
 type serviceConfig []serviceFilter
@@ -26,7 +39,7 @@ var (
 	supportedServices = serviceConfig{
 		{
 			Namespace: "AWS/ApplicationELB",
-			Alias:     "elb-application",
+			Alias:     "alb",
 			ResourceFilters: []*string{
 				aws.String("elasticloadbalancing:loadbalancer/app"),
 				aws.String("elasticloadbalancing:targetgroup"),
@@ -47,6 +60,32 @@ var (
 				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)$"),
 				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)/methods/(?P<Method>[^/]+)$"),
 			},
+			FilterFunc: func(iface tagsInterface, inputResources []*tagsData) (outputResources []*tagsData, err error) {
+				ctx := context.Background()
+				apiGatewayAPICounter.Inc()
+				var limit int64 = 500 // max number of results per page. default=25, max=500
+				const maxPages = 10
+				input := apigateway.GetRestApisInput{Limit: &limit}
+				output := apigateway.GetRestApisOutput{}
+				var pageNum int
+				err = iface.apiGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+					pageNum++
+					output.Items = append(output.Items, page.Items...)
+					return pageNum <= maxPages
+				})
+				for _, resource := range inputResources {
+					for i, gw := range output.Items {
+						if strings.Contains(*resource.ID, *gw.Id) {
+							r := resource
+							r.ID = aws.String(strings.ReplaceAll(*resource.ID, *gw.Id, *gw.Name))
+							outputResources = append(outputResources, r)
+							output.Items = append(output.Items[:i], output.Items[i+1:]...)
+							break
+						}
+					}
+				}
+				return outputResources, err
+			},
 		}, {
 			Namespace: "AWS/AppSync",
 			Alias:     "appsync",
@@ -58,13 +97,41 @@ var (
 			},
 		}, {
 			Namespace: "AWS/AutoScaling",
-			Alias:     "autoscaling",
+			Alias:     "asg",
 			DimensionRegexps: []*string{
 				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
+			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+				ctx := context.Background()
+				pageNum := 0
+				return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
+					func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
+						pageNum++
+						autoScalingAPICounter.Inc()
+
+						for _, asg := range page.AutoScalingGroups {
+							resource := tagsData{
+								ID:        asg.AutoScalingGroupARN,
+								Namespace: &job.Type,
+								Region:    &region,
+							}
+
+							for _, t := range asg.Tags {
+								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
+			},
 		}, {
-			Namespace: "AWS/Billing",
-			Alias:     "billing",
+			Namespace:    "AWS/Billing",
+			IgnoreLength: true,
+			Alias:        "billing",
 		}, {
 			Namespace: "AWS/CloudFront",
 			Alias:     "cloudfront",
@@ -113,7 +180,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/ElastiCache",
-			Alias:     "elasticache",
+			Alias:     "ec",
 			ResourceFilters: []*string{
 				aws.String("elasticache:cluster"),
 			},
@@ -131,13 +198,40 @@ var (
 			},
 		}, {
 			Namespace: "AWS/EC2Spot",
-			Alias:     "ec2-spot",
+			Alias:     "ec2Spot",
 			DimensionRegexps: []*string{
 				aws.String("(?P<FleetRequestId>.*)"),
 			},
+			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+				ctx := context.Background()
+				pageNum := 0
+				return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
+					func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
+						pageNum++
+						ec2APICounter.Inc()
+
+						for _, ec2Spot := range page.SpotFleetRequestConfigs {
+							resource := tagsData{
+								ID:        ec2Spot.SpotFleetRequestId,
+								Namespace: &job.Type,
+								Region:    &region,
+							}
+
+							for _, t := range ec2Spot.Tags {
+								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
+			},
 		}, {
 			Namespace: "AWS/ECS",
-			Alias:     "ecs",
+			Alias:     "ecs-svc",
 			ResourceFilters: []*string{
 				aws.String("ecs:cluster"),
 				aws.String("ecs:service"),
@@ -177,7 +271,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/ElasticMapReduce",
-			Alias:     "elasticmapreduce",
+			Alias:     "emr",
 			ResourceFilters: []*string{
 				aws.String("elasticmapreduce:cluster"),
 			},
@@ -186,7 +280,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/ES",
-			Alias:     "elasticsearch",
+			Alias:     "es",
 			ResourceFilters: []*string{
 				aws.String("es:domain"),
 			},
@@ -269,7 +363,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/NATGateway",
-			Alias:     "natgateway",
+			Alias:     "ngw",
 			ResourceFilters: []*string{
 				aws.String("ec2:natgateway"),
 			},
@@ -278,7 +372,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/NetworkELB",
-			Alias:     "elb-network",
+			Alias:     "nlb",
 			ResourceFilters: []*string{
 				aws.String("elasticloadbalancing:loadbalancer/net"),
 				aws.String("elasticloadbalancing:targetgroup"),
@@ -309,7 +403,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/Route53Resolver",
-			Alias:     "route53-resolver",
+			Alias:     "r53r",
 			ResourceFilters: []*string{
 				aws.String("route53resolver"),
 			},
@@ -317,8 +411,9 @@ var (
 				aws.String(":resolver-endpoint/(?P<EndpointId>[^/]+)"),
 			},
 		}, {
-			Namespace: "AWS/S3",
-			Alias:     "s3",
+			Namespace:    "AWS/S3",
+			Alias:        "s3",
+			IgnoreLength: true,
 			ResourceFilters: []*string{
 				aws.String("s3"),
 			},
@@ -330,7 +425,7 @@ var (
 			Alias:     "ses",
 		}, {
 			Namespace: "AWS/States",
-			Alias:     "stepfunctions",
+			Alias:     "sfn",
 			ResourceFilters: []*string{
 				aws.String("states"),
 			},
@@ -357,13 +452,40 @@ var (
 			},
 		}, {
 			Namespace: "AWS/TransitGateway",
-			Alias:     "transitgateway",
+			Alias:     "tgw",
 			ResourceFilters: []*string{
 				aws.String("ec2:transit-gateway"),
 			},
 			DimensionRegexps: []*string{
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
 				aws.String(":transit-gateway-attachment/(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
+			},
+			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+				ctx := context.Background()
+				pageNum := 0
+				return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+					func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+						pageNum++
+						ec2APICounter.Inc()
+
+						for _, tgwa := range page.TransitGatewayAttachments {
+							resource := tagsData{
+								ID:        aws.String(fmt.Sprintf("transit-gateway-attachment/%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
+								Namespace: &job.Type,
+								Region:    &region,
+							}
+
+							for _, t := range tgwa.Tags {
+								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
 			},
 		}, {
 			Namespace: "AWS/VPN",
@@ -376,7 +498,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/WAFV2",
-			Alias:     "waf",
+			Alias:     "wafv2",
 			ResourceFilters: []*string{
 				aws.String("wafv2"),
 			},

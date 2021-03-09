@@ -99,7 +99,7 @@ func createAPIGatewaySession(region *string, roleArn string) apigatewayiface.API
 }
 
 func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, err error) {
-	svc := supportedServices.getService(job.Namespace)
+	svc := supportedServices.getService(job.Type)
 	if len(svc.ResourceFilters) > 0 {
 		var inputparams = r.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
@@ -113,13 +113,13 @@ func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, 
 			resourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Namespace)
+				log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Type)
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
 				resource := tagsData{
 					ID:        resourceTagMapping.ResourceARN,
-					Namespace: &job.Namespace,
+					Namespace: &job.Type,
 					Region:    &region,
 				}
 
@@ -136,134 +136,20 @@ func (iface tagsInterface) get(job *job, region string) (resources []*tagsData, 
 			return pageNum < 100
 		})
 	}
-	switch job.Namespace {
-	case "AWS/AutoScaling":
-		return iface.getTaggedAutoscalingGroups(job, region)
-	case "AWS/EC2Spot":
-		return iface.getTaggedEC2SpotInstances(job, region)
-	case "AWS/TransitGateway":
-		resources, err = iface.getTaggedTransitGatewayAttachments(job, region)
+	if svc.ResourceFunc != nil {
+		newResources, err := svc.ResourceFunc(iface, job, region)
 		if err != nil {
 			return nil, err
 		}
-	case "AWS/ApiGateway":
-		resources, err = iface.getTaggedApiGateway(resources)
+		resources = append(resources, newResources...)
+	}
+	if svc.FilterFunc != nil {
+		resources, err = svc.FilterFunc(iface, resources)
 		if err != nil {
 			return nil, err
 		}
 	}
 	return resources, err
-}
-
-// Once the resourcemappingapi supports ASGs then this workaround method can be deleted
-// https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/
-func (iface tagsInterface) getTaggedAutoscalingGroups(job *job, region string) (resources []*tagsData, err error) {
-	ctx := context.Background()
-	pageNum := 0
-	return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
-		func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
-			pageNum++
-			autoScalingAPICounter.Inc()
-
-			for _, asg := range page.AutoScalingGroups {
-				resource := tagsData{
-					ID:        asg.AutoScalingGroupARN,
-					Namespace: &job.Namespace,
-					Region:    &region,
-				}
-
-				for _, t := range asg.Tags {
-					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
-				}
-
-				if resource.filterThroughTags(job.SearchTags) {
-					resources = append(resources, &resource)
-				}
-			}
-			return pageNum < 100
-		})
-}
-
-func (iface tagsInterface) getTaggedApiGateway(inputResources []*tagsData) (resources []*tagsData, err error) {
-	ctx := context.Background()
-	apiGatewayAPICounter.Inc()
-	var limit int64 = 500 // max number of results per page. default=25, max=500
-	const maxPages = 10
-	input := apigateway.GetRestApisInput{Limit: &limit}
-	output := apigateway.GetRestApisOutput{}
-	var pageNum int
-	err = iface.apiGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
-		pageNum++
-		output.Items = append(output.Items, page.Items...)
-		return pageNum <= maxPages
-	})
-	for _, resource := range inputResources {
-		for i, gw := range output.Items {
-			if strings.Contains(*resource.ID, *gw.Id) {
-				r := resource
-				r.ID = aws.String(strings.ReplaceAll(*resource.ID, *gw.Id, *gw.Name))
-				resources = append(resources, r)
-				output.Items = append(output.Items[:i], output.Items[i+1:]...)
-				break
-			}
-		}
-	}
-	return resources, err
-}
-
-func (iface tagsInterface) getTaggedTransitGatewayAttachments(job *job, region string) (resources []*tagsData, err error) {
-	ctx := context.Background()
-	pageNum := 0
-	return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
-		func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
-			pageNum++
-			ec2APICounter.Inc()
-
-			for _, tgwa := range page.TransitGatewayAttachments {
-				resource := tagsData{
-					ID:        aws.String(fmt.Sprintf("transit-gateway-attachment/%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
-					Namespace: &job.Namespace,
-					Region:    &region,
-				}
-
-				for _, t := range tgwa.Tags {
-					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
-				}
-
-				if resource.filterThroughTags(job.SearchTags) {
-					resources = append(resources, &resource)
-				}
-			}
-			return pageNum < 100
-		},
-	)
-}
-
-func (iface tagsInterface) getTaggedEC2SpotInstances(job *job, region string) (resources []*tagsData, err error) {
-	ctx := context.Background()
-	pageNum := 0
-	return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
-		func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
-			pageNum++
-			ec2APICounter.Inc()
-
-			for _, ec2Spot := range page.SpotFleetRequestConfigs {
-				resource := tagsData{
-					ID:        ec2Spot.SpotFleetRequestId,
-					Namespace: &job.Namespace,
-					Region:    &region,
-				}
-
-				for _, t := range ec2Spot.Tags {
-					resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
-				}
-
-				if resource.filterThroughTags(job.SearchTags) {
-					resources = append(resources, &resource)
-				}
-			}
-			return pageNum < 100
-		})
 }
 
 func migrateTagsToPrometheus(tagData []*tagsData) []*PrometheusMetric {

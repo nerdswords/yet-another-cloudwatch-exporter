@@ -17,44 +17,44 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
 
-  * elb-application (AWS/ApplicationELB) - Application Load Balancer
+  * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - Api Gateway
   * appsync (AWS/AppSync) - AppSync
   * billing (AWS/Billing) - Billing
-  * cloudfront (AWS/CloudFront) - Cloud Front
+  * cf (AWS/CloudFront) - Cloud Front
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service
   * ebs (AWS/EBS) - Elastic Block Storage
-  * elasticache (AWS/Elasticache) - ElastiCache
+  * ec (AWS/Elasticache) - ElastiCache
   * ec2 (AWS/EC2) - Elastic Compute Cloud
-  * ec2-spot (AWS/EC2Spot) - Elastic Compute Cloud for Spot Instances
-  * ecs (AWS/ECS) - Elastic Container Service (Service Metrics)
+  * ec2Spot (AWS/EC2Spot) - Elastic Compute Cloud for Spot Instances
+  * ecs-svc (AWS/ECS) - Elastic Container Service (Service Metrics)
   * ecs-containerinsights (ECS/ContainerInsights) - ECS/ContainerInsights (Fargate metrics)
   * efs (AWS/EFS) - Elastic File System
   * elb (AWS/ELB) - Elastic Load Balancer
-  * elasticmapreduce (AWS/ElasticMapReduce) - Elastic MapReduce
-  * elasticsearch (AWS/ES) - ElasticSearch
+  * emr (AWS/ElasticMapReduce) - Elastic MapReduce
+  * es (AWS/ES) - ElasticSearch
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
-  * gluet (Glue) - AWS Glue Jobs
+  * glue (Glue) - AWS Glue Jobs
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
-  * natgateway (AWS/NATGateway) - Nat Gateway
+  * ngw (AWS/NATGateway) - Nat Gateway
   * lambda (AWS/Lambda) - Lambda Functions
-  * elb-network (AWS/NetworkELB) - Network Load Balancer
+  * nlb (AWS/NetworkELB) - Network Load Balancer
   * redshift (AWS/Redshift) - Redshift Database
   * rds (AWS/RDS) - Relational Database Service
-  * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
+  * r53r (AWS/Route53Resolver) - Route53 Resolver
   * s3 (AWS/S3) - Object Storage
   * ses (AWS/SES) - Simple Email Service
   * sqs (AWS/SQS) - Simple Queue Service
-  * transitgateway (AWS/TransitGateway) - Transit Gateway
+  * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
-  * autoscaling (AWS/AutoScaling) - Auto Scaling Group
+  * asg (AWS/AutoScaling) - Auto Scaling Group
   * kafka (AWS/Kafka) - Managed Apache Kafka
   * firehose (AWS/Firehose) - Managed Streaming Service
   * sns (AWS/SNS) - Simple Notification Service
-  * stepfunctions (AWS/States) - Step Functions
-  * waf (AWS/WAFV2) - Web Application Firewall v2
+  * sfn (AWS/States) - Step Functions
+  * wafv2 (AWS/WAFV2) - Web Application Firewall v2
 
 ## Image
 
@@ -100,7 +100,7 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 | Key                    | Description                                                                                              |
 | ---------------------- | -------------------------------------------------------------------------------------------------------- |
 | regions                | List of AWS regions                                                                                      |
-| namespace              | Cloudwatch namespace name, e.g. "AWS/EC2", "AWS/S3", etc.                                                |
+| type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                |
 | length (Default 120)   | How far back to request data for in seconds                                                              |
 | delay                  | If set it will request metrics up until `current_time - delay`                                           |
 | roleArns               | List of IAM roles to assume (optional)                                                                   |
@@ -157,7 +157,7 @@ discovery:
     AWS/EBS:
       - VolumeId
   jobs:
-  - namespace: AWS/ES
+  - type: es
     regions:
       - eu-west-1
     searchTags:
@@ -184,7 +184,7 @@ discovery:
         - Maximum
         period: 600
         length: 60
-  - namespace: AWS/ELB
+  - type: AWS/ELB
     regions:
       - eu-west-1
     length: 900
@@ -205,7 +205,7 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
-  - namespace: AWS/ApplicationELB
+  - type: AWS/ApplicationELB
     regions:
       - eu-west-1
     searchTags:
@@ -216,7 +216,7 @@ discovery:
         statistics: [Maximum]
         period: 60
         length: 600
-  - namespace: AWS/VPN
+  - type: AWS/VPN
     regions:
       - eu-west-1
     searchTags:
@@ -228,7 +228,7 @@ discovery:
         - p90
         period: 60
         length: 300
-  - namespace: AWS/Kinesis
+  - type: AWS/Kinesis
     regions:
       - eu-west-1
     metrics:
@@ -237,7 +237,7 @@ discovery:
         - Sum
         period: 60
         length: 300
-  - namespace: AWS/S3
+  - type: AWS/S3
     regions:
       - eu-west-1
     searchTags:
@@ -254,7 +254,7 @@ discovery:
           - Average
         period: 86400
         length: 172800
-  - namespace: AWS/EBS
+  - type: AWS/EBS
     regions:
       - eu-west-1
     searchTags:
@@ -267,7 +267,7 @@ discovery:
         period: 600
         length: 600
         addCloudwatchTimestamp: true
-  - namespace: AWS/Kafka
+  - type: kafka
     regions:
       - eu-west-1
     searchTags:

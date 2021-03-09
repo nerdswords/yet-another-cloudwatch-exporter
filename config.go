@@ -23,7 +23,7 @@ type exportedTagsOnMetrics map[string][]string
 
 type job struct {
 	Regions                []string  `yaml:"regions"`
-	Namespace              string    `yaml:"namespace"`
+	Type                   string    `yaml:"type"`
 	RoleArns               []string  `yaml:"roleArns"`
 	SearchTags             []tag     `yaml:"searchTags"`
 	CustomTags             []tag     `yaml:"customTags"`
@@ -120,21 +120,21 @@ func (c *conf) validate() error {
 }
 
 func (j *job) validateDiscoveryJob(jobIdx int) error {
-	if j.Namespace != "" {
-		if supportedServices.getService(j.Namespace) == nil {
-			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Namespace)
+	if j.Type != "" {
+		if supportedServices.getService(j.Type) == nil {
+			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
-		return fmt.Errorf("Discovery job [%d]: Namespace should not be empty", jobIdx)
+		return fmt.Errorf("Discovery job [%d]: Type should not be empty", jobIdx)
 	}
 	if len(j.Regions) == 0 {
-		return fmt.Errorf("Discovery job [%s/%d]: Regions should not be empty", j.Namespace, jobIdx)
+		return fmt.Errorf("Discovery job [%s/%d]: Regions should not be empty", j.Type, jobIdx)
 	}
 	if len(j.Metrics) == 0 {
-		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Namespace, jobIdx)
+		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Type, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		parent := fmt.Sprintf("Discovery job [%s/%d]", j.Namespace, jobIdx)
+		parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
 		err := metric.validateMetric(metricIdx, parent, j)
 		if err != nil {
 			return err

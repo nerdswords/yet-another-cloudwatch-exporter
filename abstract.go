@@ -176,7 +176,7 @@ func getMetricDataForQueries(
 		if len(resources) == 0 {
 			log.Debugf("No resources for metric %s on %s job", metric.Name, svc.Namespace)
 		}
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Namespace, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, metric)...)
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, metric)...)
 	}
 	return getMetricDatas
 }
@@ -198,7 +198,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		return
 	}
 
-	svc := supportedServices.getService(job.Namespace)
+	svc := supportedServices.getService(job.Type)
 	getMetricDatas := getMetricDataForQueries(job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources)
 	maxMetricCount := *metricsPerQuery
 	metricDataLength := len(getMetricDatas)
@@ -210,7 +210,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	wg.Add(partition)
 
 	if metricDataLength == 0 {
-		log.Debugf("No metrics data for %s", job.Namespace)
+		log.Debugf("No metrics data for %s", job.Type)
 	}
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
