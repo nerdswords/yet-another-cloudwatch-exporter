@@ -52,6 +52,7 @@ We will contact you as soon as possible.
   * gamelift (AWS/GameLift) - GameLift
   * glue (Glue) - AWS Glue Jobs
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
+  * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - Nat Gateway
   * lambda (AWS/Lambda) - Lambda Functions
   * nlb (AWS/NetworkELB) - Network Load Balancer
