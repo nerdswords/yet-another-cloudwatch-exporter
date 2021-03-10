@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"strings"
 )
 
 type ResourceFunc func(tagsInterface, *job, string) ([]*tagsData, error)
@@ -360,6 +361,15 @@ var (
 			},
 			DimensionRegexps: []*string{
 				aws.String(":function:(?P<FunctionName>[^/]+)"),
+			},
+		}, {
+			Namespace: "AWS/NetworkFirewall",
+			Alias:     "nfw",
+			ResourceFilters: []*string{
+				aws.String("network-firewall:firewall"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("firewall/(?P<FirewallName>[^/]+)"),
 			},
 		}, {
 			Namespace: "AWS/NATGateway",
