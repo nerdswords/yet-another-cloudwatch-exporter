@@ -27,48 +27,8 @@ var (
 	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
 	floatingTimeWindow    = flag.Bool("floating-time-window", false, "Use a floating start/end time window instead of rounding times to 5 min intervals")
-	verifyConfig        = flag.Bool("verify-config", false, "Loads and attempts to parse config file, then exits. Useful for CICD validation")
-
-	supportedServices = []string{
-		"alb",
-		"apigateway",
-		"appsync",
-		"asg",
-		"cf",
-		"docdb",
-		"dynamodb",
-		"ebs",
-		"ec",
-		"ec2",
-		"ec2Spot",
-		"ecs-svc",
-		"ecs-containerinsights",
-		"efs",
-		"elb",
-		"emr",
-		"es",
-		"firehose",
-		"fsx",
-		"gamelift",
-		"kafka",
-		"kinesis",
-		"lambda",
-		"ngw",
-		"nlb",
-		"rds",
-		"redshift",
-		"r53r",
-		"s3",
-		"sfn",
-		"sns",
-		"sqs",
-		"tgw",
-		"tgwa",
-		"vpn",
-		"wafv2",
-	}
-
-	config = conf{}
+	verifyConfig          = flag.Bool("verify-config", false, "Loads and attempts to parse config file, then exits. Useful for CICD validation")
+	config                = conf{}
 )
 
 func init() {
@@ -139,7 +99,8 @@ func main() {
 		length := getMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		if (maxjoblength < length) && (discoveryJob.Type != "s3") {
+		svc := supportedServices.getService(discoveryJob.Type)
+		if (maxjoblength < length) && svc.IgnoreLength {
 			maxjoblength = length
 		}
 	}
