@@ -88,7 +88,7 @@ exportedTagsOnMetrics example:
 
 ```yaml
 exportedTagsOnMetrics:
-  AWS/EC2:
+  ec2:
     - Name
     - type
 ```
@@ -152,9 +152,9 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 ```yaml
 discovery:
   exportedTagsOnMetrics:
-    AWS/EC2:
+    ec2:
       - Name
-    AWS/EBS:
+    ebs:
       - VolumeId
   jobs:
   - type: es
@@ -184,7 +184,7 @@ discovery:
         - Maximum
         period: 600
         length: 60
-  - type: AWS/ELB
+  - type: elb
     regions:
       - eu-west-1
     length: 900
@@ -205,7 +205,7 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
-  - type: AWS/ApplicationELB
+  - type: alb
     regions:
       - eu-west-1
     searchTags:
@@ -216,7 +216,7 @@ discovery:
         statistics: [Maximum]
         period: 60
         length: 600
-  - type: AWS/VPN
+  - type: vpn
     regions:
       - eu-west-1
     searchTags:
@@ -228,7 +228,7 @@ discovery:
         - p90
         period: 60
         length: 300
-  - type: AWS/Kinesis
+  - type: kinesis
     regions:
       - eu-west-1
     metrics:
@@ -237,7 +237,7 @@ discovery:
         - Sum
         period: 60
         length: 300
-  - type: AWS/S3
+  - type: s3
     regions:
       - eu-west-1
     searchTags:
@@ -254,7 +254,7 @@ discovery:
           - Average
         period: 86400
         length: 172800
-  - type: AWS/EBS
+  - type: ebs
     regions:
       - eu-west-1
     searchTags:

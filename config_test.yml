@@ -1,11 +1,11 @@
 discovery:
   exportedTagsOnMetrics:
-    AWS/EBS:
+    ebs:
       - VolumeId
     kafka:
       - Name
   jobs:
-  - type: AWS/Billing
+  - type: billing
     regions:
       - us-east-1
     metrics:
@@ -62,7 +62,7 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
-  - type: AWS/ApplicationELB
+  - type: alb
     regions:
       - eu-west-1
     searchTags:
@@ -85,7 +85,7 @@ discovery:
         - p90
         period: 60
         length: 300
-  - type: AWS/Kinesis
+  - type: kinesis
     regions:
       - eu-west-1
     metrics:
@@ -111,7 +111,7 @@ discovery:
           - Average
         period: 86400
         length: 172800
-  - type: AWS/EBS
+  - type: ebs
     regions:
       - eu-west-1
     searchTags:
