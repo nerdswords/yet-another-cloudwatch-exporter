@@ -1,4 +1,4 @@
-# 0.26.1-alpha / 0.26.2-alpha
+# 0.26.1-alpha / 0.26.2-alpha / 0.26.3-alpha
 
 - Fix CI issue
 
