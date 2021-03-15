@@ -1,3 +1,7 @@
+# 0.26.1-alpha
+
+- Fix CI issue
+
 # 0.26.0-alpha
 
 - *BREAKING CHANGE* Removed a need to use static dimensions in dynamic jobs in cases, when they cannot be parsed from ARNs (AndrewChubatiuk)
