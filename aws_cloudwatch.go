@@ -208,7 +208,7 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 
 func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	for _, dim := range dimensions {
-		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value
+		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value + " "
 	}
 	return output
 }
@@ -264,6 +264,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 
 func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
 	for _, d := range dimensions {
+		d := d
 		output = append(output, &cloudwatch.Dimension{
 			Name:  &d.Name,
 			Value: &d.Value,
@@ -487,7 +488,10 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
-			includeTimestamp := *c.AddCloudwatchTimestamp
+			var includeTimestamp bool
+			if c.AddCloudwatchTimestamp != nil {
+				includeTimestamp = *c.AddCloudwatchTimestamp
+			}
 			exportedDatapoint, timestamp := getDatapoint(c, statistic)
 			if exportedDatapoint == nil {
 				var nan float64 = math.NaN()
