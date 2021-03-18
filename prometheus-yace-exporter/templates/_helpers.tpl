@@ -25,6 +25,23 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 
 {{/*
+Set the serviceAccount name
+If serviceAccount.name is defined use that otherwise us fullname 
+*/}}
+{{- define "prometheus-yace-exporter.serviceAccountName" -}}
+{{- if .Values.serviceAccount.name -}}
+{{- .Values.serviceAccount.name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "prometheus-yace-exporter.chart" -}}
