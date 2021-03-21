@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -48,28 +49,48 @@ type cloudwatchData struct {
 var labelMap = make(map[string][]string)
 
 func createStsSession(roleArn string) *sts.STS {
+
+	maxStsRetries := 5
+	config := &aws.Config{
+		MaxRetries:          &maxStsRetries,
+		STSRegionalEndpoint: endpoints.RegionalSTSEndpoint,
+	}
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config:            *config,
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	maxStsRetries := 5
-	config := &aws.Config{MaxRetries: &maxStsRetries}
+
 	if *debug {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
+
 	return sts.New(sess, config)
 }
 
 func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
+
+	maxStsRetries := 5
+	stsConfig := &aws.Config{
+		MaxRetries:          &maxStsRetries,
+		STSRegionalEndpoint: endpoints.RegionalSTSEndpoint,
+	}
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config:            *stsConfig,
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
 	maxCloudwatchRetries := 5
 
-	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
+	endpoint := fmt.Sprintf("https://monitoring.%s.amazonaws.com", *region)
+
+	config := &aws.Config{
+		Region:     region,
+		MaxRetries: &maxCloudwatchRetries,
+		Endpoint:   aws.String(endpoint),
+	}
 
 	if *fips {
 		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
