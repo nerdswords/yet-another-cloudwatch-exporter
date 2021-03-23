@@ -4,6 +4,20 @@
 
 YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
 
+## Security
+
+### Supported Versions
+
+Only latest version gets security updates. We won't support older versions.
+
+## Reporting a Vulnerability
+
+In case of a vulnerability please directly contact us via mail - security@invision.de
+
+Do not disclose any specifics in github issues! - Thank you.
+
+We will contact you as soon as possible.
+
 ## Features
 
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
@@ -17,39 +31,45 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
 
-  * alb - Application Load Balancer
-  * apigateway - Api Gateway
-  * appsync - AppSync
-  * cf - Cloud Front
-  * dynamodb - NoSQL Online Datenbank Service
-  * ebs - Elastic Block Storage
-  * ec - ElastiCache
-  * ec2 - Elastic Compute Cloud
-  * ecs-svc - Elastic Container Service (Service Metrics)
-  * ecs-containerinsights - ECS/ContainerInsights (Fargate metrics)
-  * efs - Elastic File System
-  * elb - Elastic Load Balancer
-  * emr - Elastic MapReduce
-  * es - ElasticSearch
-  * fsx - FSx File System
-  * kinesis - Kinesis Data Stream
-  * ngw - Nat Gateway
-  * lambda - Lambda Functions
-  * nlb - Network Load Balancer
-  * redshift - Redshift Database
-  * rds - Relational Database Service
-  * r53r - Route53 Resolver
-  * s3 - Object Storage
-  * sqs - Simple Queue Service
-  * tgw - Transit Gateway
-  * tgwa - Transit Gateway Attachments
-  * vpn - VPN connection
-  * asg - Auto Scaling Group
-  * kafka - Managed Apache Kafka
-  * firehose - Managed Streaming Service
-  * sns - Simple Notification Service
-  * sfn - Step Functions
-  * wafv2 - Web Application Firewall v2
+  * alb (AWS/ApplicationELB) - Application Load Balancer
+  * apigateway (AWS/ApiGateway) - Api Gateway
+  * appsync (AWS/AppSync) - AppSync
+  * billing (AWS/Billing) - Billing
+  * cf (AWS/CloudFront) - Cloud Front
+  * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
+  * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service
+  * ebs (AWS/EBS) - Elastic Block Storage
+  * ec (AWS/Elasticache) - ElastiCache
+  * ec2 (AWS/EC2) - Elastic Compute Cloud
+  * ec2Spot (AWS/EC2Spot) - Elastic Compute Cloud for Spot Instances
+  * ecs-svc (AWS/ECS) - Elastic Container Service (Service Metrics)
+  * ecs-containerinsights (ECS/ContainerInsights) - ECS/ContainerInsights (Fargate metrics)
+  * efs (AWS/EFS) - Elastic File System
+  * elb (AWS/ELB) - Elastic Load Balancer
+  * emr (AWS/ElasticMapReduce) - Elastic MapReduce
+  * es (AWS/ES) - ElasticSearch
+  * fsx (AWS/FSx) - FSx File System
+  * gamelift (AWS/GameLift) - GameLift
+  * glue (Glue) - AWS Glue Jobs
+  * kinesis (AWS/Kinesis) - Kinesis Data Stream
+  * nfw (AWS/NetworkFirewall) - Network Firewall
+  * ngw (AWS/NATGateway) - Nat Gateway
+  * lambda (AWS/Lambda) - Lambda Functions
+  * nlb (AWS/NetworkELB) - Network Load Balancer
+  * redshift (AWS/Redshift) - Redshift Database
+  * rds (AWS/RDS) - Relational Database Service
+  * r53r (AWS/Route53Resolver) - Route53 Resolver
+  * s3 (AWS/S3) - Object Storage
+  * ses (AWS/SES) - Simple Email Service
+  * sqs (AWS/SQS) - Simple Queue Service
+  * tgw (AWS/TransitGateway) - Transit Gateway
+  * vpn (AWS/VPN) - VPN connection
+  * asg (AWS/AutoScaling) - Auto Scaling Group
+  * kafka (AWS/Kafka) - Managed Apache Kafka
+  * firehose (AWS/Firehose) - Managed Streaming Service
+  * sns (AWS/SNS) - Simple Notification Service
+  * sfn (AWS/States) - Step Functions
+  * wafv2 (AWS/WAFV2) - Web Application Firewall v2
 
 ## Image
 
@@ -60,9 +80,10 @@ YACE is currently in quick iteration mode. Things will probably break in upcomin
 
 ### Command Line Options
 
-| Option            | Description                                                               |
-| ----------------- | ------------------------------------------------------------------------- |
-| labels-snake-case | Causes labels on metrics to be output in snake case instead of camel case |
+| Option               | Description                                                                       |
+| -------------------- | --------------------------------------------------------------------------------- |
+| labels-snake-case    | Causes labels on metrics to be output in snake case instead of camel case         |
+| floating-time-window | Use a floating start/end time window instead of rounding times to 5 min intervals |
 
 ### Top level configuration
 
@@ -87,41 +108,42 @@ exportedTagsOnMetrics:
     - type
 ```
 
+Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html) are discovered. 
+
 ### Auto-discovery job
 
-| Key                  | Description                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------- |
-| regions              | List of AWS regions                                                                                      |
-| type                 | Service name, e.g. "ec2", "s3", etc.                                                                     |
-| length (Default 120) | How far back to request data for in seconds                                                              |
-| delay                | If set it will request metrics up until `current_time - delay`                                           |
-| roleArns             | List of IAM roles to assume (optional)                                                                   |
-| searchTags           | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
-| period                 | Statistic period in seconds (General Setting for all metrics in this job)                              |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job) |
-| customTags           | Custom tags to be added as a list of Key/Value pairs                                                     |
-| metrics              | List of metric definitions                                                                               |
-| additionalDimensions | List of dimensions to return beyond the default list per service                                         |
+| Key                    | Description                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| regions                | List of AWS regions                                                                                      |
+| type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                |
+| length (Default 120)   | How far back to request data for in seconds                                                              |
+| delay                  | If set it will request metrics up until `current_time - delay`                                           |
+| roleArns               | List of IAM roles to assume (optional)                                                                   |
+| searchTags             | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
+| period                 | Statistic period in seconds (General Setting for all metrics in this job)                                |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
+| customTags             | Custom tags to be added as a list of Key/Value pairs                                                     |
+| metrics                | List of metric definitions                                                                               |
 
 searchTags example:
 
 ```yaml
 searchTags:
-  - Key: env
-    Value: production
+  - key: env
+    value: production
 ```
 
 ### Metric definition
 
-| Key                    | Description                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                                                 |
-| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                               |
-| period                 | Statistic period in seconds (Overrides job level setting)                              |
-| length                 | How far back to request data for in seconds(for static jobs)                           |
-| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)        |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all                                 |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting) |
+| Key                    | Description                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| name                   | CloudWatch metric name                                                                  |
+| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                                |
+| period                 | Statistic period in seconds (Overrides job level setting)                               |
+| length                 | How far back to request data for in seconds(for static jobs)                            |
+| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)         |
+| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all. By default NaN will be reported |
+| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting)  |
 
 * Available statistics: Maximum, Minimum, Sum, SampleCount, Average, pXX.
 * **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
@@ -154,8 +176,8 @@ discovery:
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: ^(easteregg|k8s)$
+      - key: type
+        value: ^(easteregg|k8s)$
     metrics:
       - name: FreeStorageSpace
         statistics:
@@ -182,11 +204,9 @@ discovery:
       - eu-west-1
     length: 900
     delay: 120
-    awsDimensions:
-     - AvailabilityZone
     searchTags:
-      - Key: KubernetesCluster
-        Value: production-19
+      - key: KubernetesCluster
+        value: production-19
     metrics:
       - name: HealthyHostCount
         statistics:
@@ -204,8 +224,8 @@ discovery:
     regions:
       - eu-west-1
     searchTags:
-      - Key: kubernetes.io/service-name
-        Value: .*
+      - key: kubernetes.io/service-name
+        value: .*
     metrics:
       - name: UnHealthyHostCount
         statistics: [Maximum]
@@ -215,8 +235,8 @@ discovery:
     regions:
       - eu-west-1
     searchTags:
-      - Key: kubernetes.io/service-name
-        Value: .*
+      - key: kubernetes.io/service-name
+        value: .*
     metrics:
       - name: TunnelState
         statistics:
@@ -236,31 +256,25 @@ discovery:
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: public
+      - key: type
+        value: public
     metrics:
       - name: NumberOfObjects
         statistics:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: AllStorageTypes
       - name: BucketSizeBytes
         statistics:
           - Average
         period: 86400
         length: 172800
-        additionalDimensions:
-          - name: StorageType
-            value: StandardStorage
   - type: ebs
     regions:
       - eu-west-1
     searchTags:
-      - Key: type
-        Value: public
+      - key: type
+        value: public
     metrics:
       - name: BurstBalance
         statistics:
@@ -272,11 +286,8 @@ discovery:
     regions:
       - eu-west-1
     searchTags:
-      - Key: env
-        Value: dev
-    awsDimensions:
-      - Broker ID
-      - Topic
+      - key: env
+        value: dev
     metrics:
       - name: BytesOutPerSec
         statistics:
@@ -292,8 +303,8 @@ static:
      - name: AutoScalingGroupName
        value: Test
     customTags:
-      - Key: CustomTag
-        Value: CustomValue
+      - key: CustomTag
+        value: CustomValue
     metrics:
       - name: GroupInServiceInstances
         statistics:

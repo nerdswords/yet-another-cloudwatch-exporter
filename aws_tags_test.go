@@ -7,15 +7,15 @@ import (
 func TestMigrateTagsToPrometheus(t *testing.T) {
 	// Setup Test
 	id := "tag_Id"
-	service := "tag_Service"
+	namespace := "AWS/Service"
 	region := "us-east-1"
 	tagItem := tag{Key: "Name", Value: "tag_Value"}
 	tags := []*tag{&tagItem}
-	tagData := tagsData{ID: &id, Service: &service, Region: &region, Tags: tags}
+	tagData := tagsData{ID: &id, Namespace: &namespace, Region: &region, Tags: tags}
 	tagsData := []*tagsData{&tagData}
 
 	// Arrange
-	prometheusMetricName := "aws_tag_service_info"
+	prometheusMetricName := "aws_service_info"
 	promLabels := make(map[string]string)
 	promLabels["name"] = "tag_Id"
 	promLabels["tag_Name"] = "tag_Value"

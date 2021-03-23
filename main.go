@@ -18,6 +18,7 @@ var (
 	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
 	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
 	debug                 = flag.Bool("debug", false, "Add verbose logging.")
+	fips                  = flag.Bool("fips", false, "Use FIPS compliant aws api.")
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
 	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API.")
 	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API.")
@@ -25,44 +26,9 @@ var (
 	decoupledScraping     = flag.Bool("decoupled-scraping", true, "Decouples scraping and serving of metrics.")
 	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
-
-	supportedServices = []string{
-		"alb",
-		"apigateway",
-		"appsync",
-		"asg",
-		"cf",
-		"dynamodb",
-		"ebs",
-		"ec",
-		"ec2",
-		"ecs-svc",
-		"ecs-containerinsights",
-		"efs",
-		"elb",
-		"emr",
-		"es",
-		"firehose",
-		"fsx",
-		"kafka",
-		"kinesis",
-		"lambda",
-		"ngw",
-		"nlb",
-		"rds",
-		"redshift",
-		"r53r",
-		"s3",
-		"sfn",
-		"sns",
-		"sqs",
-		"tgw",
-		"tgwa",
-		"vpn",
-		"wafv2",
-	}
-
-	config = conf{}
+	floatingTimeWindow    = flag.Bool("floating-time-window", false, "Use a floating start/end time window instead of rounding times to 5 min intervals")
+	verifyConfig          = flag.Bool("verify-config", false, "Loads and attempts to parse config file, then exits. Useful for CICD validation")
+	config                = conf{}
 )
 
 func init() {
@@ -88,7 +54,7 @@ func updateMetrics(registry *prometheus.Registry, now time.Time) time.Time {
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
-	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter} {
+	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter, targetGroupsAPICounter} {
 		if err := registry.Register(counter); err != nil {
 			log.Warning("Could not publish cloudwatch api metric")
 		}
@@ -111,6 +77,11 @@ func main() {
 	log.Println("Parse config..")
 	if err := config.load(configFile); err != nil {
 		log.Fatal("Couldn't read ", *configFile, ": ", err)
+		os.Exit(1)
+	}
+	if *verifyConfig {
+		log.Info("Config ", *configFile, " is valid")
+		os.Exit(0)
 	}
 
 	cloudwatchSemaphore = make(chan struct{}, *cloudwatchConcurrency)
@@ -128,7 +99,8 @@ func main() {
 		length := getMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
-		if (maxjoblength < length) && (discoveryJob.Type != "s3") {
+		svc := supportedServices.getService(discoveryJob.Type)
+		if (maxjoblength < length) && svc.IgnoreLength {
 			maxjoblength = length
 		}
 	}

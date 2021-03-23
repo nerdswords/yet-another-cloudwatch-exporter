@@ -4,34 +4,35 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 type conf struct {
 	Discovery discovery `yaml:"discovery"`
-	Static    []static  `yaml:"static"`
+	Static    []*static `yaml:"static"`
 }
 
 type discovery struct {
 	ExportedTagsOnMetrics exportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
-	Jobs                  []job                 `yaml:"jobs"`
+	Jobs                  []*job                `yaml:"jobs"`
 }
 
 type exportedTagsOnMetrics map[string][]string
 
 type job struct {
-	Regions                []string `yaml:"regions"`
-	Type                   string   `yaml:"type"`
-	RoleArns               []string `yaml:"roleArns"`
-	AwsDimensions          []string `yaml:"awsDimensions"`
-	SearchTags             []tag    `yaml:"searchTags"`
-	CustomTags             []tag    `yaml:"customTags"`
-	Metrics                []metric `yaml:"metrics"`
-	Length                 int      `yaml:"length"`
-	Delay                  int      `yaml:"delay"`
-	Period                 int      `yaml:"period"`
-	AddCloudwatchTimestamp bool     `yaml:"addCloudwatchTimestamp"`
+	Regions                []string  `yaml:"regions"`
+	Type                   string    `yaml:"type"`
+	RoleArns               []string  `yaml:"roleArns"`
+	SearchTags             []tag     `yaml:"searchTags"`
+	CustomTags             []tag     `yaml:"customTags"`
+	Metrics                []*metric `yaml:"metrics"`
+	Length                 int       `yaml:"length"`
+	Delay                  int       `yaml:"delay"`
+	Period                 int       `yaml:"period"`
+	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
+	NilToZero              *bool     `yaml:"nilToZero"`
 }
 
 type static struct {
@@ -41,18 +42,17 @@ type static struct {
 	Namespace  string      `yaml:"namespace"`
 	CustomTags []tag       `yaml:"customTags"`
 	Dimensions []dimension `yaml:"dimensions"`
-	Metrics    []metric    `yaml:"metrics"`
+	Metrics    []*metric   `yaml:"metrics"`
 }
 
 type metric struct {
-	Name                   string      `yaml:"name"`
-	Statistics             []string    `yaml:"statistics"`
-	AdditionalDimensions   []dimension `yaml:"additionalDimensions"`
-	Period                 int         `yaml:"period"`
-	Length                 int         `yaml:"length"`
-	Delay                  int         `yaml:"delay"`
-	NilToZero              bool        `yaml:"nilToZero"`
-	AddCloudwatchTimestamp bool        `yaml:"addCloudwatchTimestamp"`
+	Name                   string   `yaml:"name"`
+	Statistics             []string `yaml:"statistics"`
+	Period                 int      `yaml:"period"`
+	Length                 int      `yaml:"length"`
+	Delay                  int      `yaml:"delay"`
+	NilToZero              *bool    `yaml:"nilToZero"`
+	AddCloudwatchTimestamp *bool    `yaml:"addCloudwatchTimestamp"`
 }
 
 type dimension struct {
@@ -61,8 +61,8 @@ type dimension struct {
 }
 
 type tag struct {
-	Key   string `yaml:"Key"`
-	Value string `yaml:"Value"`
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
 }
 
 func (c *conf) load(file *string) error {
@@ -100,7 +100,7 @@ func (c *conf) validate() error {
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
-			err := c.validateDiscoveryJob(job, idx)
+			err := job.validateDiscoveryJob(idx)
 			if err != nil {
 				return err
 			}
@@ -109,7 +109,7 @@ func (c *conf) validate() error {
 
 	if c.Static != nil {
 		for idx, job := range c.Static {
-			err := c.validateStaticJob(job, idx)
+			err := job.validateStaticJob(idx)
 			if err != nil {
 				return err
 			}
@@ -119,9 +119,9 @@ func (c *conf) validate() error {
 	return nil
 }
 
-func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
+func (j *job) validateDiscoveryJob(jobIdx int) error {
 	if j.Type != "" {
-		if !stringInSlice(j.Type, supportedServices) {
+		if supportedServices.getService(j.Type) == nil {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
@@ -135,7 +135,7 @@ func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
 	}
 	for metricIdx, metric := range j.Metrics {
 		parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
-		err := c.validateMetric(metric, metricIdx, parent, &j)
+		err := metric.validateMetric(metricIdx, parent, j)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func (c *conf) validateDiscoveryJob(j job, jobIdx int) error {
 	return nil
 }
 
-func (c *conf) validateStaticJob(j static, jobIdx int) error {
+func (j *static) validateStaticJob(jobIdx int) error {
 	if j.Name == "" {
 		return fmt.Errorf("Static job [%v]: Name should not be empty", jobIdx)
 	}
@@ -155,7 +155,7 @@ func (c *conf) validateStaticJob(j static, jobIdx int) error {
 		return fmt.Errorf("Static job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := c.validateMetric(metric, metricIdx, fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx), nil)
+		err := metric.validateMetric(metricIdx, fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx), nil)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (c *conf) validateStaticJob(j static, jobIdx int) error {
 	return nil
 }
 
-func (c *conf) validateMetric(m metric, metricIdx int, parent string, discovery *job) error {
+func (m *metric) validateMetric(metricIdx int, parent string, discovery *job) error {
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
@@ -173,20 +173,61 @@ func (c *conf) validateMetric(m metric, metricIdx int, parent string, discovery 
 	}
 	mPeriod := m.Period
 	if mPeriod == 0 && discovery != nil {
-		mPeriod = discovery.Period
+		if discovery.Period != 0 {
+			mPeriod = discovery.Period
+		} else {
+			mPeriod = 300
+		}
 	}
 	if mPeriod < 1 {
 		return fmt.Errorf("Metric [%s/%d] in %v: Period value should be a positive integer", m.Name, metricIdx, parent)
 	}
 	mLength := m.Length
 	if mLength == 0 && discovery != nil {
-		mLength = discovery.Length
+		if discovery.Length != 0 {
+			mLength = discovery.Length
+		} else {
+			mLength = 120
+		}
 	}
+
+	mDelay := m.Delay
+	if mDelay == 0 && discovery != nil {
+		if discovery.Delay != 0 {
+			mDelay = discovery.Delay
+		} else {
+			mDelay = 120
+		}
+	}
+
+	mNilToZero := m.NilToZero
+	if mNilToZero == nil && discovery != nil {
+		if discovery.NilToZero != nil {
+			mNilToZero = discovery.NilToZero
+		} else {
+			mNilToZero = aws.Bool(false)
+		}
+	}
+
+	mAddCloudwatchTimestamp := m.AddCloudwatchTimestamp
+	if mAddCloudwatchTimestamp == nil && discovery != nil {
+		if discovery.AddCloudwatchTimestamp != nil {
+			mAddCloudwatchTimestamp = discovery.AddCloudwatchTimestamp
+		} else {
+			mAddCloudwatchTimestamp = aws.Bool(false)
+		}
+	}
+
 	if mLength < mPeriod {
 		log.Warningf(
 			"Metric [%s/%d] in %v: length(%d) is smaller than period(%d). This can cause that the data requested is not ready and generate data gaps",
 			m.Name, metricIdx, parent, mLength, mPeriod)
 	}
+	m.Length = mLength
+	m.Period = mPeriod
+	m.Delay = mDelay
+	m.NilToZero = mNilToZero
+	m.AddCloudwatchTimestamp = mAddCloudwatchTimestamp
 
 	return nil
 }

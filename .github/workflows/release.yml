@@ -22,7 +22,7 @@ jobs:
       if: "!startswith(github.ref, 'refs/tags/v')"
       run: exit 78
     - name: Tag docker image
-      run: docker tag yace quay.io/invisionag/yet-another-cloudwatch-exporter:${GITHUB_REF#refs/tags/}
+      run: docker tag yace quay.io/invisionag/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }}
     - name: Build && release binaries
       uses: docker://goreleaser/goreleaser:v0.120.3
       env:
@@ -30,4 +30,4 @@ jobs:
       with:
         args: release
     - name: Publish docker image
-      run: docker push quay.io/invisionag/yet-another-cloudwatch-exporter
+      run: docker push quay.io/invisionag/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }}
