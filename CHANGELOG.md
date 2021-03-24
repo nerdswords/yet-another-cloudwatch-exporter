@@ -1,3 +1,43 @@
+# 0.26.1-alpha / 0.26.2-alpha / 0.26.3-alpha
+
+- Fix CI issue
+
+# 0.26.0-alpha
+
+- *BREAKING CHANGE* Removed a need to use static dimensions in dynamic jobs in cases, when they cannot be parsed from ARNs (AndrewChubatiuk)
+    ```
+      # Before
+      metrics:
+      - name: NumberOfObjects
+        statistics:
+          - Average
+        additionalDimensions:
+          - name: StorageType
+            value: AllStorageTypes
+      # After
+      metrics:
+      - name: NumberOfObjects
+        statistics:
+          - Average
+    ```
+* *BREAKING CHANGE* Use small case for searchTags config option (AndrewChubatiuk)
+    ```
+    # Before
+    searchTags:
+    - Key: type
+      Value: public
+    # After
+    searchTags:
+    - key: type
+      value: public
+      ```
+- Added regular expressions to parse dimensions from resources (AndrewChubatiuk)
+- Added option to use floating time windows (zqad)
+- Added CLI option to validate config file (zswanson)
+- Added AWS network Firewall (rhys-evans)
+- Fixed multidimensional static metric (nmiculinic)
+- Tidy up code (jylitalo)
+
 # 0.25.0-alpha
 
 - *BREAKING CHANGE* Use NaN as default if AWS returns nil (arnitolog)
