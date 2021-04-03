@@ -315,44 +315,42 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			}
 		}
 	}
+
+	var filteredDimensions []*cloudwatch.Dimension
+
 	for _, cwMetric := range metricsList {
-		skip := false
+		filteredDimensions = nil
 		r := &tagsData{
 			ID:        aws.String("global"),
 			Namespace: &namespace,
 		}
 		for _, dimension := range cwMetric.Dimensions {
-			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
-				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-					skip = true
-					break
-				} else {
-					r = d
-				}
+			if _, ok := dimensionsFilter[*dimension.Name]; ok {
+				// delete dimension
+				filteredDimensions = append(filteredDimensions, dimension)
 			}
 		}
-		if !skip {
-			for _, stats := range m.Statistics {
-				id := fmt.Sprintf("id_%d", rand.Int())
-				metricTags := r.metricTags(tagsOnMetrics)
-				getMetricsData = append(getMetricsData, cloudwatchData{
-					ID:                     r.ID,
-					MetricID:               &id,
-					Metric:                 &m.Name,
-					Namespace:              &namespace,
-					Statistics:             []string{stats},
-					NilToZero:              m.NilToZero,
-					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
-					Tags:                   metricTags,
-					CustomTags:             customTags,
-					Dimensions:             cwMetric.Dimensions,
-					Region:                 &region,
-					AccountId:              accountId,
-					Period:                 int64(m.Period),
-				})
-			}
+		for _, stats := range m.Statistics {
+			id := fmt.Sprintf("id_%d", rand.Int())
+			metricTags := r.metricTags(tagsOnMetrics)
+			getMetricsData = append(getMetricsData, cloudwatchData{
+				ID:                     r.ID,
+				MetricID:               &id,
+				Metric:                 &m.Name,
+				Namespace:              &namespace,
+				Statistics:             []string{stats},
+				NilToZero:              m.NilToZero,
+				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+				Tags:                   metricTags,
+				CustomTags:             customTags,
+				Dimensions:             filteredDimensions,
+				Region:                 &region,
+				AccountId:              accountId,
+				Period:                 int64(m.Period),
+			})
 		}
 	}
+
 	return getMetricsData
 }
 
