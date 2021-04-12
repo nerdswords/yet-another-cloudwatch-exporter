@@ -35,6 +35,7 @@ We will contact you as soon as possible.
   * apigateway (AWS/ApiGateway) - Api Gateway
   * appsync (AWS/AppSync) - AppSync
   * billing (AWS/Billing) - Billing
+  * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service

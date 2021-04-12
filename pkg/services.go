@@ -134,6 +134,12 @@ var (
 			IgnoreLength: true,
 			Alias:        "billing",
 		}, {
+			Namespace: "AWS/Cassandra",
+			Alias:     "cassandra",
+			ResourceFilters: []*string{
+				aws.String("cassandra"),
+			},
+		}, {
 			Namespace: "AWS/CloudFront",
 			Alias:     "cloudfront",
 			ResourceFilters: []*string{
