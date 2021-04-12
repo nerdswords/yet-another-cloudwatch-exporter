@@ -1,4 +1,4 @@
-package main
+package exporter 
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-type ResourceFunc func(tagsInterface, *job, string) ([]*tagsData, error)
+type ResourceFunc func(tagsInterface, *Job, string) ([]*tagsData, error)
 
 type FilterFunc func(tagsInterface, []*tagsData) ([]*tagsData, error)
 
@@ -27,7 +27,7 @@ type serviceFilter struct {
 
 type serviceConfig []serviceFilter
 
-func (sc serviceConfig) getService(serviceType string) *serviceFilter {
+func (sc serviceConfig) GetService(serviceType string) *serviceFilter {
 	for _, sf := range sc {
 		if sf.Alias == serviceType || sf.Namespace == serviceType {
 			return &sf
@@ -37,7 +37,7 @@ func (sc serviceConfig) getService(serviceType string) *serviceFilter {
 }
 
 var (
-	supportedServices = serviceConfig{
+	SupportedServices = serviceConfig{
 		{
 			Namespace: "AWS/ApplicationELB",
 			Alias:     "alb",
@@ -102,7 +102,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -118,7 +118,7 @@ var (
 							}
 
 							for _, t := range asg.Tags {
-								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -203,7 +203,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("(?P<FleetRequestId>.*)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
@@ -219,7 +219,7 @@ var (
 							}
 
 							for _, t := range ec2Spot.Tags {
-								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -470,7 +470,7 @@ var (
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
 				aws.String(":transit-gateway-attachment/(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
@@ -486,7 +486,7 @@ var (
 							}
 
 							for _, t := range tgwa.Tags {
-								resource.Tags = append(resource.Tags, &tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {

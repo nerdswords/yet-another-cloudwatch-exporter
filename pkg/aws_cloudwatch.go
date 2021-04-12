@@ -1,4 +1,4 @@
-package main
+package exporter
 
 import (
 	"fmt"
@@ -37,8 +37,8 @@ type cloudwatchData struct {
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
-	CustomTags              []tag
-	Tags                    []tag
+	CustomTags              []Tag
+	Tags                    []Tag
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	AccountId               *string
@@ -47,13 +47,13 @@ type cloudwatchData struct {
 
 var labelMap = make(map[string][]string)
 
-func createStsSession(roleArn string) *sts.STS {
+func createStsSession(roleArn string, debug bool) *sts.STS {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	maxStsRetries := 5
 	config := &aws.Config{MaxRetries: &maxStsRetries}
-	if *debug {
+	if debug {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 	if roleArn != "" {
@@ -62,7 +62,7 @@ func createStsSession(roleArn string) *sts.STS {
 	return sts.New(sess, config)
 }
 
-func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWatch {
+func createCloudwatchSession(region *string, roleArn string, fips, debug bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -71,13 +71,13 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 
 	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
 
-	if *fips {
+	if fips {
 		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
 		endpoint := fmt.Sprintf("https://monitoring-fips.%s.amazonaws.com", *region)
 		config.Endpoint = aws.String(endpoint)
 	}
 
-	if *debug {
+	if debug {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
@@ -88,7 +88,7 @@ func createCloudwatchSession(region *string, roleArn string) *cloudwatch.CloudWa
 	return cloudwatch.New(sess, config)
 }
 
-func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *metric) (output *cloudwatch.GetMetricStatisticsInput) {
+func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := int64(metric.Period)
 	length := metric.Length
 	delay := metric.Delay
@@ -141,7 +141,7 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("Metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time, floatingTimeWindow bool) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	for _, data := range getMetricData {
 		metricStat := &cloudwatch.MetricStat{
@@ -166,7 +166,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 	var startTime time.Time
 	if now.IsZero() {
 		//This is first run
-		if *floatingTimeWindow {
+		if floatingTimeWindow {
 			now = time.Now()
 		} else {
 			now = time.Now().Round(5 * time.Minute)
@@ -233,12 +233,12 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	return resp.Datapoints
 }
 
-func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput, debug bool) *cloudwatch.GetMetricDataOutput {
 	c := iface.client
 
 	var resp cloudwatch.GetMetricDataOutput
 
-	if *debug {
+	if debug {
 		log.Println(filter)
 	}
 
@@ -251,7 +251,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 			return !lastPage
 		})
 
-	if *debug {
+	if debug {
 		log.Println(resp)
 	}
 
@@ -262,7 +262,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 	return &resp
 }
 
-func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimension) {
+func createStaticDimensions(dimensions []Dimension) (output []*cloudwatch.Dimension) {
 	for _, d := range dimensions {
 		d := d
 		output = append(output, &cloudwatch.Dimension{
@@ -274,7 +274,7 @@ func createStaticDimensions(dimensions []dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
@@ -290,7 +290,7 @@ func getFullMetricsList(namespace string, metric *metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*tagsData
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -356,7 +356,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	return getMetricsData
 }
 
-func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
+func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
@@ -364,14 +364,14 @@ func createPrometheusLabels(cwd *cloudwatchData) map[string]string {
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		labels["dimension_"+promStringTag(*dimension.Name)] = *dimension.Value
+		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
 	}
 
 	for _, label := range cwd.CustomTags {
-		labels["custom_tag_"+promStringTag(label.Key)] = label.Value
+		labels["custom_tag_"+promStringTag(label.Key, labelsSnakeCase)] = label.Value
 	}
 	for _, tag := range cwd.Tags {
-		labels["tag_"+promStringTag(tag.Key)] = tag.Value
+		labels["tag_"+promStringTag(tag.Key, labelsSnakeCase)] = tag.Value
 	}
 
 	return labels
@@ -483,7 +483,7 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 	return nil, time.Time{}
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
@@ -509,7 +509,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData) []*PrometheusMetric {
 			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
 
-				promLabels := createPrometheusLabels(c)
+				promLabels := createPrometheusLabels(c, labelsSnakeCase)
 				recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,

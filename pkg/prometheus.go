@@ -1,4 +1,4 @@
-package main
+package exporter
 
 import (
 	"regexp"
@@ -129,8 +129,8 @@ func promString(text string) string {
 	return strings.ToLower(replaceWithUnderscores(text))
 }
 
-func promStringTag(text string) string {
-	if *labelsSnakeCase {
+func promStringTag(text string, labelsSnakeCase bool) string {
+	if labelsSnakeCase {
 		return promString(text)
 	}
 	return replaceWithUnderscores(text)
