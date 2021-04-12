@@ -31,6 +31,14 @@
     - key: type
       value: public
       ```
+* *BREAKING CHANGE* Cloudfront renamed from `cf` to `cloudfront`
+    ```
+    # Before
+    - type: cf
+    # After
+    - type: cloudfront
+      ```
+
 - Added regular expressions to parse dimensions from resources (AndrewChubatiuk)
 - Added option to use floating time windows (zqad)
 - Added CLI option to validate config file (zswanson)
