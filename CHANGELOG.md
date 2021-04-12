@@ -31,7 +31,7 @@
     - key: type
       value: public
       ```
-* *BREAKING CHANGE* Cloudfront renamed from `cf` to `cloudfront`
+* *BREAKING CHANGE* CloudFront renamed from `cf` to `cloudfront`
     ```
     # Before
     - type: cf
