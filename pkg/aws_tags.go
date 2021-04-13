@@ -35,7 +35,7 @@ type tagsInterface struct {
 }
 
 func createSession(roleArn string, config *aws.Config) *session.Session {
-	sess, err := session.NewSession()
+	sess, err := session.NewSession(config)
 	if err != nil {
 		log.Fatalf("Failed to create session due to %v", err)
 	}
@@ -81,12 +81,12 @@ func createEC2Session(region *string, roleArn string, fips bool) ec2iface.EC2API
 }
 
 func createAPIGatewaySession(region *string, roleArn string, fips bool) apigatewayiface.APIGatewayAPI {
-	sess, err := session.NewSession()
+	maxApiGatewaygAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
+	sess, err := session.NewSession(config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	maxApiGatewaygAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
 	if roleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, roleArn)
 	}
