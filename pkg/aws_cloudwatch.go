@@ -65,6 +65,7 @@ func createStsSession(roleArn string, debug bool) *sts.STS {
 func createCloudwatchSession(region *string, roleArn string, fips, debug bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{Region: aws.String(*region)},
 	}))
 
 	maxCloudwatchRetries := 5
