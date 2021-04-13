@@ -1,4 +1,4 @@
-package main
+package exporter
 
 import (
 	"testing"
@@ -9,8 +9,8 @@ func TestMigrateTagsToPrometheus(t *testing.T) {
 	id := "tag_Id"
 	namespace := "AWS/Service"
 	region := "us-east-1"
-	tagItem := tag{Key: "Name", Value: "tag_Value"}
-	tags := []*tag{&tagItem}
+	tagItem := Tag{Key: "Name", Value: "tag_Value"}
+	tags := []*Tag{&tagItem}
 	tagData := tagsData{ID: &id, Namespace: &namespace, Region: &region, Tags: tags}
 	tagsData := []*tagsData{&tagData}
 
@@ -29,7 +29,7 @@ func TestMigrateTagsToPrometheus(t *testing.T) {
 	expected := []*PrometheusMetric{&p}
 
 	// Act
-	actual := migrateTagsToPrometheus(tagsData)
+	actual := migrateTagsToPrometheus(tagsData, false)
 
 	// Assert
 	if *actual[0].name != *expected[0].name {

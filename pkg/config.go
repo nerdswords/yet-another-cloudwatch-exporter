@@ -1,4 +1,4 @@
-package main
+package exporter
 
 import (
 	"fmt"
@@ -9,25 +9,25 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type conf struct {
-	Discovery discovery `yaml:"discovery"`
-	Static    []*static `yaml:"static"`
+type ScrapeConf struct {
+	Discovery Discovery `yaml:"discovery"`
+	Static    []*Static `yaml:"static"`
 }
 
-type discovery struct {
+type Discovery struct {
 	ExportedTagsOnMetrics exportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
-	Jobs                  []*job                `yaml:"jobs"`
+	Jobs                  []*Job                `yaml:"jobs"`
 }
 
 type exportedTagsOnMetrics map[string][]string
 
-type job struct {
+type Job struct {
 	Regions                []string  `yaml:"regions"`
 	Type                   string    `yaml:"type"`
 	RoleArns               []string  `yaml:"roleArns"`
-	SearchTags             []tag     `yaml:"searchTags"`
-	CustomTags             []tag     `yaml:"customTags"`
-	Metrics                []*metric `yaml:"metrics"`
+	SearchTags             []Tag     `yaml:"searchTags"`
+	CustomTags             []Tag     `yaml:"customTags"`
+	Metrics                []*Metric `yaml:"metrics"`
 	Length                 int       `yaml:"length"`
 	Delay                  int       `yaml:"delay"`
 	Period                 int       `yaml:"period"`
@@ -35,17 +35,17 @@ type job struct {
 	NilToZero              *bool     `yaml:"nilToZero"`
 }
 
-type static struct {
+type Static struct {
 	Name       string      `yaml:"name"`
 	Regions    []string    `yaml:"regions"`
 	RoleArns   []string    `yaml:"roleArns"`
 	Namespace  string      `yaml:"namespace"`
-	CustomTags []tag       `yaml:"customTags"`
-	Dimensions []dimension `yaml:"dimensions"`
-	Metrics    []*metric   `yaml:"metrics"`
+	CustomTags []Tag       `yaml:"customTags"`
+	Dimensions []Dimension `yaml:"dimensions"`
+	Metrics    []*Metric   `yaml:"metrics"`
 }
 
-type metric struct {
+type Metric struct {
 	Name                   string   `yaml:"name"`
 	Statistics             []string `yaml:"statistics"`
 	Period                 int      `yaml:"period"`
@@ -55,17 +55,17 @@ type metric struct {
 	AddCloudwatchTimestamp *bool    `yaml:"addCloudwatchTimestamp"`
 }
 
-type dimension struct {
+type Dimension struct {
 	Name  string `yaml:"name"`
 	Value string `yaml:"value"`
 }
 
-type tag struct {
+type Tag struct {
 	Key   string `yaml:"key"`
 	Value string `yaml:"value"`
 }
 
-func (c *conf) load(file *string) error {
+func (c *ScrapeConf) Load(file *string) error {
 	yamlFile, err := ioutil.ReadFile(*file)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (c *conf) load(file *string) error {
 	return nil
 }
 
-func (c *conf) validate() error {
+func (c *ScrapeConf) validate() error {
 	if c.Discovery.Jobs == nil && c.Static == nil {
 		return fmt.Errorf("At least 1 Discovery job or 1 Static must be defined")
 	}
@@ -119,9 +119,9 @@ func (c *conf) validate() error {
 	return nil
 }
 
-func (j *job) validateDiscoveryJob(jobIdx int) error {
+func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	if j.Type != "" {
-		if supportedServices.getService(j.Type) == nil {
+		if SupportedServices.GetService(j.Type) == nil {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
@@ -144,7 +144,7 @@ func (j *job) validateDiscoveryJob(jobIdx int) error {
 	return nil
 }
 
-func (j *static) validateStaticJob(jobIdx int) error {
+func (j *Static) validateStaticJob(jobIdx int) error {
 	if j.Name == "" {
 		return fmt.Errorf("Static job [%v]: Name should not be empty", jobIdx)
 	}
@@ -164,7 +164,7 @@ func (j *static) validateStaticJob(jobIdx int) error {
 	return nil
 }
 
-func (m *metric) validateMetric(metricIdx int, parent string, discovery *job) error {
+func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) error {
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
