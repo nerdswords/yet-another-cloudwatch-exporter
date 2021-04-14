@@ -1,4 +1,4 @@
-package exporter 
+package exporter
 
 import (
 	"context"
@@ -103,6 +103,16 @@ var (
 				aws.String("apis/(?P<GraphQLAPIId>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/Athena",
+			Alias:     "athena",
+			ResourceFilters: []*string{
+				aws.String("athena"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("athena/(?P<WorkGroup>[^/]+)"),
+			},
+		},
+		{
 			Namespace: "AWS/AutoScaling",
 			Alias:     "asg",
 			DimensionRegexps: []*string{
