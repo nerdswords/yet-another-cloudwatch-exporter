@@ -34,6 +34,7 @@ We will contact you as soon as possible.
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - Api Gateway
   * appsync (AWS/AppSync) - AppSync
+  * athena (AWS/Athena) - Athena
   * billing (AWS/Billing) - Billing
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
