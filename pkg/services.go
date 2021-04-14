@@ -88,6 +88,12 @@ var (
 				return outputResources, err
 			},
 		}, {
+			Namespace: "AWS/AmazonMQ",
+			Alias:     "mq",
+			ResourceFilters: []*string{
+				aws.String("mq"),
+			},
+		}, {
 			Namespace: "AWS/AppSync",
 			Alias:     "appsync",
 			ResourceFilters: []*string{
