@@ -5,15 +5,15 @@ WORKDIR /opt/
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ./*.go ./config_test.yml ./
-RUN go test -cover
+COPY . ./
+RUN go test -cover ./...
 
 ENV GOOS linux
 ENV GOARCH amd64
 ENV CGO_ENABLED=0
 
 ARG VERSION
-RUN go build -v -ldflags "-X main.version=$VERSION" -o yace
+RUN go build -v -ldflags "-X main.version=$VERSION" -o yace cmd/yace/main.go
 
 FROM alpine:latest
 
