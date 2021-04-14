@@ -20,17 +20,18 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 
 	for _, discoveryJob := range config.Discovery.Jobs {
 		for _, roleArn := range discoveryJob.RoleArns {
-			clientSts := createStsSession(roleArn, debug)
-			result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-			if err != nil {
-				log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-			}
-			accountId := result.Account
 			for _, region := range discoveryJob.Regions {
 				wg.Add(1)
 
-				go func(discoveryJob *Job, region string, accountId *string, roleArn string) {
+				go func(discoveryJob *Job, region string, roleArn string, debug bool) {
 					defer wg.Done()
+					clientSts := createStsSession(roleArn, debug)
+                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+                    if err != nil {
+                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+                    }
+                    accountId := result.Account
+
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn, fips, debug),
 					}
@@ -48,23 +49,25 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-				}(discoveryJob, region, accountId, roleArn)
+				}(discoveryJob, region, roleArn, debug)
 			}
 		}
 	}
 
 	for _, staticJob := range config.Static {
 		for _, roleArn := range staticJob.RoleArns {
-			clientSts := createStsSession(roleArn, debug)
-			result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-			if err != nil {
-				log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-			}
-			accountId := result.Account
 			for _, region := range staticJob.Regions {
 				wg.Add(1)
 
-				go func(staticJob *Static, region string, accountId *string, roleArn string) {
+				go func(staticJob *Static, region string, roleArn string, debug bool) {
+				    defer wg.Done()
+				    clientSts := createStsSession(roleArn, debug)
+                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+                    if err != nil {
+                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+                    }
+                    accountId := result.Account
+
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn, fips, debug),
 					}
@@ -74,9 +77,7 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-
-					wg.Done()
-				}(staticJob, region, accountId, roleArn)
+				}(staticJob, region, roleArn, debug)
 			}
 		}
 	}
