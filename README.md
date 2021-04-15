@@ -114,7 +114,7 @@ exportedTagsOnMetrics:
     - type
 ```
 
-Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html) are discovered. 
+Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html) are discovered.
 
 ### Auto-discovery job
 
@@ -124,7 +124,7 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 | type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                |
 | length (Default 120)   | How far back to request data for in seconds                                                              |
 | delay                  | If set it will request metrics up until `current_time - delay`                                           |
-| roleArns               | List of IAM roles to assume (optional)                                                                   |
+| roles                  | List of IAM roles to assume (optional)                                                                   |
 | searchTags             | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
 | period                 | Statistic period in seconds (General Setting for all metrics in this job)                                |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
@@ -161,7 +161,7 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 | Key        | Description                                                |
 | ---------- | ---------------------------------------------------------- |
 | regions    | List of AWS regions                                        |
-| roleArns   | List of IAM roles to assume                                |
+| roles      | List of IAM roles to assume                                |
 | namespace  | CloudWatch namespace                                       |
 | name       | Must be set with multiple block definitions per namespace  |
 | customTags | Custom tags to be added as a list of Key/Value pairs       |
@@ -319,7 +319,7 @@ static:
         length: 300
 ```
 
-[Source: [config_test.yml](config_test.yml)]
+[Source: [config_test.yml](pkg/testdata/config_test.yml)]
 
 ## Metrics Examples
 
@@ -445,10 +445,10 @@ Multiple roleArns are useful, when you are monitoring multi-account setup, where
     - type: ecs-svc
       regions:
         - eu-north-1
-      roleArns:
-        - "arn:aws:iam::111111111111:role/prometheus" # newspaper
-        - "arn:aws:iam:2222222222222:role/prometheus" # radio
-        - "arn:aws:iam:3333333333333:role/prometheus" # television
+      roles:
+        - roleArn: "arn:aws:iam:1111111111111:role/prometheus" # newspaper
+        - roleArn: "arn:aws:iam:2222222222222:role/prometheus" # radio
+        - roleArn: "arn:aws:iam:3333333333333:role/prometheus" # television
       metrics:
         - name: MemoryReservation
           statistics:
@@ -457,6 +457,14 @@ Multiple roleArns are useful, when you are monitoring multi-account setup, where
             - Maximum
           period: 600
           length: 600
+```
+
+Additionally, if the IAM role you want to assume requires an [External ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html?icmpid=docs_iam_console) you can specify it this way:
+
+```yaml
+  roles:
+    - roleArn: "arn:aws:iam:1111111111111:role/prometheus"
+      externalId: "shared-external-identifier"
 ```
 
 ### Requests concurrency

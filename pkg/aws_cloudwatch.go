@@ -47,7 +47,7 @@ type cloudwatchData struct {
 
 var labelMap = make(map[string][]string)
 
-func createStsSession(roleArn string) *sts.STS {
+func createStsSession(role Role) *sts.STS {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -56,13 +56,17 @@ func createStsSession(roleArn string) *sts.STS {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
-	if roleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	if role.RoleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
+			if role.ExternalID != "" {
+				p.ExternalID = aws.String(role.ExternalID)
+			}
+		})
 	}
 	return sts.New(sess, config)
 }
 
-func createCloudwatchSession(region *string, roleArn string, fips bool) *cloudwatch.CloudWatch {
+func createCloudwatchSession(region *string, role Role, fips bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: aws.String(*region)},
@@ -82,8 +86,12 @@ func createCloudwatchSession(region *string, roleArn string, fips bool) *cloudwa
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
-	if roleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, roleArn)
+	if role.RoleArn != "" {
+		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
+			if role.ExternalID != "" {
+				p.ExternalID = aws.String(role.ExternalID)
+			}
+		})
 	}
 
 	return cloudwatch.New(sess, config)
