@@ -57,6 +57,7 @@ We will contact you as soon as possible.
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - Nat Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
   * redshift (AWS/Redshift) - Redshift Database
   * rds (AWS/RDS) - Relational Database Service
