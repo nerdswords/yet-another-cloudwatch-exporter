@@ -385,6 +385,17 @@ var (
 				aws.String(":function:(?P<FunctionName>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/Neptune",
+			Alias:     "neptune",
+			ResourceFilters: []*string{
+				aws.String("rds:db"),
+				aws.String("rds:cluster"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":cluster:(?P<DBClusterIdentifier>[^/]+)"),
+				aws.String(":db:(?P<DBInstanceIdentifier>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/NetworkFirewall",
 			Alias:     "nfw",
 			ResourceFilters: []*string{
