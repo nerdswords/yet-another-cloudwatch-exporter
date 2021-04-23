@@ -1,3 +1,22 @@
+# 0.27.0-alpha
+
+- Make exporter a library. (jeschkies)
+- Add CLI option to validate config file (zswanson)
+- Fix multidimensional static metric (nmiculinic) 
+- Fix scrapes running in EKS fail after first scrape (rrusso1982)
+- Fix Docker build (jeschkies)
+- Allow to use this project in China (insectme)
+- Fix error retrieving kafka metrics (friedrichg)
+
+Freshly integrated:
+- Add AWS/NetworkFirewall (rhys-evans)
+- Add AWS/Cassandra (bjhaid)
+- Add AWS/AmazonMQ (saez0pub)
+- Add AWS/Athena (haarchri)
+- Add AWS/Neptune (benjaminaaron)
+
+Thanks to doc fixes: calvinbui
+
 # 0.26.1-alpha / 0.26.2-alpha / 0.26.3-alpha
 
 - Fix CI issue
