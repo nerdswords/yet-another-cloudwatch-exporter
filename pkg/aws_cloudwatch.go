@@ -297,11 +297,11 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	for _, dr := range dimensionRegexps {
 		dimensionRegexp := regexp.MustCompile(*dr)
 		names := dimensionRegexp.SubexpNames()
-		for i, dimensionName := range dimensionRegexp.SubexpNames() {
+		for i, dimensionName := range names {
 			if i != 0 {
-				dimensionName = strings.ReplaceAll(dimensionName, "_", " ")
-				if _, ok := dimensionsFilter[dimensionName]; !ok {
-					dimensionsFilter[dimensionName] = make(filterValues)
+				names[i] = strings.ReplaceAll(dimensionName, "_", " ")
+				if _, ok := dimensionsFilter[names[i]]; !ok {
+					dimensionsFilter[names[i]] = make(filterValues)
 				}
 			}
 		}
