@@ -64,6 +64,7 @@ We will contact you as soon as possible.
   * r53r (AWS/Route53Resolver) - Route53 Resolver
   * s3 (AWS/S3) - Object Storage
   * ses (AWS/SES) - Simple Email Service
+  * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
   * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
