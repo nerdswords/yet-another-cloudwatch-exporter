@@ -548,6 +548,17 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("/webacl/(?P<WebACL>[^/]+)"),
 			},
-		},
+		}, {
+            Namespace:  "AWS/WorkSpaces",
+            Alias:      "workspaces",
+            ResourceFilters: []*string{
+                aws.String("workspaces:workspace"),
+                aws.String("workspaces:directory"),
+            },
+            DimensionRegexps: []*string{
+                aws.String(":workspace/(?P<WorkspaceId>[^/]+)$"),
+                aws.String(":directory/(?P<DirectoryId>[^/]+)$"),
+            },
+        },
 	}
 )
