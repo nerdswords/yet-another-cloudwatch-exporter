@@ -1,5 +1,6 @@
 builds:
 - binary: yace
+  main: ./cmd/yace
   goarch:
     - amd64
   env:
