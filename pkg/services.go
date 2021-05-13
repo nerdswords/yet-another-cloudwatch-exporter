@@ -290,7 +290,7 @@ var (
 				aws.String("elasticloadbalancing:loadbalancer"),
 			},
 			DimensionRegexps: []*string{
-				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
+				aws.String(":loadbalancer/(?P<LoadBalancerName>.+)$"),
 			},
 		}, {
 			Namespace: "AWS/ElasticMapReduce",
