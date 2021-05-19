@@ -35,6 +35,9 @@ spec:
           command:
             - "yace"
             - "--config.file=/config/config.yml"
+            {{- if .Values.extraArgs }}
+            {{ toYaml .Values.extraArgs | indent 12 }}
+            {{- end }}
           volumeMounts:
             - name: vol-prometheus-yace-exporter
               mountPath: /config
