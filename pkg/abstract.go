@@ -26,11 +26,11 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 				go func(discoveryJob *Job, region string, roleArn string, debug bool) {
 					defer wg.Done()
 					clientSts := createStsSession(roleArn, debug)
-                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-                    if err != nil {
-                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-                    }
-                    accountId := result.Account
+					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil {
+						log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+					}
+					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn, fips, debug),
@@ -60,13 +60,13 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 				wg.Add(1)
 
 				go func(staticJob *Static, region string, roleArn string, debug bool) {
-				    defer wg.Done()
-				    clientSts := createStsSession(roleArn, debug)
-                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-                    if err != nil {
-                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-                    }
-                    accountId := result.Account
+					defer wg.Done()
+					clientSts := createStsSession(roleArn, debug)
+					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil {
+						log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+					}
+					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
 						client: createCloudwatchSession(&region, roleArn, fips, debug),
@@ -122,7 +122,7 @@ func scrapeStaticJob(resource *Static, region string, accountId *string, clientC
 
 			data.Points = clientCloudwatch.get(filter)
 
-			if data.Points != nil {
+			if data.Points != nil || *data.NilToZero {
 				mux.Lock()
 				cw = append(cw, &data)
 				mux.Unlock()
