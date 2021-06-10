@@ -37,8 +37,8 @@ type cloudwatchData struct {
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
-	CustomTags              []Tag
-	Tags                    []Tag
+	CustomTags              map[string]string
+	Tags                    map[string]string
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	AccountId               *string
@@ -299,7 +299,7 @@ func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags map[string]string, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*tagsData
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -377,10 +377,10 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 	}
 
 	for _, label := range cwd.CustomTags {
-		labels["custom_tag_"+promStringTag(label.Key, labelsSnakeCase)] = label.Value
+		labels["custom_tag_"+promStringTag(label, labelsSnakeCase)] = cwd.CustomTags[label]
 	}
 	for _, tag := range cwd.Tags {
-		labels["tag_"+promStringTag(tag.Key, labelsSnakeCase)] = tag.Value
+		labels["tag_"+promStringTag(tag, labelsSnakeCase)] = cwd.Tags[tag]
 	}
 
 	return labels

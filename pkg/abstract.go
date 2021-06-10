@@ -243,16 +243,14 @@ func scrapeDiscoveryJobUsingMetricData(
 	return resources, cw, endtime
 }
 
-func (r tagsData) filterThroughTags(filterTags []Tag) bool {
+func (r tagsData) filterThroughTags(filterTags map[string]string) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
-		for _, filterTag := range filterTags {
-			if resourceTag.Key == filterTag.Key {
-				r, _ := regexp.Compile(filterTag.Value)
-				if r.MatchString(resourceTag.Value) {
-					tagMatches++
-				}
+		if _, ok := filterTags[resourceTag]; ok {
+			rexp, _ := regexp.Compile(filterTags[resourceTag])
+			if rexp.MatchString(r.Tags[resourceTag]) {
+				tagMatches++
 			}
 		}
 	}
@@ -260,21 +258,11 @@ func (r tagsData) filterThroughTags(filterTags []Tag) bool {
 	return tagMatches == len(filterTags)
 }
 
-func (r tagsData) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
+func (r tagsData) metricTags(tagsOnMetrics exportedTagsOnMetrics) map[string]string {
+	tags := make(map[string]string)
 	for _, tagName := range tagsOnMetrics[*r.Namespace] {
-		tag := Tag{
-			Key: tagName,
-		}
-		for _, resourceTag := range r.Tags {
-			if resourceTag.Key == tagName {
-				tag.Value = resourceTag.Value
-				break
-			}
-		}
-
 		// Always add the tag, even if it's empty, to ensure the same labels are present on all metrics for a single service
-		tags = append(tags, tag)
+		tags[tagName] = tags[r.Tags[tagName]]
 	}
 	return tags
 }
