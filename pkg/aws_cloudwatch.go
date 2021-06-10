@@ -65,7 +65,7 @@ func createStsSession(roleArn string, debug bool) *sts.STS {
 func createCloudwatchSession(region *string, roleArn string, fips, debug bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{Region: aws.String(*region)},
+		Config:            aws.Config{Region: aws.String(*region)},
 	}))
 
 	maxCloudwatchRetries := 5
@@ -488,39 +488,35 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
+		promNs := strings.ToLower(*c.Namespace)
+		if !strings.HasPrefix(promNs, "aws") {
+			promNs = "aws_" + promNs
+		}
+		name_prefix := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric))
 		for _, statistic := range c.Statistics {
-			var includeTimestamp bool
-			if c.AddCloudwatchTimestamp != nil {
-				includeTimestamp = *c.AddCloudwatchTimestamp
-			}
+			includeTimestamp := (c.AddCloudwatchTimestamp != nil && *c.AddCloudwatchTimestamp)
 			exportedDatapoint, timestamp := getDatapoint(c, statistic)
 			if exportedDatapoint == nil {
-				var nan float64 = math.NaN()
-				exportedDatapoint = &nan
 				includeTimestamp = false
 				if *c.NilToZero {
 					var zero float64 = 0
 					exportedDatapoint = &zero
+				} else {
+					var nan float64 = math.NaN()
+					exportedDatapoint = &nan
 				}
 			}
-			promNs := strings.ToLower(*c.Namespace)
-			if !strings.HasPrefix(promNs, "aws") {
-				promNs = "aws_" + promNs
+			name := name_prefix + "_" + strings.ToLower(promString(statistic))
+			promLabels := createPrometheusLabels(c, labelsSnakeCase)
+			recordLabelsForMetric(name, promLabels)
+			p := PrometheusMetric{
+				name:             &name,
+				labels:           promLabels,
+				value:            exportedDatapoint,
+				timestamp:        timestamp,
+				includeTimestamp: includeTimestamp,
 			}
-			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
-			if exportedDatapoint != nil {
-
-				promLabels := createPrometheusLabels(c, labelsSnakeCase)
-				recordLabelsForMetric(name, promLabels)
-				p := PrometheusMetric{
-					name:             &name,
-					labels:           promLabels,
-					value:            exportedDatapoint,
-					timestamp:        timestamp,
-					includeTimestamp: includeTimestamp,
-				}
-				output = append(output, &p)
-			}
+			output = append(output, &p)
 		}
 	}
 
