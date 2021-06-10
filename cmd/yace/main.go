@@ -85,7 +85,7 @@ func main() {
 		//S3 can have upto 1 day to day will need to address it in seprate block
 		//TBD
 		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
-		if (maxjoblength < length) && svc.IgnoreLength {
+		if (maxjoblength < length) && !svc.IgnoreLength {
 			maxjoblength = length
 		}
 	}
