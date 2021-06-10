@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, debug, floatingTimeWindow bool, cloudwatchSemaphore, tagSemaphore chan struct{}) ([]*tagsData, []*cloudwatchData, *time.Time) {
+func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, floatingTimeWindow bool, cloudwatchSemaphore, tagSemaphore chan struct{}) ([]*tagsData, []*cloudwatchData, *time.Time) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
@@ -23,17 +23,17 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 			for _, region := range discoveryJob.Regions {
 				wg.Add(1)
 
-				go func(discoveryJob *Job, region string, roleArn string, debug bool) {
+				go func(discoveryJob *Job, region string, roleArn string) {
 					defer wg.Done()
-					clientSts := createStsSession(roleArn, debug)
-                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-                    if err != nil {
-                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-                    }
-                    accountId := result.Account
+					clientSts := createStsSession(roleArn)
+					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil {
+						log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+					}
+					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(&region, roleArn, fips, debug),
+						client: createCloudwatchSession(&region, roleArn, fips),
 					}
 
 					clientTag := tagsInterface{
@@ -44,12 +44,12 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					}
 					var resources []*tagsData
 					var metrics []*cloudwatchData
-					resources, metrics, endtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, debug, floatingTimeWindow, tagSemaphore)
+					resources, metrics, endtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-				}(discoveryJob, region, roleArn, debug)
+				}(discoveryJob, region, roleArn)
 			}
 		}
 	}
@@ -59,17 +59,17 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 			for _, region := range staticJob.Regions {
 				wg.Add(1)
 
-				go func(staticJob *Static, region string, roleArn string, debug bool) {
-				    defer wg.Done()
-				    clientSts := createStsSession(roleArn, debug)
-                    result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-                    if err != nil {
-                        log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
-                    }
-                    accountId := result.Account
+				go func(staticJob *Static, region string, roleArn string) {
+					defer wg.Done()
+					clientSts := createStsSession(roleArn)
+					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil {
+						log.Printf("Couldn't get account Id for role %s: %s\n", roleArn, err.Error())
+					}
+					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(&region, roleArn, fips, debug),
+						client: createCloudwatchSession(&region, roleArn, fips),
 					}
 
 					metrics := scrapeStaticJob(staticJob, region, accountId, clientCloudwatch, cloudwatchSemaphore)
@@ -77,7 +77,7 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-				}(staticJob, region, roleArn, debug)
+				}(staticJob, region, roleArn)
 			}
 		}
 	}
@@ -185,7 +185,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface, now time.Time,
-	metricsPerQuery int, debug, floatingTimeWindow bool,
+	metricsPerQuery int, floatingTimeWindow bool,
 	tagSemaphore chan struct{}) (resources []*tagsData, cw []*cloudwatchData, endtime time.Time) {
 
 	// Add the info tags of all the resources
@@ -220,7 +220,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				end = metricDataLength
 			}
 			filter := createGetMetricDataInput(getMetricDatas[i:end], &svc.Namespace, length, job.Delay, now, floatingTimeWindow)
-			data := clientCloudwatch.getMetricData(filter, debug)
+			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				for _, MetricDataResult := range data.MetricDataResults {
 					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)

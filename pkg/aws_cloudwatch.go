@@ -47,13 +47,13 @@ type cloudwatchData struct {
 
 var labelMap = make(map[string][]string)
 
-func createStsSession(roleArn string, debug bool) *sts.STS {
+func createStsSession(roleArn string) *sts.STS {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	maxStsRetries := 5
 	config := &aws.Config{MaxRetries: &maxStsRetries}
-	if debug {
+	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 	if roleArn != "" {
@@ -62,10 +62,10 @@ func createStsSession(roleArn string, debug bool) *sts.STS {
 	return sts.New(sess, config)
 }
 
-func createCloudwatchSession(region *string, roleArn string, fips, debug bool) *cloudwatch.CloudWatch {
+func createCloudwatchSession(region *string, roleArn string, fips bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{Region: aws.String(*region)},
+		Config:            aws.Config{Region: aws.String(*region)},
 	}))
 
 	maxCloudwatchRetries := 5
@@ -78,7 +78,7 @@ func createCloudwatchSession(region *string, roleArn string, fips, debug bool) *
 		config.Endpoint = aws.String(endpoint)
 	}
 
-	if debug {
+	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
@@ -234,12 +234,12 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	return resp.Datapoints
 }
 
-func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput, debug bool) *cloudwatch.GetMetricDataOutput {
+func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	c := iface.client
 
 	var resp cloudwatch.GetMetricDataOutput
 
-	if debug {
+	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Println(filter)
 	}
 
@@ -252,7 +252,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 			return !lastPage
 		})
 
-	if debug {
+	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Println(resp)
 	}
 
