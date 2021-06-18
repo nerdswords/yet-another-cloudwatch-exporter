@@ -59,6 +59,7 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `service.annotations`             | Custom annotations for service                                          | `{}`                        |
 | `service.labels`                  | Additional custom labels for the service                                | `{}`                        |
 | `resources`                       |                                                                         | `{}`                        |
+| `extraArgs`                       | Additional container arguments                                          | `[]`                        |
 | `aws.role`                        | AWS IAM Role To Use                                                     |                             |
 | `aws.aws_access_key_id`           | AWS access key id                                                       |                             |
 | `aws.aws_secret_access_key`       | AWS secret access key                                                   |                             |
