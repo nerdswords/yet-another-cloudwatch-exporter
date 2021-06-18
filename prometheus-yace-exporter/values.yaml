@@ -54,6 +54,11 @@ podAnnoatations: {}
 
 podLabels: {}
 
+extraArgs: []
+#   - --decoupled-scraping=false
+#   - --scrape-interval=300
+
+
 aws:
   role:
 
