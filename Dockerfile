@@ -9,7 +9,8 @@ COPY . ./
 RUN go test -cover ./...
 
 ENV GOOS linux
-ENV GOARCH amd64
+ARG GOARCH
+ENV GOARCH ${GOARCH:-amd64}
 ENV CGO_ENABLED=0
 
 ARG VERSION
