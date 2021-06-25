@@ -501,7 +501,7 @@ var (
 			},
 			DimensionRegexps: []*string{
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
-				aws.String(":transit-gateway-attachment/(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
+				aws.String("(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
 			},
 			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
 				ctx := context.Background()
@@ -513,7 +513,7 @@ var (
 
 						for _, tgwa := range page.TransitGatewayAttachments {
 							resource := tagsData{
-								ID:        aws.String(fmt.Sprintf("transit-gateway-attachment/%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
+								ID:        aws.String(fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
 								Namespace: &job.Type,
 								Region:    &region,
 							}
