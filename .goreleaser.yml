@@ -3,6 +3,7 @@ builds:
   main: ./cmd/yace
   goarch:
     - amd64
+    - arm64
   env:
   - CGO_ENABLED=0
 archive:
