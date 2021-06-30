@@ -35,8 +35,8 @@ spec:
           command:
             - "yace"
             - "--config.file=/config/config.yml"
-            {{- if .Values.extraArgs }}
-            {{ toYaml .Values.extraArgs }}
+            {{- range $key, $value := .Values.extraArgs }}
+            - --{{ $key }}={{ $value }}
             {{- end }}
           volumeMounts:
             - name: vol-prometheus-yace-exporter
