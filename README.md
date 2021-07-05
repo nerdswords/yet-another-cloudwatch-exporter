@@ -31,6 +31,7 @@ We will contact you as soon as possible.
 * Pull data from multiple AWS accounts using cross-account roles
 * Supported services with auto discovery through tags:
 
+  * acm (AWS/CertificateManager) - Certificate Manager
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - Api Gateway
   * appsync (AWS/AppSync) - AppSync
