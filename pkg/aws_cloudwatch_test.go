@@ -59,15 +59,16 @@ func TestSortyByTimeStamp(t *testing.T) {
 
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
-		region           string
-		accountId        *string
-		namespace        string
-		customTags       []Tag
-		tagsOnMetrics    exportedTagsOnMetrics
-		dimensionRegexps []*string
-		resources        []*tagsData
-		metricsList      []*cloudwatch.Metric
-		m                *Metric
+		region                  string
+		accountId               *string
+		namespace               string
+		exportTagsFromDimension string
+		customTags              []Tag
+		tagsOnMetrics           exportedTagsOnMetrics
+		dimensionRegexps        []*string
+		resources               []*tagsData
+		metricsList             []*cloudwatch.Metric
+		m                       *Metric
 	}
 	tests := []struct {
 		name               string
@@ -243,7 +244,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for i, got := range getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.m) {
+			for i, got := range getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.exportTagsFromDimension, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.m) {
 				if *got.AccountId != *tt.wantGetMetricsData[i].AccountId {
 					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountId, *tt.wantGetMetricsData[i].AccountId)
 				}
