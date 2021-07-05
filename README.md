@@ -403,12 +403,15 @@ data:
     ---
     # Start of config file
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: yace
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: yace
   template:
     metadata:
       labels:
