@@ -39,6 +39,13 @@ func (sc serviceConfig) GetService(serviceType string) *serviceFilter {
 var (
 	SupportedServices = serviceConfig{
 		{
+			Namespace: "AWS/CertificateManager",
+			Alias:     "acm",
+			ResourceFilters: []*string{
+				aws.String("acm:certificate"),
+			},
+		},
+		{
 			Namespace: "AWS/ApplicationELB",
 			Alias:     "alb",
 			ResourceFilters: []*string{
