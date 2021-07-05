@@ -74,6 +74,7 @@ We will contact you as soon as possible.
   * sns (AWS/SNS) - Simple Notification Service
   * sfn (AWS/States) - Step Functions
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
+  * workspaces (AWS/WorkSpaces) - Workspaces
 
 ## Image
 
