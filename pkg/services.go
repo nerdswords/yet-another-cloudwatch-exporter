@@ -180,6 +180,12 @@ var (
 				aws.String("userpool/(?P<UserPool>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/DDoSProtection",
+			Alias:     "shield",
+			ResourceFilters: []*string{
+				aws.String("shield:protection"),
+			},
+		}, {
 			Namespace: "AWS/DocDB",
 			Alias:     "docdb",
 			ResourceFilters: []*string{
