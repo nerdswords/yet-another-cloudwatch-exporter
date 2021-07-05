@@ -126,17 +126,17 @@ func combineLabels(labels map[string]string) string {
 
 func promString(text string) string {
 	text = splitString(text)
-	return strings.ToLower(replaceWithUnderscores(text))
+	return strings.ToLower(sanitize(text))
 }
 
 func promStringTag(text string, labelsSnakeCase bool) string {
 	if labelsSnakeCase {
 		return promString(text)
 	}
-	return replaceWithUnderscores(text)
+	return sanitize(text)
 }
 
-func replaceWithUnderscores(text string) string {
+func sanitize(text string) string {
 	replacer := strings.NewReplacer(
 		" ", "_",
 		",", "_",
@@ -151,6 +151,7 @@ func replaceWithUnderscores(text string) string {
 		"@", "_",
 		"<", "_",
 		">", "_",
+		"%", "_percent",
 	)
 	return replacer.Replace(text)
 }
