@@ -100,7 +100,7 @@ func main() {
 			for {
 				t0 := time.Now()
 				newRegistry := prometheus.NewRegistry()
-				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *debug, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
+				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
 				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
@@ -143,7 +143,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *debug, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
+			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}
