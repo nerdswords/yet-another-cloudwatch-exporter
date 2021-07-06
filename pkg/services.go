@@ -23,6 +23,7 @@ type serviceFilter struct {
 	DimensionRegexps []*string
 	ResourceFunc     ResourceFunc
 	FilterFunc       FilterFunc
+	TagPriorities    []string
 }
 
 type serviceConfig []serviceFilter
@@ -55,6 +56,10 @@ var (
 			DimensionRegexps: []*string{
 				aws.String(":(?P<TargetGroup>targetgroup/.+)"),
 				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
+			},
+			TagPriorities: []string{
+				"TargetGroup",
+				"LoadBalancer",
 			},
 		}, {
 			Namespace: "AWS/ApiGateway",
@@ -437,6 +442,10 @@ var (
 				aws.String(":(?P<TargetGroup>targetgroup/.+)"),
 				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
+			TagPriorities: []string{
+				"TargetGroup",
+				"LoadBalancer",
+			},
 		}, {
 			Namespace: "AWS/RDS",
 			Alias:     "rds",
@@ -562,16 +571,16 @@ var (
 				aws.String("/webacl/(?P<WebACL>[^/]+)"),
 			},
 		}, {
-            Namespace:  "AWS/WorkSpaces",
-            Alias:      "workspaces",
-            ResourceFilters: []*string{
-                aws.String("workspaces:workspace"),
-                aws.String("workspaces:directory"),
-            },
-            DimensionRegexps: []*string{
-                aws.String(":workspace/(?P<WorkspaceId>[^/]+)$"),
-                aws.String(":directory/(?P<DirectoryId>[^/]+)$"),
-            },
-        },
+			Namespace: "AWS/WorkSpaces",
+			Alias:     "workspaces",
+			ResourceFilters: []*string{
+				aws.String("workspaces:workspace"),
+				aws.String("workspaces:directory"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":workspace/(?P<WorkspaceId>[^/]+)$"),
+				aws.String(":directory/(?P<DirectoryId>[^/]+)$"),
+			},
+		},
 	}
 )

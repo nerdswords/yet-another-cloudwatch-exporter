@@ -22,18 +22,17 @@ type Discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type Job struct {
-	Regions                 []string  `yaml:"regions"`
-	Type                    string    `yaml:"type"`
-	RoleArns                []string  `yaml:"roleArns"`
-	SearchTags              []Tag     `yaml:"searchTags"`
-	CustomTags              []Tag     `yaml:"customTags"`
-	Metrics                 []*Metric `yaml:"metrics"`
-	Length                  int       `yaml:"length"`
-	Delay                   int       `yaml:"delay"`
-	Period                  int       `yaml:"period"`
-	AddCloudwatchTimestamp  *bool     `yaml:"addCloudwatchTimestamp"`
-	NilToZero               *bool     `yaml:"nilToZero"`
-	ExportTagsFromDimension string    `yaml:"exportTagsFromDimension"`
+	Regions                []string  `yaml:"regions"`
+	Type                   string    `yaml:"type"`
+	RoleArns               []string  `yaml:"roleArns"`
+	SearchTags             []Tag     `yaml:"searchTags"`
+	CustomTags             []Tag     `yaml:"customTags"`
+	Metrics                []*Metric `yaml:"metrics"`
+	Length                 int       `yaml:"length"`
+	Delay                  int       `yaml:"delay"`
+	Period                 int       `yaml:"period"`
+	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
+	NilToZero              *bool     `yaml:"nilToZero"`
 }
 
 type Static struct {

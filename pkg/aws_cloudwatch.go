@@ -291,19 +291,9 @@ func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, exportTagsFromDimension string, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagPriorities []string, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*tagsData
 	dimensionsFilter := make(map[string]filterValues)
-	// This for loop will fill the above dimension filter with resources that match a Dimension regex
-	/*
-		eg. JobType alb
-		TargetGroup:
-			targetgroup/my-target-group/123456789010
-			targetgroup/my-other-target-group/123456789010
-		LoadBalancer:
-			app/my-public-alb/12345678910
-			app/my-private-alb/12345678910
-	*/
 	for _, dr := range dimensionRegexps {
 		dimensionRegexp := regexp.MustCompile(*dr)
 		names := dimensionRegexp.SubexpNames()
@@ -332,21 +322,19 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			ID:        aws.String("global"),
 			Namespace: &namespace,
 		}
+		priority := 99
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
 				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-					// If the metric dimension name and value are not contained in the filter map then skip
-					// eg. If I am looking for tags environment: staging and the cwMetric is for a dev resource
 					skip = true
 					break
 				} else {
-					if exportTagsFromDimension == *dimension.Name {
-						log.Debugf("   Exporting by tags on dimension: %s", *dimension.Name)
-						r = d
-						break // Exit here as we are exporting based on explicit dimension set in config
+					for k, v := range tagPriorities {
+						if *dimension.Name == v && k < priority {
+							r = d
+							priority = k
+						}
 					}
-					// This gets set to TargetGroup first, then overwritten by LoadBalancer dimension
-					r = d
 				}
 			}
 		}
