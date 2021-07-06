@@ -329,6 +329,9 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 					skip = true
 					break
 				} else {
+					if len(tagPriorities) == 0 {
+						r = d
+					}
 					for k, v := range tagPriorities {
 						if *dimension.Name == v && k < priority {
 							r = d
