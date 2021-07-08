@@ -39,6 +39,7 @@ We will contact you as soon as possible.
   * billing (AWS/Billing) - Billing
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
+  * cognito-idp (AWS/Cognito) - Cognito
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service
   * ebs (AWS/EBS) - Elastic Block Storage
@@ -54,10 +55,12 @@ We will contact you as soon as possible.
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
   * glue (Glue) - AWS Glue Jobs
+  * iot (AWS/IoT) - IoT
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - Nat Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
   * redshift (AWS/Redshift) - Redshift Database
