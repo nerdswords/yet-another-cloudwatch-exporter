@@ -154,8 +154,8 @@ var (
 			},
 		}, {
 			Namespace:    "AWS/Billing",
-			IgnoreLength: true,
 			Alias:        "billing",
+			IgnoreLength: true,
 		}, {
 			Namespace: "AWS/Cassandra",
 			Alias:     "cassandra",
@@ -173,6 +173,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/Cognito",
+			Alias:     "cognito-idp",
 			ResourceFilters: []*string{
 				aws.String("cognito-idp:userpool"),
 			},
@@ -562,16 +563,16 @@ var (
 				aws.String("/webacl/(?P<WebACL>[^/]+)"),
 			},
 		}, {
-            Namespace:  "AWS/WorkSpaces",
-            Alias:      "workspaces",
-            ResourceFilters: []*string{
-                aws.String("workspaces:workspace"),
-                aws.String("workspaces:directory"),
-            },
-            DimensionRegexps: []*string{
-                aws.String(":workspace/(?P<WorkspaceId>[^/]+)$"),
-                aws.String(":directory/(?P<DirectoryId>[^/]+)$"),
-            },
-        },
+			Namespace: "AWS/WorkSpaces",
+			Alias:     "workspaces",
+			ResourceFilters: []*string{
+				aws.String("workspaces:workspace"),
+				aws.String("workspaces:directory"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":workspace/(?P<WorkspaceId>[^/]+)$"),
+				aws.String(":directory/(?P<DirectoryId>[^/]+)$"),
+			},
+		},
 	}
 )
