@@ -33,14 +33,15 @@ We will contact you as soon as possible.
 
   * acm (AWS/CertificateManager) - Certificate Manager
   * alb (AWS/ApplicationELB) - Application Load Balancer
-  * apigateway (AWS/ApiGateway) - Api Gateway
+  * apigateway (AWS/ApiGateway) - API Gateway
   * appsync (AWS/AppSync) - AppSync
   * athena (AWS/Athena) - Athena
   * billing (AWS/Billing) - Billing
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
+  * cognito-idp (AWS/Cognito) - Cognito
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
-  * dynamodb (AWS/DynamoDB) - NoSQL Online Datenbank Service
+  * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
   * ebs (AWS/EBS) - Elastic Block Storage
   * ec (AWS/Elasticache) - ElastiCache
   * ec2 (AWS/EC2) - Elastic Compute Cloud
@@ -54,10 +55,12 @@ We will contact you as soon as possible.
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
   * glue (Glue) - AWS Glue Jobs
+  * iot (AWS/IoT) - IoT
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
   * nfw (AWS/NetworkFirewall) - Network Firewall
-  * ngw (AWS/NATGateway) - Nat Gateway
+  * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
   * redshift (AWS/Redshift) - Redshift Database
@@ -347,7 +350,7 @@ aws_ec2_cpuutilization_average + on (name) group_left(tag_Name) aws_ec2_info
 # Add kubernetes / kops tags on 4xx elb metrics
 (aws_elb_httpcode_backend_4_xx_sum + on (name) group_left(tag_KubernetesCluster,tag_kubernetes_io_service_name) aws_elb_info)
 
-# Availability Metric for ELBs (Sucessfull requests / Total Requests) + k8s service name
+# Availability Metric for ELBs (Successful requests / Total Requests) + k8s service name
 # Use nilToZero on all metrics else it won't work
 ((aws_elb_request_count_sum - on (name) group_left() aws_elb_httpcode_backend_4_xx_sum) - on (name) group_left() aws_elb_httpcode_backend_5_xx_sum) + on (name) group_left(tag_kubernetes_io_service_name) aws_elb_info
 
@@ -371,7 +374,8 @@ The following IAM permissions are required for YACE to work.
 "cloudwatch:ListMetrics"
 ```
 
-The following IAM permissions are required for the transit gateway attachment (twga) metrics to work.
+The following IAM permissions are required for the transit gateway attachment (tgwa) metrics to work.
+
 ```json
 "ec2:DescribeTags",
 "ec2:DescribeInstances",
@@ -380,6 +384,7 @@ The following IAM permissions are required for the transit gateway attachment (t
 ```
 
 The following IAM permission is required to discover tagged API Gateway REST APIs:
+
 ```json
 "apigateway:GET"
 ```
