@@ -1,3 +1,22 @@
+# unreleased
+
+- *BREAKING CHANGE* Added support for specifying an External ID with IAM role Arns
+```yaml
+# Before
+discovery:
+  jobs:
+  - type: rds
+    roleArns:
+    - "arn:aws:iam::123456789012:role/Prometheus"
+# After
+discovery:
+  jobs:
+  - type: rds
+    roles:
+    - roleArn: "arn:aws:iam::123456789012:role/Prometheus"
+      externalId: "shared-external-identifier" # optional
+```
+
 # 0.27.0-alpha
 
 - Make exporter a library. (jeschkies)
