@@ -1,6 +1,14 @@
-# unreleased
+# 0.28.0-alpha
+Sorry folks, I currently struggle a little bit
+to get things merged fast due to a lot of private
+stuff. Really appreciate all your PRs and
+hope to get the bigger ones (which are sadly
+still not merged yet) into next release.
 
-- *BREAKING CHANGE* Added support for specifying an External ID with IAM role Arns
+Really appreciate any person working on this
+project! - Have a nice day :)
+
+- *BREAKING CHANGE* Added support for specifying an External ID with IAM role Arns (cristiangreco)
 ```yaml
 # Before
 discovery:
@@ -16,6 +24,21 @@ discovery:
     - roleArn: "arn:aws:iam::123456789012:role/Prometheus"
       externalId: "shared-external-identifier" # optional
 ```
+- Add alias for AWS/Cognito service (tohjustin)
+- Fix logic in dimensions for Transit Gateway Attachments (rhys-evans)
+- Fix bug with scraping intervals (boazreicher)
+- Support arm64 builds (alias-dev)
+- Fix IgnoreLength logic (dctrwatson)
+- Simplify code base (jylitalo)
+- Simplify k8s deployments for new users (mahmoud-abdelhafez)
+- Handle metrics with '%' in their name (darora)
+- Fix classic elb name (nhinds)
+- Skip metrics in edge cases (arvidsnet)
+
+Freshly shipped new integrations:
+- Certificate Manager (mksh)
+- WorkSpaces (kl4w)
+- DDoSProtection / Shield (arvidsnet)
 
 # 0.27.0-alpha
 
