@@ -30,17 +30,17 @@
 
 To deploy the chart with terraform:
 
-    ```
-    module "yace" {
-      source = path/to/yace"
+```terraform
+module "yace" {
+  source = path/to/yace"
 
-      region      = "your-region"
-      environment = "your-environment"
+  region      = "your-region"
+  environment = "your-environment"
 
-      cluster_name = "your-eks-cluster-name"
-      chart        = "path/to/helm/charts/yace"
-    }
-    ```
+  cluster_name = "your-eks-cluster-name"
+  chart        = "path/to/helm/charts/yace"
+}
+```
 
 ## Usage notes
 - Pod is listening on port `5000`; it can be scraped at `/metrics` endpoint
