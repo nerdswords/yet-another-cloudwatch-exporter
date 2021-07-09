@@ -42,12 +42,12 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 						asgClient:        createASGSession(&region, role, fips),
 						ec2Client:        createEC2Session(&region, role, fips),
 					}
-					var resources []*tagsData
-					var metrics []*cloudwatchData
-					resources, metrics, endtime = scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
+
+					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
+					endtime = end
 					mux.Unlock()
 				}(discoveryJob, region, role)
 			}
