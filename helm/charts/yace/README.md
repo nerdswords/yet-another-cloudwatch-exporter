@@ -30,7 +30,7 @@
 
 To deploy the chart with terraform:
 
-    ```terraform
+    ```
     module "yace" {
       source = path/to/yace"
 
