@@ -24,7 +24,7 @@ type exportedTagsOnMetrics map[string][]string
 type Job struct {
 	Regions                []string  `yaml:"regions"`
 	Type                   string    `yaml:"type"`
-	RoleArns               []string  `yaml:"roleArns"`
+	Roles                  []Role    `yaml:"roles"`
 	SearchTags             []Tag     `yaml:"searchTags"`
 	CustomTags             []Tag     `yaml:"customTags"`
 	Metrics                []*Metric `yaml:"metrics"`
@@ -38,11 +38,16 @@ type Job struct {
 type Static struct {
 	Name       string      `yaml:"name"`
 	Regions    []string    `yaml:"regions"`
-	RoleArns   []string    `yaml:"roleArns"`
+	Roles      []Role      `yaml:"roles"`
 	Namespace  string      `yaml:"namespace"`
 	CustomTags []Tag       `yaml:"customTags"`
 	Dimensions []Dimension `yaml:"dimensions"`
 	Metrics    []*Metric   `yaml:"metrics"`
+}
+
+type Role struct {
+	RoleArn    string `yaml:"roleArn"`
+	ExternalID string `yaml:"externalId"`
 }
 
 type Metric struct {
@@ -75,25 +80,26 @@ func (c *ScrapeConf) Load(file *string) error {
 		return err
 	}
 
-	for n, job := range c.Discovery.Jobs {
-		if len(job.RoleArns) == 0 {
-			c.Discovery.Jobs[n].RoleArns = []string{""} // use current IAM role
-		}
-	}
-	for n, job := range c.Static {
-		if len(job.RoleArns) == 0 {
-			c.Static[n].RoleArns = []string{""} // use current IAM role
+	for _, job := range c.Discovery.Jobs {
+		if len(job.Roles) == 0 {
+			job.Roles = []Role{{}} // use current IAM role
 		}
 	}
 
-	err = c.validate()
+	for _, job := range c.Static {
+		if len(job.Roles) == 0 {
+			job.Roles = []Role{{}} // use current IAM role
+		}
+	}
+
+	err = c.Validate()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ScrapeConf) validate() error {
+func (c *ScrapeConf) Validate() error {
 	if c.Discovery.Jobs == nil && c.Static == nil {
 		return fmt.Errorf("At least 1 Discovery job or 1 Static must be defined")
 	}
@@ -127,6 +133,14 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	} else {
 		return fmt.Errorf("Discovery job [%d]: Type should not be empty", jobIdx)
 	}
+	parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
+	if len(j.Roles) > 0 {
+		for roleIdx, role := range j.Roles {
+			if err := role.validateRole(roleIdx, parent); err != nil {
+				return err
+			}
+		}
+	}
 	if len(j.Regions) == 0 {
 		return fmt.Errorf("Discovery job [%s/%d]: Regions should not be empty", j.Type, jobIdx)
 	}
@@ -134,7 +148,6 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Type, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
 		err := metric.validateMetric(metricIdx, parent, j)
 		if err != nil {
 			return err
@@ -151,14 +164,30 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 	if j.Namespace == "" {
 		return fmt.Errorf("Static job [%s/%d]: Namespace should not be empty", j.Name, jobIdx)
 	}
+	parent := fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx)
+	if len(j.Roles) > 0 {
+		for roleIdx, role := range j.Roles {
+			if err := role.validateRole(roleIdx, parent); err != nil {
+				return err
+			}
+		}
+	}
 	if len(j.Regions) == 0 {
 		return fmt.Errorf("Static job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := metric.validateMetric(metricIdx, fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx), nil)
+		err := metric.validateMetric(metricIdx, parent, nil)
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (r *Role) validateRole(roleIdx int, parent string) error {
+	if r.RoleArn == "" && r.ExternalID != "" {
+		return fmt.Errorf("Role [%d] in %v: RoleArn should not be empty", roleIdx, parent)
 	}
 
 	return nil
