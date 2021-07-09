@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yace
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: yace
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/yace-cm.yaml") . | sha256sum }}
+      labels:
+        name: yace
+    spec:
+      serviceAccountName: {{ .Values.yace.serviceAccount }}
+      securityContext:
+        fsGroup: 65534 # For yace to be able to read Kubernetes and AWS token files
+      containers:
+      - name: yace
+        image: {{ .Values.yace.image }}
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--config.file=/tmp/config.yaml"
+          - "--labels-snake-case"
+        ports:
+        - name: http-metrics
+          containerPort: 5000
+          protocol: TCP
+        volumeMounts:
+        - name: config-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: yace-config

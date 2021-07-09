@@ -1,0 +1,121 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yace-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: yace
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+data:
+  config.yaml: |
+    discovery:
+      jobs:
+      - type: elb
+        regions:
+        - {{ .Values.yace.config.region }}
+        searchTags:
+        - key: kubernetes.io/service-name
+          value: .*
+        length: 600
+        delay: 120
+        metrics:
+        - name: HealthyHostCount
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: UnHealthyHostCount
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: Latency
+          statistics:
+          - Average
+          period: 600
+          length: 600
+        - name: RequestCount
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: HTTPCode_Backend_2XX
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: HTTPCode_Backend_3XX
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: HTTPCode_Backend_4XX
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+        - name: HTTPCode_Backend_5XX
+          statistics:
+          - Sum
+          period: 600
+          length: 600
+      - type: alb
+        regions:
+        - {{ .Values.yace.config.region }}
+        searchTags:
+        - key: kubernetes.io/service-name
+          value: .*
+        length: 600
+        delay: 120
+        metrics:
+        - name: RequestCount
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: TargetResponseTime
+          statistics: [Average]
+          period: 600
+          length: 600
+        - name: ProcessedBytes
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: ActiveConnectionCount
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_ELB_2XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_ELB_3XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_ELB_4XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_ELB_5XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_Target_2XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_Target_3XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_Target_4XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600
+        - name: HTTPCode_Target_5XX_Count
+          statistics: [Sum]
+          period: 600
+          length: 600

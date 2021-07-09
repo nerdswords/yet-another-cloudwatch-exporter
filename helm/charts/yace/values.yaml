@@ -1,0 +1,10 @@
+yace:
+  image: quay.io/invisionag/yet-another-cloudwatch-exporter:v0.28.0-alpha
+  serviceAccount: yace-sa
+  config:
+    region: us-east-1
+  aws:
+    account_id: ""
+    role_name: ""
+    eks:
+      cluster_name: ""

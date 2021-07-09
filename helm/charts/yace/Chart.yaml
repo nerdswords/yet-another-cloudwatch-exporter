@@ -1,0 +1,12 @@
+apiVersion: v2
+name: yace
+description: Yet Another Cloudwatch Exporter
+type: application
+version: 0.1.1
+appVersion: "0.28.0"
+home: https://github.com/ivx/yet-another-cloudwatch-exporter
+sources:
+- https://github.com/ivx/yet-another-cloudwatch-exporter
+maintainers:
+- name: @withernet
+  url: https://github.com/withernet
