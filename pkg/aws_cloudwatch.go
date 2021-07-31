@@ -50,12 +50,12 @@ var labelMap = make(map[string][]string)
 func createStsSession(role Role) *sts.STS {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			CredentialsChainVerboseErrors: aws.Bool(true),
+		},
 	}))
 	maxStsRetries := 5
-	config := &aws.Config{
-		MaxRetries:                    &maxStsRetries,
-		CredentialsChainVerboseErrors: aws.Bool(true),
-	}
+	config := &aws.Config{MaxRetries: &maxStsRetries}
 	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
@@ -72,7 +72,10 @@ func createStsSession(role Role) *sts.STS {
 func createCloudwatchSession(region *string, role Role, fips bool) *cloudwatch.CloudWatch {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: aws.String(*region)},
+		Config: aws.Config{
+			Region:                        aws.String(*region),
+			CredentialsChainVerboseErrors: aws.Bool(true),
+		},
 	}))
 
 	maxCloudwatchRetries := 5

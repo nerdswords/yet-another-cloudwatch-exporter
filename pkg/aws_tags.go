@@ -35,6 +35,7 @@ type tagsInterface struct {
 }
 
 func createSession(role Role, config *aws.Config) *session.Session {
+	config.CredentialsChainVerboseErrors = aws.Bool(true)
 	sess, err := session.NewSession(config)
 	if err != nil {
 		log.Fatalf("Failed to create session due to %v", err)
