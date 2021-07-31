@@ -26,7 +26,7 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					defer wg.Done()
 					clientSts := createStsSession(role)
 					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-					if err != nil {
+					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
 					}
@@ -63,7 +63,7 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					defer wg.Done()
 					clientSts := createStsSession(role)
 					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-					if err != nil {
+					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
 					}
