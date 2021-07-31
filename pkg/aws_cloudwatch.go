@@ -52,7 +52,10 @@ func createStsSession(role Role) *sts.STS {
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	maxStsRetries := 5
-	config := &aws.Config{MaxRetries: &maxStsRetries}
+	config := &aws.Config{
+		MaxRetries:                    &maxStsRetries,
+		CredentialsChainVerboseErrors: aws.Bool(true),
+	}
 	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
