@@ -26,8 +26,10 @@ func scrapeAwsData(
 	var wg sync.WaitGroup
 
 	// since we have called refresh, we have loaded all the credentials
-	// into the clients and it is now safe to call concurrently
+	// into the clients and it is now safe to call concurrently. Defer the
+	// clearing, so we always clear credentials before the next scrape
 	cache.Refresh()
+	defer cache.Clear()
 
 	for _, discoveryJob := range config.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
@@ -89,7 +91,6 @@ func scrapeAwsData(
 		}
 	}
 	wg.Wait()
-	cache.Clear()
 	return awsInfoData, cwData, &endtime
 }
 
