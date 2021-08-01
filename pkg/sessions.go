@@ -66,7 +66,7 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 				roleCache[role] = map[string]*clientCache{}
 			}
 			for _, region := range discoveryJob.Regions {
-				roleCache[role][region] = nil
+				roleCache[role][region] = &clientCache{}
 			}
 		}
 	}
@@ -80,7 +80,7 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 				roleCache[role] = map[string]*clientCache{}
 			}
 			for _, region := range staticJob.Regions {
-				roleCache[role][region] = nil
+				roleCache[role][region] = &clientCache{}
 			}
 		}
 	}
