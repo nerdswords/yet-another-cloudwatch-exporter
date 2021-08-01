@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,7 +16,7 @@ func scrapeAwsData(
 	metricsPerQuery int,
 	fips, floatingTimeWindow bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
-	roleCache map[string]map[string]*session.Session,
+	cache SessionCache,
 ) ([]*tagsData, []*cloudwatchData, *time.Time) {
 	mux := &sync.Mutex{}
 
@@ -26,46 +25,40 @@ func scrapeAwsData(
 	var endtime time.Time
 	var wg sync.WaitGroup
 
+	// since we have called refresh, we have loaded all the credentials
+	// into the clients and it is now safe to call concurrently
+	cache.Refresh()
+
 	for _, discoveryJob := range config.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
 			for _, region := range discoveryJob.Regions {
-				var sess *session.Session
-				if foundSess, ok := roleCache[role.RoleArn][region]; ok && sess != nil {
-					sess = foundSess
-				} else {
-					roleCache[role.RoleArn][region] = createAWSSession(role, region)
-					sess = roleCache[role.RoleArn][region]
-				}
-
 				wg.Add(1)
-				go func(goSess *session.Session, discoveryJob *Job, region string, role Role) {
+				go func(discoveryJob *Job, region string, role Role) {
 					defer wg.Done()
-					clientSts := createStsSession(goSess, role)
-					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
 					}
-					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(goSess, &region, role, fips),
+						client: cache.GetCloudwatch(&region, role),
 					}
 
 					clientTag := tagsInterface{
-						client:           createTagSession(goSess, &region, role, fips),
-						apiGatewayClient: createAPIGatewaySession(goSess, &region, role, fips),
-						asgClient:        createASGSession(goSess, &region, role, fips),
-						ec2Client:        createEC2Session(goSess, &region, role, fips),
+						client:           cache.GetTagging(&region, role),
+						apiGatewayClient: cache.GetAPIGateway(&region, role),
+						asgClient:        cache.GetASG(&region, role),
+						ec2Client:        cache.GetEC2(&region, role),
 					}
 
-					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
+					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
 					endtime = end
 					mux.Unlock()
-				}(sess, discoveryJob, region, role)
+				}(discoveryJob, region, role)
 			}
 		}
 	}
@@ -73,46 +66,30 @@ func scrapeAwsData(
 	for _, staticJob := range config.Static {
 		for _, role := range staticJob.Roles {
 			for _, region := range staticJob.Regions {
-				var sess *session.Session
-				if foundSess, ok := roleCache[role.RoleArn][region]; ok && sess != nil {
-					sess = foundSess
-				} else {
-					roleCache[role.RoleArn][region] = createAWSSession(role, region)
-					sess = roleCache[role.RoleArn][region]
-				}
-
 				wg.Add(1)
-				go func(goSess *session.Session, staticJob *Static, region string, role Role) {
+				go func(staticJob *Static, region string, role Role) {
 					defer wg.Done()
-					clientSts := createStsSession(goSess, role)
-					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
 					}
-					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(goSess, &region, role, fips),
+						client: cache.GetCloudwatch(&region, role),
 					}
 
-					metrics := scrapeStaticJob(staticJob, region, accountId, clientCloudwatch, cloudwatchSemaphore)
+					metrics := scrapeStaticJob(staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
 					mux.Unlock()
-				}(sess, staticJob, region, role)
+				}(staticJob, region, role)
 			}
 		}
 	}
 	wg.Wait()
-
-	// wipe out the cache since we are done with the sessions
-	for roleArn, roleRegions := range roleCache {
-		for region, _ := range roleRegions {
-			roleCache[roleArn][region] = nil
-		}
-	}
+	cache.Clear()
 	return awsInfoData, cwData, &endtime
 }
 

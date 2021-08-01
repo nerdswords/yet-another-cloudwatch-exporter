@@ -3,7 +3,6 @@ package exporter
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +14,7 @@ func UpdateMetrics(
 	metricsPerQuery int,
 	fips, floatingTimeWindow, labelsSnakeCase bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
-	roleCache map[string]map[string]*session.Session,
+	cache SessionCache,
 ) time.Time {
 	tagsData, cloudwatchData, endtime := scrapeAwsData(
 		config,
@@ -23,7 +22,7 @@ func UpdateMetrics(
 		metricsPerQuery,
 		fips, floatingTimeWindow,
 		cloudwatchSemaphore, tagSemaphore,
-		roleCache,
+		cache,
 	)
 	var metrics []*PrometheusMetric
 

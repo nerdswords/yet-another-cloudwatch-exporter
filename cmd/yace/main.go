@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -70,9 +69,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	// build a map of the roles used to avoid calling metadata apis aggressively
-	roleCache := map[string]map[string]*session.Session{}
-
 	cloudwatchSemaphore := make(chan struct{}, *cloudwatchConcurrency)
 	tagSemaphore := make(chan struct{}, *tagConcurrency)
 
@@ -93,26 +89,6 @@ func main() {
 		if (maxjoblength < length) && !svc.IgnoreLength {
 			maxjoblength = length
 		}
-
-		for _, role := range discoveryJob.Roles {
-			if _, ok := roleCache[role.RoleArn]; !ok {
-				roleCache[role.RoleArn] = map[string]*session.Session{}
-			}
-			for _, region := range discoveryJob.Regions {
-				roleCache[role.RoleArn][region] = nil
-			}
-		}
-	}
-
-	for _, staticJob := range config.Static {
-		for _, role := range staticJob.Roles {
-			if _, ok := roleCache[role.RoleArn]; !ok {
-				roleCache[role.RoleArn] = map[string]*session.Session{}
-			}
-			for _, region := range staticJob.Regions {
-				roleCache[role.RoleArn][region] = nil
-			}
-		}
 	}
 
 	//To aviod future timestamp issue we need make sure scrape intervel is atleast at the same level as that of highest job length
@@ -120,12 +96,14 @@ func main() {
 		*scrapingInterval = maxjoblength
 	}
 
+	cache := exporter.NewSessionCache(config, *fips)
+
 	if *decoupledScraping {
 		go func() {
 			for {
 				t0 := time.Now()
 				newRegistry := prometheus.NewRegistry()
-				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, roleCache)
+				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, cache)
 				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
@@ -168,7 +146,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, roleCache)
+			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, cache)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}

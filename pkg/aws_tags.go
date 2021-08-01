@@ -2,16 +2,10 @@ package exporter
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
@@ -31,61 +25,6 @@ type tagsInterface struct {
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
 	ec2Client        ec2iface.EC2API
-}
-
-func createTagSession(sess *session.Session, region *string, role Role, fips bool) *r.ResourceGroupsTaggingAPI {
-	maxResourceGroupTaggingRetries := 5
-	config := &aws.Config{
-		Region:                        region,
-		MaxRetries:                    &maxResourceGroupTaggingRetries,
-		CredentialsChainVerboseErrors: aws.Bool(true),
-	}
-
-	if fips {
-		// ToDo: Resource Groups Tagging API does not have FIPS compliant endpoints
-		// https://docs.aws.amazon.com/general/latest/gr/arg.html
-		// endpoint := fmt.Sprintf("https://tagging-fips.%s.amazonaws.com", *region)
-		// config.Endpoint = aws.String(endpoint)
-	}
-
-	return r.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createASGSession(sess *session.Session, region *string, role Role, fips bool) autoscalingiface.AutoScalingAPI {
-	maxAutoScalingAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
-	if fips {
-		// ToDo: Autoscaling does not have a FIPS endpoint
-		// https://docs.aws.amazon.com/general/latest/gr/autoscaling_region.html
-		// endpoint := fmt.Sprintf("https://autoscaling-plans-fips.%s.amazonaws.com", *region)
-		// config.Endpoint = aws.String(endpoint)
-	}
-
-	return autoscaling.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createEC2Session(sess *session.Session, region *string, role Role, fips bool) ec2iface.EC2API {
-	maxEC2APIRetries := 10
-	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
-	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/ec2-service.html
-		endpoint := fmt.Sprintf("https://ec2-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
-	}
-
-	return ec2.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createAPIGatewaySession(sess *session.Session, region *string, role Role, fips bool) apigatewayiface.APIGatewayAPI {
-	maxApiGatewaygAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
-	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
-		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
-	}
-
-	return apigateway.New(sess, setSTSCreds(sess, config, role))
 }
 
 func (iface tagsInterface) get(job *Job, region string) (resources []*tagsData, err error) {

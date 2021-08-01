@@ -11,11 +11,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	"github.com/aws/aws-sdk-go/service/sts"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -46,55 +43,6 @@ type cloudwatchData struct {
 }
 
 var labelMap = make(map[string][]string)
-
-func setSTSCreds(sess *session.Session, config *aws.Config, role Role) *aws.Config {
-	if role.RoleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
-			if role.ExternalID != "" {
-				p.ExternalID = aws.String(role.ExternalID)
-			}
-		})
-	}
-	return config
-}
-
-func createAWSSession(role Role, region string) *session.Session {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			Region:                        aws.String(region),
-			CredentialsChainVerboseErrors: aws.Bool(true),
-		},
-	}))
-	return sess
-}
-
-func createStsSession(sess *session.Session, role Role) *sts.STS {
-	maxStsRetries := 5
-	config := &aws.Config{MaxRetries: &maxStsRetries}
-	if log.IsLevelEnabled(log.DebugLevel) {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
-	return sts.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createCloudwatchSession(sess *session.Session, region *string, role Role, fips bool) *cloudwatch.CloudWatch {
-	maxCloudwatchRetries := 5
-
-	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
-
-	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
-		endpoint := fmt.Sprintf("https://monitoring-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
-	}
-
-	if log.IsLevelEnabled(log.DebugLevel) {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
-
-	return cloudwatch.New(sess, setSTSCreds(sess, config, role))
-}
 
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := int64(metric.Period)
