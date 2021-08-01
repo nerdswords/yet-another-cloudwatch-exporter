@@ -7,11 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ivx/yet-another-cloudwatch-exporter/pkg"
+	exporter "github.com/ivx/yet-another-cloudwatch-exporter/pkg"
 )
 
 var version = "custom-build"
@@ -69,6 +70,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// build a map of the roles used to avoid calling metadata apis aggressively
+	roleCache := map[string]map[string]*session.Session{}
+
 	cloudwatchSemaphore := make(chan struct{}, *cloudwatchConcurrency)
 	tagSemaphore := make(chan struct{}, *tagConcurrency)
 
@@ -80,6 +84,7 @@ func main() {
 	//variable to hold total processing time.
 	var processingtimeTotal time.Duration
 	maxjoblength := 0
+
 	for _, discoveryJob := range config.Discovery.Jobs {
 		length := exporter.GetMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seprate block
@@ -87,6 +92,26 @@ func main() {
 		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
 		if (maxjoblength < length) && !svc.IgnoreLength {
 			maxjoblength = length
+		}
+
+		for _, role := range discoveryJob.Roles {
+			if _, ok := roleCache[role.RoleArn]; !ok {
+				roleCache[role.RoleArn] = map[string]*session.Session{}
+			}
+			for _, region := range discoveryJob.Regions {
+				roleCache[role.RoleArn][region] = nil
+			}
+		}
+	}
+
+	for _, staticJob := range config.Static {
+		for _, role := range staticJob.Roles {
+			if _, ok := roleCache[role.RoleArn]; !ok {
+				roleCache[role.RoleArn] = map[string]*session.Session{}
+			}
+			for _, region := range staticJob.Regions {
+				roleCache[role.RoleArn][region] = nil
+			}
 		}
 	}
 
@@ -100,7 +125,7 @@ func main() {
 			for {
 				t0 := time.Now()
 				newRegistry := prometheus.NewRegistry()
-				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
+				endtime := exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, roleCache)
 				now = endtime
 				log.Debug("Metrics scraped.")
 				registry = newRegistry
@@ -143,7 +168,7 @@ func main() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
 			newRegistry := prometheus.NewRegistry()
-			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
+			exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore, roleCache)
 			log.Debug("Metrics scraped.")
 			registry = newRegistry
 		}

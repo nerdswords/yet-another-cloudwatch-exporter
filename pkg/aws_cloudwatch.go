@@ -47,18 +47,7 @@ type cloudwatchData struct {
 
 var labelMap = make(map[string][]string)
 
-func createStsSession(role Role) *sts.STS {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true),
-		},
-	}))
-	maxStsRetries := 5
-	config := &aws.Config{MaxRetries: &maxStsRetries}
-	if log.IsLevelEnabled(log.DebugLevel) {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
+func setSTSCreds(sess *session.Session, config *aws.Config, role Role) *aws.Config {
 	if role.RoleArn != "" {
 		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
 			if role.ExternalID != "" {
@@ -66,18 +55,30 @@ func createStsSession(role Role) *sts.STS {
 			}
 		})
 	}
-	return sts.New(sess, config)
+	return config
 }
 
-func createCloudwatchSession(region *string, role Role, fips bool) *cloudwatch.CloudWatch {
+func createAWSSession(role Role, region string) *session.Session {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config: aws.Config{
-			Region:                        aws.String(*region),
+			Region:                        aws.String(region),
 			CredentialsChainVerboseErrors: aws.Bool(true),
 		},
 	}))
+	return sess
+}
 
+func createStsSession(sess *session.Session, role Role) *sts.STS {
+	maxStsRetries := 5
+	config := &aws.Config{MaxRetries: &maxStsRetries}
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+	return sts.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createCloudwatchSession(sess *session.Session, region *string, role Role, fips bool) *cloudwatch.CloudWatch {
 	maxCloudwatchRetries := 5
 
 	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
@@ -92,15 +93,7 @@ func createCloudwatchSession(region *string, role Role, fips bool) *cloudwatch.C
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
-	if role.RoleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
-			if role.ExternalID != "" {
-				p.ExternalID = aws.String(role.ExternalID)
-			}
-		})
-	}
-
-	return cloudwatch.New(sess, config)
+	return cloudwatch.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {

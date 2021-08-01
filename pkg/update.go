@@ -3,12 +3,28 @@ package exporter
 import (
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateMetrics(config ScrapeConf, registry *prometheus.Registry, now time.Time, metricsPerQuery int, fips, floatingTimeWindow, labelsSnakeCase bool, cloudwatchSemaphore, tagSemaphore chan struct{}) time.Time {
-	tagsData, cloudwatchData, endtime := scrapeAwsData(config, now, metricsPerQuery, fips, floatingTimeWindow, cloudwatchSemaphore, tagSemaphore)
+func UpdateMetrics(
+	config ScrapeConf,
+	registry *prometheus.Registry,
+	now time.Time,
+	metricsPerQuery int,
+	fips, floatingTimeWindow, labelsSnakeCase bool,
+	cloudwatchSemaphore, tagSemaphore chan struct{},
+	roleCache map[string]map[string]*session.Session,
+) time.Time {
+	tagsData, cloudwatchData, endtime := scrapeAwsData(
+		config,
+		now,
+		metricsPerQuery,
+		fips, floatingTimeWindow,
+		cloudwatchSemaphore, tagSemaphore,
+		roleCache,
+	)
 	var metrics []*PrometheusMetric
 
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase)...)
