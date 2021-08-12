@@ -153,6 +153,10 @@ var (
 				)
 			},
 		}, {
+			Namespace: "AWS/ElasticBeanstalk",
+			Alias:     "beanstalk",
+		},
+		{
 			Namespace:    "AWS/Billing",
 			Alias:        "billing",
 			IgnoreLength: true,
