@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -93,11 +94,13 @@ func main() {
 
 	s := NewScraper()
 
+	ctx := context.Background() // ideally this should be carried to the aws calls
+
 	if *decoupledScraping {
-		go s.decoupled()
+		go s.decoupled(ctx)
 	}
 
-	http.HandleFunc("/metrics", s.makeHandler())
+	http.HandleFunc("/metrics", s.makeHandler(ctx))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
@@ -116,8 +119,6 @@ type scraper struct {
 	tagSemaphore        chan struct{}
 	now                 time.Time
 	registry            *prometheus.Registry
-	// updateMutex         sync.Mutex // make sure updates are not causing race
-
 }
 
 func NewScraper() *scraper {
@@ -128,10 +129,10 @@ func NewScraper() *scraper {
 	}
 }
 
-func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
+func (s *scraper) makeHandler(ctx context.Context) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
-			s.scrape()
+			s.scrape(ctx)
 		}
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
@@ -140,21 +141,24 @@ func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (s *scraper) decoupled() {
+func (s *scraper) decoupled(ctx context.Context) {
+	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
+	defer ticker.Stop()
 	for {
-		log.Info("Starting scraping async")
-		// run scraping async
-		go s.scrape()
-
-		log.Info("Sleeping at regular sleep interval ", *scrapingInterval)
-		time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			log.Debug("Starting scraping async")
+			go s.scrape(ctx)
+		}
 	}
 }
 
-func (s *scraper) scrape() (err error) {
+func (s *scraper) scrape(ctx context.Context) (err error) {
 	if !sem.TryAcquire(1) {
-		log.Info("Another scrape is already ongoing, will not start a new one")
-		return errors.New("scraper busy")
+		log.Debug("Another scrape is already in process, will not start a new one")
+		return errors.New("scaper already in process")
 	}
 	defer sem.Release(1)
 
@@ -163,6 +167,6 @@ func (s *scraper) scrape() (err error) {
 	// this might have a data race to access registry
 	s.registry = newRegistry
 	s.now = endtime
-	log.Info("Metrics scraped.")
+	log.Debug("Metrics scraped.")
 	return nil
 }
