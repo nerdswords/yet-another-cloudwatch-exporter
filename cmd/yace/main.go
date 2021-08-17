@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -74,19 +73,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	cloudwatchSemaphore := make(chan struct{}, *cloudwatchConcurrency)
-	tagSemaphore := make(chan struct{}, *tagConcurrency)
-
-	registry := prometheus.NewRegistry()
-
 	log.Println("Startup completed")
-	// `now` will hold last scrape time
-	var now time.Time
+
 	var maxJobLength int
-
-	// make sure updates are not causing race
-	var updateMutex sync.Mutex
-
 	for _, discoveryJob := range config.Discovery.Jobs {
 		length := exporter.GetMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seperate block
@@ -102,27 +91,13 @@ func main() {
 		*scrapingInterval = maxJobLength
 	}
 
-	if *decoupledScraping {
-		for {
-			log.Debug("Starting scraping async")
-			// run it async
-			go func() {
-				newRegistry, endtime, err := scrape(cloudwatchSemaphore, tagSemaphore, now)
-				if err != nil {
-					log.Debug("Another scrape is already ongoing, will not start a new one")
-				} else {
-					updateMutex.Lock()
-					defer updateMutex.Unlock()
-					registry = newRegistry
-					now = endtime
-				}
-			}()
+	s := NewScraper()
 
-			log.Debug("Sleeping at regular sleep interval ", *scrapingInterval)
-			time.Sleep(time.Duration(*scrapingInterval) * time.Second)
-		}
+	if *decoupledScraping {
+		go s.decoupled()
 	}
 
+	http.HandleFunc("/metrics", s.makeHandler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
@@ -133,31 +108,61 @@ func main() {
 		</html>`))
 	})
 
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		if !(*decoupledScraping) {
-			newRegistry, _, err := scrape(cloudwatchSemaphore, tagSemaphore, now)
-			if err != nil {
-				log.Debug("Another scrape is already ongoing, will not start a new one")
-			} else {
-				registry = newRegistry
-			}
-		}
-		handler := promhttp.HandlerFor(registry, promhttp.HandlerOpts{
-			DisableCompression: false,
-		})
-		handler.ServeHTTP(w, r)
-	})
-
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
-func scrape(cloudwatchSemaphore chan struct{}, tagSemaphore chan struct{}, now time.Time) (registry *prometheus.Registry, endtime time.Time, err error) {
+type scraper struct {
+	cloudwatchSemaphore chan struct{}
+	tagSemaphore        chan struct{}
+	now                 time.Time
+	registry            *prometheus.Registry
+	// updateMutex         sync.Mutex // make sure updates are not causing race
+
+}
+
+func NewScraper() *scraper {
+	return &scraper{
+		cloudwatchSemaphore: make(chan struct{}, *cloudwatchConcurrency),
+		tagSemaphore:        make(chan struct{}, *tagConcurrency),
+		registry:            prometheus.NewRegistry(),
+	}
+}
+
+func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !(*decoupledScraping) {
+			s.scrape()
+		}
+		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
+			DisableCompression: false,
+		})
+		handler.ServeHTTP(w, r)
+	}
+}
+
+func (s *scraper) decoupled() {
+	for {
+		log.Info("Starting scraping async")
+		// run scraping async
+		go s.scrape()
+
+		log.Info("Sleeping at regular sleep interval ", *scrapingInterval)
+		time.Sleep(time.Duration(*scrapingInterval) * time.Second)
+	}
+}
+
+func (s *scraper) scrape() (err error) {
 	if !sem.TryAcquire(1) {
-		return nil, time.Now(), errors.New("scraper busy")
+		log.Info("Another scrape is already ongoing, will not start a new one")
+		return errors.New("scraper busy")
 	}
 	defer sem.Release(1)
+
 	newRegistry := prometheus.NewRegistry()
-	endtime = exporter.UpdateMetrics(config, newRegistry, now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, cloudwatchSemaphore, tagSemaphore)
-	log.Debug("Metrics scraped.")
-	return newRegistry, endtime, nil
+	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore)
+	// this might have a data race to access registry
+	s.registry = newRegistry
+	s.now = endtime
+	log.Info("Metrics scraped.")
+	return nil
 }
