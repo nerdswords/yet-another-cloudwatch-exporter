@@ -104,24 +104,21 @@ func main() {
 
 	if *decoupledScraping {
 		for {
-			log.Info("Starting scraping async")
+			log.Debug("Starting scraping async")
 			// run it async
 			go func() {
 				newRegistry, endtime, err := scrape(cloudwatchSemaphore, tagSemaphore, now)
 				if err != nil {
-					log.Info("Another scrape is already ongoing, will not start a new one, bailing")
 					log.Debug("Another scrape is already ongoing, will not start a new one")
 				} else {
-					log.Info("Scrape complete, acquiring locks")
 					updateMutex.Lock()
 					defer updateMutex.Unlock()
 					registry = newRegistry
 					now = endtime
-					log.Info("Assignment complete, releasing locks")
 				}
 			}()
 
-			log.Info("Sleeping at regular sleep interval ", *scrapingInterval)
+			log.Debug("Sleeping at regular sleep interval ", *scrapingInterval)
 			time.Sleep(time.Duration(*scrapingInterval) * time.Second)
 		}
 	}
