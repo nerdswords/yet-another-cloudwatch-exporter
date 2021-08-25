@@ -220,21 +220,24 @@ func scrapeDiscoveryJobUsingMetricData(
 			if end > metricDataLength {
 				end = metricDataLength
 			}
-			filter := createGetMetricDataInput(getMetricDatas[i:end], &svc.Namespace, length, job.Delay, now, floatingTimeWindow)
+			input := getMetricDatas[i:end]
+			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, now, floatingTimeWindow)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
+				output := make([]*cloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataById(getMetricDatas[i:end], *MetricDataResult.Id)
+					getMetricData, err := findGetMetricDataById(input, *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 						}
-						mux.Lock()
-						cw = append(cw, &getMetricData)
-						mux.Unlock()
+						output = append(output, &getMetricData)
 					}
 				}
+				mux.Lock()
+				cw = append(cw, output...)
+				mux.Unlock()
 			}
 			endtime = *filter.EndTime
 		}(i)
