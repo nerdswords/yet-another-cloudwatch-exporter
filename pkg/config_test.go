@@ -35,6 +35,9 @@ func TestBadConfigs(t *testing.T) {
 		}, {
 			configFile: "externalid_with_empty_rolearn.bad.yml",
 			errorMsg:   "RoleArn should not be empty",
+		}, {
+			configFile: "unknown_version.bad.yml",
+			errorMsg:   "version line missing or version is unknown (101)",
 		},
 	}
 

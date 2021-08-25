@@ -1,3 +1,4 @@
+version: 0
 discovery:
   jobs:
   - type: s3

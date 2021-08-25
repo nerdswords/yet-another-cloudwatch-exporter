@@ -1,4 +1,4 @@
-version: 0
+version: 101
 discovery:
   exportedTagsOnMetrics:
     ebs:

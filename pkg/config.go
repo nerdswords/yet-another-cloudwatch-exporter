@@ -10,6 +10,7 @@ import (
 )
 
 type ScrapeConf struct {
+	Version   int       `yaml:"version"`
 	Discovery Discovery `yaml:"discovery"`
 	Static    []*Static `yaml:"static"`
 }
@@ -120,6 +121,9 @@ func (c *ScrapeConf) Validate() error {
 				return err
 			}
 		}
+	}
+	if c.Version != 0 {
+		return fmt.Errorf("version line missing or version is unknown (%d)", c.Version)
 	}
 
 	return nil
