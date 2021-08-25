@@ -37,6 +37,7 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 					}
 
 					clientTag := tagsInterface{
+						account:          *accountId,
 						client:           createTagSession(&region, role, fips),
 						apiGatewayClient: createAPIGatewaySession(&region, role, fips),
 						asgClient:        createASGSession(&region, role, fips),

@@ -28,6 +28,7 @@ type tagsData struct {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
+	account          string
 	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
@@ -110,7 +111,7 @@ func (iface tagsInterface) get(job *Job, region string) (resources []*tagsData, 
 			resourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Type)
+				log.Errorf("Resource tag list is empty (in %s). Tags must be defined for %s to be discovered.", iface.account, job.Type)
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
