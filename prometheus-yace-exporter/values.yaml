@@ -56,7 +56,7 @@ podLabels: {}
 
 extraArgs: []
 #   decoupled-scraping: false
-#   scrape-interval: 300
+#   scraping-interval: 300
 
 
 aws:
