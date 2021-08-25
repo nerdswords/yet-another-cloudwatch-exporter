@@ -199,18 +199,19 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	svc := SupportedServices.GetService(job.Type)
 	getMetricDatas := getMetricDataForQueries(job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore)
-	maxMetricCount := metricsPerQuery
 	metricDataLength := len(getMetricDatas)
+	if metricDataLength == 0 {
+		log.Debugf("No metrics data for %s", job.Type)
+		return
+	}
+
+	maxMetricCount := metricsPerQuery
 	length := GetMetricDataInputLength(job)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	wg.Add(partition)
-
-	if metricDataLength == 0 {
-		log.Debugf("No metrics data for %s", job.Type)
-	}
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
