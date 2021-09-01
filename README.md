@@ -1,4 +1,8 @@
-# YACE - yet another cloudwatch exporter [![Docker Image](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter/status?token=58e4108f-9e6f-44a4-a5fd-0beed543a271 "Docker Repository on Quay")](https://quay.io/repository/invisionag/yet-another-cloudwatch-exporter)
+# YACE - yet another cloudwatch exporter
+
+## What is this organisation?
+
+[Medium Article about rebranding yace](https://medium.com/@IT_Supertramp/reorganizing-yace-79d7149b9584)
 
 ## Project Status
 
@@ -12,7 +16,7 @@ Only latest version gets security updates. We won't support older versions.
 
 ## Reporting a Vulnerability
 
-In case of a vulnerability please directly contact us via mail - security@invision.de
+In case of a vulnerability please directly contact us via mail - security@nerdswords.de
 
 Do not disclose any specifics in github issues! - Thank you.
 
@@ -82,8 +86,8 @@ We will contact you as soon as possible.
 
 ## Image
 
-* `quay.io/invisionag/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
-* See [Releases](https://github.com/ivx/yet-another-cloudwatch-exporter/releases) for binaries
+* `ghcr.io/nerdswords/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
+* See [Releases](https://github.com/nerdswords/yet-another-cloudwatch-exporter/releases) for binaries
 
 ## Configuration
 
@@ -393,7 +397,7 @@ The following IAM permission is required to discover tagged API Gateway REST API
 
 ```shell
 docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
--p 5000:5000 --name yace quay.io/invisionag/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
+-p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
 
 ```
 
@@ -426,7 +430,7 @@ spec:
     spec:
       containers:
       - name: yace
-        image: quay.io/invisionag/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
+        image: ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
         imagePullPolicy: IfNotPresent
         args:
           - "--config.file=/tmp/config.yml"
