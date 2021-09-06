@@ -235,7 +235,9 @@ func scrapeDiscoveryJobUsingMetricData(
 					}
 				}
 			}
+			mux.Lock()
 			endtime = *filter.EndTime
+			mux.Unlock()
 		}(i)
 	}
 	//here set end time as start time
