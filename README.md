@@ -40,6 +40,7 @@ We will contact you as soon as possible.
   * apigateway (AWS/ApiGateway) - API Gateway
   * appsync (AWS/AppSync) - AppSync
   * athena (AWS/Athena) - Athena
+  * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk
   * billing (AWS/Billing) - Billing
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
