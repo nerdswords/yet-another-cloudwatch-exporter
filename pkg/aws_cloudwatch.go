@@ -502,7 +502,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 				includeTimestamp = *c.AddCloudwatchTimestamp
 			}
 			exportedDatapoint, timestamp := getDatapoint(c, statistic)
-			if exportedDatapoint == nil && c.AddCloudwatchTimestamp == nil {
+			if exportedDatapoint == nil && (c.AddCloudwatchTimestamp == nil || *c.AddCloudwatchTimestamp == false) {
 				var nan float64 = math.NaN()
 				exportedDatapoint = &nan
 				includeTimestamp = false
