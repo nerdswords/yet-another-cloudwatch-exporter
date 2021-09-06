@@ -141,7 +141,7 @@ var (
 							}
 
 							for _, t := range asg.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags[*t.Key] = *t.Value
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -259,7 +259,7 @@ var (
 							}
 
 							for _, t := range ec2Spot.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags[*t.Key] = *t.Value
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -537,7 +537,7 @@ var (
 							}
 
 							for _, t := range tgwa.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags[*t.Key] = *t.Value
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
