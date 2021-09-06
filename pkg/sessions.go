@@ -47,6 +47,10 @@ type sessionCache struct {
 }
 
 type clientCache struct {
+	// if we know that this job is only used for static
+	// then we don't have to construct as many cached connections
+	// later on
+	onlyStatic bool
 	cloudwatch cloudwatchiface.CloudWatchAPI
 	tagging    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asg        autoscalingiface.AutoScalingAPI
@@ -71,16 +75,33 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 		}
 	}
 
+	onlyStaticRoles := map[Role]struct{}{}
 	for _, staticJob := range config.Static {
 		for _, role := range staticJob.Roles {
+			onlyStatic := false
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
 			}
+
 			if _, ok := roleCache[role]; !ok {
+				// since we are creating a new role in
+				// the static loop, we know that it is only
+				// static -- record this for later.
+				onlyStatic = true
+				onlyStaticRoles[role] = struct{}{}
 				roleCache[role] = map[string]*clientCache{}
 			}
+
+			// if this role is in the onlyStatic set, then
+			// we can set `static: true`
+			if _, ok := onlyStaticRoles[role]; ok {
+				onlyStatic = true
+			}
+
 			for _, region := range staticJob.Regions {
-				roleCache[role][region] = &clientCache{}
+				roleCache[role][region] = &clientCache{
+					onlyStatic: onlyStatic,
+				}
 			}
 		}
 	}
@@ -132,7 +153,14 @@ func (s *sessionCache) Refresh() {
 
 	for role, regions := range s.clients {
 		for region := range regions {
+			// if the role is just used in static jobs, then we
+			// can skip creating other sessions and potentially running
+			// into permissions errors or taking up needless cycles
 			s.clients[role][region].cloudwatch = createCloudwatchSession(s.session, &region, role, s.fips)
+			if s.clients[role][region].onlyStatic {
+				continue
+			}
+
 			s.clients[role][region].tagging = createTagSession(s.session, &region, role, s.fips)
 			s.clients[role][region].asg = createASGSession(s.session, &region, role, s.fips)
 			s.clients[role][region].ec2 = createEC2Session(s.session, &region, role, s.fips)
