@@ -96,11 +96,11 @@ We will contact you as soon as possible.
 
 ### Top level configuration
 
-| Key       | Description                             |
-| --------- | --------------------------------------- |
-| version   | Configuration file version number (int) |
-| discovery | Auto-discovery configuration            |
-| static    | List of static configurations           |
+| Key       | Description                       |
+| --------- | --------------------------------- |
+| version   | Configuration file version number |
+| discovery | Auto-discovery configuration      |
+| static    | List of static configurations     |
 
 ### Auto-discovery configuration
 
@@ -175,7 +175,7 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 ### Example of config File
 
 ```yaml
-version: 0
+version: v1alpha1
 discovery:
   exportedTagsOnMetrics:
     ec2:

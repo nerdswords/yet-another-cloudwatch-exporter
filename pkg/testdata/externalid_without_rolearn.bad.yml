@@ -1,4 +1,4 @@
-version: 0
+version: v1alpha1
 discovery:
   jobs:
   - type: s3
