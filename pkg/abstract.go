@@ -48,6 +48,7 @@ func scrapeAwsData(
 					}
 
 					clientTag := tagsInterface{
+						account:          *result.Account,
 						client:           cache.GetTagging(&region, role),
 						apiGatewayClient: cache.GetAPIGateway(&region, role),
 						asgClient:        cache.GetASG(&region, role),
