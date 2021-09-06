@@ -22,11 +22,13 @@ type Discovery struct {
 type exportedTagsOnMetrics map[string][]string
 
 type Job struct {
-	Regions                []string  `yaml:"regions"`
-	Type                   string    `yaml:"type"`
-	Roles                  []Role    `yaml:"roles"`
-	SearchTags             []Tag     `yaml:"searchTags"`
-	CustomTags             []Tag     `yaml:"customTags"`
+	Regions                []string `yaml:"regions"`
+	Type                   string   `yaml:"type"`
+	Roles                  []Role   `yaml:"roles"`
+	SearchTagsList         []Tag    `yaml:"searchTags"`
+	CustomTagsList         []Tag    `yaml:"customTags"`
+	SearchTags             map[string]string
+	CustomTags             map[string]string
 	Metrics                []*Metric `yaml:"metrics"`
 	Length                 int       `yaml:"length"`
 	Delay                  int       `yaml:"delay"`
@@ -36,13 +38,14 @@ type Job struct {
 }
 
 type Static struct {
-	Name       string      `yaml:"name"`
-	Regions    []string    `yaml:"regions"`
-	Roles      []Role      `yaml:"roles"`
-	Namespace  string      `yaml:"namespace"`
-	CustomTags []Tag       `yaml:"customTags"`
-	Dimensions []Dimension `yaml:"dimensions"`
-	Metrics    []*Metric   `yaml:"metrics"`
+	Name           string   `yaml:"name"`
+	Regions        []string `yaml:"regions"`
+	Roles          []Role   `yaml:"roles"`
+	Namespace      string   `yaml:"namespace"`
+	CustomTagsList []Tag    `yaml:"customTags"`
+	CustomTags     map[string]string
+	Dimensions     []Dimension `yaml:"dimensions"`
+	Metrics        []*Metric   `yaml:"metrics"`
 }
 
 type Role struct {
@@ -80,15 +83,27 @@ func (c *ScrapeConf) Load(file *string) error {
 		return err
 	}
 
-	for _, job := range c.Discovery.Jobs {
+	for n, job := range c.Discovery.Jobs {
 		if len(job.Roles) == 0 {
 			job.Roles = []Role{{}} // use current IAM role
 		}
+		c.Discovery.Jobs[n].SearchTags = map[string]string{}
+		for _, tag := range c.Discovery.Jobs[n].SearchTagsList {
+			c.Discovery.Jobs[n].SearchTags[tag.Key] = tag.Value
+		}
+		c.Discovery.Jobs[n].CustomTags = map[string]string{}
+		for _, tag := range c.Discovery.Jobs[n].CustomTagsList {
+			c.Discovery.Jobs[n].CustomTags[tag.Key] = tag.Value
+		}
 	}
 
-	for _, job := range c.Static {
+	for n, job := range c.Static {
 		if len(job.Roles) == 0 {
 			job.Roles = []Role{{}} // use current IAM role
+		}
+		c.Static[n].CustomTags = map[string]string{}
+		for _, tag := range c.Discovery.Jobs[n].SearchTagsList {
+			c.Static[n].CustomTags[tag.Key] = tag.Value
 		}
 	}
 

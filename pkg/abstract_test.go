@@ -10,7 +10,7 @@ func TestFilterThroughTags(t *testing.T) {
 	// Arrange
 	expected := true
 	tagsData := tagsData{}
-	filterTags := []Tag{}
+	filterTags := map[string]string{}
 
 	// Act
 	actual := tagsData.filterThroughTags(filterTags)
