@@ -1,3 +1,20 @@
+# 0.29.0-alpha
+Okay, private things settled. We have a new organisation for
+the project. Lets boost it and get the open PRs merged!
+This version is like 0.28.0-alpha but docker images hosted on ghcr.io
+and published via new github organisation nerdswords. Find
+details [here](https://medium.com/@IT_Supertramp/reorganizing-yace-79d7149b9584).
+
+Thanks to all there waiting and using the product! :)
+
+- *BREAKING CHANGE* Using a new docker registry / organisation:
+```yaml
+# Before
+quay.io/invisionag/yet-another-cloudwatch-exporter:v0.29.0-alpha
+# Now
+ghcr.io/nerdswords/yet-another-cloudwatch-exporter:v0.29.0-alpha
+```
+
 # 0.28.0-alpha
 Sorry folks, I currently struggle a little bit
 to get things merged fast due to a lot of private

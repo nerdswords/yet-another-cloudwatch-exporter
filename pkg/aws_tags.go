@@ -14,13 +14,14 @@ import (
 
 type tagsData struct {
 	ID        *string
-	Tags      []*Tag
+	Tags      map[string]string
 	Namespace *string
 	Region    *string
 }
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
+	account          string
 	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
@@ -42,7 +43,7 @@ func (iface tagsInterface) get(job *Job, region string) (resources []*tagsData, 
 			resourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				log.Debugf("Resource tag list is empty. Tags must be defined for %s to be discovered.", job.Type)
+				log.Errorf("Resource tag list is empty (in %s). Tags must be defined for %s to be discovered.", iface.account, job.Type)
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
@@ -53,7 +54,7 @@ func (iface tagsInterface) get(job *Job, region string) (resources []*tagsData, 
 				}
 
 				for _, t := range resourceTagMapping.Tags {
-					resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+					resource.Tags[*t.Key] = *t.Value
 				}
 
 				if resource.filterThroughTags(job.SearchTags) {
@@ -88,8 +89,8 @@ func migrateTagsToPrometheus(tagData []*tagsData, labelsSnakeCase bool) []*Prome
 
 	for _, d := range tagData {
 		for _, entry := range d.Tags {
-			if !stringInSlice(entry.Key, tagList[*d.Namespace]) {
-				tagList[*d.Namespace] = append(tagList[*d.Namespace], entry.Key)
+			if !stringInSlice(entry, tagList[*d.Namespace]) {
+				tagList[*d.Namespace] = append(tagList[*d.Namespace], entry)
 			}
 		}
 	}
@@ -105,13 +106,7 @@ func migrateTagsToPrometheus(tagData []*tagsData, labelsSnakeCase bool) []*Prome
 
 		for _, entry := range tagList[*d.Namespace] {
 			labelKey := "tag_" + promStringTag(entry, labelsSnakeCase)
-			promLabels[labelKey] = ""
-
-			for _, rTag := range d.Tags {
-				if entry == rTag.Key {
-					promLabels[labelKey] = rTag.Value
-				}
-			}
+			promLabels[labelKey] = d.Tags[entry]
 		}
 
 		var i int
