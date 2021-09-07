@@ -62,7 +62,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		region           string
 		accountId        *string
 		namespace        string
-		customTags       map[string]string
+		customTags       []Tag
 		tagsOnMetrics    exportedTagsOnMetrics
 		dimensionRegexps []*string
 		resources        []*tagsData
@@ -90,8 +90,13 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				dimensionRegexps: SupportedServices.GetService("ec2").DimensionRegexps,
 				resources: []*tagsData{
 					{
-						ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
-						Tags:      map[string]string{"Name": "some-Node"},
+						ID: aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
+						Tags: []*Tag{
+							{
+								Key:   "Name",
+								Value: "some-Node",
+							},
+						},
 						Namespace: aws.String("ec2"),
 						Region:    aws.String("us-east-1"),
 					},
@@ -139,7 +144,16 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Average",
 					},
-					Tags: map[string]string{"Value1": "", "Value2": ""},
+					Tags: []Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
 				},
 			},
 		},
@@ -159,8 +173,13 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				dimensionRegexps: SupportedServices.GetService("kafka").DimensionRegexps,
 				resources: []*tagsData{
 					{
-						ID:        aws.String("arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12"),
-						Tags:      map[string]string{"Test": "Value"},
+						ID: aws.String("arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12"),
+						Tags: []*Tag{
+							{
+								Key:   "Test",
+								Value: "Value",
+							},
+						},
 						Namespace: aws.String("kafka"),
 						Region:    aws.String("us-east-1"),
 					},
@@ -208,7 +227,16 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Average",
 					},
-					Tags: map[string]string{"Value1": "", "Value2": ""},
+					Tags: []Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
 				},
 			},
 		},

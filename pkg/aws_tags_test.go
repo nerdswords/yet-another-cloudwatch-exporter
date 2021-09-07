@@ -9,7 +9,8 @@ func TestMigrateTagsToPrometheus(t *testing.T) {
 	id := "tag_Id"
 	namespace := "AWS/Service"
 	region := "us-east-1"
-	tags := map[string]string{"Name": "tag_Value"}
+	tagItem := Tag{Key: "Name", Value: "tag_Value"}
+	tags := []*Tag{&tagItem}
 	tagData := tagsData{ID: &id, Namespace: &namespace, Region: &region, Tags: tags}
 	tagsData := []*tagsData{&tagData}
 
