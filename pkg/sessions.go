@@ -66,6 +66,9 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 
 	for _, discoveryJob := range config.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
+			if _, ok := stscache[role]; !ok {
+				stscache[role] = nil
+			}
 			if _, ok := roleCache[role]; !ok {
 				roleCache[role] = map[string]*clientCache{}
 			}
@@ -75,32 +78,22 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 		}
 	}
 
-	onlyStaticRoles := map[Role]struct{}{}
 	for _, staticJob := range config.Static {
 		for _, role := range staticJob.Roles {
-			onlyStatic := false
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
 			}
 
 			if _, ok := roleCache[role]; !ok {
-				// since we are creating a new role in
-				// the static loop, we know that it is only
-				// static -- record this for later.
-				onlyStatic = true
-				onlyStaticRoles[role] = struct{}{}
 				roleCache[role] = map[string]*clientCache{}
 			}
 
-			// if this role is in the onlyStatic set, then
-			// we can set `static: true`
-			if _, ok := onlyStaticRoles[role]; ok {
-				onlyStatic = true
-			}
-
 			for _, region := range staticJob.Regions {
-				roleCache[role][region] = &clientCache{
-					onlyStatic: onlyStatic,
+				// Only write a new region in if the region does not exist
+				if _, ok := roleCache[role][region]; !ok {
+					roleCache[role][region] = &clientCache{
+						onlyStatic: true,
+					}
 				}
 			}
 		}
@@ -123,7 +116,6 @@ func (s *sessionCache) Clear() {
 		return
 	}
 
-	s.session = nil
 	for role := range s.stscache {
 		s.stscache[role] = nil
 	}
@@ -142,10 +134,15 @@ func (s *sessionCache) Clear() {
 }
 
 func (s *sessionCache) Refresh() {
+	// TODO: make all the getter functions atomic pointer loads and sets
 	if s.refreshed {
 		return
 	}
-	s.session = createAWSSession()
+
+	// sessions really only need to be constructed once at runtime
+	if s.session == nil {
+		s.session = createAWSSession()
+	}
 
 	for role := range s.stscache {
 		s.stscache[role] = createStsSession(s.session, role)
@@ -255,13 +252,18 @@ func (s *sessionCache) GetAPIGateway(region *string, role Role) apigatewayiface.
 
 }
 
+func setExternalID(ID string) func(p *stscreds.AssumeRoleProvider) {
+	return func(p *stscreds.AssumeRoleProvider) {
+		if ID != "" {
+			p.ExternalID = aws.String(ID)
+		}
+	}
+}
+
 func setSTSCreds(sess *session.Session, config *aws.Config, role Role) *aws.Config {
 	if role.RoleArn != "" {
-		config.Credentials = stscreds.NewCredentials(sess, role.RoleArn, func(p *stscreds.AssumeRoleProvider) {
-			if role.ExternalID != "" {
-				p.ExternalID = aws.String(role.ExternalID)
-			}
-		})
+		config.Credentials = stscreds.NewCredentials(
+			sess, role.RoleArn, setExternalID(role.ExternalID))
 	}
 	return config
 }
@@ -347,8 +349,8 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 }
 
 func createAPIGatewaySession(sess *session.Session, region *string, role Role, fips bool) apigatewayiface.APIGatewayAPI {
-	maxApiGatewaygAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxApiGatewaygAPIRetries}
+	maxAPIGatewayAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
 	if fips {
 		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
 		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
