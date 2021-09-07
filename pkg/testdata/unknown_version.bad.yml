@@ -1,4 +1,4 @@
-apiVersion: v1alpha1
+apiVersion: invalidVersion
 discovery:
   exportedTagsOnMetrics:
     ebs:

@@ -1,3 +1,4 @@
+apiVersion: v1alpha1
 discovery:
   jobs:
   - type: s3
