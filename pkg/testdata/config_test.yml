@@ -1,4 +1,4 @@
-version: v1alpha1
+apiVersion: v1alpha1
 discovery:
   exportedTagsOnMetrics:
     ebs:
