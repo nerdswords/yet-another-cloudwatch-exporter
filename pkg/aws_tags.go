@@ -14,7 +14,7 @@ import (
 
 type tagsData struct {
 	ID        *string
-	Tags      map[string]string
+	Tags      []*Tag
 	Namespace *string
 	Region    *string
 }
@@ -54,7 +54,7 @@ func (iface tagsInterface) get(job *Job, region string) (resources []*tagsData, 
 				}
 
 				for _, t := range resourceTagMapping.Tags {
-					resource.Tags[*t.Key] = *t.Value
+					resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
 				}
 
 				if resource.filterThroughTags(job.SearchTags) {
@@ -89,8 +89,8 @@ func migrateTagsToPrometheus(tagData []*tagsData, labelsSnakeCase bool) []*Prome
 
 	for _, d := range tagData {
 		for _, entry := range d.Tags {
-			if !stringInSlice(entry, tagList[*d.Namespace]) {
-				tagList[*d.Namespace] = append(tagList[*d.Namespace], entry)
+			if !stringInSlice(entry.Key, tagList[*d.Namespace]) {
+				tagList[*d.Namespace] = append(tagList[*d.Namespace], entry.Key)
 			}
 		}
 	}
@@ -106,7 +106,13 @@ func migrateTagsToPrometheus(tagData []*tagsData, labelsSnakeCase bool) []*Prome
 
 		for _, entry := range tagList[*d.Namespace] {
 			labelKey := "tag_" + promStringTag(entry, labelsSnakeCase)
-			promLabels[labelKey] = d.Tags[entry]
+			promLabels[labelKey] = ""
+
+			for _, rTag := range d.Tags {
+				if entry == rTag.Key {
+					promLabels[labelKey] = rTag.Value
+				}
+			}
 		}
 
 		var i int
