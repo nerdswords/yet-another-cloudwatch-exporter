@@ -1,6 +1,6 @@
 module github.com/ivx/yet-another-cloudwatch-exporter
 
-go 1.15
+go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.36.20
