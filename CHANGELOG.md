@@ -1,3 +1,23 @@
+# 0.30.0-alpha
+* *BREAKING* Introduce new version field to config file (jylitalo)
+```
+# Before
+discovery:
+  jobs:
+# After
+apiVersion: v1alpha1
+discovery:
+  jobs:
+```
+* [BUG] Fix issues with nilToZero (eminugurkenar)
+* [BUG] Fix race condition setting end time for discovery jobs (cristiangreco)
+* Simplify session creation code (jylitalo)
+* Major improvement of aws discovery code (jylitalo)
+* Major rewrite of the async scraping logic (rabunkosar-dd)
+* Add support for AWS/ElasticBeanstalk (andyzasl)
+* Upgrade golang to 1.17
+* Upgrade golang libraries to newest versions
+
 # 0.29.0-alpha
 Okay, private things settled. We have a new organisation for
 the project. Lets boost it and get the open PRs merged!
