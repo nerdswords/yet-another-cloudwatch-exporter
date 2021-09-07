@@ -10,8 +10,9 @@ import (
 )
 
 type ScrapeConf struct {
-	Discovery Discovery `yaml:"discovery"`
-	Static    []*Static `yaml:"static"`
+	ApiVersion string    `yaml:"apiVersion"`
+	Discovery  Discovery `yaml:"discovery"`
+	Static     []*Static `yaml:"static"`
 }
 
 type Discovery struct {
@@ -135,6 +136,9 @@ func (c *ScrapeConf) Validate() error {
 				return err
 			}
 		}
+	}
+	if c.ApiVersion != "" && c.ApiVersion != "v1alpha1" {
+		return fmt.Errorf("apiVersion line missing or version is unknown (%s)", c.ApiVersion)
 	}
 
 	return nil
