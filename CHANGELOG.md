@@ -1,5 +1,6 @@
 # 0.30.1-alpha
-* *SECURITY* Upgrade golang version to 1.17.1 via goreleaser
+* *SECURITY* Fix issue with building binaries. Please update to mitigate (https://nvd.nist.gov/vuln/detail/CVE-2020-14039)
+* Thanks jeason81 for reporting this security incident!
 
 # 0.30.0-alpha
 * *BREAKING* Introduce new version field to config file (jylitalo)
