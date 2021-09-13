@@ -24,7 +24,7 @@ jobs:
     - name: Tag docker image
       run: docker tag yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }}
     - name: Build && release binaries
-      uses: docker://goreleaser/goreleaser:v0.120.3
+      uses: docker://goreleaser/goreleaser:v0.179.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:

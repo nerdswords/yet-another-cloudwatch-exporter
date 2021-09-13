@@ -1,3 +1,6 @@
+# 0.30.1-alpha
+* *SECURITY* Upgrade golang version to 1.17.1 via goreleaser
+
 # 0.30.0-alpha
 * *BREAKING* Introduce new version field to config file (jylitalo)
 ```
