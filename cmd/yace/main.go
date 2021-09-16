@@ -110,6 +110,7 @@ func main() {
 		</body>
 		</html>`))
 	})
+	http.HandleFunc("/-/reload", s.reload(ctx))
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
@@ -169,4 +170,23 @@ func (s *scraper) scrape(ctx context.Context) (err error) {
 	s.now = endtime
 	log.Debug("Metrics scraped.")
 	return nil
+}
+
+func (s *scraper) reload(ctx context.Context) func(http.ResponseWriter, *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		log.Println("Parse config..")
+		if err := config.Load(configFile); err != nil {
+			log.Println("Couldn't read ", *configFile, ": ", err)
+		}else {
+			if *decoupledScraping {
+				go s.decoupled(ctx)
+			}else {
+				s.scrape(ctx)
+			}
+		}
+	}
 }
