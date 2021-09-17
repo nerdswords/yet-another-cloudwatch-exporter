@@ -118,21 +118,18 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 
 	}
 
-	var endTime time.Time
-	var startTime time.Time
 	if now.IsZero() {
 		//This is first run
 		if floatingTimeWindow {
 			now = time.Now()
 		} else {
-			now = time.Now().Round(5 * time.Minute)
+			// round down to nearest 5min
+			now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
 		}
-		endTime = now.Add(-time.Duration(delay) * time.Second)
-		startTime = now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
-	} else {
-		endTime = now.Add(time.Duration(length) * time.Second)
-		startTime = now
 	}
+
+	startTime := now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
+	endTime := now.Add(-time.Duration(delay) * time.Second)
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{

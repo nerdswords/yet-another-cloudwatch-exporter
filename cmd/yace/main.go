@@ -163,10 +163,10 @@ func (s *scraper) scrape(ctx context.Context) (err error) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore)
+	s.now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
+	exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore)
 	// this might have a data race to access registry
 	s.registry = newRegistry
-	s.now = endtime
 	log.Debug("Metrics scraped.")
 	return nil
 }
