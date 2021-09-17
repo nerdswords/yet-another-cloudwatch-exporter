@@ -123,7 +123,8 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		if floatingTimeWindow {
 			now = time.Now()
 		} else {
-			// round down to nearest 5min
+			// Round down to last 5min - rounding is recommended by AWS:
+			// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
 			now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
 		}
 	}

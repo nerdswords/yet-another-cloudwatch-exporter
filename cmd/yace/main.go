@@ -142,6 +142,9 @@ func (s *scraper) makeHandler(ctx context.Context) func(http.ResponseWriter, *ht
 }
 
 func (s *scraper) decoupled(ctx context.Context) {
+	log.Debug("Starting scraping async")
+	go s.scrape(ctx)
+
 	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
@@ -149,7 +152,6 @@ func (s *scraper) decoupled(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			log.Debug("Starting scraping async")
 			go s.scrape(ctx)
 		}
 	}
@@ -163,7 +165,6 @@ func (s *scraper) scrape(ctx context.Context) (err error) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	s.now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
 	exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore)
 	// this might have a data race to access registry
 	s.registry = newRegistry
