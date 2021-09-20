@@ -3,8 +3,6 @@ yet-another-cloudwatch-exporter
 vendor
 dist
 yace
-
-# editor guff
 .*.swp
 .*.swo
 *~
