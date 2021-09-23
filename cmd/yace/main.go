@@ -158,9 +158,6 @@ func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) 
 }
 
 func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
-	log.Debug("Starting scraping async")
-	go s.scrape(ctx)
-
 	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
@@ -183,7 +180,6 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) (err 
 
 	newRegistry := prometheus.NewRegistry()
 	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
-
 	// this might have a data race to access registry
 	s.registry = newRegistry
 	s.now = endtime
