@@ -486,12 +486,11 @@ The flags 'cloudwatch-concurrency' and 'tag-concurrency' define the number of co
 Setting a higher value makes faster scraping times but can incur in throttling and the blocking of the API.
 
 ### Decoupled scraping
-The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in background in fixed intervals, in stead of each time that the '/metrics' endpoint is fetched. This protects from the abuse of API requests that can cause extra billing in AWS account. This flag is activated by default.
+The exporter scraped cloudwatch metrics in the background in fixed interval.
+This protects from the abuse of API requests that can cause extra billing in AWS account.
 
-If the flag 'decoupled-scraping' is activated, the flag 'scraping-interval' defines the seconds between scrapes. Its default value is 300.
-
-### Config reloading
-Use a POST request to /reload to reload the config and reset the session cache.
+The flag 'scraping-interval' defines the seconds between scrapes.
+The default value is 300.
 
 ## Troubleshooting / Debugging
 
