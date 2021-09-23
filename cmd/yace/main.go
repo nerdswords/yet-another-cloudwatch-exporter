@@ -168,7 +168,7 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-      			log.Debug("Starting scraping async")
+			log.Debug("Starting scraping async")
 			go s.scrape(ctx, cache)
 		}
 	}
