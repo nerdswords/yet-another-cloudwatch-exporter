@@ -1,3 +1,23 @@
+# 0.31.0-alpha
+* [BREAKING] Decoupled scraping is now default. Removed code which allowed to use scraper without it.
+```
+# Those flags are just ignored
+-decoupled-scraping=false
+-decoupled-scraping=true
+```
+* [BREAKING] Small timeframes of scraping can be used again now. In the past yace decided the scraping
+  interval based on config. This magic was removed for simplicity.
+```
+# In the past this would have in some cases still set --scraping-interval 600
+--scraping-interval 10
+# Now it really would scrape every 10 seconds which could introduce big API costs. So please watch
+# your API requests!
+--scraping-interval 10
+```
+* Fix problems with start/endtime of scrapes (klarrio-dlamb)
+* Add support for Database Migration Service metrics
+* Allow to hotreload config via /reload (antoniomerlin)
+
 # 0.30.1-alpha
 * *SECURITY* Fix issue with building binaries. Please update to mitigate (https://nvd.nist.gov/vuln/detail/CVE-2020-14039)
 * Thanks jeason81 for reporting this security incident!
