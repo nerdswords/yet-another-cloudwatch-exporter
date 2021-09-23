@@ -111,7 +111,7 @@ func main() {
 		</body>
 		</html>`))
 	})
-	http.HandleFunc("/-/reload", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -120,10 +120,13 @@ func main() {
 		if err := config.Load(configFile); err != nil {
 			log.Fatal("Couldn't read ", *configFile, ": ", err)
 		}
+
+		log.Println("Reset session cache")
+		cache = exporter.NewSessionCache(config, *fips)
 		if *decoupledScraping {
-			s.decoupled(ctx)
+			s.decoupled(ctx, cache)
 		} else {
-			s.scrape(ctx)
+			s.scrape(ctx, cache)
 		}
 	})
 
@@ -159,7 +162,7 @@ func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) 
 
 func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	log.Debug("Starting scraping async")
-	go s.scrape(ctx)
+	go s.scrape(ctx, cache)
 
 	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
 	defer ticker.Stop()
