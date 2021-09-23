@@ -185,6 +185,15 @@ var (
 				aws.String("userpool/(?P<UserPool>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/DMS",
+			Alias:     "dms",
+			ResourceFilters: []*string{
+				aws.String("dms"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("rep:(?P<ReplicationInstanceIdentifier>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/DDoSProtection",
 			Alias:     "shield",
 			ResourceFilters: []*string{
