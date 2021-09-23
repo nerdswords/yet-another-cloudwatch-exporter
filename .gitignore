@@ -3,7 +3,3 @@ yet-another-cloudwatch-exporter
 vendor
 dist
 yace
-.*.swp
-.*.swo
-*~
-.vscode
