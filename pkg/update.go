@@ -7,8 +7,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateMetrics(config ScrapeConf, registry *prometheus.Registry, now time.Time, metricsPerQuery int, fips, floatingTimeWindow, labelsSnakeCase bool, cloudwatchSemaphore, tagSemaphore chan struct{}) time.Time {
-	tagsData, cloudwatchData, endtime := scrapeAwsData(config, now, metricsPerQuery, fips, floatingTimeWindow, cloudwatchSemaphore, tagSemaphore)
+func UpdateMetrics(
+	config ScrapeConf,
+	registry *prometheus.Registry,
+	now time.Time,
+	metricsPerQuery int,
+	fips, floatingTimeWindow, labelsSnakeCase bool,
+	cloudwatchSemaphore, tagSemaphore chan struct{},
+	cache SessionCache,
+) time.Time {
+	tagsData, cloudwatchData, endtime := scrapeAwsData(
+		config,
+		now,
+		metricsPerQuery,
+		fips, floatingTimeWindow,
+		cloudwatchSemaphore, tagSemaphore,
+		cache,
+	)
 	var metrics []*PrometheusMetric
 
 	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase)...)
