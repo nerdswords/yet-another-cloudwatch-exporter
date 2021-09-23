@@ -110,6 +110,21 @@ func main() {
 		</body>
 		</html>`))
 	})
+	http.HandleFunc("/-/reload", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		log.Println("Parse config..")
+		if err := config.Load(configFile); err != nil {
+			log.Fatal("Couldn't read ", *configFile, ": ", err)
+		}
+		if *decoupledScraping {
+			s.decoupled(ctx)
+		} else {
+			s.scrape(ctx)
+		}
+	})
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
