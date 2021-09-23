@@ -168,7 +168,7 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-      log.Debug("Starting scraping async")
+      			log.Debug("Starting scraping async")
 			go s.scrape(ctx, cache)
 		}
 	}
@@ -186,6 +186,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) (err 
 
 	// this might have a data race to access registry
 	s.registry = newRegistry
+	s.now = endtime
 	log.Debug("Metrics scraped.")
 	return nil
 }
