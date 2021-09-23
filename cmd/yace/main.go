@@ -93,14 +93,15 @@ func main() {
 	}
 
 	s := NewScraper()
+	cache := exporter.NewSessionCache(config, *fips)
 
 	ctx := context.Background() // ideally this should be carried to the aws calls
 
 	if *decoupledScraping {
-		go s.decoupled(ctx)
+		go s.decoupled(ctx, cache)
 	}
 
-	http.HandleFunc("/metrics", s.makeHandler(ctx))
+	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
@@ -144,10 +145,10 @@ func NewScraper() *scraper {
 	}
 }
 
-func (s *scraper) makeHandler(ctx context.Context) func(http.ResponseWriter, *http.Request) {
+func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !(*decoupledScraping) {
-			s.scrape(ctx)
+			s.scrape(ctx, cache)
 		}
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
@@ -156,7 +157,7 @@ func (s *scraper) makeHandler(ctx context.Context) func(http.ResponseWriter, *ht
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context) {
+func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
@@ -165,12 +166,12 @@ func (s *scraper) decoupled(ctx context.Context) {
 			return
 		case <-ticker.C:
 			log.Debug("Starting scraping async")
-			go s.scrape(ctx)
+			go s.scrape(ctx, cache)
 		}
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context) (err error) {
+func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) (err error) {
 	if !sem.TryAcquire(1) {
 		log.Debug("Another scrape is already in process, will not start a new one")
 		return errors.New("scaper already in process")
@@ -178,7 +179,7 @@ func (s *scraper) scrape(ctx context.Context) (err error) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore)
+	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
 	// this might have a data race to access registry
 	s.registry = newRegistry
 	s.now = endtime

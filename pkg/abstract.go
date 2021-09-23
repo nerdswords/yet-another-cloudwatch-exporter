@@ -10,7 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, floatingTimeWindow bool, cloudwatchSemaphore, tagSemaphore chan struct{}) ([]*tagsData, []*cloudwatchData, *time.Time) {
+func scrapeAwsData(
+	config ScrapeConf,
+	now time.Time,
+	metricsPerQuery int,
+	fips, floatingTimeWindow bool,
+	cloudwatchSemaphore, tagSemaphore chan struct{},
+	cache SessionCache,
+) ([]*tagsData, []*cloudwatchData, *time.Time) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
@@ -18,33 +25,37 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 	var endtime time.Time
 	var wg sync.WaitGroup
 
+	// since we have called refresh, we have loaded all the credentials
+	// into the clients and it is now safe to call concurrently. Defer the
+	// clearing, so we always clear credentials before the next scrape
+	cache.Refresh()
+	defer cache.Clear()
+
 	for _, discoveryJob := range config.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
 			for _, region := range discoveryJob.Regions {
 				wg.Add(1)
 				go func(discoveryJob *Job, region string, role Role) {
 					defer wg.Done()
-					clientSts := createStsSession(role)
-					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-					if err != nil {
+					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
-
+						return
 					}
-					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(&region, role, fips),
+						client: cache.GetCloudwatch(&region, role),
 					}
 
 					clientTag := tagsInterface{
-						account:          *accountId,
-						client:           createTagSession(&region, role, fips),
-						apiGatewayClient: createAPIGatewaySession(&region, role, fips),
-						asgClient:        createASGSession(&region, role, fips),
-						ec2Client:        createEC2Session(&region, role, fips),
+						account:          *result.Account,
+						client:           cache.GetTagging(&region, role),
+						apiGatewayClient: cache.GetAPIGateway(&region, role),
+						asgClient:        cache.GetASG(&region, role),
+						ec2Client:        cache.GetEC2(&region, role),
 					}
 
-					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, accountId, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
+					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -59,21 +70,19 @@ func scrapeAwsData(config ScrapeConf, now time.Time, metricsPerQuery int, fips, 
 		for _, role := range staticJob.Roles {
 			for _, region := range staticJob.Regions {
 				wg.Add(1)
-
 				go func(staticJob *Static, region string, role Role) {
 					defer wg.Done()
-					clientSts := createStsSession(role)
-					result, err := clientSts.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-					if err != nil {
+					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
+						return
 					}
-					accountId := result.Account
 
 					clientCloudwatch := cloudwatchInterface{
-						client: createCloudwatchSession(&region, role, fips),
+						client: cache.GetCloudwatch(&region, role),
 					}
 
-					metrics := scrapeStaticJob(staticJob, region, accountId, clientCloudwatch, cloudwatchSemaphore)
+					metrics := scrapeStaticJob(staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
