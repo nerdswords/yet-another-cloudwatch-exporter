@@ -489,6 +489,9 @@ The flag 'decoupled-scraping' makes the exporter to scrape Cloudwatch metrics in
 
 If the flag 'decoupled-scraping' is activated, the flag 'scraping-interval' defines the seconds between scrapes. Its default value is 300.
 
+### Config reloading
+Use a POST request to /reload to reload the config and reset the session cache.
+
 ## Troubleshooting / Debugging
 
 ### Help my metrics are intermittent
