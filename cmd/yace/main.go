@@ -29,8 +29,7 @@ var (
 	showVersion           = flag.Bool("v", false, "prints current yace version.")
 	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API.")
 	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API.")
-	scrapingInterval      = flag.Int("scraping-interval", 300, "Seconds to wait between scraping the AWS metrics if decoupled scraping.")
-	decoupledScraping     = flag.Bool("decoupled-scraping", true, "Decouples scraping and serving of metrics.")
+	scrapingInterval      = flag.Int("scraping-interval", 300, "Seconds to wait between scraping the AWS metrics")
 	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
 	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
 	floatingTimeWindow    = flag.Bool("floating-time-window", false, "Use a floating start/end time window instead of rounding times to 5 min intervals")
@@ -87,21 +86,15 @@ func main() {
 		}
 	}
 
-	// To avoid future timestamp issue we need make sure scrape interval is at least at the same level as that of highest job length
-	if *scrapingInterval < maxJobLength {
-		*scrapingInterval = maxJobLength
-	}
-
 	s := NewScraper()
 	cache := exporter.NewSessionCache(config, *fips)
 
 	ctx := context.Background() // ideally this should be carried to the aws calls
 
-	if *decoupledScraping {
-		go s.decoupled(ctx, cache)
-	}
+	go s.decoupled(ctx, cache)
 
 	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 		<head><title>Yet another cloudwatch exporter</title></head>
@@ -111,6 +104,7 @@ func main() {
 		</body>
 		</html>`))
 	})
+
 	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusNotFound)
@@ -123,11 +117,7 @@ func main() {
 
 		log.Println("Reset session cache")
 		cache = exporter.NewSessionCache(config, *fips)
-		if *decoupledScraping {
-			s.decoupled(ctx, cache)
-		} else {
-			s.scrape(ctx, cache)
-		}
+		go s.decoupled(ctx, cache)
 	})
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
@@ -150,9 +140,6 @@ func NewScraper() *scraper {
 
 func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !(*decoupledScraping) {
-			s.scrape(ctx, cache)
-		}
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
 		})
@@ -162,9 +149,12 @@ func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) 
 
 func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	log.Debug("Starting scraping async")
-	go s.scrape(ctx, cache)
+	log.Debug("Scrape initially first time")
+	s.scrape(ctx, cache)
 
-	ticker := time.NewTicker(time.Duration(*scrapingInterval) * time.Second)
+	scrapingDuration := time.Duration(*scrapingInterval) * time.Second
+	ticker := time.NewTicker(scrapingDuration)
+	log.Debugf("Scraping every %d seconds", *scrapingInterval)
 	defer ticker.Stop()
 	for {
 		select {
