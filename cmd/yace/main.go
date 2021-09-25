@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 
-	exporter "github.com/ivx/yet-another-cloudwatch-exporter/pkg"
+	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 )
 
 var version = "custom-build"

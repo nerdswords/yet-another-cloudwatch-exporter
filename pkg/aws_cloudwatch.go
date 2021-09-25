@@ -244,8 +244,8 @@ func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloud
 	return &res
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*tagsData, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
-	type filterValues map[string]*tagsData
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
+	type filterValues map[string]*taggedResource
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
 		dimensionRegexp := regexp.MustCompile(*dr)
@@ -259,8 +259,8 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			}
 		}
 		for _, r := range resources {
-			if dimensionRegexp.Match([]byte(*r.ID)) {
-				dimensionMatch := dimensionRegexp.FindStringSubmatch(*r.ID)
+			if dimensionRegexp.Match([]byte(r.ARN)) {
+				dimensionMatch := dimensionRegexp.FindStringSubmatch(r.ARN)
 				for i, value := range dimensionMatch {
 					if i != 0 {
 						dimensionsFilter[names[i]][value] = r
@@ -271,9 +271,9 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	}
 	for _, cwMetric := range metricsList {
 		skip := false
-		r := &tagsData{
-			ID:        aws.String("global"),
-			Namespace: &namespace,
+		r := &taggedResource{
+			ARN:       "global",
+			Namespace: namespace,
 		}
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
@@ -290,7 +290,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 				id := fmt.Sprintf("id_%d", rand.Int())
 				metricTags := r.metricTags(tagsOnMetrics)
 				getMetricsData = append(getMetricsData, cloudwatchData{
-					ID:                     r.ID,
+					ID:                     &r.ARN,
 					MetricID:               &id,
 					Metric:                 &m.Name,
 					Namespace:              &namespace,

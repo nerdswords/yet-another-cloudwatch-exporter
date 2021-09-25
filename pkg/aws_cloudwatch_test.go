@@ -65,7 +65,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		customTags       []Tag
 		tagsOnMetrics    exportedTagsOnMetrics
 		dimensionRegexps []*string
-		resources        []*tagsData
+		resources        []*taggedResource
 		metricsList      []*cloudwatch.Metric
 		m                *Metric
 	}
@@ -88,17 +88,17 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 				},
 				dimensionRegexps: SupportedServices.GetService("ec2").DimensionRegexps,
-				resources: []*tagsData{
+				resources: []*taggedResource{
 					{
-						ID: aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
-						Tags: []*Tag{
+						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
+						Tags: []Tag{
 							{
 								Key:   "Name",
 								Value: "some-Node",
 							},
 						},
-						Namespace: aws.String("ec2"),
-						Region:    aws.String("us-east-1"),
+						Namespace: "ec2",
+						Region:    "us-east-1",
 					},
 				},
 				metricsList: []*cloudwatch.Metric{
@@ -171,17 +171,17 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 				},
 				dimensionRegexps: SupportedServices.GetService("kafka").DimensionRegexps,
-				resources: []*tagsData{
+				resources: []*taggedResource{
 					{
-						ID: aws.String("arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12"),
-						Tags: []*Tag{
+						ARN: "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
+						Tags: []Tag{
 							{
 								Key:   "Test",
 								Value: "Value",
 							},
 						},
-						Namespace: aws.String("kafka"),
-						Region:    aws.String("us-east-1"),
+						Namespace: "kafka",
+						Region:    "us-east-1",
 					},
 				},
 				metricsList: []*cloudwatch.Metric{
