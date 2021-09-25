@@ -11,9 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-type ResourceFunc func(tagsInterface, *Job, string) ([]*tagsData, error)
+type ResourceFunc func(tagsInterface, *Job, string) ([]*taggedResource, error)
 
-type FilterFunc func(tagsInterface, []*tagsData) ([]*tagsData, error)
+type FilterFunc func(tagsInterface, []*taggedResource) ([]*taggedResource, error)
 
 type serviceFilter struct {
 	Namespace        string
@@ -68,7 +68,7 @@ var (
 				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)$"),
 				aws.String("apis/(?P<ApiName>[^/]+)/resources/(?P<Resource>[^/]+)/methods/(?P<Method>[^/]+)$"),
 			},
-			FilterFunc: func(iface tagsInterface, inputResources []*tagsData) (outputResources []*tagsData, err error) {
+			FilterFunc: func(iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
 				ctx := context.Background()
 				apiGatewayAPICounter.Inc()
 				var limit int64 = 500 // max number of results per page. default=25, max=500
@@ -83,9 +83,9 @@ var (
 				})
 				for _, resource := range inputResources {
 					for i, gw := range output.Items {
-						if strings.Contains(*resource.ID, *gw.Id) {
+						if strings.Contains(resource.ARN, *gw.Id) {
 							r := resource
-							r.ID = aws.String(strings.ReplaceAll(*resource.ID, *gw.Id, *gw.Name))
+							r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
 							outputResources = append(outputResources, r)
 							output.Items = append(output.Items[:i], output.Items[i+1:]...)
 							break
@@ -125,7 +125,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -134,14 +134,14 @@ var (
 						autoScalingAPICounter.Inc()
 
 						for _, asg := range page.AutoScalingGroups {
-							resource := tagsData{
-								ID:        asg.AutoScalingGroupARN,
-								Namespace: &job.Type,
-								Region:    &region,
+							resource := taggedResource{
+								ARN:       aws.StringValue(asg.AutoScalingGroupARN),
+								Namespace: job.Type,
+								Region:    region,
 							}
 
 							for _, t := range asg.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -252,7 +252,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("(?P<FleetRequestId>.*)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
@@ -261,14 +261,14 @@ var (
 						ec2APICounter.Inc()
 
 						for _, ec2Spot := range page.SpotFleetRequestConfigs {
-							resource := tagsData{
-								ID:        ec2Spot.SpotFleetRequestId,
-								Namespace: &job.Type,
-								Region:    &region,
+							resource := taggedResource{
+								ARN:       aws.StringValue(ec2Spot.SpotFleetRequestId),
+								Namespace: job.Type,
+								Region:    region,
 							}
 
 							for _, t := range ec2Spot.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
@@ -530,7 +530,7 @@ var (
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
 				aws.String("(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*tagsData, err error) {
+			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				ctx := context.Background()
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
@@ -539,14 +539,14 @@ var (
 						ec2APICounter.Inc()
 
 						for _, tgwa := range page.TransitGatewayAttachments {
-							resource := tagsData{
-								ID:        aws.String(fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId)),
-								Namespace: &job.Type,
-								Region:    &region,
+							resource := taggedResource{
+								ARN:       fmt.Sprintf("%s/%s", *tgwa.TransitGatewayId, *tgwa.TransitGatewayAttachmentId),
+								Namespace: job.Type,
+								Region:    region,
 							}
 
 							for _, t := range tgwa.Tags {
-								resource.Tags = append(resource.Tags, &Tag{Key: *t.Key, Value: *t.Value})
+								resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
 							}
 
 							if resource.filterThroughTags(job.SearchTags) {
