@@ -2,7 +2,6 @@ package exporter
 
 import (
 	"math"
-	"regexp"
 	"sync"
 	"time"
 
@@ -17,11 +16,11 @@ func scrapeAwsData(
 	fips, floatingTimeWindow bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
-) ([]*tagsData, []*cloudwatchData, *time.Time) {
+) ([]*taggedResource, []*cloudwatchData, *time.Time) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
-	awsInfoData := make([]*tagsData, 0)
+	awsInfoData := make([]*taggedResource, 0)
 	var endtime time.Time
 	var wg sync.WaitGroup
 
@@ -167,7 +166,7 @@ func getMetricDataForQueries(
 	accountId *string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientCloudwatch cloudwatchInterface,
-	resources []*tagsData,
+	resources []*taggedResource,
 	tagSemaphore chan struct{}) []cloudwatchData {
 	var getMetricDatas []cloudwatchData
 
@@ -196,7 +195,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface, now time.Time,
 	metricsPerQuery int, floatingTimeWindow bool,
-	tagSemaphore chan struct{}) (resources []*tagsData, cw []*cloudwatchData, endtime time.Time) {
+	tagSemaphore chan struct{}) (resources []*taggedResource, cw []*cloudwatchData, endtime time.Time) {
 
 	// Add the info tags of all the resources
 	tagSemaphore <- struct{}{}
@@ -257,40 +256,4 @@ func scrapeDiscoveryJobUsingMetricData(
 	//here set end time as start time
 	wg.Wait()
 	return resources, cw, endtime
-}
-
-func (r tagsData) filterThroughTags(filterTags []Tag) bool {
-	tagMatches := 0
-
-	for _, resourceTag := range r.Tags {
-		for _, filterTag := range filterTags {
-			if resourceTag.Key == filterTag.Key {
-				r, _ := regexp.Compile(filterTag.Value)
-				if r.MatchString(resourceTag.Value) {
-					tagMatches++
-				}
-			}
-		}
-	}
-
-	return tagMatches == len(filterTags)
-}
-
-func (r tagsData) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
-	for _, tagName := range tagsOnMetrics[*r.Namespace] {
-		tag := Tag{
-			Key: tagName,
-		}
-		for _, resourceTag := range r.Tags {
-			if resourceTag.Key == tagName {
-				tag.Value = resourceTag.Value
-				break
-			}
-		}
-
-		// Always add the tag, even if it's empty, to ensure the same labels are present on all metrics for a single service
-		tags = append(tags, tag)
-	}
-	return tags
 }
