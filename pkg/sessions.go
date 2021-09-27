@@ -313,12 +313,12 @@ func createTagSession(sess *session.Session, region *string, role Role, fips boo
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	}
 
-	if fips {
-		// ToDo: Resource Groups Tagging API does not have FIPS compliant endpoints
-		// https://docs.aws.amazon.com/general/latest/gr/arg.html
-		// endpoint := fmt.Sprintf("https://tagging-fips.%s.amazonaws.com", *region)
-		// config.Endpoint = aws.String(endpoint)
-	}
+	// ToDo: Resource Groups Tagging API does not have FIPS compliant endpoints
+	// if fips {
+	// 	https://docs.aws.amazon.com/general/latest/gr/arg.html
+	// 	endpoint := fmt.Sprintf("https://tagging-fips.%s.amazonaws.com", *region)
+	// 	config.Endpoint = aws.String(endpoint)
+	// }
 
 	return r.New(sess, setSTSCreds(sess, config, role))
 }
@@ -326,12 +326,13 @@ func createTagSession(sess *session.Session, region *string, role Role, fips boo
 func createASGSession(sess *session.Session, region *string, role Role, fips bool) autoscalingiface.AutoScalingAPI {
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
-	if fips {
-		// ToDo: Autoscaling does not have a FIPS endpoint
-		// https://docs.aws.amazon.com/general/latest/gr/autoscaling_region.html
-		// endpoint := fmt.Sprintf("https://autoscaling-plans-fips.%s.amazonaws.com", *region)
-		// config.Endpoint = aws.String(endpoint)
-	}
+
+	// ToDo: Autoscaling does not have a FIPS endpoint
+	// if fips {
+	//   https://docs.aws.amazon.com/general/latest/gr/autoscaling_region.html
+	//   endpoint := fmt.Sprintf("https://autoscaling-plans-fips.%s.amazonaws.com", *region)
+	//   config.Endpoint = aws.String(endpoint)
+	// }
 
 	return autoscaling.New(sess, setSTSCreds(sess, config, role))
 }
