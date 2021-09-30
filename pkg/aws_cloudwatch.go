@@ -97,7 +97,7 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("Metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time, floatingTimeWindow bool) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	for _, data := range getMetricData {
 		metricStat := &cloudwatch.MetricStat{
@@ -118,16 +118,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 
 	}
 
-	if now.IsZero() {
-		//This is first run
-		if floatingTimeWindow {
-			now = time.Now()
-		} else {
-			// Round down to last 5min - rounding is recommended by AWS:
-			// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
-			now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
-		}
-	}
+	now = time.Now()
 
 	startTime := now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
 	endTime := now.Add(-time.Duration(delay) * time.Second)

@@ -13,7 +13,7 @@ func scrapeAwsData(
 	config ScrapeConf,
 	now time.Time,
 	metricsPerQuery int,
-	fips, floatingTimeWindow bool,
+	fips bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
 ) ([]*taggedResource, []*cloudwatchData, *time.Time) {
@@ -54,7 +54,7 @@ func scrapeAwsData(
 						ec2Client:        cache.GetEC2(&region, role),
 					}
 
-					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
+					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -194,7 +194,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
 	clientCloudwatch cloudwatchInterface, now time.Time,
-	metricsPerQuery int, floatingTimeWindow bool,
+	metricsPerQuery int,
 	tagSemaphore chan struct{}) (resources []*taggedResource, cw []*cloudwatchData, endtime time.Time) {
 
 	// Add the info tags of all the resources
@@ -230,7 +230,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, now, floatingTimeWindow)
+			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, now)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				output := make([]*cloudwatchData, 0)

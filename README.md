@@ -98,7 +98,6 @@ We will contact you as soon as possible.
 | Option               | Description                                                                       |
 | -------------------- | --------------------------------------------------------------------------------- |
 | labels-snake-case    | Causes labels on metrics to be output in snake case instead of camel case         |
-| floating-time-window | Use a floating start/end time window instead of rounding times to 5 min intervals |
 
 ### Top level configuration
 

@@ -12,7 +12,7 @@ func UpdateMetrics(
 	registry *prometheus.Registry,
 	now time.Time,
 	metricsPerQuery int,
-	fips, floatingTimeWindow, labelsSnakeCase bool,
+	fips, labelsSnakeCase bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
 ) time.Time {
@@ -20,7 +20,7 @@ func UpdateMetrics(
 		config,
 		now,
 		metricsPerQuery,
-		fips, floatingTimeWindow,
+		fips,
 		cloudwatchSemaphore, tagSemaphore,
 		cache,
 	)
