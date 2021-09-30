@@ -111,28 +111,28 @@ func TestNewSessionCache(t *testing.T) {
 			false,
 			&sessionCache{
 				stscache: map[Role]stsiface.STSAPI{
-					Role{RoleArn: "some-arn"}:                      nil,
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: nil,
-					Role{RoleArn: "some-arn2"}:                     nil,
-					Role{RoleArn: "some-arn5"}:                     nil,
+					{RoleArn: "some-arn"}:                      nil,
+					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
+					{RoleArn: "some-arn2"}:                     nil,
+					{RoleArn: "some-arn5"}:                     nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{RoleArn: "some-arn"}: map[string]*clientCache{
+					{RoleArn: "some-arn"}: {
 						"ap-northeast-3": &clientCache{},
 						"us-east-1":      &clientCache{},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: map[string]*clientCache{
+					{RoleArn: "some-arn", ExternalID: "thing"}: {
 						"ap-northeast-3": &clientCache{},
 						"us-east-1":      &clientCache{},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn2"}: map[string]*clientCache{
+					{RoleArn: "some-arn2"}: {
 						"ap-northeast-3": &clientCache{},
 						"us-east-1":      &clientCache{},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn5"}: map[string]*clientCache{
+					{RoleArn: "some-arn5"}: {
 						"ap-northeast-3": &clientCache{},
 					},
 				},
@@ -193,31 +193,31 @@ func TestNewSessionCache(t *testing.T) {
 			false,
 			&sessionCache{
 				stscache: map[Role]stsiface.STSAPI{
-					Role{RoleArn: "some-arn"}:                      nil,
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: nil,
-					Role{RoleArn: "some-arn2"}:                     nil,
-					Role{RoleArn: "some-arn3"}:                     nil,
-					Role{RoleArn: "some-arn4"}:                     nil,
+					{RoleArn: "some-arn"}:                      nil,
+					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
+					{RoleArn: "some-arn2"}:                     nil,
+					{RoleArn: "some-arn3"}:                     nil,
+					{RoleArn: "some-arn4"}:                     nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{RoleArn: "some-arn"}: map[string]*clientCache{
+					{RoleArn: "some-arn"}: {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 						"eu-west-2":      &clientCache{onlyStatic: true},
 						"us-east-1":      &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: map[string]*clientCache{
+					{RoleArn: "some-arn", ExternalID: "thing"}: {
 						"us-east-1": &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn2"}: map[string]*clientCache{
+					{RoleArn: "some-arn2"}: {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 						"eu-west-2":      &clientCache{onlyStatic: true},
 						"us-east-1":      &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn3"}: map[string]*clientCache{
+					{RoleArn: "some-arn3"}: {
 						"eu-west-2": &clientCache{onlyStatic: true},
 						"us-east-1": &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn4"}: map[string]*clientCache{
+					{RoleArn: "some-arn4"}: {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 					},
 				},
@@ -307,41 +307,41 @@ func TestNewSessionCache(t *testing.T) {
 			false,
 			&sessionCache{
 				stscache: map[Role]stsiface.STSAPI{
-					Role{RoleArn: "some-arn"}:                      nil,
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: nil,
-					Role{RoleArn: "some-arn2"}:                     nil,
-					Role{RoleArn: "some-arn3"}:                     nil,
-					Role{RoleArn: "some-arn4"}:                     nil,
-					Role{RoleArn: "some-arn5"}:                     nil,
+					{RoleArn: "some-arn"}:                      nil,
+					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
+					{RoleArn: "some-arn2"}:                     nil,
+					{RoleArn: "some-arn3"}:                     nil,
+					{RoleArn: "some-arn4"}:                     nil,
+					{RoleArn: "some-arn5"}:                     nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{RoleArn: "some-arn"}: map[string]*clientCache{
+					{RoleArn: "some-arn"}: {
 						"ap-northeast-3": &clientCache{},
 						"us-east-1":      &clientCache{},
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 						"eu-west-2":      &clientCache{onlyStatic: true},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn", ExternalID: "thing"}: map[string]*clientCache{
+					{RoleArn: "some-arn", ExternalID: "thing"}: {
 						"us-east-1": &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn2"}: map[string]*clientCache{
+					{RoleArn: "some-arn2"}: {
 						"ap-northeast-3": &clientCache{},
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 						"eu-west-2":      &clientCache{onlyStatic: true},
 						"us-east-1":      &clientCache{},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn3"}: map[string]*clientCache{
+					{RoleArn: "some-arn3"}: {
 						"ap-northeast-3": &clientCache{},
 						"eu-west-2":      &clientCache{onlyStatic: true},
 						"us-east-1":      &clientCache{},
 						"us-west-2":      &clientCache{},
 					},
-					Role{RoleArn: "some-arn4"}: map[string]*clientCache{
+					{RoleArn: "some-arn4"}: {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 					},
-					Role{RoleArn: "some-arn5"}: map[string]*clientCache{
+					{RoleArn: "some-arn5"}: {
 						"ap-northeast-3": &clientCache{},
 					},
 				},
@@ -393,10 +393,10 @@ func TestClear(t *testing.T) {
 				cleared: false,
 				mu:      sync.Mutex{},
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: createCloudwatchSession(mock.Session, &region, role, false),
 							tagging:    createTagSession(mock.Session, &region, role, false),
@@ -416,10 +416,10 @@ func TestClear(t *testing.T) {
 				mu:      sync.Mutex{},
 				session: mock.Session,
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: nil,
 							tagging:    nil,
@@ -497,10 +497,10 @@ func TestRefresh(t *testing.T) {
 				refreshed: false,
 				mu:        sync.Mutex{},
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: nil,
 							tagging:    nil,
@@ -520,10 +520,10 @@ func TestRefresh(t *testing.T) {
 				refreshed: false,
 				mu:        sync.Mutex{},
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: nil,
 							tagging:    nil,
@@ -544,10 +544,10 @@ func TestRefresh(t *testing.T) {
 				mu:        sync.Mutex{},
 				session:   mock.Session,
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: createStsSession(mock.Session, role),
+					{}: createStsSession(mock.Session, role),
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: createCloudwatchSession(mock.Session, &region, role, false),
 							tagging:    createTagSession(mock.Session, &region, role, false),
@@ -708,10 +708,10 @@ func testGetAWSClient(
 				mu:        sync.Mutex{},
 				session:   mock.Session,
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: createCloudwatchSession(mock.Session, &region, role, false),
 							tagging:    createTagSession(mock.Session, &region, role, false),
@@ -731,10 +731,10 @@ func testGetAWSClient(
 				session:   mock.Session,
 				mu:        sync.Mutex{},
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{
 							cloudwatch: createCloudwatchSession(mock.Session, &region, role, false),
 							tagging:    createTagSession(mock.Session, &region, role, false),
@@ -754,10 +754,10 @@ func testGetAWSClient(
 				session:   mock.Session,
 				mu:        sync.Mutex{},
 				stscache: map[Role]stsiface.STSAPI{
-					Role{}: nil,
+					{}: nil,
 				},
 				clients: map[Role]map[string]*clientCache{
-					Role{}: map[string]*clientCache{
+					{}: {
 						"us-east-1": &clientCache{},
 					},
 				},
