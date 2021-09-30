@@ -459,9 +459,9 @@ Multiple roleArns are useful, when you are monitoring multi-account setup, where
       regions:
         - eu-north-1
       roles:
-        - roleArn: "arn:aws:iam:1111111111111:role/prometheus" # newspaper
-        - roleArn: "arn:aws:iam:2222222222222:role/prometheus" # radio
-        - roleArn: "arn:aws:iam:3333333333333:role/prometheus" # television
+        - roleArn: "arn:aws:iam::1111111111111:role/prometheus" # newspaper
+        - roleArn: "arn:aws:iam::2222222222222:role/prometheus" # radio
+        - roleArn: "arn:aws:iam::3333333333333:role/prometheus" # television
       metrics:
         - name: MemoryReservation
           statistics:
@@ -476,7 +476,7 @@ Additionally, if the IAM role you want to assume requires an [External ID](https
 
 ```yaml
   roles:
-    - roleArn: "arn:aws:iam:1111111111111:role/prometheus"
+    - roleArn: "arn:aws:iam::1111111111111:role/prometheus"
       externalId: "shared-external-identifier"
 ```
 
