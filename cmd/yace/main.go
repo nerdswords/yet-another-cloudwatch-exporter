@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -167,10 +166,10 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) (err error) {
+func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	if !sem.TryAcquire(1) {
 		log.Debug("Another scrape is already in process, will not start a new one")
-		return errors.New("scaper already in process")
+		return
 	}
 	defer sem.Release(1)
 
@@ -181,5 +180,4 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) (err 
 	s.registry = newRegistry
 	s.now = endtime
 	log.Debug("Metrics scraped.")
-	return nil
 }
