@@ -14,6 +14,10 @@ var (
 		Name: "yace_cloudwatch_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	cloudwatchAPIErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_request_errors",
+		Help: "Help is not implemented yet.",
+	})
 	cloudwatchGetMetricDataAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricdata_requests_total",
 		Help: "Help is not implemented yet.",

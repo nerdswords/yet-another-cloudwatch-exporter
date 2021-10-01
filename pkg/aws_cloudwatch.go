@@ -228,20 +228,21 @@ func createStaticDimensions(dimensions []Dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput) {
+func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput, err error) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
-	err := c.ListMetricsPages(filter,
+	err = c.ListMetricsPages(filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
 			res.Metrics = append(res.Metrics, page.Metrics...)
 			return !lastPage
 		})
-	cloudwatchAPICounter.Inc()
 	if err != nil {
-		log.Fatalf("Unable to list metrics due to %v", err)
+		cloudwatchAPIErrorCounter.Inc()
+		return nil, err
 	}
-	return &res
+	cloudwatchAPICounter.Inc()
+	return &res, nil
 }
 
 func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
