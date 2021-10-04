@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
@@ -21,18 +21,16 @@ var version = "custom-build"
 var sem = semaphore.NewWeighted(1)
 
 var (
-	addr                  = flag.String("listen-address", ":5000", "The address to listen on.")
-	configFile            = flag.String("config.file", "config.yml", "Path to configuration file.")
-	debug                 = flag.Bool("debug", false, "Add verbose logging.")
-	fips                  = flag.Bool("fips", false, "Use FIPS compliant aws api.")
-	showVersion           = flag.Bool("v", false, "prints current yace version.")
-	cloudwatchConcurrency = flag.Int("cloudwatch-concurrency", 5, "Maximum number of concurrent requests to CloudWatch API.")
-	tagConcurrency        = flag.Int("tag-concurrency", 5, "Maximum number of concurrent requests to Resource Tagging API.")
-	scrapingInterval      = flag.Int("scraping-interval", 300, "Seconds to wait between scraping the AWS metrics")
-	metricsPerQuery       = flag.Int("metrics-per-query", 500, "Number of metrics made in a single GetMetricsData request")
-	labelsSnakeCase       = flag.Bool("labels-snake-case", false, "If labels should be output in snake case instead of camel case")
-	floatingTimeWindow    = flag.Bool("floating-time-window", false, "Use a floating start/end time window instead of rounding times to 5 min intervals")
-	verifyConfig          = flag.Bool("verify-config", false, "Loads and attempts to parse config file, then exits. Useful for CICD validation")
+	addr                  string
+	configFile            string
+	debug                 bool
+	fips                  bool
+	cloudwatchConcurrency int
+	tagConcurrency        int
+	scrapingInterval      int
+	metricsPerQuery       int
+	labelsSnakeCase       bool
+	floatingTimeWindow    bool
 
 	config = exporter.ScrapeConf{}
 )
@@ -51,25 +49,59 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
-
-	if *showVersion {
-		fmt.Println(version)
-		os.Exit(0)
+	yace := cli.NewApp()
+	yace.Name = "Yet Another CloudWatch Exporter"
+	yace.Version = version
+	yace.Usage = "YACE configured to retrieve CloudWatch metrics through the AWS API"
+	yace.Description = ""
+	yace.Authors = []*cli.Author{
+		{Name: "", Email: ""},
 	}
 
-	if *debug {
+	yace.Flags = []cli.Flag{
+		&cli.StringFlag{Name: "listen-address", Value: ":5000", Usage: "The address to listen on.", Destination: &addr, EnvVars: []string{"listen-address"}},
+		&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile, EnvVars: []string{"config.file"}},
+		&cli.BoolFlag{Name: "debug", Value: false, Usage: "Add verbose logging.", Destination: &debug, EnvVars: []string{"debug"}},
+		&cli.BoolFlag{Name: "fips", Value: false, Usage: "Use FIPS compliant aws api.", Destination: &fips},
+		&cli.IntFlag{Name: "cloudwatch-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to CloudWatch API.", Destination: &cloudwatchConcurrency},
+		&cli.IntFlag{Name: "tag-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to Resource Tagging API.", Destination: &tagConcurrency},
+		&cli.IntFlag{Name: "scraping-interval", Value: 300, Usage: "Seconds to wait between scraping the AWS metrics", Destination: &scrapingInterval, EnvVars: []string{"scraping-interval"}},
+		&cli.IntFlag{Name: "metrics-per-query", Value: 500, Usage: "Number of metrics made in a single GetMetricsData request", Destination: &metricsPerQuery, EnvVars: []string{"metrics-per-query"}},
+		&cli.BoolFlag{Name: "labels-snake-case", Value: false, Usage: "If labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase},
+		&cli.BoolFlag{Name: "floating-time-window", Value: false, Usage: "Use a floating start/end time window instead of rounding times to 5 min intervals", Destination: &floatingTimeWindow},
+	}
+
+	yace.Commands = []*cli.Command{
+		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CICD validation",
+			Flags: []cli.Flag{
+				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
+			},
+			Action: func(c *cli.Context) error {
+				log.Info("Config ", configFile, " is valid")
+				os.Exit(0)
+				return nil
+			}},
+		{Name: "version", Aliases: []string{"v"}, Usage: "prints current yace version.",
+			Action: func(c *cli.Context) error {
+				fmt.Println(version)
+				os.Exit(0)
+				return nil
+			}},
+	}
+
+	err := yace.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	log.Println("Parse config..")
-	if err := config.Load(configFile); err != nil {
-		log.Fatal("Couldn't read ", *configFile, ": ", err)
+	if err := config.Load(&configFile); err != nil {
+		log.Fatal("Couldn't read ", configFile, ": ", err)
 		os.Exit(1)
-	}
-	if *verifyConfig {
-		log.Info("Config ", *configFile, " is valid")
-		os.Exit(0)
 	}
 
 	log.Println("Startup completed")
@@ -86,7 +118,7 @@ func main() {
 	}
 
 	s := NewScraper()
-	cache := exporter.NewSessionCache(config, *fips)
+	cache := exporter.NewSessionCache(config, fips)
 
 	ctx := context.Background() // ideally this should be carried to the aws calls
 
@@ -96,12 +128,12 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
-		<head><title>Yet another cloudwatch exporter</title></head>
-		<body>
-		<h1>Thanks for using our product :)</h1>
-		<p><a href="/metrics">Metrics</a></p>
-		</body>
-		</html>`))
+    <head><title>Yet another cloudwatch exporter</title></head>
+    <body>
+    <h1>Thanks for using our product :)</h1>
+    <p><a href="/metrics">Metrics</a></p>
+    </body>
+    </html>`))
 	})
 
 	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
@@ -110,16 +142,16 @@ func main() {
 			return
 		}
 		log.Println("Parse config..")
-		if err := config.Load(configFile); err != nil {
-			log.Fatal("Couldn't read ", *configFile, ": ", err)
+		if err := config.Load(&configFile); err != nil {
+			log.Fatal("Couldn't read ", &configFile, ": ", err)
 		}
 
 		log.Println("Reset session cache")
-		cache = exporter.NewSessionCache(config, *fips)
+		cache = exporter.NewSessionCache(config, fips)
 		go s.decoupled(ctx, cache)
 	})
 
-	log.Fatal(http.ListenAndServe(*addr, nil))
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 type scraper struct {
@@ -131,8 +163,8 @@ type scraper struct {
 
 func NewScraper() *scraper {
 	return &scraper{
-		cloudwatchSemaphore: make(chan struct{}, *cloudwatchConcurrency),
-		tagSemaphore:        make(chan struct{}, *tagConcurrency),
+		cloudwatchSemaphore: make(chan struct{}, cloudwatchConcurrency),
+		tagSemaphore:        make(chan struct{}, tagConcurrency),
 		registry:            prometheus.NewRegistry(),
 	}
 }
@@ -151,9 +183,9 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	log.Debug("Scrape initially first time")
 	s.scrape(ctx, cache)
 
-	scrapingDuration := time.Duration(*scrapingInterval) * time.Second
+	scrapingDuration := time.Duration(scrapingInterval) * time.Second
 	ticker := time.NewTicker(scrapingDuration)
-	log.Debugf("Scraping every %d seconds", *scrapingInterval)
+	log.Debugf("Scraping every %d seconds", scrapingInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -174,7 +206,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, *metricsPerQuery, *fips, *floatingTimeWindow, *labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
+	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, metricsPerQuery, fips, floatingTimeWindow, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
 
 	// this might have a data race to access registry
 	s.registry = newRegistry
