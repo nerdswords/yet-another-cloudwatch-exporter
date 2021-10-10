@@ -47,6 +47,7 @@ We will contact you as soon as possible.
   * cognito-idp (AWS/Cognito) - Cognito
   * dms (AWS/DocDB) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
+  * dx (AWS/DX) - Direct Connect
   * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
   * ebs (AWS/EBS) - Elastic Block Storage
   * ec (AWS/Elasticache) - ElastiCache
@@ -71,7 +72,8 @@ We will contact you as soon as possible.
   * nlb (AWS/NetworkELB) - Network Load Balancer
   * redshift (AWS/Redshift) - Redshift Database
   * rds (AWS/RDS) - Relational Database Service
-  * r53r (AWS/Route53Resolver) - Route53 Resolver
+  * route53 (AWS/Route53) - Route53 Health Checks
+  * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
   * s3 (AWS/S3) - Object Storage
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
