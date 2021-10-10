@@ -177,8 +177,14 @@ func getMetricDataForQueries(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 
-		metricsList := getFullMetricsList(svc.Namespace, metric, clientCloudwatch)
+		metricsList, err := getFullMetricsList(svc.Namespace, metric, clientCloudwatch)
 		<-tagSemaphore
+
+		if err != nil {
+			log.Errorf("Failed to get full metric list for %s on %s job in region %s: %v", metric.Name, svc.Namespace, region, err)
+			continue
+		}
+
 		if len(resources) == 0 {
 			log.Debugf("No resources for metric %s on %s job", metric.Name, svc.Namespace)
 		}
