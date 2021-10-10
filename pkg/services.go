@@ -473,7 +473,7 @@ var (
 			},
 		}, {
 			Namespace: "AWS/Route53Resolver",
-			Alias:     "r53r",
+			Alias:     "route53-resolver",
 			ResourceFilters: []*string{
 				aws.String("route53resolver"),
 			},
