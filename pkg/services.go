@@ -481,6 +481,15 @@ var (
 				aws.String(":resolver-endpoint/(?P<EndpointId>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/Route53",
+			Alias:     "route53",
+			ResourceFilters: []*string{
+				aws.String("route53"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":healthcheck/(?P<HealthCheckId>[^/]+)"),
+			},
+		}, {
 			Namespace:    "AWS/S3",
 			Alias:        "s3",
 			IgnoreLength: true,
