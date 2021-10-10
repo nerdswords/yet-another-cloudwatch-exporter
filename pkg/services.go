@@ -211,6 +211,15 @@ var (
 				aws.String("db:(?P<DBInstanceIdentifier>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/DX",
+			Alias:     "dx",
+			ResourceFilters: []*string{
+				aws.String("directconnect"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("dxcon:(?P<ConnectionId>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/DynamoDB",
 			Alias:     "dynamodb",
 			ResourceFilters: []*string{

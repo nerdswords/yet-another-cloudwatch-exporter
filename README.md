@@ -47,6 +47,7 @@ We will contact you as soon as possible.
   * cognito-idp (AWS/Cognito) - Cognito
   * dms (AWS/DocDB) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
+  * dx (AWS/DX) - Direct Connect
   * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
   * ebs (AWS/EBS) - Elastic Block Storage
   * ec (AWS/Elasticache) - ElastiCache
