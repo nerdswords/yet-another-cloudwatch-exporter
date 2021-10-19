@@ -2,7 +2,9 @@ package exporter
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -268,6 +270,18 @@ func setSTSCreds(sess *session.Session, config *aws.Config, role Role) *aws.Conf
 	return config
 }
 
+func getAwsRetryer() aws.RequestRetryer {
+	return client.DefaultRetryer{
+		NumMaxRetries: 5,
+		// MaxThrottleDelay and MinThrottleDelay used for throttle errors
+		MaxThrottleDelay: 10*time.Second,
+		MinThrottleDelay: 1*time.Second,
+		// For other errors
+		MaxRetryDelay: 3*time.Second,
+		MinRetryDelay: 1*time.Second,
+	}
+}
+
 func createAWSSession() *session.Session {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -288,9 +302,8 @@ func createStsSession(sess *session.Session, role Role) *sts.STS {
 }
 
 func createCloudwatchSession(sess *session.Session, region *string, role Role, fips bool) *cloudwatch.CloudWatch {
-	maxCloudwatchRetries := 5
 
-	config := &aws.Config{Region: region, MaxRetries: &maxCloudwatchRetries}
+	config := &aws.Config{Region: region, Retryer: getAwsRetryer()}
 
 	if fips {
 		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
