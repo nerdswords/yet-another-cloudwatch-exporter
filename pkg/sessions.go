@@ -274,11 +274,11 @@ func getAwsRetryer() aws.RequestRetryer {
 	return client.DefaultRetryer{
 		NumMaxRetries: 5,
 		// MaxThrottleDelay and MinThrottleDelay used for throttle errors
-		MaxThrottleDelay: 10*time.Second,
-		MinThrottleDelay: 1*time.Second,
+		MaxThrottleDelay: 10 * time.Second,
+		MinThrottleDelay: 1 * time.Second,
 		// For other errors
-		MaxRetryDelay: 3*time.Second,
-		MinRetryDelay: 1*time.Second,
+		MaxRetryDelay: 3 * time.Second,
+		MinRetryDelay: 1 * time.Second,
 	}
 }
 
