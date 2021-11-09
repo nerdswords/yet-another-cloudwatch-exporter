@@ -223,6 +223,10 @@ discovery:
       - eu-west-1
     length: 900
     delay: 120
+    statistics:
+      - Minimum
+      - Maximum
+      - Sum
     searchTags:
       - key: KubernetesCluster
         value: production-19
@@ -239,6 +243,8 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
+      - name: HTTPCode_Backend_5XX
+        period: 60
   - type: alb
     regions:
       - eu-west-1
