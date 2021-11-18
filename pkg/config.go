@@ -32,6 +32,7 @@ type Job struct {
 	Length                 int       `yaml:"length"`
 	Delay                  int       `yaml:"delay"`
 	Period                 int       `yaml:"period"`
+	Statistics             []string  `yaml:"statistics"`
 	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
 	NilToZero              *bool     `yaml:"nilToZero"`
 }
@@ -201,9 +202,16 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
-	if len(m.Statistics) == 0 {
-		return fmt.Errorf("Metric [%s/%d] in %v: Statistics should not be empty", m.Name, metricIdx, parent)
+
+	mStatistics := m.Statistics
+	if len(mStatistics) == 0 && discovery != nil {
+		if len(discovery.Statistics) > 0 {
+			mStatistics = discovery.Statistics
+		} else {
+			return fmt.Errorf("Metric [%s/%d] in %v: Statistics should not be empty", m.Name, metricIdx, parent)
+		}
 	}
+
 	mPeriod := m.Period
 	if mPeriod == 0 && discovery != nil {
 		if discovery.Period != 0 {
@@ -261,6 +269,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 	m.Delay = mDelay
 	m.NilToZero = mNilToZero
 	m.AddCloudwatchTimestamp = mAddCloudwatchTimestamp
+	m.Statistics = mStatistics
 
 	return nil
 }
