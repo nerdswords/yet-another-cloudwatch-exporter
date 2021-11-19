@@ -1,3 +1,31 @@
+# 0.32.0-alpha
+* [BREAKING] Fix the calculation of start and end times for GetMetricData (csquire)
+```
+floating-time-window is now replaced with roundingPeriod
+
+Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes). to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.
+```
+* Improve testing / linting (cristiangreco)
+* Verify cli parameters and improve cli parsing (a0s)
+* Allow to configure yace cli parameters via env variables (a0s)
+* Improve error handling of cloudwatch (matthewnolf)
+* Add support for directconnect and route53 health checks
+* Improve throttling handling to AWS APIs (anilkun)
+* Add issue templates to improve support (NickLarsenNZ)
+* Allow setting default values for statistics (surminus)
+* Fix apigateway method and resouce dimension bug (aleslash)
+
+Thanks a lot to all contributors! - Lovely to see so much efforts especially in testing
+to get this project more and more stable. - I know we are far away from a nice tested
+code base but we are improving in the right direction and I really love to see all
+of your efforts there. It is really appreciated from my side.
+
+I just contacted AWS to get some open source credits so we can build some kind of
+end to end tests. This shoud allow us to find tricky bugs earlier and not only when we ship
+things.
+
+Love to all of you, Thomas!
+
 # 0.31.0-alpha
 * [BREAKING] Decoupled scraping is now default. Removed code which allowed to use scraper without it.
 ```
