@@ -9,6 +9,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const defaultPeriodSeconds = int64(300)
+const defaultLengthSeconds = int64(300)
+const defaultDelaySeconds = int64(300)
+
 type ScrapeConf struct {
 	ApiVersion string    `yaml:"apiVersion"`
 	Discovery  Discovery `yaml:"discovery"`
@@ -29,9 +33,10 @@ type Job struct {
 	SearchTags             []Tag     `yaml:"searchTags"`
 	CustomTags             []Tag     `yaml:"customTags"`
 	Metrics                []*Metric `yaml:"metrics"`
-	Length                 int       `yaml:"length"`
-	Delay                  int       `yaml:"delay"`
-	Period                 int       `yaml:"period"`
+	Length                 int64     `yaml:"length"`
+	Delay                  int64     `yaml:"delay"`
+	Period                 int64     `yaml:"period"`
+	RoundingPeriod         *int64    `yaml:"roundingPeriod"`
 	Statistics             []string  `yaml:"statistics"`
 	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
 	NilToZero              *bool     `yaml:"nilToZero"`
@@ -55,9 +60,9 @@ type Role struct {
 type Metric struct {
 	Name                   string   `yaml:"name"`
 	Statistics             []string `yaml:"statistics"`
-	Period                 int      `yaml:"period"`
-	Length                 int      `yaml:"length"`
-	Delay                  int      `yaml:"delay"`
+	Period                 int64    `yaml:"period"`
+	Length                 int64    `yaml:"length"`
+	Delay                  int64    `yaml:"delay"`
 	NilToZero              *bool    `yaml:"nilToZero"`
 	AddCloudwatchTimestamp *bool    `yaml:"addCloudwatchTimestamp"`
 }
@@ -217,7 +222,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Period != 0 {
 			mPeriod = discovery.Period
 		} else {
-			mPeriod = 300
+			mPeriod = defaultPeriodSeconds
 		}
 	}
 	if mPeriod < 1 {
@@ -228,7 +233,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Length != 0 {
 			mLength = discovery.Length
 		} else {
-			mLength = 120
+			mLength = defaultLengthSeconds
 		}
 	}
 
@@ -237,7 +242,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Delay != 0 {
 			mDelay = discovery.Delay
 		} else {
-			mDelay = 120
+			mDelay = defaultDelaySeconds
 		}
 	}
 

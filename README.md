@@ -100,7 +100,6 @@ We will contact you as soon as possible.
 | Option               | Description                                                                       |
 | -------------------- | --------------------------------------------------------------------------------- |
 | labels-snake-case    | Causes labels on metrics to be output in snake case instead of camel case         |
-| floating-time-window | Use a floating start/end time window instead of rounding times to 5 min intervals |
 
 ### Top level configuration
 
@@ -133,12 +132,13 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 | Key                    | Description                                                                                              |
 | ---------------------- | -------------------------------------------------------------------------------------------------------- |
 | regions                | List of AWS regions                                                                                      |
-| type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                |
+| type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).               |
 | length (Default 120)   | How far back to request data for in seconds                                                              |
 | delay                  | If set it will request metrics up until `current_time - delay`                                           |
 | roles                  | List of IAM roles to assume (optional)                                                                   |
 | searchTags             | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
 | period                 | Statistic period in seconds (General Setting for all metrics in this job)                                |
+| roundingPeriod         | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.                     |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
 | customTags             | Custom tags to be added as a list of Key/Value pairs                                                     |
 | metrics                | List of metric definitions                                                                               |

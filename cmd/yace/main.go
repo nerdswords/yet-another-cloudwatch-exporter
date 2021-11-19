@@ -30,7 +30,6 @@ var (
 	scrapingInterval      int
 	metricsPerQuery       int
 	labelsSnakeCase       bool
-	floatingTimeWindow    bool
 
 	config = exporter.ScrapeConf{}
 )
@@ -68,7 +67,6 @@ func main() {
 		&cli.IntFlag{Name: "scraping-interval", Value: 300, Usage: "Seconds to wait between scraping the AWS metrics", Destination: &scrapingInterval, EnvVars: []string{"scraping-interval"}},
 		&cli.IntFlag{Name: "metrics-per-query", Value: 500, Usage: "Number of metrics made in a single GetMetricsData request", Destination: &metricsPerQuery, EnvVars: []string{"metrics-per-query"}},
 		&cli.BoolFlag{Name: "labels-snake-case", Value: false, Usage: "If labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase},
-		&cli.BoolFlag{Name: "floating-time-window", Value: false, Usage: "Use a floating start/end time window instead of rounding times to 5 min intervals", Destination: &floatingTimeWindow},
 	}
 
 	yace.Commands = []*cli.Command{
@@ -106,7 +104,7 @@ func main() {
 
 	log.Println("Startup completed")
 
-	var maxJobLength int
+	var maxJobLength int64
 	for _, discoveryJob := range config.Discovery.Jobs {
 		length := exporter.GetMetricDataInputLength(discoveryJob)
 		//S3 can have upto 1 day to day will need to address it in seperate block
@@ -157,7 +155,6 @@ func main() {
 type scraper struct {
 	cloudwatchSemaphore chan struct{}
 	tagSemaphore        chan struct{}
-	now                 time.Time
 	registry            *prometheus.Registry
 }
 
@@ -200,16 +197,18 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 
 func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	if !sem.TryAcquire(1) {
-		log.Debug("Another scrape is already in process, will not start a new one")
+		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
+		// Let them know by logging a warning.
+		log.Warn("Another scrape is already in process, will not start a new one. " +
+			"Adjust your configuration to ensure the previous scrape completes first.")
 		return
 	}
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	endtime := exporter.UpdateMetrics(config, newRegistry, s.now, metricsPerQuery, fips, floatingTimeWindow, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
+	exporter.UpdateMetrics(config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
 
 	// this might have a data race to access registry
 	s.registry = newRegistry
-	s.now = endtime
 	log.Debug("Metrics scraped.")
 }
