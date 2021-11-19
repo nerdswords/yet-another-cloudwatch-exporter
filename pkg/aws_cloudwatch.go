@@ -19,6 +19,8 @@ import (
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
+const timeFormat = "2006-01-02T15:04:05.999999-07:00"
+
 type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
 }
@@ -45,7 +47,7 @@ type cloudwatchData struct {
 var labelMap = make(map[string][]string)
 
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {
-	period := int64(metric.Period)
+	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
 	endTime := time.Now().Add(-time.Duration(delay) * time.Second)
@@ -96,9 +98,13 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("Metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int, delay int, now time.Time, floatingTimeWindow bool) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
+	roundingPeriod := defaultPeriodSeconds
 	for _, data := range getMetricData {
+		if data.Period < roundingPeriod {
+			roundingPeriod = data.Period
+		}
 		metricStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: data.Dimensions,
@@ -114,22 +120,19 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 			MetricStat: metricStat,
 			ReturnData: &ReturnData,
 		})
-
 	}
 
-	if now.IsZero() {
-		//This is first run
-		if floatingTimeWindow {
-			now = time.Now()
-		} else {
-			// Round down to last 5min - rounding is recommended by AWS:
-			// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
-			now = time.Now().Add(-150 * time.Second).Round(5 * time.Minute)
-		}
+	if configuredRoundingPeriod != nil {
+		roundingPeriod = *configuredRoundingPeriod
 	}
 
-	startTime := now.Add(-(time.Duration(length) + time.Duration(delay)) * time.Second)
-	endTime := now.Add(-time.Duration(delay) * time.Second)
+	startTime, endTime := determineGetMetricDataWindow(
+		TimeClock{},
+		time.Duration(roundingPeriod)*time.Second,
+		time.Duration(length)*time.Second,
+		time.Duration(delay)*time.Second)
+	log.Debug("GetMetricData start time: ", startTime.Format(timeFormat))
+	log.Debug("GetMetricData end time: ", endTime.Format(timeFormat))
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
@@ -140,6 +143,34 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 	}
 
 	return output
+}
+
+// Clock small interface which allows for stubbing the time.Now() function for unit testing
+type Clock interface {
+	Now() time.Time
+}
+
+// TimeClock implementation of Clock interface which delegates to Go's Time package
+type TimeClock struct{}
+
+func (tc TimeClock) Now() time.Time {
+	return time.Now()
+}
+
+// determineGetMetricDataWindow computes the start and end time for the GetMetricData request to AWS
+// Always uses the wall clock time as starting point for calculations to ensure that
+// a variety of exporter configurations will work reliably.
+func determineGetMetricDataWindow(clock Clock, roundingPeriod time.Duration, length time.Duration, delay time.Duration) (time.Time, time.Time) {
+	now := clock.Now()
+	if roundingPeriod > 0 {
+		// Round down the time to a factor of the period - rounding is recommended by AWS:
+		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
+		now = now.Add(-roundingPeriod / 2).Round(roundingPeriod)
+	}
+
+	startTime := now.Add(-(length + delay))
+	endTime := now.Add(-delay)
+	return startTime, endTime
 }
 
 func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsInput) {

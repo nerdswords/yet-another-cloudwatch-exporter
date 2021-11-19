@@ -3,7 +3,6 @@ package exporter
 import (
 	"math"
 	"sync"
-	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
 	log "github.com/sirupsen/logrus"
@@ -11,17 +10,14 @@ import (
 
 func scrapeAwsData(
 	config ScrapeConf,
-	now time.Time,
 	metricsPerQuery int,
-	fips, floatingTimeWindow bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
-) ([]*taggedResource, []*cloudwatchData, *time.Time) {
+) ([]*taggedResource, []*cloudwatchData) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
 	awsInfoData := make([]*taggedResource, 0)
-	var endtime time.Time
 	var wg sync.WaitGroup
 
 	// since we have called refresh, we have loaded all the credentials
@@ -54,11 +50,10 @@ func scrapeAwsData(
 						ec2Client:        cache.GetEC2(&region, role),
 					}
 
-					resources, metrics, end := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, now, metricsPerQuery, floatingTimeWindow, tagSemaphore)
+					resources, metrics := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
-					endtime = end
 					mux.Unlock()
 				}(discoveryJob, region, role)
 			}
@@ -91,7 +86,7 @@ func scrapeAwsData(
 		}
 	}
 	wg.Wait()
-	return awsInfoData, cwData, &endtime
+	return awsInfoData, cwData
 }
 
 func scrapeStaticJob(resource *Static, region string, accountId *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}) (cw []*cloudwatchData) {
@@ -142,13 +137,10 @@ func scrapeStaticJob(resource *Static, region string, accountId *string, clientC
 	return cw
 }
 
-func GetMetricDataInputLength(job *Job) int {
-	var length int
+func GetMetricDataInputLength(job *Job) int64 {
+	length := defaultLengthSeconds
 
-	// Why is this here? 120?
-	if job.Length == 0 {
-		length = 120
-	} else {
+	if job.Length > 0 {
 		length = job.Length
 	}
 	for _, metric := range job.Metrics {
@@ -199,9 +191,10 @@ func scrapeDiscoveryJobUsingMetricData(
 	accountId *string,
 	tagsOnMetrics exportedTagsOnMetrics,
 	clientTag tagsInterface,
-	clientCloudwatch cloudwatchInterface, now time.Time,
-	metricsPerQuery int, floatingTimeWindow bool,
-	tagSemaphore chan struct{}) (resources []*taggedResource, cw []*cloudwatchData, endtime time.Time) {
+	clientCloudwatch cloudwatchInterface,
+	metricsPerQuery int,
+	roundingPeriod *int64,
+	tagSemaphore chan struct{}) (resources []*taggedResource, cw []*cloudwatchData) {
 
 	// Add the info tags of all the resources
 	tagSemaphore <- struct{}{}
@@ -236,7 +229,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, now, floatingTimeWindow)
+			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod)
 			data := clientCloudwatch.getMetricData(filter)
 			if data != nil {
 				output := make([]*cloudwatchData, 0)
@@ -254,12 +247,9 @@ func scrapeDiscoveryJobUsingMetricData(
 				cw = append(cw, output...)
 				mux.Unlock()
 			}
-			mux.Lock()
-			endtime = *filter.EndTime
-			mux.Unlock()
 		}(i)
 	}
-	//here set end time as start time
+
 	wg.Wait()
-	return resources, cw, endtime
+	return resources, cw
 }
