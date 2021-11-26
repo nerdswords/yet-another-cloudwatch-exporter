@@ -7,5 +7,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - name: Build docker image
-      run: docker build -t yace --build-arg VERSION=${{github.event.release.tag_name}} .
+    - name: Build docker image for amd64
+      run: docker build -t yace-amd64 --build-arg GOARCH=amd64 --build-arg VERSION=${{github.event.release.tag_name}} .
+    - name: Build docker image for arm64
+      run: docker build -t yace-arm64 --build-arg GOARCH=arm64  --build-arg VERSION=${{github.event.release.tag_name}} .
+    - name: Log into docker
+      env:
+        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        DOCKER_REGISTRY_URL: ghcr.io
+        DOCKER_USERNAME: ${{ github.actor }}
+      run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY_URL
+    - name: Tag docker image amd64
+      run: docker tag yace-amd64 ghcr.io/nerdswords/yet-another-cloudwatch-exporter:support-docker-arm-2021-11-26-v2
+    - name: Tag docker image arm
+      run: docker tag yace-arm64 ghcr.io/nerdswords/yet-another-cloudwatch-exporter:support-docker-arm-2021-11-26-v2-arm64
+    - name: Publish docker image amd64
+      run: docker push ghcr.io/nerdswords/yet-another-cloudwatch-exporter:support-docker-arm-2021-11-26-v2
+    - name: Publish docker image arm64
+      run: docker push ghcr.io/nerdswords/yet-another-cloudwatch-exporter:support-docker-arm-2021-11-26-v2-arm64
