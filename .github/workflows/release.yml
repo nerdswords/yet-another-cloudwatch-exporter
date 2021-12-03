@@ -10,8 +10,6 @@ jobs:
       if: github.event.action != 'published'
       run: exit 78
     - uses: actions/checkout@master
-    - name: Build docker image
-      run: docker build -t yace --build-arg VERSION=${{ github.event.release.tag_name }} .
     - name: Log into docker
       env:
         DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
@@ -21,13 +19,11 @@ jobs:
     - name: Release if tagged
       if: "!startswith(github.ref, 'refs/tags/v')"
       run: exit 78
-    - name: Tag docker image
-      run: docker tag yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }}
+    - name: Build and Publish docker image
+      run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ghcr.io/nerdswords/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }} --build-arg VERSION=${{github.event.release.tag_name}} --push .
     - name: Build && release binaries
       uses: docker://goreleaser/goreleaser:v0.179.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         args: release
-    - name: Publish docker image
-      run: docker push ghcr.io/nerdswords/yet-another-cloudwatch-exporter:${{ github.event.release.tag_name }}
