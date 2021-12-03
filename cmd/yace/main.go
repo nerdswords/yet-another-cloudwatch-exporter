@@ -136,12 +136,12 @@ func main() {
 
 	http.HandleFunc("/-/healthy", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Healthy"))
+		_, _ = w.Write([]byte("Healthy"))
 	})
 
 	http.HandleFunc("/-/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ready"))
+		_, _ = w.Write([]byte("Ready"))
 	})
 
 	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
