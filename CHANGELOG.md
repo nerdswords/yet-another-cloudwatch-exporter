@@ -1,3 +1,7 @@
+# 0.33.0-alpha
+* Publishing docker arm image and use buildx to build docker image (@jlamande)
+* Add /healthz route which allows to deploy more secure with helm (aleslash)
+
 # 0.32.0-alpha
 * [BREAKING] Fix the calculation of start and end times for GetMetricData (csquire)
 ```
