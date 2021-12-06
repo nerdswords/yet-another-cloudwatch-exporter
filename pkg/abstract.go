@@ -47,6 +47,7 @@ func scrapeAwsData(
 						client:           cache.GetTagging(&region, role),
 						apiGatewayClient: cache.GetAPIGateway(&region, role),
 						asgClient:        cache.GetASG(&region, role),
+						dmsClient:        cache.GetDMS(&region, role),
 						ec2Client:        cache.GetEC2(&region, role),
 					}
 

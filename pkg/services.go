@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
@@ -189,7 +190,60 @@ var (
 				aws.String("dms"),
 			},
 			DimensionRegexps: []*string{
-				aws.String("rep:(?P<ReplicationInstanceIdentifier>[^/]+)"),
+				aws.String("rep:[^/]+/(?P<ReplicationInstanceIdentifier>[^/]+)"),
+				aws.String("task:(?P<ReplicationTaskIdentifier>[^/]+)/(?P<ReplicationInstanceIdentifier>[^/]+)"),
+			},
+			// Append the replication instance identifier to DMS task and instance ARNs
+			FilterFunc: func(iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
+				if len(inputResources) == 0 {
+					return inputResources, nil
+				}
+
+				ctx := context.Background()
+				replicationInstanceIdentifiers := make(map[string]string)
+				pageNum := 0
+				if err := iface.dmsClient.DescribeReplicationInstancesPagesWithContext(ctx, nil,
+					func(page *databasemigrationservice.DescribeReplicationInstancesOutput, lastPage bool) bool {
+						pageNum++
+						dmsAPICounter.Inc()
+
+						for _, instance := range page.ReplicationInstances {
+							replicationInstanceIdentifiers[aws.StringValue(instance.ReplicationInstanceArn)] = aws.StringValue(instance.ReplicationInstanceIdentifier)
+						}
+
+						return pageNum < 100
+					},
+				); err != nil {
+					return nil, err
+				}
+				pageNum = 0
+				if err := iface.dmsClient.DescribeReplicationTasksPagesWithContext(ctx, nil,
+					func(page *databasemigrationservice.DescribeReplicationTasksOutput, lastPage bool) bool {
+						pageNum++
+						dmsAPICounter.Inc()
+
+						for _, task := range page.ReplicationTasks {
+							taskInstanceArn := aws.StringValue(task.ReplicationInstanceArn)
+							if instanceIdentifier, ok := replicationInstanceIdentifiers[taskInstanceArn]; ok {
+								replicationInstanceIdentifiers[aws.StringValue(task.ReplicationTaskArn)] = instanceIdentifier
+							}
+						}
+
+						return pageNum < 100
+					},
+				); err != nil {
+					return nil, err
+				}
+
+				for _, resource := range inputResources {
+					r := resource
+					// Append the replication instance identifier to replication instance and task ARNs
+					if instanceIdentifier, ok := replicationInstanceIdentifiers[r.ARN]; ok {
+						r.ARN = fmt.Sprintf("%s/%s", r.ARN, instanceIdentifier)
+					}
+					outputResources = append(outputResources, r)
+				}
+				return
 			},
 		}, {
 			Namespace: "AWS/DDoSProtection",

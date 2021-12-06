@@ -45,7 +45,7 @@ We will contact you as soon as possible.
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
   * cognito-idp (AWS/Cognito) - Cognito
-  * dms (AWS/DocDB) - Database Migration Service
+  * dms (AWS/DMS) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dx (AWS/DX) - Direct Connect
   * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
@@ -404,6 +404,13 @@ The following IAM permission is required to discover tagged API Gateway REST API
 
 ```json
 "apigateway:GET"
+```
+
+The following IAM permissions are required to discover tagged Database Migration Service (DMS) replication instances and tasks:
+
+```json
+"dms:DescribeReplicationInstances",
+"dms:DescribeReplicationTasks"
 ```
 
 ## Running locally
