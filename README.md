@@ -202,23 +202,23 @@ discovery:
       - name: FreeStorageSpace
         statistics:
         - Sum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.green
         statistics:
         - Minimum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.yellow
         statistics:
         - Maximum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
       - name: ClusterStatus.red
         statistics:
         - Maximum
-        period: 600
-        length: 60
+        period: 60
+        length: 600
   - type: elb
     regions:
       - eu-west-1
