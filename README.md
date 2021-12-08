@@ -45,7 +45,7 @@ We will contact you as soon as possible.
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
   * cognito-idp (AWS/Cognito) - Cognito
-  * dms (AWS/DocDB) - Database Migration Service
+  * dms (AWS/DMS) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dx (AWS/DX) - Direct Connect
   * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
