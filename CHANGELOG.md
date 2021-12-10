@@ -1,3 +1,6 @@
+# 0.33.1-alpha
+* Fix deployment pipeline (buildx)
+
 # 0.33.0-alpha
 * Publishing docker arm image and use buildx to build docker image (@jlamande)
 * Add /healthz route which allows to deploy more secure with helm (aleslash)
