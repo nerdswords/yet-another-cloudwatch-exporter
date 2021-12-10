@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -33,6 +35,7 @@ type SessionCache interface {
 	GetTagging(*string, Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	GetASG(*string, Role) autoscalingiface.AutoScalingAPI
 	GetEC2(*string, Role) ec2iface.EC2API
+	GetDMS(*string, Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	GetAPIGateway(*string, Role) apigatewayiface.APIGatewayAPI
 	Refresh()
 	Clear()
@@ -57,6 +60,7 @@ type clientCache struct {
 	tagging    resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asg        autoscalingiface.AutoScalingAPI
 	ec2        ec2iface.EC2API
+	dms        databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	apiGateway apigatewayiface.APIGatewayAPI
 }
 
@@ -128,6 +132,7 @@ func (s *sessionCache) Clear() {
 			s.clients[role][region].tagging = nil
 			s.clients[role][region].asg = nil
 			s.clients[role][region].ec2 = nil
+			s.clients[role][region].dms = nil
 			s.clients[role][region].apiGateway = nil
 		}
 	}
@@ -163,6 +168,7 @@ func (s *sessionCache) Refresh() {
 			s.clients[role][region].tagging = createTagSession(s.session, &region, role, s.fips)
 			s.clients[role][region].asg = createASGSession(s.session, &region, role, s.fips)
 			s.clients[role][region].ec2 = createEC2Session(s.session, &region, role, s.fips)
+			s.clients[role][region].dms = createDMSSession(s.session, &region, role, s.fips)
 			s.clients[role][region].apiGateway = createAPIGatewaySession(s.session, &region, role, s.fips)
 		}
 	}
@@ -237,6 +243,20 @@ func (s *sessionCache) GetEC2(region *string, role Role) ec2iface.EC2API {
 
 	s.clients[role][*region].ec2 = createEC2Session(s.session, region, role, s.fips)
 	return s.clients[role][*region].ec2
+}
+
+func (s *sessionCache) GetDMS(region *string, role Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
+	// if we have not refreshed then we need to lock in case we are accessing concurrently
+	if !s.refreshed {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+	}
+	if sess, ok := s.clients[role][*region]; ok && sess.dms != nil {
+		return sess.dms
+	}
+
+	s.clients[role][*region].dms = createDMSSession(s.session, region, role, s.fips)
+	return s.clients[role][*region].dms
 }
 
 func (s *sessionCache) GetAPIGateway(region *string, role Role) apigatewayiface.APIGatewayAPI {
@@ -360,6 +380,18 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 	}
 
 	return ec2.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createDMSSession(sess *session.Session, region *string, role Role, fips bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
+	maxDMSAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxDMSAPIRetries}
+	if fips {
+		// https://docs.aws.amazon.com/general/latest/gr/dms.html
+		endpoint := fmt.Sprintf("https://dms-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
+	return databasemigrationservice.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createAPIGatewaySession(sess *session.Session, region *string, role Role, fips bool) apigatewayiface.APIGatewayAPI {
