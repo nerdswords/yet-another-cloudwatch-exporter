@@ -406,6 +406,13 @@ The following IAM permission is required to discover tagged API Gateway REST API
 "apigateway:GET"
 ```
 
+The following IAM permissions are required to discover tagged Database Migration Service (DMS) replication instances and tasks:
+
+```json
+"dms:DescribeReplicationInstances",
+"dms:DescribeReplicationTasks"
+```
+
 ## Running locally
 
 ```shell

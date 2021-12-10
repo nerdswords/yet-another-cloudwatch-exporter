@@ -402,6 +402,7 @@ func TestClear(t *testing.T) {
 							tagging:    createTagSession(mock.Session, &region, role, false),
 							asg:        createASGSession(mock.Session, &region, role, false),
 							ec2:        createEC2Session(mock.Session, &region, role, false),
+							dms:        createDMSSession(mock.Session, &region, role, false),
 							apiGateway: createAPIGatewaySession(mock.Session, &region, role, false),
 							onlyStatic: true,
 						},
@@ -471,6 +472,10 @@ func TestClear(t *testing.T) {
 						t.Logf("`ec2 client` %v in region %v is not nil", role, region)
 						t.Fail()
 					}
+					if client.dms != nil {
+						t.Logf("`dms client` %v in region %v is not nil", role, region)
+						t.Fail()
+					}
 					if client.apiGateway != nil {
 						t.Logf("`apiGateway client` %v in region %v is not nil", role, region)
 						t.Fail()
@@ -506,6 +511,7 @@ func TestRefresh(t *testing.T) {
 							tagging:    nil,
 							asg:        nil,
 							ec2:        nil,
+							dms:        nil,
 							apiGateway: nil,
 						},
 					},
@@ -529,6 +535,7 @@ func TestRefresh(t *testing.T) {
 							tagging:    nil,
 							asg:        nil,
 							ec2:        nil,
+							dms:        nil,
 							apiGateway: nil,
 							onlyStatic: true,
 						},
@@ -553,6 +560,7 @@ func TestRefresh(t *testing.T) {
 							tagging:    createTagSession(mock.Session, &region, role, false),
 							asg:        createASGSession(mock.Session, &region, role, false),
 							ec2:        createEC2Session(mock.Session, &region, role, false),
+							dms:        createDMSSession(mock.Session, &region, role, false),
 							apiGateway: createAPIGatewaySession(mock.Session, &region, role, false),
 						},
 					},
@@ -604,6 +612,10 @@ func TestRefresh(t *testing.T) {
 					}
 					if client.ec2 == nil {
 						t.Logf("`ec2 client` %v in region %v still nil", role, region)
+						t.Fail()
+					}
+					if client.dms == nil {
+						t.Logf("`dms client` %v in region %v still nil", role, region)
 						t.Fail()
 					}
 					if client.apiGateway == nil {
@@ -677,6 +689,18 @@ func TestSessionCacheGetEC2(t *testing.T) {
 		})
 }
 
+func TestSessionCacheGetDMS(t *testing.T) {
+	testGetAWSClient(
+		t, "DMS",
+		func(t *testing.T, cache *sessionCache, region *string, role Role) {
+			iface := cache.GetDMS(region, role)
+			if iface == nil {
+				t.Fail()
+				return
+			}
+		})
+}
+
 func TestSessionCacheGetAPIGateway(t *testing.T) {
 	testGetAWSClient(
 		t, "APIGateway",
@@ -717,6 +741,7 @@ func testGetAWSClient(
 							tagging:    createTagSession(mock.Session, &region, role, false),
 							asg:        createASGSession(mock.Session, &region, role, false),
 							ec2:        createEC2Session(mock.Session, &region, role, false),
+							dms:        createDMSSession(mock.Session, &region, role, false),
 							apiGateway: createAPIGatewaySession(mock.Session, &region, role, false),
 						},
 					},
@@ -740,6 +765,7 @@ func testGetAWSClient(
 							tagging:    createTagSession(mock.Session, &region, role, false),
 							asg:        createASGSession(mock.Session, &region, role, false),
 							ec2:        createEC2Session(mock.Session, &region, role, false),
+							dms:        createDMSSession(mock.Session, &region, role, false),
 							apiGateway: createAPIGatewaySession(mock.Session, &region, role, false),
 						},
 					},
@@ -978,6 +1004,18 @@ func TestCreateEC2Session(t *testing.T) {
 			}
 		})
 
+}
+
+func TestCreateDMSSession(t *testing.T) {
+	testAWSClient(
+		t,
+		"DMS",
+		func(t *testing.T, s *session.Session, region *string, role Role, fips bool) {
+			iface := createDMSSession(s, region, role, fips)
+			if iface == nil {
+				t.Fail()
+			}
+		})
 }
 
 func TestCreateAPIGatewaySession(t *testing.T) {
