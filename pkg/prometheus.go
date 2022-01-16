@@ -51,6 +51,24 @@ var (
 	})
 )
 
+var replacer = strings.NewReplacer(
+	" ", "_",
+	",", "_",
+	"\t", "_",
+	"/", "_",
+	"\\", "_",
+	".", "_",
+	"-", "_",
+	":", "_",
+	"=", "_",
+	"“", "_",
+	"@", "_",
+	"<", "_",
+	">", "_",
+	"%", "_percent",
+)
+var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+
 type PrometheusMetric struct {
 	name             *string
 	labels           map[string]string
@@ -145,26 +163,9 @@ func promStringTag(text string, labelsSnakeCase bool) string {
 }
 
 func sanitize(text string) string {
-	replacer := strings.NewReplacer(
-		" ", "_",
-		",", "_",
-		"\t", "_",
-		"/", "_",
-		"\\", "_",
-		".", "_",
-		"-", "_",
-		":", "_",
-		"=", "_",
-		"“", "_",
-		"@", "_",
-		"<", "_",
-		">", "_",
-		"%", "_percent",
-	)
 	return replacer.Replace(text)
 }
 
 func splitString(text string) string {
-	splitRegexp := regexp.MustCompile(`([a-z0-9])([A-Z])`)
 	return splitRegexp.ReplaceAllString(text, `$1.$2`)
 }
