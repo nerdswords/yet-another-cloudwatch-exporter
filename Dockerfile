@@ -6,11 +6,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-RUN go test -cover ./...
 
 ENV GOOS linux
-ARG GOARCH
-ENV GOARCH ${GOARCH:-amd64}
 ENV CGO_ENABLED=0
 
 ARG VERSION
@@ -30,4 +27,3 @@ WORKDIR /exporter/
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /opt/yace /usr/local/bin/yace
 USER exporter
-
