@@ -61,6 +61,7 @@ We will contact you as soon as possible.
   * es (AWS/ES) - ElasticSearch
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
+  * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
   * glue (Glue) - AWS Glue Jobs
   * iot (AWS/IoT) - IoT
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
