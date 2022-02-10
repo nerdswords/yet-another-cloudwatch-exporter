@@ -115,7 +115,7 @@ var (
 				aws.String("athena"),
 			},
 			DimensionRegexps: []*string{
-				aws.String("athena/(?P<WorkGroup>[^/]+)"),
+				aws.String("workgroup/(?P<WorkGroup>[^/]+)"),
 			},
 		},
 		{
