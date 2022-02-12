@@ -341,7 +341,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	return getMetricsData
 }
 
-func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[string]string {
+func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool, dimensionLabelPrefix *string) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
@@ -350,6 +350,11 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
 		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		if dimensionLabelPrefix != nil {
+			labels[*dimensionLabelPrefix+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		} else {
+			labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		}
 	}
 
 	for _, label := range cwd.CustomTags {
@@ -468,7 +473,7 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 	return nil, time.Time{}
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) []*PrometheusMetric {
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, dimensionLabelPrefix *string) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
@@ -494,7 +499,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
 
-				promLabels := createPrometheusLabels(c, labelsSnakeCase)
+				promLabels := createPrometheusLabels(c, labelsSnakeCase, dimensionLabelPrefix)
 				recordLabelsForMetric(name, promLabels)
 				p := PrometheusMetric{
 					name:             &name,

@@ -20,6 +20,7 @@ type ScrapeConf struct {
 }
 
 type Discovery struct {
+	DimensionLabelPrefix  *string               `yaml:"dimensionLabelPrefix"`
 	ExportedTagsOnMetrics exportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
 	Jobs                  []*Job                `yaml:"jobs"`
 }

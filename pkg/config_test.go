@@ -55,3 +55,31 @@ func TestBadConfigs(t *testing.T) {
 		}
 	}
 }
+
+func TestDimensionLabelField(t *testing.T) {
+	var testCases = []struct {
+		configFile    string
+		presenceCheck bool
+	}{
+		{configFile: "config_test.yml", presenceCheck: true},
+		{configFile: "empty_rolearn.ok.yml", presenceCheck: false},
+	}
+	for _, tc := range testCases {
+		config := ScrapeConf{}
+		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
+		if err := config.Load(&configFile); err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+		var keyPrefix *string = config.Discovery.DimensionLabelPrefix
+		if tc.presenceCheck {
+			if keyPrefix == nil {
+				t.Error("key 'dimensionLabelPrefix' was not parsed successfully.")
+			}
+		} else {
+			if keyPrefix != nil {
+				t.Error("key 'dimensionLabelPrefix' was not expected to be set")
+			}
+		}
+	}
+}

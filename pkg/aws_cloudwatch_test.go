@@ -57,6 +57,113 @@ func TestSortyByTimeStamp(t *testing.T) {
 	equals(t, maxValue3, *sortedDataPoints[2].Maximum)
 }
 
+func TestCreatePrometheusLabels(t *testing.T) {
+	var prefixLabel string = "test_"
+	tests := []struct {
+		name                 string
+		labelsSnakeCase      bool
+		dimensionLabelPrefix *string
+		wantGetMetricsData   cloudwatchData
+		expectedLabels       map[string]string
+	}{
+		{
+			"parse_dimension_label",
+			true,
+			nil,
+			cloudwatchData{
+				AccountId:              aws.String("123123123123"),
+				AddCloudwatchTimestamp: aws.Bool(false),
+				Dimensions: []*cloudwatch.Dimension{
+					{
+						Name:  aws.String("InstanceId"),
+						Value: aws.String("i-12312312312312312"),
+					},
+					{
+						Name:  aws.String("Region"),
+						Value: aws.String("us-east-1a"),
+					},
+				},
+				ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
+				Metric:    aws.String("CPUUtilization"),
+				Namespace: aws.String("ec2"),
+				NilToZero: aws.Bool(false),
+				Period:    60,
+				Region:    aws.String("us-east-1"),
+				Statistics: []string{
+					"Average",
+				},
+				Tags: []Tag{
+					{
+						Key:   "Value1",
+						Value: "",
+					},
+					{
+						Key:   "Value2",
+						Value: "",
+					},
+				},
+			},
+			map[string]string{
+				"dimension_instance_id": "i-12312312312312312",
+				"dimension_region":      "us-east-1a",
+			},
+		},
+		{
+			"parse_dimension_label",
+			true,
+			&prefixLabel,
+			cloudwatchData{
+				AccountId:              aws.String("123123123123"),
+				AddCloudwatchTimestamp: aws.Bool(false),
+				Dimensions: []*cloudwatch.Dimension{
+					{
+						Name:  aws.String("InstanceId"),
+						Value: aws.String("i-12312312312312312"),
+					},
+					{
+						Name:  aws.String("Region"),
+						Value: aws.String("us-east-1a"),
+					},
+				},
+				ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
+				Metric:    aws.String("CPUUtilization"),
+				Namespace: aws.String("ec2"),
+				NilToZero: aws.Bool(false),
+				Period:    60,
+				Region:    aws.String("us-east-1"),
+				Statistics: []string{
+					"Average",
+				},
+				Tags: []Tag{
+					{
+						Key:   "Value1",
+						Value: "",
+					},
+					{
+						Key:   "Value2",
+						Value: "",
+					},
+				},
+			},
+			map[string]string{
+				"test_instance_id": "i-12312312312312312",
+				"test_region":      "us-east-1a",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			labels := createPrometheusLabels(&tt.wantGetMetricsData, tt.labelsSnakeCase, tt.dimensionLabelPrefix)
+			for key, element := range tt.expectedLabels {
+				if element != labels[key] {
+					t.Errorf("missing label %s\n", key)
+				}
+			}
+		})
+	}
+}
+
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
 		region           string
