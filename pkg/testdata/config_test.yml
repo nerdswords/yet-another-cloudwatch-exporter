@@ -1,6 +1,6 @@
 apiVersion: v1alpha1
+dimensionLabelPrefix: ""
 discovery:
-  dimensionLabelPrefix: ""
   exportedTagsOnMetrics:
     ebs:
       - VolumeId

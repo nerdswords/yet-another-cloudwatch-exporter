@@ -22,7 +22,7 @@ func UpdateMetrics(
 	)
 	var metrics []*PrometheusMetric
 
-	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, config.Discovery.DimensionLabelPrefix)...)
+	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, config.DimensionLabelPrefix)...)
 	metrics = ensureLabelConsistencyForMetrics(metrics)
 
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase)...)

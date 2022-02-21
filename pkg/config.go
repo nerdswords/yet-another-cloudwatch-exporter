@@ -14,9 +14,10 @@ const defaultLengthSeconds = int64(300)
 const defaultDelaySeconds = int64(300)
 
 type ScrapeConf struct {
-	ApiVersion string    `yaml:"apiVersion"`
-	Discovery  Discovery `yaml:"discovery"`
-	Static     []*Static `yaml:"static"`
+	ApiVersion           string    `yaml:"apiVersion"`
+	Discovery            Discovery `yaml:"discovery"`
+	Static               []*Static `yaml:"static"`
+	DimensionLabelPrefix *string   `yaml:"dimensionLabelPrefix"`
 }
 
 type Discovery struct {
