@@ -71,7 +71,7 @@ func TestDimensionLabelField(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		var keyPrefix *string = config.Discovery.DimensionLabelPrefix
+		var keyPrefix *string = config.DimensionLabelPrefix
 		if tc.presenceCheck {
 			if keyPrefix == nil {
 				t.Error("key 'dimensionLabelPrefix' was not parsed successfully.")
