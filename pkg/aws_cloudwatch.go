@@ -349,7 +349,6 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool, dimension
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
 		if dimensionLabelPrefix != nil {
 			labels[*dimensionLabelPrefix+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
 		} else {
