@@ -118,8 +118,8 @@ func main() {
 	s := NewScraper()
 	cache := exporter.NewSessionCache(config, fips)
 
-	ctx := context.Background() // ideally this should be carried to the aws calls
-
+	// TODO: Pipe ctx through to the AWS calls.
+	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, cache)
 
 	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
@@ -151,6 +151,10 @@ func main() {
 
 		log.Println("Reset session cache")
 		cache = exporter.NewSessionCache(config, fips)
+
+		cancelRunningScrape()
+		// TODO: Pipe ctx through to the AWS calls.
+		ctx, cancelRunningScrape = context.WithCancel(context.Background())
 		go s.decoupled(ctx, cache)
 	})
 
