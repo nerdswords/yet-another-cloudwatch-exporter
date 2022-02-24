@@ -426,6 +426,19 @@ var (
 				aws.String(":fleet/(?P<FleetId>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/GlobalAccelerator",
+			Alias:     "ga",
+			ResourceFilters: []*string{
+				aws.String("globalaccelerator"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("destinationEdge/(?P<DestinationEdge>[^/]+)"),
+				aws.String("accelerator/(?P<Accelerator>[^/]+)"),
+				aws.String("endpointGroup/(?P<EndpointGroup>[^/]+)"),
+				aws.String("listener/(?P<Listener>[^/]+)"),
+				aws.String("transportProtocol/(?P<TransportProtocol>[^/]+)"),
+			},
+		}, {
 			Namespace: "Glue",
 			Alias:     "glue",
 			ResourceFilters: []*string{
