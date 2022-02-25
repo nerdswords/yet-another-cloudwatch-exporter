@@ -38,8 +38,10 @@ We will contact you as soon as possible.
   * acm (AWS/CertificateManager) - Certificate Manager
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - API Gateway
+  * appstream (AWS/AppStream) - AppStream
   * appsync (AWS/AppSync) - AppSync
   * athena (AWS/Athena) - Athena
+  * backup (AWS/Backup) - Backup
   * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk
   * billing (AWS/Billing) - Billing
   * cassandra (AWS/Cassandra) - Cassandra
@@ -320,6 +322,65 @@ discovery:
         - Average
         period: 600
         length: 600
+  - type: appstream
+    regions:
+      - eu-central-1
+    searchTags:
+      - key: saas_monitoring
+        value: true
+    metrics:
+      - name: ActualCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: AvailableCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600      
+      - name: CapacityUtilization
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: DesiredCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: InUseCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: PendingCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: RunningCapacity
+        statistics:
+          - Average
+        period: 600
+        length: 600
+      - name: InsufficientCapacityError
+        statistics:
+          - Average
+        period: 600
+        length: 600		
+  - type: backup
+    regions:
+      - eu-central-1
+    searchTags:
+      - key: saas_monitoring
+        value: true
+    metrics:
+      - name: NumberOfBackupJobsCompleted
+        statistics:
+          - Average
+        period: 600
+        length: 600		
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
