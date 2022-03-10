@@ -118,7 +118,6 @@ func main() {
 	s := NewScraper()
 	cache := exporter.NewSessionCache(config, fips)
 
-	// TODO: Pipe ctx through to the AWS calls.
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, cache)
 
@@ -215,7 +214,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	exporter.UpdateMetrics(config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
+	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
 
 	// this might have a data race to access registry
 	s.registry = newRegistry

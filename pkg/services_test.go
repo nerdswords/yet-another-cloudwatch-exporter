@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -203,7 +204,7 @@ func TestDMSFilterFunc(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			dms := SupportedServices.GetService("dms")
 
-			outputResources, err := dms.FilterFunc(test.iface, test.inputResources)
+			outputResources, err := dms.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {
 				t.Logf("Error from FilterFunc: %v", err)
 				t.FailNow()

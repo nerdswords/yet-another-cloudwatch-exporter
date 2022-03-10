@@ -85,16 +85,15 @@ type tagsInterface struct {
 	dmsClient        databasemigrationserviceiface.DatabaseMigrationServiceAPI
 }
 
-func (iface tagsInterface) get(job *Job, region string) ([]*taggedResource, error) {
+func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]*taggedResource, error) {
 	svc := SupportedServices.GetService(job.Type)
 	var resources []*taggedResource
 
 	if len(svc.ResourceFilters) > 0 {
-		var inputparams = &resourcegroupstaggingapi.GetResourcesInput{
+		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 		}
 		c := iface.client
-		ctx := context.Background()
 		pageNum := 0
 
 		err := c.GetResourcesPagesWithContext(ctx, inputparams, func(page *resourcegroupstaggingapi.GetResourcesOutput, lastPage bool) bool {
@@ -130,7 +129,7 @@ func (iface tagsInterface) get(job *Job, region string) ([]*taggedResource, erro
 	}
 
 	if svc.ResourceFunc != nil {
-		newResources, err := svc.ResourceFunc(iface, job, region)
+		newResources, err := svc.ResourceFunc(ctx, iface, job, region)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +137,7 @@ func (iface tagsInterface) get(job *Job, region string) ([]*taggedResource, erro
 	}
 
 	if svc.FilterFunc != nil {
-		filteredResources, err := svc.FilterFunc(iface, resources)
+		filteredResources, err := svc.FilterFunc(ctx, iface, resources)
 		if err != nil {
 			return nil, err
 		}
