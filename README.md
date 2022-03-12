@@ -104,11 +104,12 @@ We will contact you as soon as possible.
 
 ### Top level configuration
 
-| Key        | Description                   |
-| ---------- | ----------------------------- |
-| apiVersion | Configuration file version    |
-| discovery  | Auto-discovery configuration  |
-| static     | List of static configurations |
+| Key        | Description                          |
+|------------|--------------------------------------|
+| apiVersion | Configuration file version           |
+| sts-region | Use STS regional endpoint (Optional) |
+| discovery  | Auto-discovery configuration         |
+| static     | List of static configurations        |
 
 ### Auto-discovery configuration
 
@@ -186,6 +187,7 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 
 ```yaml
 apiVersion: v1alpha1
+sts-endpoint: eu-west-1
 discovery:
   exportedTagsOnMetrics:
     ec2:
@@ -419,6 +421,15 @@ The following IAM permissions are required to discover tagged Database Migration
 ```shell
 docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
 -p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
+
+```
+
+
+## Override AWS endpoint urls
+to support local testing all AWS urls can be overridden with by setting an environment variable `AWS_ENDPOINT_URL`
+```shell
+docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
+-e AWS_ENDPOINT_URL=http://localhost:4766 -p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
 
 ```
 

@@ -15,6 +15,7 @@ const defaultDelaySeconds = int64(300)
 
 type ScrapeConf struct {
 	ApiVersion string    `yaml:"apiVersion"`
+	StsRegion  string    `yaml:"sts-region"`
 	Discovery  Discovery `yaml:"discovery"`
 	Static     []*Static `yaml:"static"`
 }

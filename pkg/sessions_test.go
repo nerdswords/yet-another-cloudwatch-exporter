@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/awstesting/mock"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -551,7 +552,7 @@ func TestRefresh(t *testing.T) {
 				mu:        sync.Mutex{},
 				session:   mock.Session,
 				stscache: map[Role]stsiface.STSAPI{
-					{}: createStsSession(mock.Session, role),
+					{}: createStsSession(mock.Session, role, "", false),
 				},
 				clients: map[Role]map[string]*clientCache{
 					{}: {
@@ -904,7 +905,7 @@ func TestCreateAWSSession(t *testing.T) {
 	for _, l := range tests {
 		test := l
 		t.Run(test.descrip, func(t *testing.T) {
-			s := createAWSSession()
+			s := createAWSSession(endpoints.DefaultResolver().EndpointFor)
 			if s == nil {
 				t.Fail()
 			}
@@ -914,24 +915,33 @@ func TestCreateAWSSession(t *testing.T) {
 
 func TestCreateStsSession(t *testing.T) {
 	tests := []struct {
-		descrip string
-		role    Role
+		descrip   string
+		role      Role
+		stsRegion string
 	}{
 		{
 			"creates an sts session with an empty role",
 			Role{},
+			"",
+		},
+		{
+			"creates an sts session with region",
+			Role{},
+			"eu-west-1",
 		},
 		{
 			"creates an sts session with an empty external id",
 			Role{
 				RoleArn: "some:arn",
 			},
+			"",
 		},
 		{
 			"creates an sts session with an empty role arn",
 			Role{
 				ExternalID: "some-id",
 			},
+			"",
 		},
 		{
 			"creates an sts session with an sts full role",
@@ -939,6 +949,7 @@ func TestCreateStsSession(t *testing.T) {
 				RoleArn:    "some:arn",
 				ExternalID: "some-id",
 			},
+			"",
 		},
 	}
 
@@ -947,7 +958,7 @@ func TestCreateStsSession(t *testing.T) {
 		t.Run(test.descrip, func(t *testing.T) {
 			t.Parallel()
 			// just exercise the code path
-			iface := createStsSession(mock.Session, test.role)
+			iface := createStsSession(mock.Session, test.role, test.stsRegion, false)
 			if iface == nil {
 				t.Fail()
 			}
