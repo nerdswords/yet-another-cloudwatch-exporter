@@ -47,6 +47,13 @@ var (
 			},
 		},
 		{
+			Namespace: "AmazonMWAA",
+			Alias:     "airflow",
+			ResourceFilters: []*string{
+				aws.String("airflow"),
+			},
+		},
+		{
 			Namespace: "AWS/ApplicationELB",
 			Alias:     "alb",
 			ResourceFilters: []*string{
