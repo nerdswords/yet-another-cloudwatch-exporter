@@ -302,6 +302,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	}
 	for _, cwMetric := range metricsList {
 		skip := false
+		alreadyFound := false
 		r := &taggedResource{
 			ARN:       "global",
 			Namespace: namespace,
@@ -309,9 +310,12 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
 				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-					skip = true
+					if !alreadyFound {
+						skip = true
+					}
 					break
 				} else {
+					alreadyFound = true
 					r = d
 				}
 			}
