@@ -498,6 +498,9 @@ var (
 				aws.String(":stream/(?P<StreamName>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/KinesisAnalytics",
+			Alias:     "kinesis-analytics",
+		}, {
 			Namespace: "AWS/Lambda",
 			Alias:     "lambda",
 			ResourceFilters: []*string{
