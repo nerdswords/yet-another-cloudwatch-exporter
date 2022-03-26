@@ -2,12 +2,14 @@ package exporter
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
@@ -42,13 +44,15 @@ type SessionCache interface {
 }
 
 type sessionCache struct {
-	session   *session.Session
-	stscache  map[Role]stsiface.STSAPI
-	clients   map[Role]map[string]*clientCache
-	cleared   bool
-	refreshed bool
-	mu        sync.Mutex
-	fips      bool
+	stsRegion        string
+	session          *session.Session
+	endpointResolver endpoints.ResolverFunc
+	stscache         map[Role]stsiface.STSAPI
+	clients          map[Role]map[string]*clientCache
+	cleared          bool
+	refreshed        bool
+	mu               sync.Mutex
+	fips             bool
 }
 
 type clientCache struct {
@@ -105,13 +109,27 @@ func NewSessionCache(config ScrapeConf, fips bool) SessionCache {
 		}
 	}
 
+	endpointResolver := endpoints.DefaultResolver().EndpointFor
+
+	endpointUrlOverride := os.Getenv("AWS_ENDPOINT_URL")
+	if endpointUrlOverride != "" {
+		// allow override of all endpoints for local testing
+		endpointResolver = func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+			return endpoints.ResolvedEndpoint{
+				URL: endpointUrlOverride,
+			}, nil
+		}
+	}
+
 	return &sessionCache{
-		session:   nil,
-		stscache:  stscache,
-		clients:   roleCache,
-		fips:      fips,
-		cleared:   false,
-		refreshed: false,
+		stsRegion:        config.StsRegion,
+		session:          nil,
+		endpointResolver: endpointResolver,
+		stscache:         stscache,
+		clients:          roleCache,
+		fips:             fips,
+		cleared:          false,
+		refreshed:        false,
 	}
 }
 
@@ -148,11 +166,11 @@ func (s *sessionCache) Refresh() {
 
 	// sessions really only need to be constructed once at runtime
 	if s.session == nil {
-		s.session = createAWSSession()
+		s.session = createAWSSession(s.endpointResolver)
 	}
 
 	for role := range s.stscache {
-		s.stscache[role] = createStsSession(s.session, role)
+		s.stscache[role] = createStsSession(s.session, role, s.stsRegion, s.fips)
 	}
 
 	for role, regions := range s.clients {
@@ -186,7 +204,7 @@ func (s *sessionCache) GetSTS(role Role) stsiface.STSAPI {
 	if sess, ok := s.stscache[role]; ok && sess != nil {
 		return sess
 	}
-	s.stscache[role] = createStsSession(s.session, role)
+	s.stscache[role] = createStsSession(s.session, role, s.stsRegion, s.fips)
 	return s.stscache[role]
 }
 
@@ -302,22 +320,42 @@ func getAwsRetryer() aws.RequestRetryer {
 	}
 }
 
-func createAWSSession() *session.Session {
+func createAWSSession(resolver endpoints.ResolverFunc) *session.Session {
+
+	config := aws.Config{
+		CredentialsChainVerboseErrors: aws.Bool(true),
+		EndpointResolver:              resolver,
+	}
+
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-		Config: aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true),
-		},
+		Config:            config,
 	}))
 	return sess
 }
 
-func createStsSession(sess *session.Session, role Role) *sts.STS {
+func createStsSession(sess *session.Session, role Role, region string, fips bool) *sts.STS {
 	maxStsRetries := 5
 	config := &aws.Config{MaxRetries: &maxStsRetries}
+
+	if region != "" {
+		config = config.WithRegion(region).WithSTSRegionalEndpoint(endpoints.RegionalSTSEndpoint)
+	}
+
+	if fips {
+		// https://aws.amazon.com/compliance/fips/
+		endpoint := fmt.Sprintf("https://sts-fips.%s.amazonaws.com", region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
 	if log.IsLevelEnabled(log.DebugLevel) {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
+
 	return sts.New(sess, setSTSCreds(sess, config, role))
 }
 
@@ -346,6 +384,10 @@ func createTagSession(sess *session.Session, region *string, role Role, fips boo
 		CredentialsChainVerboseErrors: aws.Bool(true),
 	}
 
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	// ToDo: Resource Groups Tagging API does not have FIPS compliant endpoints
 	// if fips {
 	// 	https://docs.aws.amazon.com/general/latest/gr/arg.html
@@ -359,6 +401,10 @@ func createTagSession(sess *session.Session, region *string, role Role, fips boo
 func createASGSession(sess *session.Session, region *string, role Role, fips bool) autoscalingiface.AutoScalingAPI {
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
+
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
 
 	// ToDo: Autoscaling does not have a FIPS endpoint
 	// if fips {
@@ -379,6 +425,10 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 		config.Endpoint = aws.String(endpoint)
 	}
 
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	return ec2.New(sess, setSTSCreds(sess, config, role))
 }
 
@@ -391,6 +441,10 @@ func createDMSSession(sess *session.Session, region *string, role Role, fips boo
 		config.Endpoint = aws.String(endpoint)
 	}
 
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	return databasemigrationservice.New(sess, setSTSCreds(sess, config, role))
 }
 
@@ -401,6 +455,10 @@ func createAPIGatewaySession(sess *session.Session, region *string, role Role, f
 		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
 		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
 		config.Endpoint = aws.String(endpoint)
+	}
+
+	if log.IsLevelEnabled(log.DebugLevel) {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
 	return apigateway.New(sess, setSTSCreds(sess, config, role))
