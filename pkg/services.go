@@ -12,9 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-type ResourceFunc func(tagsInterface, *Job, string) ([]*taggedResource, error)
+type ResourceFunc func(context.Context, tagsInterface, *Job, string) ([]*taggedResource, error)
 
-type FilterFunc func(tagsInterface, []*taggedResource) ([]*taggedResource, error)
+type FilterFunc func(context.Context, tagsInterface, []*taggedResource) ([]*taggedResource, error)
 
 type serviceFilter struct {
 	Namespace        string
@@ -85,8 +85,7 @@ var (
 				aws.String("apis/(?P<ApiName>[^/]+)$"),
 				aws.String("apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
 			},
-			FilterFunc: func(iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
-				ctx := context.Background()
+			FilterFunc: func(ctx context.Context, iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
 				apiGatewayAPICounter.Inc()
 				var limit int64 = 500 // max number of results per page. default=25, max=500
 				const maxPages = 10
@@ -142,8 +141,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("autoScalingGroupName/(?P<AutoScalingGroupName>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
-				ctx := context.Background()
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				pageNum := 0
 				return resources, iface.asgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
 					func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
@@ -212,12 +210,11 @@ var (
 				aws.String("task:(?P<ReplicationTaskIdentifier>[^/]+)/(?P<ReplicationInstanceIdentifier>[^/]+)"),
 			},
 			// Append the replication instance identifier to DMS task and instance ARNs
-			FilterFunc: func(iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
+			FilterFunc: func(ctx context.Context, iface tagsInterface, inputResources []*taggedResource) (outputResources []*taggedResource, err error) {
 				if len(inputResources) == 0 {
 					return inputResources, nil
 				}
 
-				ctx := context.Background()
 				replicationInstanceIdentifiers := make(map[string]string)
 				pageNum := 0
 				if err := iface.dmsClient.DescribeReplicationInstancesPagesWithContext(ctx, nil,
@@ -331,8 +328,7 @@ var (
 			DimensionRegexps: []*string{
 				aws.String("(?P<FleetRequestId>.*)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
-				ctx := context.Background()
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
 					func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
@@ -631,8 +627,7 @@ var (
 				aws.String(":transit-gateway/(?P<TransitGateway>[^/]+)"),
 				aws.String("(?P<TransitGateway>[^/]+)/(?P<TransitGatewayAttachment>[^/]+)"),
 			},
-			ResourceFunc: func(iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
-				ctx := context.Background()
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
 					func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
