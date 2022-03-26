@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand"
@@ -197,12 +198,12 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	return output
 }
 
-func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+func (iface cloudwatchInterface) get(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
 	log.Debug(filter)
 
-	resp, err := c.GetMetricStatistics(filter)
+	resp, err := c.GetMetricStatisticsWithContext(ctx, filter)
 
 	log.Debug(resp)
 
@@ -217,7 +218,7 @@ func (iface cloudwatchInterface) get(filter *cloudwatch.GetMetricStatisticsInput
 	return resp.Datapoints
 }
 
-func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	c := iface.client
 
 	var resp cloudwatch.GetMetricDataOutput
@@ -227,7 +228,7 @@ func (iface cloudwatchInterface) getMetricData(filter *cloudwatch.GetMetricDataI
 	}
 
 	// Using the paged version of the function
-	err := c.GetMetricDataPages(filter,
+	err := c.GetMetricDataPagesWithContext(ctx, filter,
 		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
 			cloudwatchAPICounter.Inc()
 			cloudwatchGetMetricDataAPICounter.Inc()
@@ -258,11 +259,11 @@ func createStaticDimensions(dimensions []Dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getFullMetricsList(namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput, err error) {
+func getFullMetricsList(ctx context.Context, namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput, err error) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
-	err = c.ListMetricsPages(filter,
+	err = c.ListMetricsPagesWithContext(ctx, filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
 			res.Metrics = append(res.Metrics, page.Metrics...)
 			return !lastPage

@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"context"
 	"math"
 	"sync"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func scrapeAwsData(
+	ctx context.Context,
 	config ScrapeConf,
 	metricsPerQuery int,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
@@ -32,7 +34,7 @@ func scrapeAwsData(
 				wg.Add(1)
 				go func(discoveryJob *Job, region string, role Role) {
 					defer wg.Done()
-					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
@@ -51,7 +53,7 @@ func scrapeAwsData(
 						ec2Client:        cache.GetEC2(&region, role),
 					}
 
-					resources, metrics := scrapeDiscoveryJobUsingMetricData(discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore)
+					resources, metrics := scrapeDiscoveryJobUsingMetricData(ctx, discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -67,7 +69,7 @@ func scrapeAwsData(
 				wg.Add(1)
 				go func(staticJob *Static, region string, role Role) {
 					defer wg.Done()
-					result, err := cache.GetSTS(role).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
 						log.Printf("Couldn't get account Id for role %s: %s\n", role.RoleArn, err.Error())
 						return
@@ -77,7 +79,7 @@ func scrapeAwsData(
 						client: cache.GetCloudwatch(&region, role),
 					}
 
-					metrics := scrapeStaticJob(staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore)
+					metrics := scrapeStaticJob(ctx, staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -90,7 +92,7 @@ func scrapeAwsData(
 	return awsInfoData, cwData
 }
 
-func scrapeStaticJob(resource *Static, region string, accountId *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}) (cw []*cloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *Static, region string, accountId *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -125,7 +127,7 @@ func scrapeStaticJob(resource *Static, region string, accountId *string, clientC
 				metric,
 			)
 
-			data.Points = clientCloudwatch.get(filter)
+			data.Points = clientCloudwatch.get(ctx, filter)
 
 			if data.Points != nil {
 				mux.Lock()
@@ -153,6 +155,7 @@ func GetMetricDataInputLength(job *Job) int64 {
 }
 
 func getMetricDataForQueries(
+	ctx context.Context,
 	discoveryJob *Job,
 	svc *serviceFilter,
 	region string,
@@ -170,7 +173,7 @@ func getMetricDataForQueries(
 		// of dimensions and value of dimensions with data
 		tagSemaphore <- struct{}{}
 
-		metricsList, err := getFullMetricsList(svc.Namespace, metric, clientCloudwatch)
+		metricsList, err := getFullMetricsList(ctx, svc.Namespace, metric, clientCloudwatch)
 		<-tagSemaphore
 
 		if err != nil {
@@ -187,6 +190,7 @@ func getMetricDataForQueries(
 }
 
 func scrapeDiscoveryJobUsingMetricData(
+	ctx context.Context,
 	job *Job,
 	region string,
 	accountId *string,
@@ -199,7 +203,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	// Add the info tags of all the resources
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.get(job, region)
+	resources, err := clientTag.get(ctx, job, region)
 	<-tagSemaphore
 	if err != nil {
 		log.Printf("Couldn't describe resources for region %s: %s\n", region, err.Error())
@@ -207,7 +211,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	svc := SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore)
+	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		log.Debugf("No metrics data for %s", job.Type)
@@ -231,7 +235,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			}
 			input := getMetricDatas[i:end]
 			filter := createGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod)
-			data := clientCloudwatch.getMetricData(filter)
+			data := clientCloudwatch.getMetricData(ctx, filter)
 			if data != nil {
 				output := make([]*cloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {

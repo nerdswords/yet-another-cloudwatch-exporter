@@ -1,11 +1,14 @@
 package exporter
 
 import (
+	"context"
+
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
 func UpdateMetrics(
+	ctx context.Context,
 	config ScrapeConf,
 	registry *prometheus.Registry,
 	metricsPerQuery int,
@@ -14,6 +17,7 @@ func UpdateMetrics(
 	cache SessionCache,
 ) {
 	tagsData, cloudwatchData := scrapeAwsData(
+		ctx,
 		config,
 		metricsPerQuery,
 		cloudwatchSemaphore,
