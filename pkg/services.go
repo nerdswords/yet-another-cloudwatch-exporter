@@ -64,7 +64,7 @@ var (
 				aws.String(":(?P<TargetGroup>targetgroup/.+)"),
 				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
-		}, 
+		},
 		{
 			Namespace: "AWS/AppStream",
 			Alias:     "appstream",
@@ -74,14 +74,14 @@ var (
 			DimensionRegexps: []*string{
 				aws.String(":fleet/(?P<FleetName>[^/]+)"),
 			},
-		},	
+		},
 		{
 			Namespace: "AWS/Backup",
 			Alias:     "backup",
 			ResourceFilters: []*string{
 				aws.String("backup"),
 			},
-		},			
+		},
 		{
 			Namespace: "AWS/ApiGateway",
 			Alias:     "apigateway",
