@@ -36,6 +36,7 @@ We will contact you as soon as possible.
 * Supported services with auto discovery through tags:
 
   * acm (AWS/CertificateManager) - Certificate Manager
+  * airflow (AmazonMWAA) - Managed Apache Airflow
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - API Gateway
   * appstream (AWS/AppStream) - AppStream
