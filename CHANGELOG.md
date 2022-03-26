@@ -1,3 +1,24 @@
+# 0.34.0-alpha
+* Update dependencies
+* Add weekly dependabot updates (jylitalo)
+* Add support for regional sts endpoints (matt-mercer)
+* Add multi-arch docker build (charlie-haley)
+
+New services
+* Add global accelerator support (charlie-haley)
+* Add AppStream support (jhuesemann)
+* Add Managed Apache Airflow support (sdenham)
+* Add KinesisAnalytics support (gumpt)
+
+Bug Fixes
+* Fix targetgroup arn lookup (domcyrus)
+* Fix WorkGroup Dimension are not showing in Athena Metrics (sahajavidya)
+* Improve regex performance (kgeckhart)
+* Fix prometheus reload causing a goroutine leak (gumpt / cristiangreco)
+
+Docs
+* Added help for new contributors (aleslash)
+
 # 0.33.0-alpha
 * Add /healthz route which allows to deploy more secure with helm (aleslash)
 * Read DMS replication instance identifier from the DMS API (nhinds)
