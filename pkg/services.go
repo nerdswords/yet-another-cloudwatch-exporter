@@ -550,6 +550,12 @@ var (
 				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
 		}, {
+			Namespace: "AWS/PrivateLinkEndpoints",
+			Alias:     "private-link-endpoints",
+		}, {
+			Namespace: "AWS/PrivateLinkServices",
+			Alias:     "private-link-services",
+		}, {
 			Namespace: "AWS/RDS",
 			Alias:     "rds",
 			ResourceFilters: []*string{
