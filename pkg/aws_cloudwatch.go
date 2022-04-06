@@ -45,8 +45,6 @@ type cloudwatchData struct {
 	Period                  int64
 }
 
-var labelMap = make(map[string][]string)
-
 func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := metric.Period
 	length := metric.Length
@@ -367,47 +365,32 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 	return labels
 }
 
-func recordLabelsForMetric(metricName string, promLabels map[string]string) {
-	var workingLabelsCopy []string
-	if _, ok := labelMap[metricName]; ok {
-		workingLabelsCopy = append(workingLabelsCopy, labelMap[metricName]...)
+// recordLabelsForMetric adds any missing labels from promLabels in to the LabelSet for the metric name and returns
+// the updated observedMetricLabels
+func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]LabelSet) map[string]LabelSet {
+	if _, ok := observedMetricLabels[metricName]; !ok {
+		observedMetricLabels[metricName] = make(LabelSet)
+	}
+	for label := range promLabels {
+		if _, ok := observedMetricLabels[metricName][label]; !ok {
+			observedMetricLabels[metricName][label] = struct{}{}
+		}
 	}
 
-	for k := range promLabels {
-		workingLabelsCopy = append(workingLabelsCopy, k)
-	}
-	sort.Strings(workingLabelsCopy)
-	j := 0
-	for i := 1; i < len(workingLabelsCopy); i++ {
-		if workingLabelsCopy[j] == workingLabelsCopy[i] {
-			continue
-		}
-		j++
-		workingLabelsCopy[j] = workingLabelsCopy[i]
-	}
-	labelMap[metricName] = workingLabelsCopy[:j+1]
+	return observedMetricLabels
 }
 
-func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-	var updatedMetrics []*PrometheusMetric
-
+// ensureLabelConsistencyForMetrics ensures that every metric has the same set of labels based on the data
+// in observedMetricLabels. Prometheus requires that all metrics with the same name have the same set of labels
+func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric, observedMetricLabels map[string]LabelSet) []*PrometheusMetric {
 	for _, prometheusMetric := range metrics {
-		metricName := prometheusMetric.name
-		metricLabels := prometheusMetric.labels
-
-		consistentMetricLabels := make(map[string]string)
-
-		for _, recordedLabel := range labelMap[*metricName] {
-			if value, ok := metricLabels[recordedLabel]; ok {
-				consistentMetricLabels[recordedLabel] = value
-			} else {
-				consistentMetricLabels[recordedLabel] = ""
+		for observedLabel := range observedMetricLabels[*prometheusMetric.name] {
+			if _, ok := prometheusMetric.labels[observedLabel]; !ok {
+				prometheusMetric.labels[observedLabel] = ""
 			}
 		}
-		prometheusMetric.labels = consistentMetricLabels
-		updatedMetrics = append(updatedMetrics, prometheusMetric)
 	}
-	return updatedMetrics
+	return metrics
 }
 
 func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
@@ -418,9 +401,9 @@ func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint
 	return datapoints
 }
 
-func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
+func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time, error) {
 	if cwd.GetMetricDataPoint != nil {
-		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps
+		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps, nil
 	}
 	var averageDataPoints []*cloudwatch.Datapoint
 
@@ -430,19 +413,19 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 		switch {
 		case statistic == "Maximum":
 			if datapoint.Maximum != nil {
-				return datapoint.Maximum, *datapoint.Timestamp
+				return datapoint.Maximum, *datapoint.Timestamp, nil
 			}
 		case statistic == "Minimum":
 			if datapoint.Minimum != nil {
-				return datapoint.Minimum, *datapoint.Timestamp
+				return datapoint.Minimum, *datapoint.Timestamp, nil
 			}
 		case statistic == "Sum":
 			if datapoint.Sum != nil {
-				return datapoint.Sum, *datapoint.Timestamp
+				return datapoint.Sum, *datapoint.Timestamp, nil
 			}
 		case statistic == "SampleCount":
 			if datapoint.SampleCount != nil {
-				return datapoint.SampleCount, *datapoint.Timestamp
+				return datapoint.SampleCount, *datapoint.Timestamp, nil
 			}
 		case statistic == "Average":
 			if datapoint.Average != nil {
@@ -450,10 +433,10 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 			}
 		case percentile.MatchString(statistic):
 			if data, ok := datapoint.ExtendedStatistics[statistic]; ok {
-				return data, *datapoint.Timestamp
+				return data, *datapoint.Timestamp, nil
 			}
 		default:
-			log.Fatal("Not implemented statistics: " + statistic)
+			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", *cwd.Metric, statistic)
 		}
 	}
 
@@ -468,12 +451,12 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time) {
 			total += *p.Average
 		}
 		average := total / float64(len(averageDataPoints))
-		return &average, timestamp
+		return &average, timestamp, nil
 	}
-	return nil, time.Time{}
+	return nil, time.Time{}, nil
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) []*PrometheusMetric {
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]LabelSet) ([]*PrometheusMetric, map[string]LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
@@ -482,7 +465,10 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 			if c.AddCloudwatchTimestamp != nil {
 				includeTimestamp = *c.AddCloudwatchTimestamp
 			}
-			exportedDatapoint, timestamp := getDatapoint(c, statistic)
+			exportedDatapoint, timestamp, err := getDatapoint(c, statistic)
+			if err != nil {
+				return nil, nil, err
+			}
 			if exportedDatapoint == nil && (c.AddCloudwatchTimestamp == nil || !*c.AddCloudwatchTimestamp) {
 				var nan float64 = math.NaN()
 				exportedDatapoint = &nan
@@ -498,9 +484,8 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 			}
 			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
-
 				promLabels := createPrometheusLabels(c, labelsSnakeCase)
-				recordLabelsForMetric(name, promLabels)
+				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 				p := PrometheusMetric{
 					name:             &name,
 					labels:           promLabels,
@@ -513,5 +498,5 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool) 
 		}
 	}
 
-	return output
+	return output, observedMetricLabels, nil
 }
