@@ -203,6 +203,8 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	}
 }
 
+var observedMetricLabels = map[string]exporter.LabelSet{}
+
 func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
@@ -214,7 +216,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 	defer sem.Release(1)
 
 	newRegistry := prometheus.NewRegistry()
-	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache)
+	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels)
 
 	// this might have a data race to access registry
 	s.registry = newRegistry

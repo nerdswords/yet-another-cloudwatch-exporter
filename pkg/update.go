@@ -7,6 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type LabelSet map[string]struct{}
+
 func UpdateMetrics(
 	ctx context.Context,
 	config ScrapeConf,
@@ -15,6 +17,7 @@ func UpdateMetrics(
 	labelsSnakeCase bool,
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
+	observedMetricLabels map[string]LabelSet,
 ) {
 	tagsData, cloudwatchData := scrapeAwsData(
 		ctx,
@@ -24,10 +27,13 @@ func UpdateMetrics(
 		tagSemaphore,
 		cache,
 	)
-	var metrics []*PrometheusMetric
 
-	metrics = append(metrics, migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase)...)
-	metrics = ensureLabelConsistencyForMetrics(metrics)
+	metrics, observedMetricLabels, err := migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels)
+	if err != nil {
+		log.Printf("Error migrating cloudwatch metrics to prometheus metrics: %s\n", err.Error())
+		return
+	}
+	metrics = ensureLabelConsistencyForMetrics(metrics, observedMetricLabels)
 
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase)...)
 
