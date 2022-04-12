@@ -7,6 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var Metrics = []prometheus.Collector{cloudwatchAPICounter, cloudwatchAPIErrorCounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, targetGroupsAPICounter, apiGatewayAPICounter, ec2APICounter, dmsAPICounter}
+
 type LabelSet map[string]struct{}
 
 func UpdateMetrics(
@@ -38,9 +40,4 @@ func UpdateMetrics(
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
-	for _, counter := range []prometheus.Counter{cloudwatchAPICounter, cloudwatchAPIErrorCounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, apiGatewayAPICounter, targetGroupsAPICounter, ec2APICounter, dmsAPICounter} {
-		if err := registry.Register(counter); err != nil {
-			log.Warning("Could not publish cloudwatch api metric")
-		}
-	}
 }
