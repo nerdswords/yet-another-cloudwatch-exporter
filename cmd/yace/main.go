@@ -116,7 +116,7 @@ func main() {
 	}
 
 	s := NewScraper()
-	cache := exporter.NewSessionCache(config, fips)
+	cache := exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, cache)
@@ -149,7 +149,7 @@ func main() {
 		}
 
 		log.Println("Reset session cache")
-		cache = exporter.NewSessionCache(config, fips)
+		cache = exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
 
 		cancelRunningScrape()
 		// TODO: Pipe ctx through to the AWS calls.
@@ -221,7 +221,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 			log.Warning("Could not register cloudwatch api metric")
 		}
 	}
-	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels)
+	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels, exporter.NewLogrusLogger(log.StandardLogger()))
 
 	// this might have a data race to access registry
 	s.registry = newRegistry

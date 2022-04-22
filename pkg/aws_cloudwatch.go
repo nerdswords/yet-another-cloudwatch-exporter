@@ -14,8 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -24,6 +22,7 @@ const timeFormat = "2006-01-02T15:04:05.999999-07:00"
 
 type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
+	logger Logger
 }
 
 type cloudwatchData struct {
@@ -45,7 +44,7 @@ type cloudwatchData struct {
 	Period                  int64
 }
 
-func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric) (output *cloudwatch.GetMetricStatisticsInput) {
+func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric, logger Logger) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -73,7 +72,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		ExtendedStatistics: extendedStatistics,
 	}
 
-	log.Debug("CLI helper - " +
+	logger.Debug("CLI helper - " +
 		"aws cloudwatch get-metric-statistics" +
 		" --metric-name " + metric.Name +
 		" --dimensions " + dimensionsToCliString(dimensions) +
@@ -83,7 +82,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		" --start-time " + startTime.Format(time.RFC3339) +
 		" --end-time " + endTime.Format(time.RFC3339))
 
-	log.Debug(*output)
+	logger.Debug("Output: %v", *output)
 	return output
 }
 
@@ -94,10 +93,10 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 			return getMetricData, nil
 		}
 	}
-	return g, fmt.Errorf("Metric with id %s not found", value)
+	return g, fmt.Errorf("metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger Logger) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
 	roundingPeriod := defaultPeriodSeconds
 	for _, data := range getMetricData {
@@ -130,8 +129,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		time.Duration(roundingPeriod)*time.Second,
 		time.Duration(length)*time.Second,
 		time.Duration(delay)*time.Second)
-	log.Debug("GetMetricData start time: ", startTime.Format(timeFormat))
-	log.Debug("GetMetricData end time: ", endTime.Format(timeFormat))
+	logger.Debug("GetMetricData StartTime: %s, EndTime: %s", startTime.Format(timeFormat), endTime.Format(timeFormat))
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
@@ -199,17 +197,17 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 func (iface cloudwatchInterface) get(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
-	log.Debug(filter)
+	iface.logger.Debug("GetMetricStatisticsInput: %v", filter)
 
 	resp, err := c.GetMetricStatisticsWithContext(ctx, filter)
 
-	log.Debug(resp)
+	iface.logger.Debug("GetMetricStatisticsOutput: %v", resp)
 
 	cloudwatchAPICounter.Inc()
 	cloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
-		log.Warningf("Unable to get metric statistics due to %v", err)
+		iface.logger.Error(err, "Failed to get metric statistics")
 		return nil
 	}
 
@@ -221,8 +219,8 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 
 	var resp cloudwatch.GetMetricDataOutput
 
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Println(filter)
+	if iface.logger.IsDebugEnabled() {
+		iface.logger.Debug("GetMetricDataInput: %v", filter)
 	}
 
 	// Using the paged version of the function
@@ -234,12 +232,12 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 			return !lastPage
 		})
 
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Println(resp)
+	if iface.logger.IsDebugEnabled() {
+		iface.logger.Debug("GetMetricDataOutput: %v", resp)
 	}
 
 	if err != nil {
-		log.Warningf("Unable to get metric data due to %v", err)
+		iface.logger.Error(err, "Failed to get metric data")
 		return nil
 	}
 	return &resp

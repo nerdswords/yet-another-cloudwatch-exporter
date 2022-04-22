@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 )
 
 // Metrics is a slice of prometheus metrics specific to the scraping process such API call counters
@@ -24,6 +23,7 @@ func UpdateMetrics(
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache SessionCache,
 	observedMetricLabels map[string]LabelSet,
+	logger Logger,
 ) {
 	tagsData, cloudwatchData := scrapeAwsData(
 		ctx,
@@ -32,11 +32,12 @@ func UpdateMetrics(
 		cloudwatchSemaphore,
 		tagSemaphore,
 		cache,
+		logger,
 	)
 
 	metrics, observedMetricLabels, err := migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels)
 	if err != nil {
-		log.Printf("Error migrating cloudwatch metrics to prometheus metrics: %s\n", err.Error())
+		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return
 	}
 	metrics = ensureLabelConsistencyForMetrics(metrics, observedMetricLabels)
@@ -44,4 +45,12 @@ func UpdateMetrics(
 	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
+}
+
+type Logger interface {
+	Info(message string, args ...interface{})
+	Debug(message string, args ...interface{})
+	Error(err error, message string, args ...interface{})
+	Warn(message string, args ...interface{})
+	IsDebugEnabled() bool
 }
