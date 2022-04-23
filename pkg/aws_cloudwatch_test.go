@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDimensionsToCliString(t *testing.T) {
@@ -279,6 +280,43 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func Test_ensureLabelConsistencyForMetrics(t *testing.T) {
+	value1 := 1.0
+	metric1 := PrometheusMetric{
+		name:   aws.String("metric1"),
+		labels: map[string]string{"label1": "value1"},
+		value:  &value1,
+	}
+
+	value2 := 2.0
+	metric2 := PrometheusMetric{
+		name:   aws.String("metric1"),
+		labels: map[string]string{"label2": "value2"},
+		value:  &value2,
+	}
+
+	value3 := 2.0
+	metric3 := PrometheusMetric{
+		name:   aws.String("metric1"),
+		labels: map[string]string{},
+		value:  &value3,
+	}
+
+	metrics := []*PrometheusMetric{&metric1, &metric2, &metric3}
+	result := ensureLabelConsistencyForMetrics(metrics, map[string]LabelSet{"metric1": {"label1": struct{}{}, "label2": struct{}{}, "label3": struct{}{}}})
+
+	expected := []string{"label1", "label2", "label3"}
+	for _, metric := range result {
+		assert.Equal(t, len(expected), len(metric.labels))
+		labels := []string{}
+		for labelName := range metric.labels {
+			labels = append(labels, labelName)
+		}
+
+		assert.ElementsMatch(t, expected, labels)
 	}
 }
 
