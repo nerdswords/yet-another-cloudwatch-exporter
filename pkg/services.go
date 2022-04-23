@@ -551,10 +551,22 @@ var (
 			},
 		}, {
 			Namespace: "AWS/PrivateLinkEndpoints",
-			Alias:     "private-link-endpoints",
+			Alias:     "vpc-endpoint",
+			ResourceFilters: []*string{
+				aws.String("ec2:vpc-endpoint"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":vpc-endpoint/(?P<VPC_Endpoint_Id>.+)"),
+			},
 		}, {
 			Namespace: "AWS/PrivateLinkServices",
-			Alias:     "private-link-services",
+			Alias:     "vpc-endpoint-service",
+			ResourceFilters: []*string{
+				aws.String("ec2:vpc-endpoint-service"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+			},
 		}, {
 			Namespace: "AWS/RDS",
 			Alias:     "rds",

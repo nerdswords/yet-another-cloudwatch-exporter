@@ -74,8 +74,8 @@ We will contact you as soon as possible.
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
-  * private-link-endpoints (AWS/PrivateLinkEndpoints) - Private Link Endpoints
-  * private-link-services (AWS/PrivateLinkServices) - Private Link Endpoints
+  * vpc-endpoint (AWS/PrivateLinkEndpoints) - VPC Endpoint
+  * vpc-endpoint-service (AWS/PrivateLinkServices) - VPC Endpoint Service
   * redshift (AWS/Redshift) - Redshift Database
   * rds (AWS/RDS) - Relational Database Service
   * route53 (AWS/Route53) - Route53 Health Checks
