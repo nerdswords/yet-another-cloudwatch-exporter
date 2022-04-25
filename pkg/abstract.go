@@ -43,6 +43,7 @@ func scrapeAwsData(
 
 					clientCloudwatch := cloudwatchInterface{
 						client: cache.GetCloudwatch(&region, role),
+						logger: logger,
 					}
 
 					clientTag := tagsInterface{
@@ -52,6 +53,7 @@ func scrapeAwsData(
 						asgClient:        cache.GetASG(&region, role),
 						dmsClient:        cache.GetDMS(&region, role),
 						ec2Client:        cache.GetEC2(&region, role),
+						logger:           logger,
 					}
 
 					resources, metrics := scrapeDiscoveryJobUsingMetricData(ctx, discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore, logger)
@@ -78,6 +80,7 @@ func scrapeAwsData(
 
 					clientCloudwatch := cloudwatchInterface{
 						client: cache.GetCloudwatch(&region, role),
+						logger: logger,
 					}
 
 					metrics := scrapeStaticJob(ctx, staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore, logger)
