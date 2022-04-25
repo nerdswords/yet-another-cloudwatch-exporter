@@ -550,6 +550,24 @@ var (
 				aws.String(":loadbalancer/(?P<LoadBalancer>.+)$"),
 			},
 		}, {
+			Namespace: "AWS/PrivateLinkEndpoints",
+			Alias:     "vpc-endpoint",
+			ResourceFilters: []*string{
+				aws.String("ec2:vpc-endpoint"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":vpc-endpoint/(?P<VPC_Endpoint_Id>.+)"),
+			},
+		}, {
+			Namespace: "AWS/PrivateLinkServices",
+			Alias:     "vpc-endpoint-service",
+			ResourceFilters: []*string{
+				aws.String("ec2:vpc-endpoint-service"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+			},
+		}, {
 			Namespace: "AWS/RDS",
 			Alias:     "rds",
 			ResourceFilters: []*string{
