@@ -1,3 +1,10 @@
+# 0.35.0-alpha
+* Update dependencies
+* Improve / Document way how to use the exporter as external library (kgeckhart)
+* Refactor label consistency (kgeckhart)
+* Add suppot for vpc-endpoint (AWS/PrivateLinkEndpoints) (aleslash)
+* Add support for vpc-endpoint-service (AWS/PrivateLinkServices) (aleslash)
+
 # 0.34.0-alpha
 * Update dependencies
 * Add weekly dependabot updates (jylitalo)
