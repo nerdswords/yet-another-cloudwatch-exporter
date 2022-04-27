@@ -481,6 +481,13 @@ The following IAM permissions are required to discover tagged Database Migration
 "dms:DescribeReplicationTasks"
 ```
 
+The following IAM permissions are required to discover VPC Endpoint and VPC Endpoint Service resources:
+
+```json
+"ec2:DescribeVpcEndpoints",
+"ec2:DescribeVpcEndpointServiceConfigurations"
+```
+
 ## Running locally
 
 ```shell

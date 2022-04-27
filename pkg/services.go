@@ -552,12 +552,10 @@ var (
 		}, {
 			Namespace: "AWS/PrivateLinkEndpoints",
 			Alias:     "vpc-endpoint",
-			ResourceFilters: []*string{
-				aws.String("ec2:vpc-endpoint"),
-			},
 			DimensionRegexps: []*string{
 				aws.String(":vpc-endpoint/(?P<VPC_Endpoint_Id>.+)"),
 			},
+			// CloudFormation doesn't support tagging VPCEndpoint resources, so use a ResourceFunc instead of a ResourceFilter
 			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				pageNum := 0
 				return resources, iface.ec2Client.DescribeVpcEndpointsPagesWithContext(ctx, &ec2.DescribeVpcEndpointsInput{},
@@ -587,12 +585,10 @@ var (
 		}, {
 			Namespace: "AWS/PrivateLinkServices",
 			Alias:     "vpc-endpoint-service",
-			ResourceFilters: []*string{
-				aws.String("ec2:vpc-endpoint-service"),
-			},
 			DimensionRegexps: []*string{
 				aws.String(":vpc-endpoint-service/(?P<Service_Id>.+)"),
 			},
+			// CloudFormation doesn't support tagging VPCEndpointService resources, so use a ResourceFunc instead of a ResourceFilter
 			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
 				firstRequest := true
 				var nextToken *string
