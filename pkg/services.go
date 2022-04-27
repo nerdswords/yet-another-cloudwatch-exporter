@@ -558,6 +558,32 @@ var (
 			DimensionRegexps: []*string{
 				aws.String(":vpc-endpoint/(?P<VPC_Endpoint_Id>.+)"),
 			},
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
+				pageNum := 0
+				return resources, iface.ec2Client.DescribeVpcEndpointsPagesWithContext(ctx, &ec2.DescribeVpcEndpointsInput{},
+					func(page *ec2.DescribeVpcEndpointsOutput, more bool) bool {
+						pageNum++
+						ec2APICounter.Inc()
+
+						for _, vpce := range page.VpcEndpoints {
+							resource := taggedResource{
+								ARN:       fmt.Sprintf("arn:aws:ec2:%s:%s:vpc-endpoint/%s", region, *vpce.OwnerId, *vpce.VpcEndpointId),
+								Namespace: job.Type,
+								Region:    region,
+							}
+
+							for _, t := range vpce.Tags {
+								resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
+			},
 		}, {
 			Namespace: "AWS/PrivateLinkServices",
 			Alias:     "vpc-endpoint-service",
@@ -565,7 +591,37 @@ var (
 				aws.String("ec2:vpc-endpoint-service"),
 			},
 			DimensionRegexps: []*string{
-				aws.String(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+				aws.String(":vpc-endpoint-service/(?P<Service_Id>.+)"),
+			},
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
+				firstRequest := true
+				var nextToken *string
+				for firstRequest || nextToken != nil {
+					ec2APICounter.Inc()
+					firstRequest = false
+					response, err := iface.ec2Client.DescribeVpcEndpointServicesWithContext(ctx, &ec2.DescribeVpcEndpointServicesInput{MaxResults: aws.Int64(1000), NextToken: nextToken})
+					if err != nil {
+						return nil, err
+					}
+					nextToken = response.NextToken
+
+					for _, vpces := range response.ServiceDetails {
+						resource := taggedResource{
+							ARN:       fmt.Sprintf("arn:aws:ec2:%s:%s:vpc-endpoint-service/%s", region, *vpces.Owner, *vpces.ServiceId),
+							Namespace: job.Type,
+							Region:    region,
+						}
+
+						for _, t := range vpces.Tags {
+							resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
+						}
+
+						if resource.filterThroughTags(job.SearchTags) {
+							resources = append(resources, &resource)
+						}
+					}
+				}
+				return resources, nil
 			},
 		}, {
 			Namespace: "AWS/RDS",
