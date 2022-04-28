@@ -82,7 +82,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		" --start-time " + startTime.Format(time.RFC3339) +
 		" --end-time " + endTime.Format(time.RFC3339))
 
-	logger.Debug("Output: %v", *output)
+	logger.Debug("createGetMetricStatisticsInput", "output", *output)
 	return output
 }
 
@@ -129,7 +129,7 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		time.Duration(roundingPeriod)*time.Second,
 		time.Duration(length)*time.Second,
 		time.Duration(delay)*time.Second)
-	logger.Debug("GetMetricData StartTime: %s, EndTime: %s", startTime.Format(timeFormat), endTime.Format(timeFormat))
+	logger.Debug("GetMetricData Window", "start_time", startTime.Format(timeFormat), "end_time", endTime.Format(timeFormat))
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{
@@ -197,11 +197,11 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 func (iface cloudwatchInterface) get(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c := iface.client
 
-	iface.logger.Debug("GetMetricStatisticsInput: %v", filter)
+	iface.logger.Debug("GetMetricStatistics", "input", filter)
 
 	resp, err := c.GetMetricStatisticsWithContext(ctx, filter)
 
-	iface.logger.Debug("GetMetricStatisticsOutput: %v", resp)
+	iface.logger.Debug("GetMetricStatistics", "output", resp)
 
 	cloudwatchAPICounter.Inc()
 	cloudwatchGetMetricStatisticsAPICounter.Inc()
@@ -220,7 +220,7 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 	var resp cloudwatch.GetMetricDataOutput
 
 	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricDataInput: %v", filter)
+		iface.logger.Debug("GetMetricData", "input", filter)
 	}
 
 	// Using the paged version of the function
@@ -233,7 +233,7 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 		})
 
 	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricDataOutput: %v", resp)
+		iface.logger.Debug("GetMetricData", "output", resp)
 	}
 
 	if err != nil {
