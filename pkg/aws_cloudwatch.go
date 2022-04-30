@@ -272,7 +272,7 @@ func getFullMetricsList(ctx context.Context, namespace string, metric *Metric, c
 	return &res, nil
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, m *Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*taggedResource
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -303,6 +303,9 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		r := &taggedResource{
 			ARN:       "global",
 			Namespace: namespace,
+		}
+		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
+			continue
 		}
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
@@ -340,6 +343,25 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		}
 	}
 	return getMetricsData
+}
+
+func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNames []string) bool {
+	if len(dimensionNames) != len(metric.Dimensions) {
+		return false
+	}
+	for _, dimension := range metric.Dimensions {
+		foundMatch := false
+		for _, dimensionName := range dimensionNames {
+			if *dimension.Name == dimensionName {
+				foundMatch = true
+				break
+			}
+		}
+		if !foundMatch {
+			return false
+		}
+	}
+	return true
 }
 
 func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[string]string {

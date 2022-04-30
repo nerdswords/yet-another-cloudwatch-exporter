@@ -195,7 +195,7 @@ func getMetricDataForQueries(
 		if len(resources) == 0 {
 			logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
 		}
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, metric)...)
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNames, metric)...)
 	}
 	return getMetricDatas
 }

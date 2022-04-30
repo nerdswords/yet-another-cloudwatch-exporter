@@ -150,6 +150,7 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 | roundingPeriod         | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.                     |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
 | customTags             | Custom tags to be added as a list of Key/Value pairs                                                     |
+| dimensionNames         | List of metric dimensions to request. Any metric without exactly these dimensions will not be requested. Any empty or undefined list results in all dimension combinations being included.
 | metrics                | List of metric definitions                                                                               |
 
 searchTags example:
