@@ -1,3 +1,16 @@
+# 0.36.0-alpha
+
+* *BREAKING CHANGE FOR LIBRARY USERS* Major refactoring of usage of logging library (kgeckhart)
+* Minor update of deps and security patches (urfave/cli/v2, golangci/golangci-lint-action, github.com/prometheus/client_golang, github.com/stretchr/testify, github.com/aws/aws-sdk-go
+* Updates of Readme (markwallsgrove)
+
+  github.com/urfave/cli/v2 from 2.4.8 to 2.10.1 (#598)
+2022-06-19 22:13 +0200 dependabot[bot]           o Bump golangci/golangci-lint-action from 3.1.0 to 3.2.0 (#581)
+2022-06-19 22:12 +0200 dependabot[bot]           o Bump github.com/prometheus/client_golang from 1.12.1 to 1.12.2 (#583)
+2022-06-19 22:12 +0200 dependabot[bot]           o Bump github.com/stretchr/testify from 1.7.1 to 1.7.2 (#593)
+2022-06-19 22:10 +0200 dependabot[bot]           o Bump github.com/aws/aws-sdk-go from 1.44.0 to 1.44.33 (#597)
+2022-06-19 21:09 +0100 Mark Wallsgrove           o Update README regarding ec2 metadata endpoint (#596)
+
 # 0.35.0-alpha
 * Update dependencies
 * Improve / Document way how to use the exporter as external library (kgeckhart)
