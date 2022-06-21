@@ -77,7 +77,6 @@ func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	account          string
 	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
