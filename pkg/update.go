@@ -48,9 +48,10 @@ func UpdateMetrics(
 }
 
 type Logger interface {
-	Info(message string, args ...interface{})
-	Debug(message string, args ...interface{})
-	Error(err error, message string, args ...interface{})
-	Warn(message string, args ...interface{})
+	Info(message string, keyvals ...interface{})
+	Debug(message string, keyvals ...interface{})
+	Error(err error, message string, keyvals ...interface{})
+	Warn(message string, keyvals ...interface{})
+	With(keyvals ...interface{}) Logger
 	IsDebugEnabled() bool
 }

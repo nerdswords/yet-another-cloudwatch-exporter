@@ -77,7 +77,6 @@ func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	account          string
 	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asgClient        autoscalingiface.AutoScalingAPI
 	apiGatewayClient apigatewayiface.APIGatewayAPI
@@ -102,7 +101,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 			resourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				iface.logger.Error(errors.New("resource tag list is empty"), "Account %s contained no tagged resource. Tags must be defined for %s to be discovered.", iface.account, job.Type)
+				iface.logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
@@ -119,7 +118,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 				if resource.filterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				} else {
-					iface.logger.Debug("Skipping resource %s because search tags do not match", resource.ARN)
+					iface.logger.Debug("Skipping resource because search tags do not match")
 				}
 			}
 			return pageNum < 100

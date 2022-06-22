@@ -35,28 +35,29 @@ func scrapeAwsData(
 				wg.Add(1)
 				go func(discoveryJob *Job, region string, role Role) {
 					defer wg.Done()
+					jobLogger := logger.With("job_type", discoveryJob.Type, "region", region, "arn", role.RoleArn)
 					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
-						logger.Error(err, "Couldn't get account Id for role %s", role.RoleArn)
+						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
+					jobLogger = jobLogger.With("account", *result.Account)
 
 					clientCloudwatch := cloudwatchInterface{
 						client: cache.GetCloudwatch(&region, role),
-						logger: logger,
+						logger: jobLogger,
 					}
 
 					clientTag := tagsInterface{
-						account:          *result.Account,
 						client:           cache.GetTagging(&region, role),
 						apiGatewayClient: cache.GetAPIGateway(&region, role),
 						asgClient:        cache.GetASG(&region, role),
 						dmsClient:        cache.GetDMS(&region, role),
 						ec2Client:        cache.GetEC2(&region, role),
-						logger:           logger,
+						logger:           jobLogger,
 					}
 
-					resources, metrics := scrapeDiscoveryJobUsingMetricData(ctx, discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore, logger)
+					resources, metrics := scrapeDiscoveryJobUsingMetricData(ctx, discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore, jobLogger)
 					mux.Lock()
 					awsInfoData = append(awsInfoData, resources...)
 					cwData = append(cwData, metrics...)
@@ -72,18 +73,20 @@ func scrapeAwsData(
 				wg.Add(1)
 				go func(staticJob *Static, region string, role Role) {
 					defer wg.Done()
+					jobLogger := logger.With("static_job_name", staticJob.Name, "region", region, "arn", role.RoleArn)
 					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
 					if err != nil || result.Account == nil {
-						logger.Error(err, "Couldn't get account Id for role %s", role.RoleArn)
+						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
+					jobLogger = jobLogger.With("account", *result.Account)
 
 					clientCloudwatch := cloudwatchInterface{
 						client: cache.GetCloudwatch(&region, role),
-						logger: logger,
+						logger: jobLogger,
 					}
 
-					metrics := scrapeStaticJob(ctx, staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore, logger)
+					metrics := scrapeStaticJob(ctx, staticJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore, jobLogger)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -183,12 +186,12 @@ func getMetricDataForQueries(
 		<-tagSemaphore
 
 		if err != nil {
-			logger.Error(err, "Failed to get full metric list for %s on %s job in region %s", metric.Name, svc.Namespace, region)
+			logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
 			continue
 		}
 
 		if len(resources) == 0 {
-			logger.Debug("No resources for metric %s on %s job", metric.Name, svc.Namespace)
+			logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
 		}
 		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, metric)...)
 	}
@@ -213,7 +216,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	resources, err := clientTag.get(ctx, job, region)
 	<-tagSemaphore
 	if err != nil {
-		logger.Error(err, "Couldn't describe resources for region %s, in account %s", region, *accountId)
+		logger.Error(err, "Couldn't describe resources")
 		return
 	}
 
@@ -221,7 +224,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
-		logger.Debug("No metrics data for %s", job.Type)
+		logger.Debug("No metrics data found")
 		return
 	}
 
