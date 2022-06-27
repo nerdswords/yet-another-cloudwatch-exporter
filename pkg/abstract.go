@@ -58,10 +58,12 @@ func scrapeAwsData(
 					}
 
 					resources, metrics := scrapeDiscoveryJobUsingMetricData(ctx, discoveryJob, region, result.Account, config.Discovery.ExportedTagsOnMetrics, clientTag, clientCloudwatch, metricsPerQuery, discoveryJob.RoundingPeriod, tagSemaphore, jobLogger)
-					mux.Lock()
-					awsInfoData = append(awsInfoData, resources...)
-					cwData = append(cwData, metrics...)
-					mux.Unlock()
+					if len(resources) != 0 && len(metrics) != 0 {
+						mux.Lock()
+						awsInfoData = append(awsInfoData, resources...)
+						cwData = append(cwData, metrics...)
+						mux.Unlock()
+					}
 				}(discoveryJob, region, role)
 			}
 		}
@@ -217,6 +219,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	<-tagSemaphore
 	if err != nil {
 		logger.Error(err, "Couldn't describe resources")
+		return
+	}
+
+	if len(resources) == 0 {
+		logger.Info("No tagged resources made it through filtering")
 		return
 	}
 
