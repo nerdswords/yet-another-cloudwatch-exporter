@@ -345,13 +345,13 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	return getMetricsData
 }
 
-func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNames []string) bool {
-	if len(dimensionNames) != len(metric.Dimensions) {
+func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNameRequirements []string) bool {
+	if len(dimensionNameRequirements) != len(metric.Dimensions) {
 		return false
 	}
 	for _, dimension := range metric.Dimensions {
 		foundMatch := false
-		for _, dimensionName := range dimensionNames {
+		for _, dimensionName := range dimensionNameRequirements {
 			if *dimension.Name == dimensionName {
 				foundMatch = true
 				break
