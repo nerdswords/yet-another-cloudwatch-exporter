@@ -1,3 +1,7 @@
+# 0.36.2-alpha
+* Cost Reduction - Use less API requests if no tagged resources are found (cristiangreco)
+* Update deps
+
 # 0.36.1-alpha
 * Use structured logs for logging interface (kgeckhart)
 
