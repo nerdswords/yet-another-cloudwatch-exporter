@@ -245,12 +245,12 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		{
 			"alb",
 			args{
-				region:     "us-east-1",
-				accountId:  aws.String("123123123123"),
-				namespace:  "alb",
-				customTags: nil,
-				tagsOnMetrics: nil,
-				dimensionRegexps: SupportedServices.GetService("alb").DimensionRegexps,
+				region:                    "us-east-1",
+				accountId:                 aws.String("123123123123"),
+				namespace:                 "alb",
+				customTags:                nil,
+				tagsOnMetrics:             nil,
+				dimensionRegexps:          SupportedServices.GetService("alb").DimensionRegexps,
 				dimensionNameRequirements: []string{"LoadBalancer", "TargetGroup"},
 				resources: []*taggedResource{
 					{
