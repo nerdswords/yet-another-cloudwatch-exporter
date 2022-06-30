@@ -1,0 +1,13 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ClusterRole
+metadata:
+  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
+  labels:
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets","configmap"]
+    resourceNames: ["{{ template "yet-another-cloudwatch-exporter.fullname" . }}"]
+    verbs: ["get"]
+{{- end }}
