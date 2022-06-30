@@ -2,31 +2,53 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
-
 image:
-  repository: quay.io/invisionag/yet-another-cloudwatch-exporter
-  tag: v0.13.7
+  repository: ghcr.io/nerdswords/yet-another-cloudwatch-exporter
   pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
 
+imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
 
 service:
   type: ClusterIP
   port: 80
-  annotations: {}
-  labels: {}
 
 ingress:
   enabled: false
+  className: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
     - host: chart-example.local
-      paths: []
-
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -50,14 +72,9 @@ tolerations: []
 
 affinity: {}
 
-podAnnoatations: {}
-
-podLabels: {}
-
 extraArgs: []
 #   decoupled-scraping: false
 #   scraping-interval: 300
-
 
 aws:
   role:
@@ -75,19 +92,6 @@ aws:
   aws_access_key_id:
   aws_secret_access_key:
 
-serviceAccount:
-  # Specifies whether a ServiceAccount should be created
-  create: true
-  annotations: {}
-  labels: {}
-  # The name of the ServiceAccount to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name:
-
-rbac:
-  # Specifies whether RBAC resources should be created
-  create: true
-
 serviceMonitor:
   # When set true then use a ServiceMonitor to configure scraping
   enabled: false
@@ -95,14 +99,54 @@ serviceMonitor:
   # namespace: monitoring
   # Set how frequently Prometheus should scrape
   # interval: 30s
-  # Set targetPort for serviceMonitor
-  port: http
   # Set path to cloudwatch-exporter telemtery-path
   # telemetryPath: /metrics
   # Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator
   # labels:
   # Set timeout for scrape
   # timeout: 10s
+  # Set relabelings for the ServiceMonitor, use to apply to samples before scraping
+  # relabelings: []
+  # Set metricRelabelings for the ServiceMonitor, use to apply to samples for ingestion
+  # metricRelabelings: []
+  #
+  # Example - note the Kubernetes convention of camelCase instead of Prometheus' snake_case
+  # metricRelabelings:
+  #   - sourceLabels: [dbinstance_identifier]
+  #     action: replace
+  #     replacement: mydbname
+  #     targetLabel: dbname
+
+prometheusRule:
+  # Specifies whether a PrometheusRule should be created
+  enabled: false
+  # Set the namespace the PrometheusRule should be deployed
+  # namespace: monitoring
+  # Set labels for the PrometheusRule, use this to define your scrape label for Prometheus Operator
+  # labels:
+  # Example - note the Kubernetes convention of camelCase instead of Prometheus'
+  # rules:
+  #    - alert: ELB-Low-BurstBalance
+  #      annotations:
+  #        message: The ELB BurstBalance during the last 10 minutes is lower than 80%.
+  #      expr: aws_ebs_burst_balance_average < 80
+  #      for: 10m
+  #      labels:
+  #        severity: warning
+  #    - alert: ELB-Low-BurstBalance
+  #      annotations:
+  #        message: The ELB BurstBalance during the last 10 minutes is lower than 50%.
+  #      expr: aws_ebs_burst_balance_average < 50
+  #      for: 10m
+  #      labels:
+  #        severity: warning
+  #    - alert: ELB-Low-BurstBalance
+  #      annotations:
+  #        message: The ELB BurstBalance during the last 10 minutes is lower than 30%.
+  #      expr: aws_ebs_burst_balance_average < 30
+  #      for: 10m
+  #      labels:
+  #        severity: critical
 
 
 config: |-

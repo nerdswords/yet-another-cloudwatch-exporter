@@ -3,34 +3,34 @@ kind: Deployment
 metadata:
   name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
-    helm.sh/chart: {{ include "yet-another-cloudwatch-exporter.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      labels:
-        app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-      {{- range $key, $val := .Values.podLabels }}
-        {{ $key }}: {{ $val | quote }}
-      {{- end}}
       annotations:
-        {{ if .Values.aws.role}}iam.amazonaws.com/role: {{ .Values.aws.role }}{{ end }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-      {{- range $key, $val := .Values.podAnnotations }}
-        {{ $key }}: {{ $val | quote }}
-      {{- end}}
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "yet-another-cloudwatch-exporter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - "yace"
@@ -61,7 +61,7 @@ spec:
                   key: security_token
                   name: {{ .Values.aws.secret.name }}
           {{- end }}
-        {{- else if and .Values.aws.aws_secret_access_key .Values.aws.aws_access_key_id }}
+          {{- else if and .Values.aws.aws_secret_access_key .Values.aws.aws_access_key_id }}
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
@@ -81,31 +81,26 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
-              port: http
+              path: /healthz
+              port: 5000
           readinessProbe:
             httpGet:
-              path: /
-              port: http
+              path: /healthz
+              port: 5000
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "yet-another-cloudwatch-exporter.serviceAccountName" . }}
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-    {{- with .Values.affinity }}
+      {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
       volumes:
       - configMap:
           defaultMode: 420

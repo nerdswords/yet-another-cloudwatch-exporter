@@ -1,0 +1,16 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
+  labels:
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "yet-another-cloudwatch-exporter.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ template "yet-another-cloudwatch-exporter.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

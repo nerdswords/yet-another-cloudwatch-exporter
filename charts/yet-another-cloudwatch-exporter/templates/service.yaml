@@ -2,16 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
-  annotations:
-{{ toYaml .Values.service.annotations | indent 4 }}
   labels:
-    app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
-    helm.sh/chart: {{ include "yet-another-cloudwatch-exporter.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- if .Values.service.labels }}
-{{ toYaml .Values.service.labels | indent 4 }}
-{{- end }}
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -20,5 +12,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 4 }}
