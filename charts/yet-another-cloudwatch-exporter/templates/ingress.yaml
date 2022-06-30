@@ -1,12 +1,12 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "prometheus-yace-exporter.fullname" . -}}
+{{- $fullName := include "yet-another-cloudwatch-exporter.fullname" . -}}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
-    helm.sh/chart: {{ include "prometheus-yace-exporter.chart" . }}
+    app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
+    helm.sh/chart: {{ include "yet-another-cloudwatch-exporter.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   {{- with .Values.ingress.annotations }}

@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "prometheus-yace-exporter.name" -}}
+{{- define "yet-another-cloudwatch-exporter.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "prometheus-yace-exporter.fullname" -}}
+{{- define "yet-another-cloudwatch-exporter.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -28,7 +28,7 @@ If release name contains chart name it will be used as a full name.
 Set the serviceAccount name
 If serviceAccount.name is defined use that otherwise us fullname 
 */}}
-{{- define "prometheus-yace-exporter.serviceAccountName" -}}
+{{- define "yet-another-cloudwatch-exporter.serviceAccountName" -}}
 {{- if .Values.serviceAccount.name -}}
 {{- .Values.serviceAccount.name | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -44,6 +44,6 @@ If serviceAccount.name is defined use that otherwise us fullname
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "prometheus-yace-exporter.chart" -}}
+{{- define "yet-another-cloudwatch-exporter.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}

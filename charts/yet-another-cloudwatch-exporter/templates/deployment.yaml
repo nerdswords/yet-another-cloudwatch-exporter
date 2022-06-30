@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "prometheus-yace-exporter.fullname" . }}
+  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
-    helm.sh/chart: {{ include "prometheus-yace-exporter.chart" . }}
+    app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
+    helm.sh/chart: {{ include "yet-another-cloudwatch-exporter.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
+      app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
+        app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
       {{- range $key, $val := .Values.podLabels }}
         {{ $key }}: {{ $val | quote }}
@@ -39,7 +39,7 @@ spec:
             - --{{ $key }}={{ $value }}
             {{- end }}
           volumeMounts:
-            - name: vol-prometheus-yace-exporter
+            - name: vol-yet-another-cloudwatch-exporter
               mountPath: /config
         {{- if not .Values.aws.role }}
         {{- if .Values.aws.secret.name }}
@@ -67,12 +67,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: aws_access_key_id
-                  name: {{ include "prometheus-yace-exporter.fullname" . }}
+                  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   key: aws_secret_access_key
-                  name: {{ include "prometheus-yace-exporter.fullname" . }}
+                  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
           {{- end }}
           {{- end }}
           ports:
@@ -93,7 +93,7 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "prometheus-yace-exporter.serviceAccountName" . }}
+      serviceAccountName: {{ include "yet-another-cloudwatch-exporter.serviceAccountName" . }}
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
@@ -109,5 +109,5 @@ spec:
       volumes:
       - configMap:
           defaultMode: 420
-          name: {{ include "prometheus-yace-exporter.fullname" . }}
-        name: vol-prometheus-yace-exporter
+          name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
+        name: vol-yet-another-cloudwatch-exporter
