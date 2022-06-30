@@ -1,0 +1,19 @@
+builds:
+  - binary: yace
+    main: ./cmd/yace
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      amd64: x86_64
+    files:
+      - none*
+changelog:
+  skip: true
+checksum:
+  name_template: 'checksums.txt'

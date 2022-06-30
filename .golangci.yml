@@ -1,0 +1,22 @@
+output:
+  format: line-number
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - errcheck
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - varcheck
+
+linters-settings:
+  goimports:
+    local-prefixes: "github.com/nerdswords/yet-another-cloudwatch-exporter"
