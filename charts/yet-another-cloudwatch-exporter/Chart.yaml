@@ -1,16 +1,16 @@
-apiVersion: v1
-appVersion: "0.13.7"
-description: A Helm chart for YACE exporter
+apiVersion: v2
 name: yet-another-cloudwatch-exporter
-version: 0.5.0
-home: https://github.com/ivx/yet-another-cloudwatch-exporter
+description: Yet Another Cloudwatch Exporter
+type: application
+version: 0.6.0
+appVersion: "v0.36.1-alpha"
+home: https://github.com/nerdswords/yet-another-cloudwatch-exporter
 sources:
-- https://github.com/ivx/yet-another-cloudwatch-exporter
+- https://github.com/nerdswords/yet-another-cloudwatch-exporter
 keywords:
 - aws
 - cloudwatch
 - prometheus
 - exporter
-maintainers:
-- email: garridomota@gmail.com
-  name: mogaal
+- yet-another
+- yace

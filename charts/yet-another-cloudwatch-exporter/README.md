@@ -1,35 +1,38 @@
 # Cloudwatch exporter
 
-* Installs [YACE (Yet Another Cloudwatch Exporter) exporter](https://github.com/ivx/yet-another-cloudwatch-exporter)
+* Installs [YACE - yet another cloudwatch exporter](https://github.com/nerdswords/yet-another-cloudwatch-exporter)
 
 ## TL;DR;
 
 ```console
-$ helm install stable/yet-another-cloudwatch-exporter
+$ helm repo add nerdswords https://nerdswords.github.io/yet-another-cloudwatch-exporter
+$ helm install nerdswords/yet-another-cloudwatch-exporter
 ```
 
 ## Introduction
 
-This chart bootstraps a [YACE (Yet Another Cloudwatch Exporter) exporter](https://github.com/ivx/yet-another-cloudwatch-exporter) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+This chart bootstraps a [YACE - yet another cloudwatch exporter](https://github.com/nerdswords/yet-another-cloudwatch-exporter) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
 ## Prerequisites
 
-- [kube2iam](../../stable/kube2iam) installed to used the **aws.role** config option otherwise configure **aws.aws_access_key_id** and **aws.aws_secret_access_key** or **aws.secret.name**
+- [kube2iam](https://github.com/jtblin/kube2iam) installed to use the **aws.role** config option otherwise configure **aws.aws_access_key_id** and **aws.aws_secret_access_key** or **aws.secret.name**
+- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installed to use serviceMonitor and/or prometheusRule
 
 ## Installing the Chart
 
 To install the chart with the release name `my-release`:
 
 ```console
+$ helm repo add nerdswords https://nerdswords.github.io/yet-another-cloudwatch-exporter
 $ # pass AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY as values
-$ helm install --name my-release stable/yet-another-cloudwatch-exporter --set aws.aws_access_key_id=$AWS_ACCESS_KEY_ID,aws.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
+$ helm install --name my-release nerdswords/yet-another-cloudwatch-exporter --set aws.aws_access_key_id=$AWS_ACCESS_KEY_ID,aws.aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
 
 $ # or store them in a secret and pass its name as a value
 $ kubectl create secret generic <SECRET_NAME> --from-literal=access_key=$AWS_ACCESS_KEY_ID --from-literal=secret_key=$AWS_SECRET_ACCESS_KEY
-$ helm install --name my-release stable/yet-another-cloudwatch-exporter --set aws.secret.name=<SECRET_NAME>
+$ helm install --name my-release nerdswords/yet-another-cloudwatch-exporter --set aws.secret.name=<SECRET_NAME>
 
 $ # or add a role to aws with the [correct policy](https://github.com/prometheus/cloudwatch_exporter#credentials-and-permissions) to add to cloud watch and pass its name as a value
-$ helm install --name my-release stable/yet-another-cloudwatch-exporter --set aws.role=<ROLL_NAME>
+$ helm install --name my-release nerdswords/yet-another-cloudwatch-exporter --set aws.role=<ROLL_NAME>
 ```
 
 The command deploys YACE exporter on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -56,8 +59,6 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `command`                         | Container entrypoint command                                            | `[]`                        |
 | `service.type`                    | Service type                                                            | `ClusterIP`                 |
 | `service.port`                    | The service port                                                        | `80`                        |
-| `service.annotations`             | Custom annotations for service                                          | `{}`                        |
-| `service.labels`                  | Additional custom labels for the service                                | `{}`                        |
 | `resources`                       |                                                                         | `{}`                        |
 | `extraArgs`                       | Additional container arguments                                          | `[]`                        |
 | `aws.role`                        | AWS IAM Role To Use                                                     |                             |
@@ -66,7 +67,6 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `aws.secret.name`                 | The name of a pre-created secret in which AWS credentials are stored    |                             |
 | `aws.secret.includesSessionToken` | Whether or not the pre-created secret contains an AWS STS session token |                             |
 | `config`                          | YACE configuration (default found in the webpage)                       | `example configuration`     |
-| `rbac.create`                     | If true, create & use RBAC resources                                    | `false`                     |
 | `serviceAccount.create`           | Specifies whether a service account should be created.                  | `true`                      |
 | `serviceAccount.name`             | Name of the service account.                                            |                             |
 | `serviceAccount.annotations`      | Custom annotations for service                                          | `{}`                        |
@@ -79,7 +79,6 @@ The following table lists the configurable parameters of the YACE Exporter chart
 | `serviceMonitor.enabled`          | Use servicemonitor from prometheus operator                             | `false`                     |
 | `serviceMonitor.namespace`        | Namespace thes Servicemonitor  is installed in                          |                             |
 | `serviceMonitor.interval`         | How frequently Prometheus should scrape                                 |                             |
-| `serviceMonitor.port`             | Specify serviceMonitor object targetPort                                | `http`                      |
 | `serviceMonitor.telemetryPath`    | path to yave telemtery-path                                             |                             |
 | `serviceMonitor.labels`           | labels for the ServiceMonitor passed to Prometheus Operator             | `{}`                        |
 | `serviceMonitor.timeout`          | Timeout after which the scrape is ended                                 |                             |
@@ -96,11 +95,11 @@ Specify each parameter using the `--set key=value[,key=value]` argument to `helm
 ```console
 $ helm install --name my-release \
     --set aws.role=my-aws-role \
-    stable/yet-another-cloudwatch-exporter
+    nerdswords/yet-another-cloudwatch-exporter
 ```
 
 Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
 
 ```console
-$ helm install --name my-release -f values.yaml stable/yet-another-cloudwatch-exporter
+$ helm install --name my-release -f values.yaml nerdswords/yet-another-cloudwatch-exporter
 ```
