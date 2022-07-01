@@ -6,7 +6,7 @@ metadata:
   labels:
 {{ toYaml .Values.serviceMonitor.labels | indent 4}}
 {{- end }}
-  name: {{ include "prometheus-yace-exporter.fullname" . }}
+  name: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
 {{- if .Values.serviceMonitor.namespace }}
   namespace: {{ .Values.serviceMonitor.namespace }}
 {{- end }}
@@ -22,12 +22,12 @@ spec:
 {{- if .Values.serviceMonitor.timeout }}
     scrapeTimeout: {{ .Values.serviceMonitor.timeout }}
 {{- end }}
-  jobLabel: {{ include "prometheus-yace-exporter.fullname" . }}
+  jobLabel: {{ include "yet-another-cloudwatch-exporter.fullname" . }}
   namespaceSelector:
     matchNames:
     - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "prometheus-yace-exporter.name" . }}
+      app.kubernetes.io/name: {{ include "yet-another-cloudwatch-exporter.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

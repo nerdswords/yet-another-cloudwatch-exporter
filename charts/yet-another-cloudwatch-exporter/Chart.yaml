@@ -1,7 +1,7 @@
 apiVersion: v1
 appVersion: "0.13.7"
 description: A Helm chart for YACE exporter
-name: prometheus-yace-exporter
+name: yet-another-cloudwatch-exporter
 version: 0.5.0
 home: https://github.com/ivx/yet-another-cloudwatch-exporter
 sources:
