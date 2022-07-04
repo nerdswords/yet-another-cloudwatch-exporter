@@ -1,3 +1,8 @@
+# 0.37.0-alpha
+* New config `dimensionNameRequirements` allows autodiscovery jobs to only
+  fetch metrics that include specified dimensions (jutley)
+* Update deps
+
 # 0.36.2-alpha
 * Cost Reduction - Use less API requests if no tagged resources are found (cristiangreco)
 * Update deps
@@ -178,7 +183,7 @@ Freshly shipped new integrations:
 
 - Make exporter a library. (jeschkies)
 - Add CLI option to validate config file (zswanson)
-- Fix multidimensional static metric (nmiculinic) 
+- Fix multidimensional static metric (nmiculinic)
 - Fix scrapes running in EKS fail after first scrape (rrusso1982)
 - Fix Docker build (jeschkies)
 - Allow to use this project in China (insectme)
@@ -501,7 +506,7 @@ aws_elb_request_count_sum
 period: 60
 length: 900
 delay: 300
-``` 
+```
 
 # 0.10.0
 * Reduce usage of listMetrics calls (nhinds)
@@ -678,4 +683,3 @@ jobs:
 * Implement minimum, average, maximum, sum for cloudwatch api
 * Implement way to handle multiple data returned by cloudwatch
 * Update go dependencies
-
