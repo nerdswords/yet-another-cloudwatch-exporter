@@ -36,5 +36,5 @@ spec:
     - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 4 }}
+      {{- include "yet-another-cloudwatch-exporter.selectorLabels" . | nindent 6 }}
 {{- end }}
