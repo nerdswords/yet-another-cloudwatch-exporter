@@ -502,7 +502,11 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 ```
 
 ## Kubernetes Installation
+### Install with HELM
+* [README](charts/yet-another-cloudwatch-exporter/README.md)
 
+
+### Install with manifests
 ```yaml
 ---
 apiVersion: v1
