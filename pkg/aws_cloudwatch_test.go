@@ -60,15 +60,16 @@ func TestSortyByTimeStamp(t *testing.T) {
 
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
-		region           string
-		accountId        *string
-		namespace        string
-		customTags       []Tag
-		tagsOnMetrics    exportedTagsOnMetrics
-		dimensionRegexps []*string
-		resources        []*taggedResource
-		metricsList      []*cloudwatch.Metric
-		m                *Metric
+		region                    string
+		accountId                 *string
+		namespace                 string
+		customTags                []Tag
+		tagsOnMetrics             exportedTagsOnMetrics
+		dimensionRegexps          []*string
+		dimensionNameRequirements []string
+		resources                 []*taggedResource
+		metricsList               []*cloudwatch.Metric
+		m                         *Metric
 	}
 	tests := []struct {
 		name               string
@@ -241,10 +242,130 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 			},
 		},
+		{
+			"alb",
+			args{
+				region:                    "us-east-1",
+				accountId:                 aws.String("123123123123"),
+				namespace:                 "alb",
+				customTags:                nil,
+				tagsOnMetrics:             nil,
+				dimensionRegexps:          SupportedServices.GetService("alb").DimensionRegexps,
+				dimensionNameRequirements: []string{"LoadBalancer", "TargetGroup"},
+				resources: []*taggedResource{
+					{
+						ARN: "arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345",
+						Tags: []Tag{
+							{
+								Key:   "Name",
+								Value: "some-ALB",
+							},
+						},
+						Namespace: "alb",
+						Region:    "us-east-1",
+					},
+				},
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("RequestCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("LoadBalancer"),
+								Value: aws.String("app/some-ALB/0123456789012345"),
+							},
+							{
+								Name:  aws.String("TargetGroup"),
+								Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+							},
+							{
+								Name:  aws.String("AvailabilityZone"),
+								Value: aws.String("us-east-1"),
+							},
+						},
+						Namespace: aws.String("AWS/ApplicationELB"),
+					},
+					{
+						MetricName: aws.String("RequestCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("LoadBalancer"),
+								Value: aws.String("app/some-ALB/0123456789012345"),
+							},
+							{
+								Name:  aws.String("TargetGroup"),
+								Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+							},
+						},
+						Namespace: aws.String("AWS/ApplicationELB"),
+					},
+					{
+						MetricName: aws.String("RequestCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("LoadBalancer"),
+								Value: aws.String("app/some-ALB/0123456789012345"),
+							},
+							{
+								Name:  aws.String("AvailabilityZone"),
+								Value: aws.String("us-east-1"),
+							},
+						},
+						Namespace: aws.String("AWS/ApplicationELB"),
+					},
+					{
+						MetricName: aws.String("RequestCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("LoadBalancer"),
+								Value: aws.String("app/some-ALB/0123456789012345"),
+							},
+						},
+						Namespace: aws.String("AWS/ApplicationELB"),
+					},
+				},
+				m: &Metric{
+					Name: "RequestCount",
+					Statistics: []string{
+						"Sum",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]cloudwatchData{
+				{
+					AccountId:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("LoadBalancer"),
+							Value: aws.String("app/some-ALB/0123456789012345"),
+						},
+						{
+							Name:  aws.String("TargetGroup"),
+							Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+						},
+					},
+					ID:        aws.String("arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345"),
+					Metric:    aws.String("RequestCount"),
+					Namespace: aws.String("alb"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Sum",
+					},
+					Tags: []Tag{},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for i, got := range getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.m) {
+			for i, got := range getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m) {
 				if *got.AccountId != *tt.wantGetMetricsData[i].AccountId {
 					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountId, *tt.wantGetMetricsData[i].AccountId)
 				}
