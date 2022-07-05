@@ -2,17 +2,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-{{- if .Values.serviceMonitor.labels }}
-  labels:
-{{ toYaml .Values.serviceMonitor.labels | indent 4}}
-{{- end }}
   name: {{ template "yet-another-cloudwatch-exporter.fullname" . }}
 {{- if .Values.serviceMonitor.namespace }}
   namespace: {{ .Values.serviceMonitor.namespace }}
 {{- end }}
+  labels:
+    {{- include "yet-another-cloudwatch-exporter.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   endpoints:
-  - targetPort: {{ .Values.service.port }}
+  - port: http
 {{- if .Values.serviceMonitor.interval }}
     interval: {{ .Values.serviceMonitor.interval }}
 {{- end }}
