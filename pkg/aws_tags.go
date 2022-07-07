@@ -92,6 +92,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 	if len(svc.ResourceFilters) > 0 {
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
+			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
 		}
 		c := iface.client
 		pageNum := 0
@@ -121,7 +122,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 					iface.logger.Debug("Skipping resource because search tags do not match")
 				}
 			}
-			return pageNum < 100
+			return !lastPage
 		})
 		if err != nil {
 			return nil, err
