@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDimensionsToCliString(t *testing.T) {
@@ -28,34 +29,36 @@ func TestDimensionsToCliString(t *testing.T) {
 
 // TestSortyByTimeStamp validates that sortByTimestamp() sorts in descending order.
 func TestSortyByTimeStamp(t *testing.T) {
-	cloudWatchDataPoints := make([]*cloudwatch.Datapoint, 3)
-	maxValue1 := float64(1)
-	maxValue2 := float64(2)
-	maxValue3 := float64(3)
+	dataPointMiddle := &cloudwatch.Datapoint{
+		Timestamp: aws.Time(time.Now().Add(time.Minute * 2 * -1)),
+		Maximum:   aws.Float64(2),
+	}
 
-	dataPointMiddle := &cloudwatch.Datapoint{}
-	twoMinutesAgo := time.Now().Add(time.Minute * 2 * -1)
-	dataPointMiddle.Timestamp = &twoMinutesAgo
-	dataPointMiddle.Maximum = &maxValue2
-	cloudWatchDataPoints[0] = dataPointMiddle
+	dataPointNewest := &cloudwatch.Datapoint{
+		Timestamp: aws.Time(time.Now().Add(time.Minute * -1)),
+		Maximum:   aws.Float64(1),
+	}
 
-	dataPointNewest := &cloudwatch.Datapoint{}
-	oneMinutesAgo := time.Now().Add(time.Minute * -1)
-	dataPointNewest.Timestamp = &oneMinutesAgo
-	dataPointNewest.Maximum = &maxValue1
-	cloudWatchDataPoints[1] = dataPointNewest
+	dataPointOldest := &cloudwatch.Datapoint{
+		Timestamp: aws.Time(time.Now().Add(time.Minute * 3 * -1)),
+		Maximum:   aws.Float64(3),
+	}
 
-	dataPointOldest := &cloudwatch.Datapoint{}
-	threeMinutesAgo := time.Now().Add(time.Minute * 3 * -1)
-	dataPointOldest.Timestamp = &threeMinutesAgo
-	dataPointOldest.Maximum = &maxValue3
-	cloudWatchDataPoints[2] = dataPointOldest
+	cloudWatchDataPoints := []*cloudwatch.Datapoint{
+		dataPointMiddle,
+		dataPointNewest,
+		dataPointOldest,
+	}
 
 	sortedDataPoints := sortByTimestamp(cloudWatchDataPoints)
 
-	equals(t, maxValue1, *sortedDataPoints[0].Maximum)
-	equals(t, maxValue2, *sortedDataPoints[1].Maximum)
-	equals(t, maxValue3, *sortedDataPoints[2].Maximum)
+	expectedDataPoints := []*cloudwatch.Datapoint{
+		dataPointNewest,
+		dataPointMiddle,
+		dataPointOldest,
+	}
+
+	require.Equal(t, expectedDataPoints, sortedDataPoints)
 }
 
 func Test_getFilteredMetricDatas(t *testing.T) {
@@ -452,7 +455,6 @@ func (mt StubClock) Now() time.Time {
 }
 
 func Test_MetricWindow(t *testing.T) {
-
 	type data struct {
 		roundingPeriod    time.Duration
 		length            time.Duration
@@ -486,7 +488,7 @@ func Test_MetricWindow(t *testing.T) {
 				length:         120 * time.Second,
 				delay:          120 * time.Second,
 				clock: StubClock{
-					currentTime: time.Date(2021, 1, 1, 0, 02, 22, 33, time.UTC),
+					currentTime: time.Date(2021, 1, 1, 0, 0o2, 22, 33, time.UTC),
 				},
 				expectedStartTime: time.Date(2020, 12, 31, 23, 58, 22, 33, time.UTC),
 				expectedEndTime:   time.Date(2021, 1, 1, 0, 0, 22, 33, time.UTC),
@@ -522,7 +524,6 @@ func Test_MetricWindow(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-
 			startTime, endTime := determineGetMetricDataWindow(tc.data.clock, tc.data.roundingPeriod, tc.data.length, tc.data.delay)
 			if !startTime.Equal(tc.data.expectedStartTime) {
 				t.Errorf("start time incorrect. Expected: %s, Actual: %s", tc.data.expectedStartTime.Format(timeFormat), startTime.Format(timeFormat))
