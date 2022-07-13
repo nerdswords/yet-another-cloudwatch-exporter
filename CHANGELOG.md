@@ -1,3 +1,8 @@
+# 0.38.0-alpha
+
+* Set max page size for tagging API requests (#617)
+* Build with Go 1.18
+
 # 0.37.0-alpha
 * New config `dimensionNameRequirements` allows autodiscovery jobs to only
   fetch metrics that include specified dimensions (jutley)
