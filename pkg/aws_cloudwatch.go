@@ -307,19 +307,24 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue
 		}
-		for _, dimension := range cwMetric.Dimensions {
-			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
-				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
+
+		for _, dimension := range cwMetric.Dimensions { // loop over the returned dimensions for our current metric
+			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok { // if the name of the metric matches the name of a dimension we're filtering against, continue
+				if d, ok := dimensionFilterValues[*dimension.Value]; !ok { // if the value of our metric doesn't match the value of the dimension we're looking for and we haven't already found our metric in the previous iteration of the loop, skip
 					if !alreadyFound {
 						skip = true
 					}
 					break
-				} else {
+				} else { // if the value of the dimension we're filtering on matches the value attached to our current metric, set alreadyFound to true, and set our metric
 					alreadyFound = true
 					r = d
 				}
+			} else { // If the dimension name doesn't match the name of a dimension we're filtering on, skip
+				skip = true
+				break
 			}
 		}
+
 		if !skip {
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())

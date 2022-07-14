@@ -119,7 +119,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 				if resource.filterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				} else {
-					iface.logger.Debug("Skipping resource because search tags do not match")
+					iface.logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
 				}
 			}
 			return !lastPage
