@@ -61,7 +61,7 @@ func TestSortyByTimeStamp(t *testing.T) {
 	require.Equal(t, expectedDataPoints, sortedDataPoints)
 }
 
-func Test_getFilteredMetricDatasBadData(t *testing.T) {
+func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
 		region                    string
 		accountId                 *string
@@ -162,37 +162,6 @@ func Test_getFilteredMetricDatasBadData(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
-			if len(got) > 0 {
-				t.Errorf("len(getFilteredMetricDatas()) = %v, want 0", len(got))
-			}
-		})
-	}
-
-}
-
-func Test_getFilteredMetricDatas(t *testing.T) {
-	type args struct {
-		region                    string
-		accountId                 *string
-		namespace                 string
-		customTags                []Tag
-		tagsOnMetrics             exportedTagsOnMetrics
-		dimensionRegexps          []*string
-		dimensionNameRequirements []string
-		resources                 []*taggedResource
-		metricsList               []*cloudwatch.Metric
-		m                         *Metric
-	}
-	tests := []struct {
-		name               string
-		args               args
-		wantGetMetricsData []cloudwatchData
-	}{
 		{
 			"ec2",
 			args{

@@ -308,18 +308,23 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			continue
 		}
 
-		for _, dimension := range cwMetric.Dimensions { // loop over the returned dimensions for our current metric
-			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok { // if the name of the metric matches the name of a dimension we're filtering against, continue
-				if d, ok := dimensionFilterValues[*dimension.Value]; !ok { // if the value of our metric doesn't match the value of the dimension we're looking for and we haven't already found our metric in the previous iteration of the loop, skip
+		/**
+			This loop takes a list of dimensions for an individual metric returned from AWS ResourceGroupsTaggingApi#GetResources.
+			It filters those dimensions against a user-supplied list of dimensions by name and value, and if they match,
+			adds the metric to a list of metrics to have its values retrieved.
+		*/
+		for _, dimension := range cwMetric.Dimensions {
+			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
+				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
 					if !alreadyFound {
 						skip = true
 					}
 					break
-				} else { // if the value of the dimension we're filtering on matches the value attached to our current metric, set alreadyFound to true, and set our metric
+				} else {
 					alreadyFound = true
 					r = d
 				}
-			} else { // If the dimension name doesn't match the name of a dimension we're filtering on, skip
+			} else {
 				skip = true
 				break
 			}
