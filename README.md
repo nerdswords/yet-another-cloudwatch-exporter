@@ -34,6 +34,7 @@ We will contact you as soon as possible.
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from multiple AWS accounts using cross-account roles
 * Can be used as a library in an external application
+* Support the scraping of custom namespaces metrics with the CloudWatch Dimensions.
 * Supported services with auto discovery through tags:
 
   * acm (AWS/CertificateManager) - Certificate Manager
@@ -110,12 +111,13 @@ We will contact you as soon as possible.
 
 ### Top level configuration
 
-| Key        | Description                          |
-|------------|--------------------------------------|
-| apiVersion | Configuration file version           |
-| sts-region | Use STS regional endpoint (Optional) |
-| discovery  | Auto-discovery configuration         |
-| static     | List of static configurations        |
+| Key          | Description                                  |
+|--------------|----------------------------------------------|
+| apiVersion   | Configuration file version                   |
+| sts-region   | Use STS regional endpoint (Optional)         |
+| discovery    | Auto-discovery configuration                 |
+| static       | List of static configurations                |
+| customMetric | List of custom metrics configurations        |
 
 ### Auto-discovery configuration
 
@@ -409,6 +411,40 @@ static:
 ```
 
 [Source: [config_test.yml](pkg/testdata/config_test.yml)]
+
+### Custom Metrics configuration
+
+| Key        | Description                                                      |
+| ---------- | -----------------------------------------------------------------|
+| regions    | List of AWS regions                                              |
+| name       | the name of your rule. It will be added as a label in Prometheus |
+| namespace  | The Custom CloudWatch namespace                                  |
+| metrics    | List of metric definitions                                       |
+
+### Example of config File
+
+```yaml
+apiVersion: v1alpha1
+sts-endpoint: eu-west-1
+customMetrics:
+  - name: customMetrics
+    namespace: CustomEC2Metrics
+    regions:
+      - us-east-1
+    metrics:
+      - name: cpu_usage_idle
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_free
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+```
 
 ## Metrics Examples
 

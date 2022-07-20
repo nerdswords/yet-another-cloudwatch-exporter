@@ -1,0 +1,119 @@
+discovery:
+  exportedTagsOnMetrics:
+    ec2:
+      - Name
+      - prometheus.io/scrape
+  jobs:
+    - regions:
+        - us-east-1
+      type: ec2
+      period: 300
+      length: 300
+      nilToZero: true
+      searchTags:
+        - key: prometheus.io/scrape 
+          Value: "true"
+      metrics:
+        - name: StatusCheckFailed
+          statistics:
+            - Average
+        - name: StatusCheckFailed_Instance
+          statistics:
+            - Average
+        - name: StatusCheckFailed_System
+          statistics:
+            - Average
+        - name: NetworkPacketsOut
+          statistics:
+            - Average
+        - name: NetworkPacketsIn
+          statistics:
+            - Average
+        - name: NetworkOut
+          statistics:
+            - Average
+        - name: NetworkIn
+          statistics:
+            - Average
+        - name: DiskReadBytes
+          statistics:
+            - Average
+        - name: DiskReadOps
+          statistics:
+            - Average
+        - name: DiskWriteBytes
+          statistics:
+            - Average
+        - name: DiskWriteOps
+          statistics:
+            - Average
+        - name: CPUCreditUsage
+          statistics:
+            - Average
+        - name: CPUCreditBalance
+          statistics:
+            - Average
+        - name: CPUUtilization
+          statistics:
+                - Average
+customMetrics:
+  - name: customMetrics
+    namespace: CustomEC2Metrics
+    regions:
+      - us-east-1
+    metrics:
+      - name: cpu_usage_idle
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_free
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_total
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_used
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: mem_total
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: mem_used
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: swap_free
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: swap_used
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: swap_used_percent
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+
