@@ -97,6 +97,35 @@ func scrapeAwsData(
 			}
 		}
 	}
+
+	for _, customMetricJob := range config.CustomMetrics {
+		for _, role := range customMetricJob.Roles {
+			for _, region := range customMetricJob.Regions {
+				wg.Add(1)
+				go func(staticJob *CustomMetrics, region string, role Role) {
+					defer wg.Done()
+					jobLogger := logger.With("custom_metric_namespace", customMetricJob.Namespace, "region", region, "arn", role.RoleArn)
+					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
+					if err != nil || result.Account == nil {
+						jobLogger.Error(err, "Couldn't get account Id")
+						return
+					}
+					jobLogger = jobLogger.With("account", *result.Account)
+
+					clientCloudwatch := cloudwatchInterface{
+						client: cache.GetCloudwatch(&region, role),
+						logger: jobLogger,
+					}
+
+					metrics := scrapeCustomMetricJob(ctx, customMetricJob, region, result.Account, clientCloudwatch, cloudwatchSemaphore, jobLogger)
+
+					mux.Lock()
+					cwData = append(cwData, metrics...)
+					mux.Unlock()
+				}(customMetricJob, region, role)
+			}
+		}
+	}
 	wg.Wait()
 	return awsInfoData, cwData
 }
@@ -143,6 +172,74 @@ func scrapeStaticJob(ctx context.Context, resource *Static, region string, accou
 				mux.Lock()
 				cw = append(cw, &data)
 				mux.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	return cw
+}
+
+func scrapeCustomMetricJob(ctx context.Context, resource *CustomMetrics, region string, accountId *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}, logger Logger) (cw []*cloudwatchData) {
+	mux := &sync.Mutex{}
+	var wg sync.WaitGroup
+
+	for j := range resource.Metrics {
+		metric := resource.Metrics[j]
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			cloudwatchSemaphore <- struct{}{}
+			defer func() {
+				<-cloudwatchSemaphore
+			}()
+
+			id := resource.Name
+			data := cloudwatchData{
+				ID:                     &id,
+				Metric:                 &metric.Name,
+				Namespace:              &resource.Namespace,
+				Statistics:             metric.Statistics,
+				NilToZero:              metric.NilToZero,
+				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
+				Region:                 &region,
+				AccountId:              accountId,
+			}
+
+			metricsList, err := getFullMetricsList(ctx, resource.Namespace, metric, clientCloudwatch)
+
+			if err != nil {
+				logger.Error(err, "Error trying to get metric list")
+				return
+			}
+
+			for _, cloudWatchMetric := range metricsList.Metrics {
+				logger.Debug("Scraping metric: ", metric)
+
+				data.Dimensions = cloudWatchMetric.Dimensions
+
+				logger.Debug("Dimensions found:", data.Dimensions)
+
+				filter := createGetMetricStatisticsInput(
+					data.Dimensions,
+					&resource.Namespace,
+					metric,
+					logger,
+				)
+
+				data.Points = clientCloudwatch.get(ctx, filter)
+
+				logger.Debug("Storing object in exporter (ID): ", data.ID)
+				logger.Debug("Storing object in exporter (Namespace): ", data.Namespace)
+				logger.Debug("Storing object in exporter (Dimensions): ", data.Dimensions)
+				logger.Debug("Storing object in exporter (Points): ", data.Points)
+				logger.Debug("Storing object in exporter (Statistics): ", data.Statistics)
+
+				if data.Points != nil {
+					mux.Lock()
+					cw = append(cw, &data)
+					mux.Unlock()
+				}
 			}
 		}()
 	}
