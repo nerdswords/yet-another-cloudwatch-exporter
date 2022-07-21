@@ -194,18 +194,7 @@ func scrapeCustomMetricJob(ctx context.Context, resource *CustomMetrics, region 
 				<-cloudwatchSemaphore
 			}()
 
-			id := resource.Name
-			data := cloudwatchData{
-				ID:                     &id,
-				Metric:                 &metric.Name,
-				Namespace:              &resource.Namespace,
-				Statistics:             metric.Statistics,
-				NilToZero:              metric.NilToZero,
-				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-				Region:                 &region,
-				AccountId:              accountId,
-			}
-
+			logger.Debug("Custom Metric Info", resource.Name, resource.Namespace)
 			metricsList, err := getFullMetricsList(ctx, resource.Namespace, metric, clientCloudwatch)
 
 			if err != nil {
@@ -214,26 +203,29 @@ func scrapeCustomMetricJob(ctx context.Context, resource *CustomMetrics, region 
 			}
 
 			for _, cloudWatchMetric := range metricsList.Metrics {
-				logger.Debug("Scraping metric: ", metric)
-
-				data.Dimensions = cloudWatchMetric.Dimensions
-
-				logger.Debug("Dimensions found:", data.Dimensions)
+				logger.Debug("Searching for datapoints", cloudWatchMetric.MetricName, cloudWatchMetric.Dimensions)
 
 				filter := createGetMetricStatisticsInput(
-					data.Dimensions,
+					cloudWatchMetric.Dimensions,
 					&resource.Namespace,
 					metric,
 					logger,
 				)
 
-				data.Points = clientCloudwatch.get(ctx, filter)
+				data := cloudwatchData{
+					ID:                     &resource.Name,
+					Metric:                 &metric.Name,
+					Namespace:              &resource.Namespace,
+					Statistics:             metric.Statistics,
+					NilToZero:              metric.NilToZero,
+					AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
+					Region:                 &region,
+					AccountId:              accountId,
+					Points:                 clientCloudwatch.get(ctx, filter),
+					Dimensions:             cloudWatchMetric.Dimensions,
+				}
 
-				logger.Debug("Storing object in exporter (ID): ", data.ID)
-				logger.Debug("Storing object in exporter (Namespace): ", data.Namespace)
-				logger.Debug("Storing object in exporter (Dimensions): ", data.Dimensions)
-				logger.Debug("Storing object in exporter (Points): ", data.Points)
-				logger.Debug("Storing object in exporter (Statistics): ", data.Statistics)
+				logger.Debug("Datapoing info", data.Metric, data.Namespace, data.Dimensions, data.Points)
 
 				if data.Points != nil {
 					mux.Lock()
@@ -243,6 +235,7 @@ func scrapeCustomMetricJob(ctx context.Context, resource *CustomMetrics, region 
 			}
 		}()
 	}
+
 	wg.Wait()
 	return cw
 }
