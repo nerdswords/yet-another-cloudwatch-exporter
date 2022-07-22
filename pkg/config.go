@@ -56,11 +56,17 @@ type Static struct {
 }
 
 type CustomMetrics struct {
-	Regions   []string  `yaml:"regions"`
-	Name      string    `yaml:"name"`
-	Namespace string    `yaml:"namespace"`
-	Roles     []Role    `yaml:"roles"`
-	Metrics   []*Metric `yaml:"metrics"`
+	Regions                []string  `yaml:"regions"`
+	Name                   string    `yaml:"name"`
+	Namespace              string    `yaml:"namespace"`
+	Roles                  []Role    `yaml:"roles"`
+	Metrics                []*Metric `yaml:"metrics"`
+	Statistics             []string  `yaml:"statistics"`
+	NilToZero              *bool     `yaml:"nilToZero"`
+	Period                 int64     `yaml:"period"`
+	Length                 int64     `yaml:"length"`
+	Delay                  int64     `yaml:"delay"`
+	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
 }
 
 type Role struct {
@@ -219,6 +225,30 @@ func (j *CustomMetrics) validateCustomMetricJob(jobIdx int) error {
 		return fmt.Errorf("CustomMetrics job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
+		if metric.AddCloudwatchTimestamp == nil {
+			metric.AddCloudwatchTimestamp = j.AddCloudwatchTimestamp
+		}
+
+		if metric.Delay == 0 {
+			metric.Delay = j.Delay
+		}
+
+		if metric.Length == 0 {
+			metric.Length = j.Length
+		}
+
+		if metric.Period == 0 {
+			metric.Period = j.Period
+		}
+
+		if metric.NilToZero == nil {
+			metric.NilToZero = j.NilToZero
+		}
+
+		if len(metric.Statistics) == 0 {
+			metric.Statistics = j.Statistics
+		}
+
 		err := metric.validateMetric(metricIdx, parent, nil)
 		if err != nil {
 			return err

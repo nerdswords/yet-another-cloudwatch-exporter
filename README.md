@@ -414,12 +414,19 @@ static:
 
 ### Custom Metrics configuration
 
-| Key        | Description                                                      |
-| ---------- | -----------------------------------------------------------------|
-| regions    | List of AWS regions                                              |
-| name       | the name of your rule. It will be added as a label in Prometheus |
-| namespace  | The Custom CloudWatch namespace                                  |
-| metrics    | List of metric definitions                                       |
+| Key                    | Description                                                      |
+|------------------------| -----------------------------------------------------------------|
+| regions                | List of AWS regions                                              |
+| name                   | the name of your rule. It will be added as a label in Prometheus |
+| namespace              | The Custom CloudWatch namespace                                  |
+| roles                  | Roles that the exporter will assume                              |
+| metrics                | List of metric definitions                                       |
+| statistics             | default value for statistics                                     |
+| nilToZero              | default value for nilToZero                                      |
+| period                 | default value for period                                         |
+| length                 | default value for length                                         |
+| delay                  | default value for delay                                          |
+| addCloudwatchTimestamp | default value for addCloudwatchTimestamp                         |
 
 ### Example of config File
 
