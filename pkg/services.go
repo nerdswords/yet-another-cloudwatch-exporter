@@ -3,6 +3,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -106,7 +107,8 @@ var (
 				})
 				for _, resource := range inputResources {
 					for i, gw := range output.Items {
-						if strings.Contains(resource.ARN, *gw.Id) {
+						searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.Id))
+						if searchString.MatchString(resource.ARN) {
 							r := resource
 							r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
 							outputResources = append(outputResources, r)
