@@ -7,7 +7,7 @@ import (
 )
 
 // Metrics is a slice of prometheus metrics specific to the scraping process such API call counters
-var Metrics = []prometheus.Collector{cloudwatchAPICounter, cloudwatchAPIErrorCounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, targetGroupsAPICounter, apiGatewayAPICounter, ec2APICounter, dmsAPICounter}
+var Metrics = []prometheus.Collector{cloudwatchAPICounter, cloudwatchAPIErrorCounter, cloudwatchGetMetricDataAPICounter, cloudwatchGetMetricStatisticsAPICounter, resourceGroupTaggingAPICounter, autoScalingAPICounter, targetGroupsAPICounter, apiGatewayAPICounter, ec2APICounter, dmsAPICounter, storagegatewayAPICounter}
 
 type LabelSet map[string]struct{}
 
