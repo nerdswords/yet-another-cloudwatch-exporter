@@ -646,6 +646,16 @@ var (
 				aws.String("(?P<QueueName>[^:]+)$"),
 			},
 		}, {
+			Namespace: "AWS/StorageGateway",
+			Alias:     "storagegateway",
+			ResourceFilters: []*string{
+				aws.String("storagegateway"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":gateway/(?P<GatewayId>[^:]+)$"),
+				aws.String(":share/(?P<ShareId>[^:]+)$"),
+			},
+		}, {
 			Namespace: "AWS/TransitGateway",
 			Alias:     "tgw",
 			ResourceFilters: []*string{
