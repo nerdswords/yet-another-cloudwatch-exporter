@@ -80,6 +80,89 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		wantGetMetricsData []cloudwatchData
 	}{
 		{
+			"dimensionwrongname",
+			args{
+				region:     "us-east-1",
+				accountId:  aws.String("123123123123"),
+				namespace:  "ec2",
+				customTags: nil,
+				tagsOnMetrics: map[string][]string{
+					"ec2": {
+						"Value1",
+						"Value2",
+					},
+				},
+				dimensionRegexps: SupportedServices.GetService("ec2").DimensionRegexps,
+				resources: []*taggedResource{
+					{
+						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
+						Tags: []Tag{
+							{
+								Key:   "Name",
+								Value: "some-Node",
+							},
+						},
+						Namespace: "ec2",
+						Region:    "us-east-1",
+					},
+				},
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("CPUUtilization"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("BadDimension"),
+								Value: aws.String("lol"),
+							},
+						},
+						Namespace: aws.String("AWS/EC2"),
+					},
+				},
+				m: &Metric{
+					Name: "CPUUtilization",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]cloudwatchData{
+				{
+					AccountId:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("InstanceId"),
+							Value: aws.String("i-12312312312312312"),
+						},
+					},
+					ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
+					Metric:    aws.String("CPUUtilization"),
+					Namespace: aws.String("ec2"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
+		{
 			"ec2",
 			args{
 				region:     "us-east-1",
