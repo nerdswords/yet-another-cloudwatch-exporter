@@ -291,7 +291,7 @@ var (
 				aws.String("directconnect"),
 			},
 			DimensionRegexps: []*string{
-				aws.String("dxcon:(?P<ConnectionId>[^/]+)"),
+				aws.String(":dxcon/(?P<ConnectionId>[^/]+)"),
 			},
 		}, {
 			Namespace: "AWS/DynamoDB",
