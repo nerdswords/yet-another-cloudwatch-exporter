@@ -510,6 +510,15 @@ var (
 				aws.String(":function:(?P<FunctionName>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/MediaTailor",
+			Alias:     "mediatailor",
+			ResourceFilters: []*string{
+				aws.String("mediatailor:playbackConfiguration"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":playbackConfiguration:(?P<ConfigurationName>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/Neptune",
 			Alias:     "neptune",
 			ResourceFilters: []*string{
