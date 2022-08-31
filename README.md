@@ -86,6 +86,7 @@ We will contact you as soon as possible.
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
+  * storagegateway (AWS/StorageGateway) - On-premises access to cloud storage
   * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
   * asg (AWS/AutoScaling) - Auto Scaling Group

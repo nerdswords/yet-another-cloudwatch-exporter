@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 )
 
 // taggedResource is an AWS resource with tags
@@ -77,12 +78,13 @@ func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asgClient        autoscalingiface.AutoScalingAPI
-	apiGatewayClient apigatewayiface.APIGatewayAPI
-	ec2Client        ec2iface.EC2API
-	dmsClient        databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	logger           Logger
+	client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	asgClient            autoscalingiface.AutoScalingAPI
+	apiGatewayClient     apigatewayiface.APIGatewayAPI
+	ec2Client            ec2iface.EC2API
+	dmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	storagegatewayClient storagegatewayiface.StorageGatewayAPI
+	logger               Logger
 }
 
 func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]*taggedResource, error) {
