@@ -353,6 +353,95 @@ func TestNewSessionCache(t *testing.T) {
 				logger: NewLogrusLogger(log.StandardLogger()),
 			},
 		},
+		{
+			"a ScrapeConf with only custom dimension jobs creates a cache",
+			ScrapeConf{
+				CustomMetrics: []*CustomMetrics{
+					{
+						Name:      "scrape-thing",
+						Regions:   []string{"us-east-1", "eu-west-2"},
+						Namespace: "CustomDimension",
+						Roles: []Role{
+							{
+								RoleArn: "some-arn",
+							},
+							{
+								RoleArn: "some-arn2",
+							},
+							{
+								RoleArn: "some-arn3",
+							},
+						},
+					},
+					{
+						Name:      "scrape-other-thing",
+						Regions:   []string{"us-east-1"},
+						Namespace: "CustomDimension",
+						Roles: []Role{
+							{
+								RoleArn: "some-arn",
+							},
+							{
+								RoleArn: "some-arn2",
+							},
+							{
+								RoleArn:    "some-arn",
+								ExternalID: "thing",
+							},
+						},
+					},
+					{
+						Name:      "scrape-third-thing",
+						Regions:   []string{"ap-northeast-1"},
+						Namespace: "CustomDimension",
+						Roles: []Role{
+							{
+								RoleArn: "some-arn",
+							},
+							{
+								RoleArn: "some-arn2",
+							},
+							{
+								RoleArn: "some-arn4",
+							},
+						},
+					},
+				},
+			},
+			false,
+			&sessionCache{
+				stscache: map[Role]stsiface.STSAPI{
+					{RoleArn: "some-arn"}:                      nil,
+					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
+					{RoleArn: "some-arn2"}:                     nil,
+					{RoleArn: "some-arn3"}:                     nil,
+					{RoleArn: "some-arn4"}:                     nil,
+				},
+				clients: map[Role]map[string]*clientCache{
+					{RoleArn: "some-arn"}: {
+						"ap-northeast-1": &clientCache{onlyStatic: true},
+						"eu-west-2":      &clientCache{onlyStatic: true},
+						"us-east-1":      &clientCache{onlyStatic: true},
+					},
+					{RoleArn: "some-arn", ExternalID: "thing"}: {
+						"us-east-1": &clientCache{onlyStatic: true},
+					},
+					{RoleArn: "some-arn2"}: {
+						"ap-northeast-1": &clientCache{onlyStatic: true},
+						"eu-west-2":      &clientCache{onlyStatic: true},
+						"us-east-1":      &clientCache{onlyStatic: true},
+					},
+					{RoleArn: "some-arn3"}: {
+						"eu-west-2": &clientCache{onlyStatic: true},
+						"us-east-1": &clientCache{onlyStatic: true},
+					},
+					{RoleArn: "some-arn4"}: {
+						"ap-northeast-1": &clientCache{onlyStatic: true},
+					},
+				},
+				logger: NewLogrusLogger(log.StandardLogger()),
+			},
+		},
 	}
 
 	for _, l := range tests {

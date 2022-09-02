@@ -221,7 +221,7 @@ func (j *CustomMetrics) validateCustomMetricJob(jobIdx int) error {
 			}
 		}
 	}
-	if len(j.Regions) == 0 {
+	if j.Regions == nil || len(j.Regions) == 0 {
 		return fmt.Errorf("CustomMetrics job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
