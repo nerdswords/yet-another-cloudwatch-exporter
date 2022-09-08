@@ -3,7 +3,7 @@ module github.com/nerdswords/yet-another-cloudwatch-exporter
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.87
+	github.com/aws/aws-sdk-go v1.44.93
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.0
