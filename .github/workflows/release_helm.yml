@@ -1,8 +1,7 @@
 on:
   push:
-    # Sequence of patterns matched against refs/tags
-    branches:
-      - master
+    tags:
+    - 'helm-*'
 
 name: Build, test and publish
 jobs:
@@ -34,3 +33,4 @@ jobs:
           charts_dir: charts
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
