@@ -1,3 +1,14 @@
+# 0.39.0-alpha
+* Improve code quality and unblock this release (cristiangreco)
+* Add helm chart (vkobets)
+* Fix DX metrics (paulojmdias)
+* Fix searchTags and bad dimension name (femiagbabiaka)
+* Handle empty list in filter metric tests (mtt88)
+* Add AWS Elemental MediaTailor support (scott-mccracken)
+* Support storagegateway metrics (sedan07)
+* Filter api gateway resources to skip "stages" (ch4rms)
+* Bump aws-sdk, urfave/cli, prometheus/client_golang
+
 # 0.38.0-alpha
 
 * Set max page size for tagging API requests (#617)

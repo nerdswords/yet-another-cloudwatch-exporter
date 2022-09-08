@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-    - 'helm-*'
+    - 'v*'
 
 name: Build, test and publish
 jobs:
