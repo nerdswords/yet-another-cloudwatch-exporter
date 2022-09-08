@@ -336,7 +336,6 @@ type dmsClient struct {
 type apiGatewayClient struct {
 	apigatewayiface.APIGatewayAPI
 	getRestApisOutput *apigateway.GetRestApisOutput
-	getRestApisInput  *apigateway.GetRestApisInput
 }
 
 func (apigateway apiGatewayClient) GetRestApisPagesWithContext(context2 aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {

@@ -130,37 +130,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					AddCloudwatchTimestamp: aws.Bool(false),
 				},
 			},
-			[]cloudwatchData{
-				{
-					AccountId:              aws.String("123123123123"),
-					AddCloudwatchTimestamp: aws.Bool(false),
-					Dimensions: []*cloudwatch.Dimension{
-						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-12312312312312312"),
-						},
-					},
-					ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
-					Metric:    aws.String("CPUUtilization"),
-					Namespace: aws.String("ec2"),
-					NilToZero: aws.Bool(false),
-					Period:    60,
-					Region:    aws.String("us-east-1"),
-					Statistics: []string{
-						"Average",
-					},
-					Tags: []Tag{
-						{
-							Key:   "Value1",
-							Value: "",
-						},
-						{
-							Key:   "Value2",
-							Value: "",
-						},
-					},
-				},
-			},
+			[]cloudwatchData{},
 		},
 		{
 			"ec2",
