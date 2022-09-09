@@ -104,17 +104,6 @@ func main() {
 
 	log.Println("Startup completed")
 
-	var maxJobLength int64
-	for _, discoveryJob := range config.Discovery.Jobs {
-		length := exporter.GetMetricDataInputLength(discoveryJob)
-		//S3 can have upto 1 day to day will need to address it in seperate block
-		//TBD
-		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
-		if (maxJobLength < length) && !svc.IgnoreLength {
-			maxJobLength = length
-		}
-	}
-
 	s := NewScraper()
 	cache := exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
 
