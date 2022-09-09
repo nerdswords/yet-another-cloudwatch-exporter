@@ -70,11 +70,16 @@ func main() {
 	}
 
 	yace.Commands = []*cli.Command{
-		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CICD validation",
+		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CI/CD validation",
 			Flags: []cli.Flag{
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
 			Action: func(c *cli.Context) error {
+				log.Println("Parse config..")
+				if err := config.Load(&configFile); err != nil {
+					log.Fatal("Couldn't read ", configFile, ": ", err)
+					os.Exit(1)
+				}
 				log.Info("Config ", configFile, " is valid")
 				os.Exit(0)
 				return nil
