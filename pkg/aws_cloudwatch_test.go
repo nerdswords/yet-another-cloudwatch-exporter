@@ -80,46 +80,50 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		wantGetMetricsData []cloudwatchData
 	}{
 		{
-			"dimensionwrongname",
+			"additional dimension",
 			args{
 				region:     "us-east-1",
 				accountId:  aws.String("123123123123"),
-				namespace:  "ec2",
+				namespace:  "efs",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
-					"ec2": {
+					"efs": {
 						"Value1",
 						"Value2",
 					},
 				},
-				dimensionRegexps: SupportedServices.GetService("ec2").DimensionRegexps,
+				dimensionRegexps: SupportedServices.GetService("efs").DimensionRegexps,
 				resources: []*taggedResource{
 					{
-						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
+						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
 						Tags: []Tag{
 							{
-								Key:   "Name",
-								Value: "some-Node",
+								Key:   "Tag",
+								Value: "some-Tag",
 							},
 						},
-						Namespace: "ec2",
+						Namespace: "efs",
 						Region:    "us-east-1",
 					},
 				},
 				metricsList: []*cloudwatch.Metric{
 					{
-						MetricName: aws.String("CPUUtilization"),
+						MetricName: aws.String("StorageBytes"),
 						Dimensions: []*cloudwatch.Dimension{
 							{
-								Name:  aws.String("BadDimension"),
-								Value: aws.String("lol"),
+								Name:  aws.String("FileSystemId"),
+								Value: aws.String("fs-abc123"),
+							},
+							{
+								Name:  aws.String("StorageClass"),
+								Value: aws.String("Standard"),
 							},
 						},
-						Namespace: aws.String("AWS/EC2"),
+						Namespace: aws.String("AWS/EFS"),
 					},
 				},
 				m: &Metric{
-					Name: "CPUUtilization",
+					Name: "StorageBytes",
 					Statistics: []string{
 						"Average",
 					},
@@ -130,7 +134,41 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					AddCloudwatchTimestamp: aws.Bool(false),
 				},
 			},
-			[]cloudwatchData{},
+			[]cloudwatchData{
+				{
+					AccountId:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("FileSystemId"),
+							Value: aws.String("fs-abc123"),
+						},
+						{
+							Name:  aws.String("StorageClass"),
+							Value: aws.String("Standard"),
+						},
+					},
+					ID:        aws.String("arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123"),
+					Metric:    aws.String("StorageBytes"),
+					Namespace: aws.String("efs"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
+				},
+			},
 		},
 		{
 			"ec2",
