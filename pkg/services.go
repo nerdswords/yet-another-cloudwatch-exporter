@@ -126,6 +126,9 @@ var (
 			ResourceFilters: []*string{
 				aws.String("mq"),
 			},
+			DimensionRegexps: []*string{
+				aws.String("broker:(?P<Broker>[^:]+)"),
+			},
 		}, {
 			Namespace: "AWS/AppSync",
 			Alias:     "appsync",
