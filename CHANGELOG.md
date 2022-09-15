@@ -1,3 +1,14 @@
+# 0.40.0-alpha
+* Fix typo in Charts.yml (@yasharne)
+* Subcommand `verify-config` actually validates the config file. (@cristiangreco)
+* Add dimensions regex for AmazonMQ. (@cristiangreco)
+* Fix metrics with additional dimensions being not being scraped. (@cristiangreco)
+* Remove unused code, add test for RemoveDuplicateMetrics. (@cristiangreco)
+* Bump github.com/sirupsen/logrus
+* Bump github.com/urfave/cli/v2
+* Bump github.com/aws/aws-sdk-go
+* Bump actions/setup-python
+
 # 0.39.0-alpha
 * Improve code quality and unblock this release (cristiangreco)
 * Add helm chart (vkobets)
