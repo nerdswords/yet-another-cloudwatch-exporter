@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 )
 
@@ -581,6 +582,35 @@ var (
 			},
 			DimensionRegexps: []*string{
 				aws.String(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+			},
+		}, {
+			Namespace: "AWS/Prometheus",
+			Alias:     "amp",
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
+				pageNum := 0
+				return resources, iface.prometheusClient.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
+					func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
+						pageNum++
+						managedPrometheusAPICounter.Inc()
+
+						for _, ws := range page.Workspaces {
+							resource := taggedResource{
+								ARN:       aws.StringValue(ws.Arn),
+								Namespace: job.Type,
+								Region:    region,
+							}
+
+							for key, value := range ws.Tags {
+								resource.Tags = append(resource.Tags, Tag{Key: key, Value: *value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
 			},
 		}, {
 			Namespace: "AWS/RDS",

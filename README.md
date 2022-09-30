@@ -42,6 +42,7 @@ We will contact you as soon as possible.
   * apigateway (AWS/ApiGateway) - API Gateway
   * appstream (AWS/AppStream) - AppStream
   * appsync (AWS/AppSync) - AppSync
+  * amp (AWS/Prometheus) - Managed Service for Prometheus
   * athena (AWS/Athena) - Athena
   * backup (AWS/Backup) - Backup
   * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk

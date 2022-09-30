@@ -21,6 +21,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/prometheusservice"
+	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
@@ -41,6 +43,7 @@ type SessionCache interface {
 	GetDMS(*string, Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	GetAPIGateway(*string, Role) apigatewayiface.APIGatewayAPI
 	GetStorageGateway(*string, Role) storagegatewayiface.StorageGatewayAPI
+	GetPrometheus(*string, Role) prometheusserviceiface.PrometheusServiceAPI
 	Refresh()
 	Clear()
 }
@@ -67,6 +70,7 @@ type clientCache struct {
 	tagging        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asg            autoscalingiface.AutoScalingAPI
 	ec2            ec2iface.EC2API
+	prometheus     prometheusserviceiface.PrometheusServiceAPI
 	dms            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	apiGateway     apigatewayiface.APIGatewayAPI
 	storageGateway storagegatewayiface.StorageGatewayAPI
@@ -195,6 +199,7 @@ func (s *sessionCache) Refresh() {
 			s.clients[role][region].dms = createDMSSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].apiGateway = createAPIGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].storageGateway = createStorageGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
+			s.clients[role][region].prometheus = createPrometheusSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 		}
 	}
 
@@ -268,6 +273,21 @@ func (s *sessionCache) GetEC2(region *string, role Role) ec2iface.EC2API {
 
 	s.clients[role][*region].ec2 = createEC2Session(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
 	return s.clients[role][*region].ec2
+}
+
+func (s *sessionCache) GetPrometheus(region *string, role Role) prometheusserviceiface.PrometheusServiceAPI {
+	// if we have not refreshed then we need to lock in case we are accessing concurrently
+	if !s.refreshed {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+	}
+	if sess, ok := s.clients[role][*region]; ok && sess.prometheus != nil {
+		return sess.prometheus
+	}
+
+	s.clients[role][*region].prometheus = createPrometheusSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
+	fmt.Println("Created Prometheus client")
+	return s.clients[role][*region].prometheus
 }
 
 func (s *sessionCache) GetDMS(region *string, role Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
@@ -455,6 +475,22 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 	}
 
 	return ec2.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createPrometheusSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
+	fmt.Println("Creating prometheus sessions")
+	maxPrometheusAPIRetries := 10
+	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
+	if fips {
+		endpoint := fmt.Sprintf("https://aps-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
+	if isDebugEnabled {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
+	return prometheusservice.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createDMSSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
