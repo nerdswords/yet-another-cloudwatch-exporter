@@ -1,3 +1,30 @@
+# 0.40.0-alpha
+* Fix typo in Charts.yml (@yasharne)
+* Subcommand `verify-config` actually validates the config file. (@cristiangreco)
+* Add dimensions regex for AmazonMQ. (@cristiangreco)
+* Fix metrics with additional dimensions being not being scraped. (@cristiangreco)
+* Remove unused code, add test for RemoveDuplicateMetrics. (@cristiangreco)
+* Bump github.com/sirupsen/logrus
+* Bump github.com/urfave/cli/v2
+* Bump github.com/aws/aws-sdk-go
+* Bump actions/setup-python
+
+# 0.39.0-alpha
+* Improve code quality and unblock this release (cristiangreco)
+* Add helm chart (vkobets)
+* Fix DX metrics (paulojmdias)
+* Fix searchTags and bad dimension name (femiagbabiaka)
+* Handle empty list in filter metric tests (mtt88)
+* Add AWS Elemental MediaTailor support (scott-mccracken)
+* Support storagegateway metrics (sedan07)
+* Filter api gateway resources to skip "stages" (ch4rms)
+* Bump aws-sdk, urfave/cli, prometheus/client_golang
+
+# 0.38.0-alpha
+
+* Set max page size for tagging API requests (#617)
+* Build with Go 1.18
+
 # 0.37.0-alpha
 * New config `dimensionNameRequirements` allows autodiscovery jobs to only
   fetch metrics that include specified dimensions (jutley)

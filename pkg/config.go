@@ -2,7 +2,7 @@ package exporter
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
@@ -80,7 +80,7 @@ type Tag struct {
 }
 
 func (c *ScrapeConf) Load(file *string) error {
-	yamlFile, err := ioutil.ReadFile(*file)
+	yamlFile, err := os.ReadFile(*file)
 	if err != nil {
 		return err
 	}

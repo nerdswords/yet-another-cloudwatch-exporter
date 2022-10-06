@@ -70,11 +70,16 @@ func main() {
 	}
 
 	yace.Commands = []*cli.Command{
-		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CICD validation",
+		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CI/CD validation",
 			Flags: []cli.Flag{
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
 			Action: func(c *cli.Context) error {
+				log.Println("Parse config..")
+				if err := config.Load(&configFile); err != nil {
+					log.Fatal("Couldn't read ", configFile, ": ", err)
+					os.Exit(1)
+				}
 				log.Info("Config ", configFile, " is valid")
 				os.Exit(0)
 				return nil
@@ -103,17 +108,6 @@ func main() {
 	}
 
 	log.Println("Startup completed")
-
-	var maxJobLength int64
-	for _, discoveryJob := range config.Discovery.Jobs {
-		length := exporter.GetMetricDataInputLength(discoveryJob)
-		//S3 can have upto 1 day to day will need to address it in seperate block
-		//TBD
-		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
-		if (maxJobLength < length) && !svc.IgnoreLength {
-			maxJobLength = length
-		}
-	}
 
 	s := NewScraper()
 	cache := exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
@@ -152,7 +146,6 @@ func main() {
 		cache = exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
 
 		cancelRunningScrape()
-		// TODO: Pipe ctx through to the AWS calls.
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
 		go s.decoupled(ctx, cache)
 	})

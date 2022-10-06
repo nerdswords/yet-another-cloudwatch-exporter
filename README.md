@@ -72,6 +72,7 @@ We will contact you as soon as possible.
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
@@ -85,6 +86,7 @@ We will contact you as soon as possible.
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
+  * storagegateway (AWS/StorageGateway) - On-premises access to cloud storage
   * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
   * asg (AWS/AutoScaling) - Auto Scaling Group
@@ -503,7 +505,11 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 ```
 
 ## Kubernetes Installation
+### Install with HELM
+* [README](charts/yet-another-cloudwatch-exporter/README.md)
 
+
+### Install with manifests
 ```yaml
 ---
 apiVersion: v1
