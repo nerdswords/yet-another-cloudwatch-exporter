@@ -146,7 +146,6 @@ func main() {
 		cache = exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
 
 		cancelRunningScrape()
-		// TODO: Pipe ctx through to the AWS calls.
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
 		go s.decoupled(ctx, cache)
 	})
