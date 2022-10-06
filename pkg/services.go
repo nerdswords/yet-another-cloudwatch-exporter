@@ -184,8 +184,8 @@ var (
 			Alias:     "beanstalk",
 		},
 		{
-			Namespace:    "AWS/Billing",
-			Alias:        "billing",
+			Namespace: "AWS/Billing",
+			Alias:     "billing",
 		}, {
 			Namespace: "AWS/Cassandra",
 			Alias:     "cassandra",
@@ -619,8 +619,8 @@ var (
 				aws.String(":healthcheck/(?P<HealthCheckId>[^/]+)"),
 			},
 		}, {
-			Namespace:    "AWS/S3",
-			Alias:        "s3",
+			Namespace: "AWS/S3",
+			Alias:     "s3",
 			ResourceFilters: []*string{
 				aws.String("s3"),
 			},
