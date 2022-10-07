@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := build
 
 build:
-	go build -o yace cmd/yace/main.go
+	go build -v -o yace ./cmd/yace
 
 test:
 	go test -v -race -count=1 ./...

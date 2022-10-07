@@ -11,7 +11,7 @@ ENV GOOS linux
 ENV CGO_ENABLED=0
 
 ARG VERSION
-RUN go build -v -ldflags "-X main.version=$VERSION" -o yace cmd/yace/main.go
+RUN go build -v -ldflags "-X main.version=$VERSION" -o yace ./cmd/yace
 
 FROM alpine:latest
 
