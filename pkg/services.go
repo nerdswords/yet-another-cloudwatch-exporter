@@ -22,7 +22,6 @@ type FilterFunc func(context.Context, tagsInterface, []*taggedResource) ([]*tagg
 type serviceFilter struct {
 	Namespace        string
 	Alias            string
-	IgnoreLength     bool
 	ResourceFilters  []*string
 	DimensionRegexps []*string
 	ResourceFunc     ResourceFunc
@@ -186,9 +185,8 @@ var (
 			Alias:     "beanstalk",
 		},
 		{
-			Namespace:    "AWS/Billing",
-			Alias:        "billing",
-			IgnoreLength: true,
+			Namespace: "AWS/Billing",
+			Alias:     "billing",
 		}, {
 			Namespace: "AWS/Cassandra",
 			Alias:     "cassandra",
@@ -651,9 +649,8 @@ var (
 				aws.String(":healthcheck/(?P<HealthCheckId>[^/]+)"),
 			},
 		}, {
-			Namespace:    "AWS/S3",
-			Alias:        "s3",
-			IgnoreLength: true,
+			Namespace: "AWS/S3",
+			Alias:     "s3",
 			ResourceFilters: []*string{
 				aws.String("s3"),
 			},
