@@ -630,6 +630,9 @@ var (
 		}, {
 			Namespace: "AWS/SES",
 			Alias:     "ses",
+			ResourceFilters: []*string{
+            		aws.String("ses"),
+            },
 		}, {
 			Namespace: "AWS/States",
 			Alias:     "sfn",

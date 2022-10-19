@@ -408,6 +408,41 @@ static:
         - Minimum
         period: 60
         length: 300
+  - namespace: AWS/SES
+      name: ses
+      regions:
+        - eu-central-1
+      metrics:
+        - name: Send
+          statistics:
+            - Sum
+          period: 60
+          length: 600
+          nilToZero: true
+        - name: Reputation.ComplaintRate
+          statistics:
+            - Sum
+          period: 60
+          length: 600
+          nilToZero: true
+        - name: Reputation.BounceRate
+          statistics:
+            - Sum
+          period: 60
+          length: 600
+          nilToZero: true
+        - name: Delivery
+          statistics:
+            - Sum
+          period: 60
+          length: 600
+          nilToZero: true
+        - name: Bounce
+          statistics:
+            - Sum
+          period: 60
+          length: 600
+          nilToZero: true
 ```
 
 [Source: [config_test.yml](pkg/testdata/config_test.yml)]
