@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
@@ -83,6 +84,7 @@ type tagsInterface struct {
 	apiGatewayClient     apigatewayiface.APIGatewayAPI
 	ec2Client            ec2iface.EC2API
 	dmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	prometheusClient     prometheusserviceiface.PrometheusServiceAPI
 	storagegatewayClient storagegatewayiface.StorageGatewayAPI
 	logger               Logger
 }
