@@ -159,6 +159,7 @@ func (s *sessionCache) Clear() {
 			s.clients[role][region].tagging = nil
 			s.clients[role][region].asg = nil
 			s.clients[role][region].ec2 = nil
+			s.clients[role][region].prometheus = nil
 			s.clients[role][region].dms = nil
 			s.clients[role][region].apiGateway = nil
 			s.clients[role][region].storageGateway = nil
