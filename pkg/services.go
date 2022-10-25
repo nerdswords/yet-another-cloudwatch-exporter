@@ -494,6 +494,15 @@ var (
 				aws.String(":cluster/(?P<Cluster_Name>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/KafkaConnect",
+			Alias:     "kafkaconnect",
+			ResourceFilters: []*string{
+				aws.String("kafkaconnect"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":connector/(?P<Connector_Name>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/Kinesis",
 			Alias:     "kinesis",
 			ResourceFilters: []*string{

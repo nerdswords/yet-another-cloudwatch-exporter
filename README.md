@@ -69,6 +69,7 @@ We will contact you as soon as possible.
   * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
   * glue (Glue) - AWS Glue Jobs
   * iot (AWS/IoT) - IoT
+  * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
