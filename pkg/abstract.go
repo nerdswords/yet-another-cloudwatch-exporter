@@ -55,6 +55,7 @@ func scrapeAwsData(
 						dmsClient:            cache.GetDMS(&region, role),
 						ec2Client:            cache.GetEC2(&region, role),
 						storagegatewayClient: cache.GetStorageGateway(&region, role),
+						prometheusClient:     cache.GetPrometheus(&region, role),
 						logger:               jobLogger,
 					}
 
