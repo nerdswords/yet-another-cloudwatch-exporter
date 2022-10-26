@@ -416,6 +416,15 @@ var (
 				aws.String("cluster/(?P<JobFlowId>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/EMRServerless",
+			Alias:     "emr-serverless",
+			ResourceFilters: []*string{
+				aws.String("emr-serverless:applications"),
+			},
+			DimensionRegexps: []*string{
+				aws.String("applications/(?P<ApplicationId>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/ES",
 			Alias:     "es",
 			ResourceFilters: []*string{

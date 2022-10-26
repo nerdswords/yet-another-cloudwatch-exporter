@@ -63,6 +63,7 @@ We will contact you as soon as possible.
   * efs (AWS/EFS) - Elastic File System
   * elb (AWS/ELB) - Elastic Load Balancer
   * emr (AWS/ElasticMapReduce) - Elastic MapReduce
+  * emr-serverless (AWS/EMRServerless) - Amazon EMR Serverless
   * es (AWS/ES) - ElasticSearch
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
