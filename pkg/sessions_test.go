@@ -411,6 +411,7 @@ func TestClear(t *testing.T) {
 							dms:            createDMSSession(mock.Session, &region, role, false, false),
 							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
 							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
+							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
 							onlyStatic:     true,
 						},
 					},
@@ -436,6 +437,7 @@ func TestClear(t *testing.T) {
 							ec2:            nil,
 							apiGateway:     nil,
 							storageGateway: nil,
+							prometheus:     nil,
 						},
 					},
 				},
@@ -480,6 +482,10 @@ func TestClear(t *testing.T) {
 					}
 					if client.ec2 != nil {
 						t.Logf("`ec2 client` %v in region %v is not nil", role, region)
+						t.Fail()
+					}
+					if client.prometheus != nil {
+						t.Logf("`Prometheus client` %v in region %v is not nil", role, region)
 						t.Fail()
 					}
 					if client.dms != nil {
@@ -528,6 +534,7 @@ func TestRefresh(t *testing.T) {
 							dms:            nil,
 							apiGateway:     nil,
 							storageGateway: nil,
+							prometheus:     nil,
 						},
 					},
 				},
@@ -554,6 +561,7 @@ func TestRefresh(t *testing.T) {
 							dms:            nil,
 							apiGateway:     nil,
 							storageGateway: nil,
+							prometheus:     nil,
 							onlyStatic:     true,
 						},
 					},
@@ -581,6 +589,7 @@ func TestRefresh(t *testing.T) {
 							dms:            createDMSSession(mock.Session, &region, role, false, false),
 							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
 							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
+							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
 						},
 					},
 				},
@@ -632,6 +641,10 @@ func TestRefresh(t *testing.T) {
 					}
 					if client.ec2 == nil {
 						t.Logf("`ec2 client` %v in region %v still nil", role, region)
+						t.Fail()
+					}
+					if client.prometheus == nil {
+						t.Logf("`prometheus client` %v in region %v still nil", role, region)
 						t.Fail()
 					}
 					if client.dms == nil {
@@ -713,6 +726,18 @@ func TestSessionCacheGetEC2(t *testing.T) {
 		})
 }
 
+func TestSessionCacheGetPrometheus(t *testing.T) {
+	testGetAWSClient(
+		t, "Prometheus",
+		func(t *testing.T, cache *sessionCache, region *string, role Role) {
+			iface := cache.GetPrometheus(region, role)
+			if iface == nil {
+				t.Fail()
+				return
+			}
+		})
+}
+
 func TestSessionCacheGetDMS(t *testing.T) {
 	testGetAWSClient(
 		t, "DMS",
@@ -768,6 +793,7 @@ func testGetAWSClient(
 							dms:            createDMSSession(mock.Session, &region, role, false, false),
 							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
 							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
+							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
 						},
 					},
 				},
@@ -794,6 +820,7 @@ func testGetAWSClient(
 							dms:            createDMSSession(mock.Session, &region, role, false, false),
 							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
 							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
+							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
 						},
 					},
 				},
@@ -1038,6 +1065,19 @@ func TestCreateEC2Session(t *testing.T) {
 		"EC2",
 		func(t *testing.T, s *session.Session, region *string, role Role, fips bool) {
 			iface := createEC2Session(s, region, role, fips, false)
+			if iface == nil {
+				t.Fail()
+			}
+		})
+
+}
+
+func TestCreatePrometheusSession(t *testing.T) {
+	testAWSClient(
+		t,
+		"Prometheus",
+		func(t *testing.T, s *session.Session, region *string, role Role, fips bool) {
+			iface := createPrometheusSession(s, region, role, fips, false)
 			if iface == nil {
 				t.Fail()
 			}
