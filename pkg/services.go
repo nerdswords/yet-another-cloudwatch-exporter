@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 )
 
@@ -21,7 +22,6 @@ type FilterFunc func(context.Context, tagsInterface, []*taggedResource) ([]*tagg
 type serviceFilter struct {
 	Namespace        string
 	Alias            string
-	IgnoreLength     bool
 	ResourceFilters  []*string
 	DimensionRegexps []*string
 	ResourceFunc     ResourceFunc
@@ -185,9 +185,8 @@ var (
 			Alias:     "beanstalk",
 		},
 		{
-			Namespace:    "AWS/Billing",
-			Alias:        "billing",
-			IgnoreLength: true,
+			Namespace: "AWS/Billing",
+			Alias:     "billing",
 		}, {
 			Namespace: "AWS/Cassandra",
 			Alias:     "cassandra",
@@ -495,6 +494,15 @@ var (
 				aws.String(":cluster/(?P<Cluster_Name>[^/]+)"),
 			},
 		}, {
+			Namespace: "AWS/KafkaConnect",
+			Alias:     "kafkaconnect",
+			ResourceFilters: []*string{
+				aws.String("kafkaconnect"),
+			},
+			DimensionRegexps: []*string{
+				aws.String(":connector/(?P<Connector_Name>[^/]+)"),
+			},
+		}, {
 			Namespace: "AWS/Kinesis",
 			Alias:     "kinesis",
 			ResourceFilters: []*string{
@@ -583,6 +591,35 @@ var (
 				aws.String(":vpc-endpoint-service:(?P<Service_Id>.+)"),
 			},
 		}, {
+			Namespace: "AWS/Prometheus",
+			Alias:     "amp",
+			ResourceFunc: func(ctx context.Context, iface tagsInterface, job *Job, region string) (resources []*taggedResource, err error) {
+				pageNum := 0
+				return resources, iface.prometheusClient.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
+					func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
+						pageNum++
+						managedPrometheusAPICounter.Inc()
+
+						for _, ws := range page.Workspaces {
+							resource := taggedResource{
+								ARN:       aws.StringValue(ws.Arn),
+								Namespace: job.Type,
+								Region:    region,
+							}
+
+							for key, value := range ws.Tags {
+								resource.Tags = append(resource.Tags, Tag{Key: key, Value: *value})
+							}
+
+							if resource.filterThroughTags(job.SearchTags) {
+								resources = append(resources, &resource)
+							}
+						}
+						return pageNum < 100
+					},
+				)
+			},
+		}, {
 			Namespace: "AWS/RDS",
 			Alias:     "rds",
 			ResourceFilters: []*string{
@@ -621,9 +658,8 @@ var (
 				aws.String(":healthcheck/(?P<HealthCheckId>[^/]+)"),
 			},
 		}, {
-			Namespace:    "AWS/S3",
-			Alias:        "s3",
-			IgnoreLength: true,
+			Namespace: "AWS/S3",
+			Alias:     "s3",
 			ResourceFilters: []*string{
 				aws.String("s3"),
 			},
