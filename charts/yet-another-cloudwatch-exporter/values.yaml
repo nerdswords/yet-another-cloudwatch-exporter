@@ -38,6 +38,11 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+extraEnv: []
+  # When using EKS IAM roles ensure consistent naming for multi-role AWS STS sessions
+  # - name: AWS_ROLE_SESSION_NAME
+  #   value: yace
+
 service:
   type: ClusterIP
   port: 80
