@@ -1,3 +1,13 @@
+# 0.41.0-alpha
+
+* Clean up unused variables. (@cristiangreco)
+* Fix typo: sts-endpoint should be sts-region. (@cristiangreco)
+* Enabled Managed prometheus metrics (@datsabk)
+* Add support for AWS Kafka Connect (@cgowthaman)
+* Import CloudWatch mixin. (@jeschkies)
+* main.go refactoring: define cmd action as a separate func. (@cristiangreco)
+* Add support for EMR Serverless (@cgowthaman)
+
 # 0.40.0-alpha
 * Fix typo in Charts.yml (@yasharne)
 * Subcommand `verify-config` actually validates the config file. (@cristiangreco)
