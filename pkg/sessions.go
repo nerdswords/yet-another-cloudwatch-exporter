@@ -287,7 +287,6 @@ func (s *sessionCache) GetPrometheus(region *string, role Role) prometheusservic
 	}
 
 	s.clients[role][*region].prometheus = createPrometheusSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	fmt.Println("Created Prometheus client")
 	return s.clients[role][*region].prometheus
 }
 
