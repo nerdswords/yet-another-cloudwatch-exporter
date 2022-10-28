@@ -478,7 +478,6 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 }
 
 func createPrometheusSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
-	fmt.Println("Creating prometheus sessions")
 	maxPrometheusAPIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
 	if fips {
