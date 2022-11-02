@@ -72,6 +72,8 @@ resources: {}
 
 nodeSelector: {}
 
+priorityClassName:
+
 tolerations: []
 
 affinity: {}
