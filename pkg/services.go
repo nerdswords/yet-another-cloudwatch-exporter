@@ -539,7 +539,7 @@ var (
 				aws.String("mediatailor:playbackConfiguration"),
 			},
 			DimensionRegexps: []*string{
-				aws.String(":playbackConfiguration:(?P<ConfigurationName>[^/]+)"),
+				aws.String("playbackConfiguration/(?P<ConfigurationName>[^/]+)"),
 			},
 		}, {
 			Namespace: "AWS/Neptune",
