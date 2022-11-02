@@ -42,6 +42,8 @@ service:
   type: ClusterIP
   port: 80
 
+testConnection: true
+
 ingress:
   enabled: false
   className: ""
@@ -71,6 +73,8 @@ resources: {}
   #   memory: 128Mi
 
 nodeSelector: {}
+
+priorityClassName:
 
 tolerations: []
 
