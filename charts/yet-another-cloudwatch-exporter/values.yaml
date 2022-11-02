@@ -42,6 +42,8 @@ service:
   type: ClusterIP
   port: 80
 
+testConnection: true
+
 ingress:
   enabled: false
   className: ""
