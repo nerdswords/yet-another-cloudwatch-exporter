@@ -2,8 +2,8 @@ apiVersion: v2
 name: yet-another-cloudwatch-exporter
 description: Yet Another Cloudwatch Exporter
 type: application
-version: 0.7.0
-appVersion: "v0.36.1-alpha"
+version: 0.8.0
+appVersion: "v0.42.0-alpha"
 home: https://github.com/nerdswords/yet-another-cloudwatch-exporter
 sources:
 - https://github.com/nerdswords/yet-another-cloudwatch-exporter

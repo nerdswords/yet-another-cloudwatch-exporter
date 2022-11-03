@@ -1,3 +1,12 @@
+# 0.42.0-alpha
+
+* Resolve logging issue (@datsabk)
+* MediaTailor - Correct dimension regex for MT (@scott-mccracken)
+* Helm chart update for optional test-connection pod (@nikosmeds)
+* Helm chart update to set priorityClassName (@nikosmeds)
+* Bump github.com/aws/aws-sdk-go from 1.44.122 to 1.44.127
+* Bump github.com/urfave/cli/v2 from 2.20.3 to 2.23.0
+
 # 0.41.0-alpha
 
 * Clean up unused variables. (@cristiangreco)
