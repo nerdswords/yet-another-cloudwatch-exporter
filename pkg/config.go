@@ -56,17 +56,20 @@ type Static struct {
 }
 
 type CustomMetrics struct {
-	Regions                []string  `yaml:"regions"`
-	Name                   string    `yaml:"name"`
-	Namespace              string    `yaml:"namespace"`
-	Roles                  []Role    `yaml:"roles"`
-	Metrics                []*Metric `yaml:"metrics"`
-	Statistics             []string  `yaml:"statistics"`
-	NilToZero              *bool     `yaml:"nilToZero"`
-	Period                 int64     `yaml:"period"`
-	Length                 int64     `yaml:"length"`
-	Delay                  int64     `yaml:"delay"`
-	AddCloudwatchTimestamp *bool     `yaml:"addCloudwatchTimestamp"`
+	Regions                   []string  `yaml:"regions"`
+	Name                      string    `yaml:"name"`
+	Namespace                 string    `yaml:"namespace"`
+	Roles                     []Role    `yaml:"roles"`
+	Metrics                   []*Metric `yaml:"metrics"`
+	Statistics                []string  `yaml:"statistics"`
+	NilToZero                 *bool     `yaml:"nilToZero"`
+	Period                    int64     `yaml:"period"`
+	Length                    int64     `yaml:"length"`
+	Delay                     int64     `yaml:"delay"`
+	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
+	CustomTags                []Tag     `yaml:"customTags"`
+	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
+	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
 }
 
 type Role struct {
