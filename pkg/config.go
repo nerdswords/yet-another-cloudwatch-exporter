@@ -132,15 +132,8 @@ func (c *ScrapeConf) Load(file *string) error {
 	return nil
 }
 
-func (c *ScrapeConf) IsConfigFileEmpty() bool {
-	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomMetrics == nil {
-		return true
-	}
-	return false
-}
-
 func (c *ScrapeConf) Validate() error {
-	if c.IsConfigFileEmpty() {
+	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomMetrics == nil {
 		return fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomMetric must be defined")
 	}
 
