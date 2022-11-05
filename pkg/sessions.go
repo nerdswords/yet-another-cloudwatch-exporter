@@ -109,8 +109,8 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 		}
 	}
 
-	for _, customMetricJob := range config.CustomMetrics {
-		for _, role := range customMetricJob.Roles {
+	for _, customNamespaceJob := range config.CustomNamespace {
+		for _, role := range customNamespaceJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
 			}
@@ -119,7 +119,7 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 				roleCache[role] = map[string]*clientCache{}
 			}
 
-			for _, region := range customMetricJob.Regions {
+			for _, region := range customNamespaceJob.Regions {
 				// Only write a new region in if the region does not exist
 				if _, ok := roleCache[role][region]; !ok {
 					roleCache[role][region] = &clientCache{

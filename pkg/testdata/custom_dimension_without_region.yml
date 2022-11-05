@@ -1,6 +1,6 @@
 apiVersion: v1alpha1
 sts-endpoint: eu-west-1
-customMetrics:
+customNamespace:
   - name: customMetrics
     namespace: customMetrics
     metrics:

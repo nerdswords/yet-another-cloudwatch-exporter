@@ -117,7 +117,7 @@ We will contact you as soon as possible.
 | sts-region   | Use STS regional endpoint (Optional)         |
 | discovery    | Auto-discovery configuration                 |
 | static       | List of static configurations                |
-| customMetric | List of custom metrics configurations        |
+| customNamespace | List of custom namespace configurations        |
 
 ### Auto-discovery configuration
 
@@ -412,7 +412,7 @@ static:
 
 [Source: [config_test.yml](pkg/testdata/config_test.yml)]
 
-### Custom Metrics configuration
+### Custom Namespace configuration
 
 | Key                    | Description                                                      |
 |------------------------| -----------------------------------------------------------------|
@@ -433,8 +433,8 @@ static:
 ```yaml
 apiVersion: v1alpha1
 sts-endpoint: eu-west-1
-customMetrics:
-  - name: customMetrics
+customNamespace:
+  - name: customEC2Metrics
     namespace: CustomEC2Metrics
     regions:
       - us-east-1

@@ -356,7 +356,7 @@ func TestNewSessionCache(t *testing.T) {
 		{
 			"a ScrapeConf with only custom dimension jobs creates a cache",
 			ScrapeConf{
-				CustomMetrics: []*CustomMetrics{
+				CustomNamespace: []*CustomNamespace{
 					{
 						Name:      "scrape-thing",
 						Regions:   []string{"us-east-1", "eu-west-2"},
