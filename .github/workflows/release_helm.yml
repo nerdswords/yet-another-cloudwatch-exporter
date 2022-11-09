@@ -1,11 +1,13 @@
+name: Build, test and publish Helm chart
+
 on:
   push:
     tags:
     - 'v*'
 
-name: Build, test and publish
 jobs:
   publishHelmChart:
+    if: github.repository == 'nerdswords/yet-another-cloudwatch-exporter'
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
