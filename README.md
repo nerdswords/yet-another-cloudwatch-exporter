@@ -432,7 +432,7 @@ static:
 
 ```yaml
 apiVersion: v1alpha1
-sts-endpoint: eu-west-1
+sts-region: eu-west-1
 customNamespace:
   - name: customEC2Metrics
     namespace: CustomEC2Metrics
