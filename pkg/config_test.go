@@ -14,7 +14,7 @@ func TestConfLoad(t *testing.T) {
 		{configFile: "empty_rolearn.ok.yml"},
 		{configFile: "sts_region.ok.yml"},
 		{configFile: "multiple_roles.ok.yml"},
-		{configFile: "custom_dimension.yml"},
+		{configFile: "custom_namespace.ok.yml"},
 	}
 	for _, tc := range testCases {
 		config := ScrapeConf{}
@@ -42,15 +42,15 @@ func TestBadConfigs(t *testing.T) {
 			errorMsg:   "apiVersion line missing or version is unknown (invalidVersion)",
 		},
 		{
-			configFile: "custom_dimension_without_name.yml",
+			configFile: "custom_namespace_without_name.bad.yml",
 			errorMsg:   "Name should not be empty",
 		},
 		{
-			configFile: "custom_dimension_without_namespace.yml",
+			configFile: "custom_namespace_without_namespace.bad.yml",
 			errorMsg:   "Namespace should not be empty",
 		},
 		{
-			configFile: "custom_dimension_without_region.yml",
+			configFile: "custom_namespace_without_region.bad.yml",
 			errorMsg:   "Regions should not be empty",
 		},
 	}
