@@ -307,6 +307,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue
 		}
+
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
 				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
@@ -320,6 +321,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 				}
 			}
 		}
+
 		if !skip {
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())

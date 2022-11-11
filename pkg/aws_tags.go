@@ -11,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 )
 
 // taggedResource is an AWS resource with tags
@@ -77,12 +79,14 @@ func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
 type tagsInterface struct {
-	client           resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asgClient        autoscalingiface.AutoScalingAPI
-	apiGatewayClient apigatewayiface.APIGatewayAPI
-	ec2Client        ec2iface.EC2API
-	dmsClient        databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	logger           Logger
+	client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	asgClient            autoscalingiface.AutoScalingAPI
+	apiGatewayClient     apigatewayiface.APIGatewayAPI
+	ec2Client            ec2iface.EC2API
+	dmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	prometheusClient     prometheusserviceiface.PrometheusServiceAPI
+	storagegatewayClient storagegatewayiface.StorageGatewayAPI
+	logger               Logger
 }
 
 func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]*taggedResource, error) {
@@ -119,7 +123,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 				if resource.filterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				} else {
-					iface.logger.Debug("Skipping resource because search tags do not match")
+					iface.logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
 				}
 			}
 			return !lastPage

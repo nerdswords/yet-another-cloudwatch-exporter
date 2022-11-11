@@ -1,6 +1,7 @@
-config.yml
+config*.yml
 yet-another-cloudwatch-exporter
+!charts/yet-another-cloudwatch-exporter
 vendor
 dist
-yace
+/yace
 .idea

@@ -7,9 +7,110 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 )
+
+func TestApiGatewayFilterFunc(t *testing.T) {
+	tests := []struct {
+		name            string
+		iface           tagsInterface
+		inputResources  []*taggedResource
+		outputResources []*taggedResource
+	}{
+		{
+			"api gateway resources skip stages",
+			tagsInterface{
+				apiGatewayClient: apiGatewayClient{
+					getRestApisOutput: &apigateway.GetRestApisOutput{
+						Items: []*apigateway.RestApi{
+							{
+								ApiKeySource:              nil,
+								BinaryMediaTypes:          nil,
+								CreatedDate:               nil,
+								Description:               nil,
+								DisableExecuteApiEndpoint: nil,
+								EndpointConfiguration:     nil,
+								Id:                        aws.String("gwid1234"),
+								MinimumCompressionSize:    nil,
+								Name:                      aws.String("apiname"),
+								Policy:                    nil,
+								Tags:                      nil,
+								Version:                   nil,
+								Warnings:                  nil,
+							},
+						},
+						Position: nil,
+					},
+				},
+			},
+			[]*taggedResource{
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/restapis/gwid1234/stages/main",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []Tag{
+						{
+							Key:   "Test",
+							Value: "Value",
+						},
+					},
+				},
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/restapis/gwid1234",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []Tag{
+						{
+							Key:   "Test",
+							Value: "Value 2",
+						},
+					},
+				},
+			},
+			[]*taggedResource{
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/restapis/apiname",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []Tag{
+						{
+							Key:   "Test",
+							Value: "Value 2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			apigateway := SupportedServices.GetService("apigateway")
+
+			outputResources, err := apigateway.FilterFunc(context.Background(), test.iface, test.inputResources)
+			if err != nil {
+				t.Logf("Error from FilterFunc: %v", err)
+				t.FailNow()
+			}
+			if len(outputResources) != len(test.outputResources) {
+				t.Logf("len(outputResources) = %d, want %d", len(outputResources), len(test.outputResources))
+				t.Fail()
+			}
+			for i, resource := range outputResources {
+				if len(test.outputResources) <= i {
+					break
+				}
+				wantResource := *test.outputResources[i]
+				if !reflect.DeepEqual(*resource, wantResource) {
+					t.Errorf("outputResources[%d] = %+v, want %+v", i, *resource, wantResource)
+				}
+			}
+		})
+	}
+}
 
 func TestDMSFilterFunc(t *testing.T) {
 	tests := []struct {
@@ -230,6 +331,16 @@ type dmsClient struct {
 	databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	describeReplicationInstancesOutput *databasemigrationservice.DescribeReplicationInstancesOutput
 	describeReplicationTasksOutput     *databasemigrationservice.DescribeReplicationTasksOutput
+}
+
+type apiGatewayClient struct {
+	apigatewayiface.APIGatewayAPI
+	getRestApisOutput *apigateway.GetRestApisOutput
+}
+
+func (apigateway apiGatewayClient) GetRestApisPagesWithContext(context2 aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
+	fn(apigateway.getRestApisOutput, true)
+	return nil
 }
 
 func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(ctx aws.Context, input *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, opts ...request.Option) error {

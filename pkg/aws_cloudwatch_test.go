@@ -80,6 +80,97 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		wantGetMetricsData []cloudwatchData
 	}{
 		{
+			"additional dimension",
+			args{
+				region:     "us-east-1",
+				accountId:  aws.String("123123123123"),
+				namespace:  "efs",
+				customTags: nil,
+				tagsOnMetrics: map[string][]string{
+					"efs": {
+						"Value1",
+						"Value2",
+					},
+				},
+				dimensionRegexps: SupportedServices.GetService("efs").DimensionRegexps,
+				resources: []*taggedResource{
+					{
+						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
+						Tags: []Tag{
+							{
+								Key:   "Tag",
+								Value: "some-Tag",
+							},
+						},
+						Namespace: "efs",
+						Region:    "us-east-1",
+					},
+				},
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("StorageBytes"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("FileSystemId"),
+								Value: aws.String("fs-abc123"),
+							},
+							{
+								Name:  aws.String("StorageClass"),
+								Value: aws.String("Standard"),
+							},
+						},
+						Namespace: aws.String("AWS/EFS"),
+					},
+				},
+				m: &Metric{
+					Name: "StorageBytes",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]cloudwatchData{
+				{
+					AccountId:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("FileSystemId"),
+							Value: aws.String("fs-abc123"),
+						},
+						{
+							Name:  aws.String("StorageClass"),
+							Value: aws.String("Standard"),
+						},
+					},
+					ID:        aws.String("arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123"),
+					Metric:    aws.String("StorageBytes"),
+					Namespace: aws.String("efs"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
+		{
 			"ec2",
 			args{
 				region:     "us-east-1",
@@ -368,7 +459,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for i, got := range getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m) {
+			metricDatas := getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
+			if len(metricDatas) != len(tt.wantGetMetricsData) {
+				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
+			}
+			for i, got := range metricDatas {
 				if *got.AccountId != *tt.wantGetMetricsData[i].AccountId {
 					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountId, *tt.wantGetMetricsData[i].AccountId)
 				}
