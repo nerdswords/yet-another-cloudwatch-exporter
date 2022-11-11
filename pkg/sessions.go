@@ -117,6 +117,27 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 		}
 	}
 
+	for _, customNamespaceJob := range config.CustomNamespace {
+		for _, role := range customNamespaceJob.Roles {
+			if _, ok := stscache[role]; !ok {
+				stscache[role] = nil
+			}
+
+			if _, ok := roleCache[role]; !ok {
+				roleCache[role] = map[string]*clientCache{}
+			}
+
+			for _, region := range customNamespaceJob.Regions {
+				// Only write a new region in if the region does not exist
+				if _, ok := roleCache[role][region]; !ok {
+					roleCache[role][region] = &clientCache{
+						onlyStatic: true,
+					}
+				}
+			}
+		}
+	}
+
 	endpointResolver := endpoints.DefaultResolver().EndpointFor
 
 	endpointUrlOverride := os.Getenv("AWS_ENDPOINT_URL")

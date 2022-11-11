@@ -14,10 +14,11 @@ const defaultLengthSeconds = int64(300)
 const defaultDelaySeconds = int64(300)
 
 type ScrapeConf struct {
-	ApiVersion string    `yaml:"apiVersion"`
-	StsRegion  string    `yaml:"sts-region"`
-	Discovery  Discovery `yaml:"discovery"`
-	Static     []*Static `yaml:"static"`
+	ApiVersion      string             `yaml:"apiVersion"`
+	StsRegion       string             `yaml:"sts-region"`
+	Discovery       Discovery          `yaml:"discovery"`
+	Static          []*Static          `yaml:"static"`
+	CustomNamespace []*CustomNamespace `yaml:"customNamespace"`
 }
 
 type Discovery struct {
@@ -52,6 +53,23 @@ type Static struct {
 	CustomTags []Tag       `yaml:"customTags"`
 	Dimensions []Dimension `yaml:"dimensions"`
 	Metrics    []*Metric   `yaml:"metrics"`
+}
+
+type CustomNamespace struct {
+	Regions                   []string  `yaml:"regions"`
+	Name                      string    `yaml:"name"`
+	Namespace                 string    `yaml:"namespace"`
+	Roles                     []Role    `yaml:"roles"`
+	Metrics                   []*Metric `yaml:"metrics"`
+	Statistics                []string  `yaml:"statistics"`
+	NilToZero                 *bool     `yaml:"nilToZero"`
+	Period                    int64     `yaml:"period"`
+	Length                    int64     `yaml:"length"`
+	Delay                     int64     `yaml:"delay"`
+	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
+	CustomTags                []Tag     `yaml:"customTags"`
+	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
+	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
 }
 
 type Role struct {
@@ -95,6 +113,12 @@ func (c *ScrapeConf) Load(file *string) error {
 		}
 	}
 
+	for _, job := range c.CustomNamespace {
+		if len(job.Roles) == 0 {
+			job.Roles = []Role{{}} // use current IAM role
+		}
+	}
+
 	for _, job := range c.Static {
 		if len(job.Roles) == 0 {
 			job.Roles = []Role{{}} // use current IAM role
@@ -109,13 +133,22 @@ func (c *ScrapeConf) Load(file *string) error {
 }
 
 func (c *ScrapeConf) Validate() error {
-	if c.Discovery.Jobs == nil && c.Static == nil {
-		return fmt.Errorf("At least 1 Discovery job or 1 Static must be defined")
+	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomNamespace == nil {
+		return fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
 	}
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
 			err := job.validateDiscoveryJob(idx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if c.CustomNamespace != nil {
+		for idx, job := range c.CustomNamespace {
+			err := job.validateCustomNamespaceJob(idx)
 			if err != nil {
 				return err
 			}
@@ -161,6 +194,58 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	}
 	for metricIdx, metric := range j.Metrics {
 		err := metric.validateMetric(metricIdx, parent, j)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
+	if j.Name == "" {
+		return fmt.Errorf("CustomNamespace job [%v]: Name should not be empty", jobIdx)
+	}
+	if j.Namespace == "" {
+		return fmt.Errorf("CustomNamespace job [%v]: Namespace should not be empty", jobIdx)
+	}
+	parent := fmt.Sprintf("CustomNamespace job [%s/%d]", j.Namespace, jobIdx)
+	if len(j.Roles) > 0 {
+		for roleIdx, role := range j.Roles {
+			if err := role.validateRole(roleIdx, parent); err != nil {
+				return err
+			}
+		}
+	}
+	if j.Regions == nil || len(j.Regions) == 0 {
+		return fmt.Errorf("CustomNamespace job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
+	}
+	for metricIdx, metric := range j.Metrics {
+		if metric.AddCloudwatchTimestamp == nil {
+			metric.AddCloudwatchTimestamp = j.AddCloudwatchTimestamp
+		}
+
+		if metric.Delay == 0 {
+			metric.Delay = j.Delay
+		}
+
+		if metric.Length == 0 {
+			metric.Length = j.Length
+		}
+
+		if metric.Period == 0 {
+			metric.Period = j.Period
+		}
+
+		if metric.NilToZero == nil {
+			metric.NilToZero = j.NilToZero
+		}
+
+		if len(metric.Statistics) == 0 {
+			metric.Statistics = j.Statistics
+		}
+
+		err := metric.validateMetric(metricIdx, parent, nil)
 		if err != nil {
 			return err
 		}
