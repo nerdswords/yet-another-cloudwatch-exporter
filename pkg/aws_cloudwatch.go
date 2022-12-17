@@ -374,14 +374,26 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		ok, promTag := promStringTag(*dimension.Name, labelsSnakeCase)
+		if !ok {
+			continue
+		}
+		labels["dimension_"+promTag] = *dimension.Value
 	}
 
 	for _, label := range cwd.CustomTags {
-		labels["custom_tag_"+promStringTag(label.Key, labelsSnakeCase)] = label.Value
+		ok, promTag := promStringTag(label.Key, labelsSnakeCase)
+		if !ok {
+			continue
+		}
+		labels["custom_tag_"+promTag] = label.Value
 	}
 	for _, tag := range cwd.Tags {
-		labels["tag_"+promStringTag(tag.Key, labelsSnakeCase)] = tag.Value
+		ok, promTag := promStringTag(tag.Key, labelsSnakeCase)
+		if !ok {
+			continue
+		}
+		labels["tag_"+promTag] = tag.Value
 	}
 
 	return labels

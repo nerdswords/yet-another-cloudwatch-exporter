@@ -175,7 +175,12 @@ func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []
 		promLabels["name"] = d.ARN
 
 		for _, entry := range tagList[d.Namespace] {
-			labelKey := "tag_" + promStringTag(entry, labelsSnakeCase)
+			ok, promTag := promStringTag(entry, labelsSnakeCase)
+			if !ok {
+				continue
+			}
+
+			labelKey := "tag_" + promTag
 			promLabels[labelKey] = ""
 
 			for _, rTag := range d.Tags {

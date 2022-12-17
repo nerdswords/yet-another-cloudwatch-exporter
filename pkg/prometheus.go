@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/model"
 )
 
 var (
@@ -163,11 +164,14 @@ func promString(text string) string {
 	return strings.ToLower(sanitize(text))
 }
 
-func promStringTag(text string, labelsSnakeCase bool) string {
+func promStringTag(text string, labelsSnakeCase bool) (bool, string) {
+	var s string
 	if labelsSnakeCase {
-		return promString(text)
+		s = promString(text)
+	} else {
+		s = sanitize(text)
 	}
-	return sanitize(text)
+	return model.LabelName(s).IsValid(), s
 }
 
 func sanitize(text string) string {
