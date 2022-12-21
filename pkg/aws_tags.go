@@ -152,7 +152,7 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 	return resources, nil
 }
 
-func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []*PrometheusMetric {
+func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool, logger Logger) []*PrometheusMetric {
 	output := make([]*PrometheusMetric, 0)
 
 	tagList := make(map[string][]string)
@@ -177,6 +177,7 @@ func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []
 		for _, entry := range tagList[d.Namespace] {
 			ok, promTag := promStringTag(entry, labelsSnakeCase)
 			if !ok {
+				logger.Warn("tag name is an invalid prometheus label name", "tag", entry)
 				continue
 			}
 
