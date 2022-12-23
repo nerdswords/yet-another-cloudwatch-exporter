@@ -106,7 +106,7 @@ func scrapeAwsData(
 		for _, role := range customNamespaceJob.Roles {
 			for _, region := range customNamespaceJob.Regions {
 				wg.Add(1)
-				go func(staticJob *CustomNamespace, region string, role Role) {
+				go func(customNamespaceJob *CustomNamespace, region string, role Role) {
 					defer wg.Done()
 					jobLogger := logger.With("custom_metric_namespace", customNamespaceJob.Namespace, "region", region, "arn", role.RoleArn)
 					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
