@@ -3,6 +3,7 @@ package exporter
 import (
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -308,7 +309,7 @@ func Test_MigrateTagsToPrometheus(t *testing.T) {
 		value: &metricValue,
 	}}
 
-	actual := migrateTagsToPrometheus(resources, false)
+	actual := migrateTagsToPrometheus(resources, false, NewLogrusLogger(log.StandardLogger()))
 
 	require.Equal(t, expected, actual)
 }
