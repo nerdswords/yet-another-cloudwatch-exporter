@@ -196,3 +196,66 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 		})
 	}
 }
+
+func TestPromStringTag(t *testing.T) {
+	testCases := []struct {
+		name        string
+		label       string
+		toSnakeCase bool
+		ok          bool
+		out         string
+	}{
+		{
+			name:        "valid",
+			label:       "labelName",
+			toSnakeCase: false,
+			ok:          true,
+			out:         "labelName",
+		},
+		{
+			name:        "valid, convert to snake case",
+			label:       "labelName",
+			toSnakeCase: true,
+			ok:          true,
+			out:         "label_name",
+		},
+		{
+			name:        "valid (snake case)",
+			label:       "label_name",
+			toSnakeCase: false,
+			ok:          true,
+			out:         "label_name",
+		},
+		{
+			name:        "valid (snake case) unchanged",
+			label:       "label_name",
+			toSnakeCase: true,
+			ok:          true,
+			out:         "label_name",
+		},
+		{
+			name:        "invalid chars",
+			label:       "invalidChars@$",
+			toSnakeCase: false,
+			ok:          false,
+			out:         "",
+		},
+		{
+			name:        "invalid chars, convert to snake case",
+			label:       "invalidChars@$",
+			toSnakeCase: true,
+			ok:          false,
+			out:         "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ok, out := promStringTag(tc.label, tc.toSnakeCase)
+			assert.Equal(t, tc.ok, ok)
+			if ok {
+				assert.Equal(t, tc.out, out)
+			}
+		})
+	}
+}

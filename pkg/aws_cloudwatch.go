@@ -366,7 +366,7 @@ func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNameRequirem
 	return true
 }
 
-func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[string]string {
+func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool, logger Logger) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
@@ -374,14 +374,29 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		ok, promTag := promStringTag(*dimension.Name, labelsSnakeCase)
+		if !ok {
+			logger.Warn("dimension name is an invalid prometheus label name", "dimension", *dimension.Name)
+			continue
+		}
+		labels["dimension_"+promTag] = *dimension.Value
 	}
 
 	for _, label := range cwd.CustomTags {
-		labels["custom_tag_"+promStringTag(label.Key, labelsSnakeCase)] = label.Value
+		ok, promTag := promStringTag(label.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
+			continue
+		}
+		labels["custom_tag_"+promTag] = label.Value
 	}
 	for _, tag := range cwd.Tags {
-		labels["tag_"+promStringTag(tag.Key, labelsSnakeCase)] = tag.Value
+		ok, promTag := promStringTag(tag.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("metric tag name is an invalid prometheus label name", "tag", tag.Key)
+			continue
+		}
+		labels["tag_"+promTag] = tag.Value
 	}
 
 	return labels
@@ -478,7 +493,7 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time, e
 	return nil, time.Time{}, nil
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]LabelSet) ([]*PrometheusMetric, map[string]LabelSet, error) {
+func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]LabelSet, logger Logger) ([]*PrometheusMetric, map[string]LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
@@ -506,7 +521,7 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, 
 			}
 			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
 			if exportedDatapoint != nil {
-				promLabels := createPrometheusLabels(c, labelsSnakeCase)
+				promLabels := createPrometheusLabels(c, labelsSnakeCase, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 				p := PrometheusMetric{
 					name:             &name,

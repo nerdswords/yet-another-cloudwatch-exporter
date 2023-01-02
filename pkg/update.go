@@ -35,14 +35,14 @@ func UpdateMetrics(
 		logger,
 	)
 
-	metrics, observedMetricLabels, err := migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels)
+	metrics, observedMetricLabels, err := migrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels, logger)
 	if err != nil {
 		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return
 	}
 	metrics = ensureLabelConsistencyForMetrics(metrics, observedMetricLabels)
 
-	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase)...)
+	metrics = append(metrics, migrateTagsToPrometheus(tagsData, labelsSnakeCase, logger)...)
 
 	registry.MustRegister(NewPrometheusCollector(metrics))
 }
