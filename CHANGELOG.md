@@ -1,3 +1,15 @@
+# 0.43.0-alpha
+
+* add support to custom namespaces with their dimensions (by @arielly-parussulo)
+* Optimise support for custom namespaces to use GetMetricData API (by @code-haven)
+* GH workflows: run "publish" workflows only in this repo. (by @cristiangreco)
+* Bump Go version to 1.19 for CI and docker image. (by @cristiangreco)
+* Fix not to refer to loop variable in a goroutine (by @masshash)
+* Validate tags when converting to prometheus labels (by @cristiangreco)
+* Bump github.com/aws/aws-sdk-go from 1.44.127 to 1.44.167
+* Bump golangci/golangci-lint-action from 3.3.0 to 3.3.1
+* Bump github.com/urfave/cli/v2 from 2.23.0 to 2.23.7
+
 # 0.42.0-alpha
 
 * Resolve logging issue (@datsabk)
