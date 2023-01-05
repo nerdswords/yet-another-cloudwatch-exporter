@@ -1,4 +1,4 @@
-package exporter
+package promutil
 
 import (
 	"testing"
@@ -70,14 +70,14 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "one metric",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 		},
@@ -85,18 +85,18 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "duplicate metric",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 		},
@@ -104,18 +104,18 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "duplicate metric, multiple labels",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1", "label2": "value2"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1", "label2": "value2"},
 				},
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label2": "value2", "label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2", "label1": "value1"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1", "label2": "value2"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1", "label2": "value2"},
 				},
 			},
 		},
@@ -123,22 +123,22 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "metric with different labels",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label2": "value2"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label2": "value2"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 		},
@@ -146,22 +146,22 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "two metrics",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric2"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric2"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 		},
@@ -169,22 +169,22 @@ func TestRemoveDuplicateMetrics(t *testing.T) {
 			name: "two metrics with different labels",
 			input: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric2"),
-					labels: map[string]string{"label2": "value2"},
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 			output: []*PrometheusMetric{
 				{
-					name:   aws.String("metric1"),
-					labels: map[string]string{"label1": "value1"},
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					name:   aws.String("metric2"),
-					labels: map[string]string{"label2": "value2"},
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 		},
@@ -251,7 +251,7 @@ func TestPromStringTag(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ok, out := promStringTag(tc.label, tc.toSnakeCase)
+			ok, out := PromStringTag(tc.label, tc.toSnakeCase)
 			assert.Equal(t, tc.ok, ok)
 			if ok {
 				assert.Equal(t, tc.out, out)
