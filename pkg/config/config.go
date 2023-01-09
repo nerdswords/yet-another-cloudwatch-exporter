@@ -220,6 +220,9 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 	if j.Regions == nil || len(j.Regions) == 0 {
 		return fmt.Errorf("CustomNamespace job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
+	if len(j.Metrics) == 0 {
+		return fmt.Errorf("CustomNamespace job [%s/%d]: Metrics should not be empty", j.Name, jobIdx)
+	}
 	for metricIdx, metric := range j.Metrics {
 		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
 		if err != nil {
