@@ -26,6 +26,15 @@ type Discovery struct {
 
 type ExportedTagsOnMetrics map[string][]string
 
+type JobLevelMetricFields struct {
+	Statistics             []string `yaml:"statistics"`
+	Period                 int64    `yaml:"period"`
+	Length                 int64    `yaml:"length"`
+	Delay                  int64    `yaml:"delay"`
+	NilToZero              *bool    `yaml:"nilToZero"`
+	AddCloudwatchTimestamp *bool    `yaml:"addCloudwatchTimestamp"`
+}
+
 type Job struct {
 	Regions                   []string    `yaml:"regions"`
 	Type                      string      `yaml:"type"`
@@ -34,13 +43,8 @@ type Job struct {
 	CustomTags                []model.Tag `yaml:"customTags"`
 	DimensionNameRequirements []string    `yaml:"dimensionNameRequirements"`
 	Metrics                   []*Metric   `yaml:"metrics"`
-	Length                    int64       `yaml:"length"`
-	Delay                     int64       `yaml:"delay"`
-	Period                    int64       `yaml:"period"`
 	RoundingPeriod            *int64      `yaml:"roundingPeriod"`
-	Statistics                []string    `yaml:"statistics"`
-	AddCloudwatchTimestamp    *bool       `yaml:"addCloudwatchTimestamp"`
-	NilToZero                 *bool       `yaml:"nilToZero"`
+	JobLevelMetricFields      `yaml:",inline"`
 }
 
 type Static struct {
@@ -59,15 +63,10 @@ type CustomNamespace struct {
 	Namespace                 string      `yaml:"namespace"`
 	Roles                     []Role      `yaml:"roles"`
 	Metrics                   []*Metric   `yaml:"metrics"`
-	Statistics                []string    `yaml:"statistics"`
-	NilToZero                 *bool       `yaml:"nilToZero"`
-	Period                    int64       `yaml:"period"`
-	Length                    int64       `yaml:"length"`
-	Delay                     int64       `yaml:"delay"`
-	AddCloudwatchTimestamp    *bool       `yaml:"addCloudwatchTimestamp"`
 	CustomTags                []model.Tag `yaml:"customTags"`
 	DimensionNameRequirements []string    `yaml:"dimensionNameRequirements"`
 	RoundingPeriod            *int64      `yaml:"roundingPeriod"`
+	JobLevelMetricFields      `yaml:",inline"`
 }
 
 type Metric struct {
@@ -194,7 +193,7 @@ func (j *Job) validateDiscoveryJob(jobIdx int, validSvc func(string) bool) error
 		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Type, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := metric.validateMetric(metricIdx, parent, j)
+		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
 		if err != nil {
 			return err
 		}
@@ -222,31 +221,7 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 		return fmt.Errorf("CustomNamespace job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		if metric.AddCloudwatchTimestamp == nil {
-			metric.AddCloudwatchTimestamp = j.AddCloudwatchTimestamp
-		}
-
-		if metric.Delay == 0 {
-			metric.Delay = j.Delay
-		}
-
-		if metric.Length == 0 {
-			metric.Length = j.Length
-		}
-
-		if metric.Period == 0 {
-			metric.Period = j.Period
-		}
-
-		if metric.NilToZero == nil {
-			metric.NilToZero = j.NilToZero
-		}
-
-		if len(metric.Statistics) == 0 {
-			metric.Statistics = j.Statistics
-		}
-
-		err := metric.validateMetric(metricIdx, parent, nil)
+		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
 		if err != nil {
 			return err
 		}
@@ -283,7 +258,7 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 	return nil
 }
 
-func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) error {
+func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLevelMetricFields) error {
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
