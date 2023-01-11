@@ -1,4 +1,4 @@
-package exporter
+package config
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfLoad(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		configFile string
 	}{
 		{configFile: "config_test.yml"},
@@ -19,7 +19,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile); err != nil {
+		if err := config.Load(&configFile, testServices); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -27,17 +27,19 @@ func TestConfLoad(t *testing.T) {
 }
 
 func TestBadConfigs(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		configFile string
 		errorMsg   string
 	}{
 		{
 			configFile: "externalid_without_rolearn.bad.yml",
 			errorMsg:   "RoleArn should not be empty",
-		}, {
+		},
+		{
 			configFile: "externalid_with_empty_rolearn.bad.yml",
 			errorMsg:   "RoleArn should not be empty",
-		}, {
+		},
+		{
 			configFile: "unknown_version.bad.yml",
 			errorMsg:   "apiVersion line missing or version is unknown (invalidVersion)",
 		},
@@ -58,7 +60,7 @@ func TestBadConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile); err != nil {
+		if err := config.Load(&configFile, testServices); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
@@ -67,5 +69,23 @@ func TestBadConfigs(t *testing.T) {
 			t.Log("expected validation error")
 			t.FailNow()
 		}
+	}
+}
+
+func testServices(s string) bool {
+	switch s {
+	case
+		"alb",
+		"billing",
+		"ebs",
+		"elb",
+		"es",
+		"kafka",
+		"kinesis",
+		"s3",
+		"vpn":
+		return true
+	default:
+		return false
 	}
 }

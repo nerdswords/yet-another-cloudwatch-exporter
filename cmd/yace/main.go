@@ -10,7 +10,10 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
-	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 var version = "custom-build"
@@ -28,7 +31,7 @@ var (
 	metricsPerQuery       int
 	labelsSnakeCase       bool
 
-	config = exporter.ScrapeConf{}
+	cfg = config.ScrapeConf{}
 )
 
 func init() {
@@ -72,7 +75,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				log.Println("Parse config..")
-				if err := config.Load(&configFile); err != nil {
+				if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
 					log.Fatal("Couldn't read ", configFile, ": ", err)
 					os.Exit(1)
 				}
@@ -104,14 +107,14 @@ func startScraper(_ *cli.Context) error {
 	}
 
 	log.Println("Parse config..")
-	if err := config.Load(&configFile); err != nil {
+	if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
 	log.Println("Startup completed")
 
 	s := NewScraper()
-	cache := exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
+	cache := session.NewSessionCache(cfg, fips, logger.NewLogrusLogger(log.StandardLogger()))
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, cache)
@@ -139,12 +142,12 @@ func startScraper(_ *cli.Context) error {
 			return
 		}
 		log.Println("Parse config..")
-		if err := config.Load(&configFile); err != nil {
+		if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
 			log.Fatal("Couldn't read ", &configFile, ": ", err)
 		}
 
 		log.Println("Reset session cache")
-		cache = exporter.NewSessionCache(config, fips, exporter.NewLogrusLogger(log.StandardLogger()))
+		cache = session.NewSessionCache(cfg, fips, logger.NewLogrusLogger(log.StandardLogger()))
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
