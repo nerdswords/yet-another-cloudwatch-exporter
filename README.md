@@ -644,7 +644,7 @@ The default value is 300.
 ### Embedding YACE as a library in an external application
 It is possible to embed YACE in to an external application. This mode might be useful to you if you would like to scrape on demand or run in a stateless manner.
 
-The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.go](./pkg/exporter/update.go#L35) which requires,
+The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.go](./pkg/exporter.go#L35) which requires,
 - `config`: this is the struct representation of the configuration defined in [Top Level Configuration](#top-level-configuration)
 - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
 - `metricsPerQuery`: controls the same behavior defined by the CLI flag `metrics-per-query`
@@ -662,7 +662,7 @@ The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.g
   - Any implementation of the [Logger Interface](./pkg/logger/logruslogger.go#L13)
   - `logger.NewLogrusLogger(log.StandardLogger())` is an acceptable default
 
-The update definition also includes an exported slice of [Metrics](./pkg/exporter/update.go#L18) which includes AWS API call metrics. These can be registered with the provided `registry` if you want them
+The update definition also includes an exported slice of [Metrics](./pkg/exporter.go#L18) which includes AWS API call metrics. These can be registered with the provided `registry` if you want them
 included in the AWS scrape results. If you are using multiple instances of `registry` it might make more sense to register these metrics in the application using YACE as a library to better
 track them over the lifetime of the application.
 
