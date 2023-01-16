@@ -10,6 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 type scraper struct {
@@ -26,7 +29,7 @@ func NewScraper() *scraper {
 	}
 }
 
-func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) func(http.ResponseWriter, *http.Request) {
+func (s *scraper) makeHandler(ctx context.Context, cache session.SessionCache) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
@@ -35,7 +38,7 @@ func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) 
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
+func (s *scraper) decoupled(ctx context.Context, cache session.SessionCache) {
 	log.Debug("Starting scraping async")
 	log.Debug("Scrape initially first time")
 	s.scrape(ctx, cache)
@@ -55,9 +58,9 @@ func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
 	}
 }
 
-var observedMetricLabels = map[string]exporter.LabelSet{}
+var observedMetricLabels = map[string]model.LabelSet{}
 
-func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
+func (s *scraper) scrape(ctx context.Context, cache session.SessionCache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
 		// Let them know by logging a warning.
@@ -73,7 +76,7 @@ func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
 			log.Warning("Could not register cloudwatch api metric")
 		}
 	}
-	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels, exporter.NewLogrusLogger(log.StandardLogger()))
+	exporter.UpdateMetrics(ctx, cfg, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels, logger.NewLogrusLogger(log.StandardLogger()))
 
 	// this might have a data race to access registry
 	s.registry = newRegistry

@@ -1,4 +1,4 @@
-package exporter
+package promutil
 
 import (
 	"regexp"
@@ -11,50 +11,50 @@ import (
 )
 
 var (
-	cloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	cloudwatchAPIErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchAPIErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_request_errors",
 		Help: "Help is not implemented yet.",
 	})
-	cloudwatchGetMetricDataAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchGetMetricDataAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricdata_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	cloudwatchGetMetricStatisticsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchGetMetricStatisticsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricstatistics_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	resourceGroupTaggingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	ResourceGroupTaggingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_resourcegrouptaggingapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	autoScalingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	AutoScalingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_autoscalingapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	targetGroupsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	TargetGroupsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_targetgroupapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	apiGatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	ApiGatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_apigatewayapi_requests_total",
 	})
-	ec2APICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	Ec2APICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_ec2api_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	managedPrometheusAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	ManagedPrometheusAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_managedprometheusapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	storagegatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	StoragegatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_storagegatewayapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
-	dmsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+	DmsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_dmsapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
@@ -79,11 +79,11 @@ var replacer = strings.NewReplacer(
 var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 
 type PrometheusMetric struct {
-	name             *string
-	labels           map[string]string
-	value            *float64
-	includeTimestamp bool
-	timestamp        time.Time
+	Name             *string
+	Labels           map[string]string
+	Value            *float64
+	IncludeTimestamp bool
+	Timestamp        time.Time
 }
 
 type PrometheusCollector struct {
@@ -110,34 +110,34 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 
 func createDesc(metric *PrometheusMetric) *prometheus.Desc {
 	return prometheus.NewDesc(
-		*metric.name,
+		*metric.Name,
 		"Help is not implemented yet.",
 		nil,
-		metric.labels,
+		metric.Labels,
 	)
 }
 
 func createMetric(metric *PrometheusMetric) prometheus.Metric {
 	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        *metric.name,
+		Name:        *metric.Name,
 		Help:        "Help is not implemented yet.",
-		ConstLabels: metric.labels,
+		ConstLabels: metric.Labels,
 	})
 
-	gauge.Set(*metric.value)
+	gauge.Set(*metric.Value)
 
-	if !metric.includeTimestamp {
+	if !metric.IncludeTimestamp {
 		return gauge
 	}
 
-	return prometheus.NewMetricWithTimestamp(metric.timestamp, gauge)
+	return prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge)
 }
 
 func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 	keys := make(map[string]bool)
 	filteredMetrics := []*PrometheusMetric{}
 	for _, metric := range metrics {
-		check := *metric.name + combineLabels(metric.labels)
+		check := *metric.Name + combineLabels(metric.Labels)
 		if _, value := keys[check]; !value {
 			keys[check] = true
 			filteredMetrics = append(filteredMetrics, metric)
@@ -154,20 +154,20 @@ func combineLabels(labels map[string]string) string {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		combinedLabels += promString(k) + promString(labels[k])
+		combinedLabels += PromString(k) + PromString(labels[k])
 	}
 	return combinedLabels
 }
 
-func promString(text string) string {
+func PromString(text string) string {
 	text = splitString(text)
 	return strings.ToLower(sanitize(text))
 }
 
-func promStringTag(text string, labelsSnakeCase bool) (bool, string) {
+func PromStringTag(text string, labelsSnakeCase bool) (bool, string) {
 	var s string
 	if labelsSnakeCase {
-		s = promString(text)
+		s = PromString(text)
 	} else {
 		s = sanitize(text)
 	}

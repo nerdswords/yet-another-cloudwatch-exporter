@@ -1,4 +1,4 @@
-package exporter
+package session
 
 import (
 	"fmt"
@@ -29,21 +29,24 @@ import (
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
 )
 
 // SessionCache is an interface to a cache of sessions and clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
 type SessionCache interface {
-	GetSTS(Role) stsiface.STSAPI
-	GetCloudwatch(*string, Role) cloudwatchiface.CloudWatchAPI
-	GetTagging(*string, Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	GetASG(*string, Role) autoscalingiface.AutoScalingAPI
-	GetEC2(*string, Role) ec2iface.EC2API
-	GetDMS(*string, Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	GetAPIGateway(*string, Role) apigatewayiface.APIGatewayAPI
-	GetStorageGateway(*string, Role) storagegatewayiface.StorageGatewayAPI
-	GetPrometheus(*string, Role) prometheusserviceiface.PrometheusServiceAPI
+	GetSTS(config.Role) stsiface.STSAPI
+	GetCloudwatch(*string, config.Role) cloudwatchiface.CloudWatchAPI
+	GetTagging(*string, config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	GetASG(*string, config.Role) autoscalingiface.AutoScalingAPI
+	GetEC2(*string, config.Role) ec2iface.EC2API
+	GetDMS(*string, config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	GetAPIGateway(*string, config.Role) apigatewayiface.APIGatewayAPI
+	GetStorageGateway(*string, config.Role) storagegatewayiface.StorageGatewayAPI
+	GetPrometheus(*string, config.Role) prometheusserviceiface.PrometheusServiceAPI
 	Refresh()
 	Clear()
 }
@@ -52,13 +55,13 @@ type sessionCache struct {
 	stsRegion        string
 	session          *session.Session
 	endpointResolver endpoints.ResolverFunc
-	stscache         map[Role]stsiface.STSAPI
-	clients          map[Role]map[string]*clientCache
+	stscache         map[config.Role]stsiface.STSAPI
+	clients          map[config.Role]map[string]*clientCache
 	cleared          bool
 	refreshed        bool
 	mu               sync.Mutex
 	fips             bool
-	logger           Logger
+	logger           logger.Logger
 }
 
 type clientCache struct {
@@ -78,11 +81,11 @@ type clientCache struct {
 
 // NewSessionCache creates a new session cache to use when fetching data from
 // AWS.
-func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
-	stscache := map[Role]stsiface.STSAPI{}
-	roleCache := map[Role]map[string]*clientCache{}
+func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logger.Logger) SessionCache {
+	stscache := map[config.Role]stsiface.STSAPI{}
+	roleCache := map[config.Role]map[string]*clientCache{}
 
-	for _, discoveryJob := range config.Discovery.Jobs {
+	for _, discoveryJob := range cfg.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -96,7 +99,7 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 		}
 	}
 
-	for _, staticJob := range config.Static {
+	for _, staticJob := range cfg.Static {
 		for _, role := range staticJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -117,7 +120,7 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 		}
 	}
 
-	for _, customNamespaceJob := range config.CustomNamespace {
+	for _, customNamespaceJob := range cfg.CustomNamespace {
 		for _, role := range customNamespaceJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -151,7 +154,7 @@ func NewSessionCache(config ScrapeConf, fips bool, logger Logger) SessionCache {
 	}
 
 	return &sessionCache{
-		stsRegion:        config.StsRegion,
+		stsRegion:        cfg.StsRegion,
 		session:          nil,
 		endpointResolver: endpointResolver,
 		stscache:         stscache,
@@ -229,7 +232,7 @@ func (s *sessionCache) Refresh() {
 	s.refreshed = true
 }
 
-func (s *sessionCache) GetSTS(role Role) stsiface.STSAPI {
+func (s *sessionCache) GetSTS(role config.Role) stsiface.STSAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -242,7 +245,7 @@ func (s *sessionCache) GetSTS(role Role) stsiface.STSAPI {
 	return s.stscache[role]
 }
 
-func (s *sessionCache) GetCloudwatch(region *string, role Role) cloudwatchiface.CloudWatchAPI {
+func (s *sessionCache) GetCloudwatch(region *string, role config.Role) cloudwatchiface.CloudWatchAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -255,7 +258,7 @@ func (s *sessionCache) GetCloudwatch(region *string, role Role) cloudwatchiface.
 	return s.clients[role][*region].cloudwatch
 }
 
-func (s *sessionCache) GetTagging(region *string, role Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
+func (s *sessionCache) GetTagging(region *string, role config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -269,7 +272,7 @@ func (s *sessionCache) GetTagging(region *string, role Role) resourcegroupstaggi
 	return s.clients[role][*region].tagging
 }
 
-func (s *sessionCache) GetASG(region *string, role Role) autoscalingiface.AutoScalingAPI {
+func (s *sessionCache) GetASG(region *string, role config.Role) autoscalingiface.AutoScalingAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -283,7 +286,7 @@ func (s *sessionCache) GetASG(region *string, role Role) autoscalingiface.AutoSc
 	return s.clients[role][*region].asg
 }
 
-func (s *sessionCache) GetEC2(region *string, role Role) ec2iface.EC2API {
+func (s *sessionCache) GetEC2(region *string, role config.Role) ec2iface.EC2API {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -297,7 +300,7 @@ func (s *sessionCache) GetEC2(region *string, role Role) ec2iface.EC2API {
 	return s.clients[role][*region].ec2
 }
 
-func (s *sessionCache) GetPrometheus(region *string, role Role) prometheusserviceiface.PrometheusServiceAPI {
+func (s *sessionCache) GetPrometheus(region *string, role config.Role) prometheusserviceiface.PrometheusServiceAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -311,7 +314,7 @@ func (s *sessionCache) GetPrometheus(region *string, role Role) prometheusservic
 	return s.clients[role][*region].prometheus
 }
 
-func (s *sessionCache) GetDMS(region *string, role Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
+func (s *sessionCache) GetDMS(region *string, role config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -325,7 +328,7 @@ func (s *sessionCache) GetDMS(region *string, role Role) databasemigrationservic
 	return s.clients[role][*region].dms
 }
 
-func (s *sessionCache) GetAPIGateway(region *string, role Role) apigatewayiface.APIGatewayAPI {
+func (s *sessionCache) GetAPIGateway(region *string, role config.Role) apigatewayiface.APIGatewayAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -337,10 +340,9 @@ func (s *sessionCache) GetAPIGateway(region *string, role Role) apigatewayiface.
 
 	s.clients[role][*region].apiGateway = createAPIGatewaySession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
 	return s.clients[role][*region].apiGateway
-
 }
 
-func (s *sessionCache) GetStorageGateway(region *string, role Role) storagegatewayiface.StorageGatewayAPI {
+func (s *sessionCache) GetStorageGateway(region *string, role config.Role) storagegatewayiface.StorageGatewayAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
 		s.mu.Lock()
@@ -352,7 +354,6 @@ func (s *sessionCache) GetStorageGateway(region *string, role Role) storagegatew
 
 	s.clients[role][*region].storageGateway = createStorageGatewaySession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
 	return s.clients[role][*region].storageGateway
-
 }
 
 func setExternalID(ID string) func(p *stscreds.AssumeRoleProvider) {
@@ -363,7 +364,7 @@ func setExternalID(ID string) func(p *stscreds.AssumeRoleProvider) {
 	}
 }
 
-func setSTSCreds(sess *session.Session, config *aws.Config, role Role) *aws.Config {
+func setSTSCreds(sess *session.Session, config *aws.Config, role config.Role) *aws.Config {
 	if role.RoleArn != "" {
 		config.Credentials = stscreds.NewCredentials(
 			sess, role.RoleArn, setExternalID(role.ExternalID))
@@ -384,7 +385,6 @@ func getAwsRetryer() aws.RequestRetryer {
 }
 
 func createAWSSession(resolver endpoints.ResolverFunc, isDebugEnabled bool) *session.Session {
-
 	config := aws.Config{
 		CredentialsChainVerboseErrors: aws.Bool(true),
 		EndpointResolver:              resolver,
@@ -401,7 +401,7 @@ func createAWSSession(resolver endpoints.ResolverFunc, isDebugEnabled bool) *ses
 	return sess
 }
 
-func createStsSession(sess *session.Session, role Role, region string, fips bool, isDebugEnabled bool) *sts.STS {
+func createStsSession(sess *session.Session, role config.Role, region string, fips bool, isDebugEnabled bool) *sts.STS {
 	maxStsRetries := 5
 	config := &aws.Config{MaxRetries: &maxStsRetries}
 
@@ -422,8 +422,7 @@ func createStsSession(sess *session.Session, role Role, region string, fips bool
 	return sts.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createCloudwatchSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) *cloudwatch.CloudWatch {
-
+func createCloudwatchSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) *cloudwatch.CloudWatch {
 	config := &aws.Config{Region: region, Retryer: getAwsRetryer()}
 
 	if fips {
@@ -439,7 +438,7 @@ func createCloudwatchSession(sess *session.Session, region *string, role Role, f
 	return cloudwatch.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createTagSession(sess *session.Session, region *string, role Role, isDebugEnabled bool) *r.ResourceGroupsTaggingAPI {
+func createTagSession(sess *session.Session, region *string, role config.Role, isDebugEnabled bool) *r.ResourceGroupsTaggingAPI {
 	maxResourceGroupTaggingRetries := 5
 	config := &aws.Config{
 		Region:                        region,
@@ -454,7 +453,7 @@ func createTagSession(sess *session.Session, region *string, role Role, isDebugE
 	return r.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createASGSession(sess *session.Session, region *string, role Role, isDebugEnabled bool) autoscalingiface.AutoScalingAPI {
+func createASGSession(sess *session.Session, region *string, role config.Role, isDebugEnabled bool) autoscalingiface.AutoScalingAPI {
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
 
@@ -465,7 +464,7 @@ func createASGSession(sess *session.Session, region *string, role Role, isDebugE
 	return autoscaling.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createStorageGatewaySession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) storagegatewayiface.StorageGatewayAPI {
+func createStorageGatewaySession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) storagegatewayiface.StorageGatewayAPI {
 	maxStorageGatewayAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxStorageGatewayAPIRetries}
 
@@ -482,7 +481,7 @@ func createStorageGatewaySession(sess *session.Session, region *string, role Rol
 	return storagegateway.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createEC2Session(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) ec2iface.EC2API {
+func createEC2Session(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) ec2iface.EC2API {
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
 	if fips {
@@ -498,7 +497,7 @@ func createEC2Session(sess *session.Session, region *string, role Role, fips boo
 	return ec2.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createPrometheusSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
+func createPrometheusSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
 	maxPrometheusAPIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
 	if fips {
@@ -513,7 +512,7 @@ func createPrometheusSession(sess *session.Session, region *string, role Role, f
 	return prometheusservice.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createDMSSession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
+func createDMSSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
 	maxDMSAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxDMSAPIRetries}
 	if fips {
@@ -529,7 +528,7 @@ func createDMSSession(sess *session.Session, region *string, role Role, fips boo
 	return databasemigrationservice.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createAPIGatewaySession(sess *session.Session, region *string, role Role, fips bool, isDebugEnabled bool) apigatewayiface.APIGatewayAPI {
+func createAPIGatewaySession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) apigatewayiface.APIGatewayAPI {
 	maxAPIGatewayAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
 	if fips {

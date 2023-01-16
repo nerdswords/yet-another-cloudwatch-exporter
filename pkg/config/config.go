@@ -1,4 +1,4 @@
-package exporter
+package config
 
 import (
 	"fmt"
@@ -7,11 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-)
 
-const defaultPeriodSeconds = int64(300)
-const defaultLengthSeconds = int64(300)
-const defaultDelaySeconds = int64(300)
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+)
 
 type ScrapeConf struct {
 	ApiVersion      string             `yaml:"apiVersion"`
@@ -22,27 +20,27 @@ type ScrapeConf struct {
 }
 
 type Discovery struct {
-	ExportedTagsOnMetrics exportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
+	ExportedTagsOnMetrics ExportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
 	Jobs                  []*Job                `yaml:"jobs"`
 }
 
-type exportedTagsOnMetrics map[string][]string
+type ExportedTagsOnMetrics map[string][]string
 
 type Job struct {
-	Regions                   []string  `yaml:"regions"`
-	Type                      string    `yaml:"type"`
-	Roles                     []Role    `yaml:"roles"`
-	SearchTags                []Tag     `yaml:"searchTags"`
-	CustomTags                []Tag     `yaml:"customTags"`
-	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
-	Metrics                   []*Metric `yaml:"metrics"`
-	Length                    int64     `yaml:"length"`
-	Delay                     int64     `yaml:"delay"`
-	Period                    int64     `yaml:"period"`
-	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
-	Statistics                []string  `yaml:"statistics"`
-	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
-	NilToZero                 *bool     `yaml:"nilToZero"`
+	Regions                   []string    `yaml:"regions"`
+	Type                      string      `yaml:"type"`
+	Roles                     []Role      `yaml:"roles"`
+	SearchTags                []model.Tag `yaml:"searchTags"`
+	CustomTags                []model.Tag `yaml:"customTags"`
+	DimensionNameRequirements []string    `yaml:"dimensionNameRequirements"`
+	Metrics                   []*Metric   `yaml:"metrics"`
+	Length                    int64       `yaml:"length"`
+	Delay                     int64       `yaml:"delay"`
+	Period                    int64       `yaml:"period"`
+	RoundingPeriod            *int64      `yaml:"roundingPeriod"`
+	Statistics                []string    `yaml:"statistics"`
+	AddCloudwatchTimestamp    *bool       `yaml:"addCloudwatchTimestamp"`
+	NilToZero                 *bool       `yaml:"nilToZero"`
 }
 
 type Static struct {
@@ -50,31 +48,26 @@ type Static struct {
 	Regions    []string    `yaml:"regions"`
 	Roles      []Role      `yaml:"roles"`
 	Namespace  string      `yaml:"namespace"`
-	CustomTags []Tag       `yaml:"customTags"`
+	CustomTags []model.Tag `yaml:"customTags"`
 	Dimensions []Dimension `yaml:"dimensions"`
 	Metrics    []*Metric   `yaml:"metrics"`
 }
 
 type CustomNamespace struct {
-	Regions                   []string  `yaml:"regions"`
-	Name                      string    `yaml:"name"`
-	Namespace                 string    `yaml:"namespace"`
-	Roles                     []Role    `yaml:"roles"`
-	Metrics                   []*Metric `yaml:"metrics"`
-	Statistics                []string  `yaml:"statistics"`
-	NilToZero                 *bool     `yaml:"nilToZero"`
-	Period                    int64     `yaml:"period"`
-	Length                    int64     `yaml:"length"`
-	Delay                     int64     `yaml:"delay"`
-	AddCloudwatchTimestamp    *bool     `yaml:"addCloudwatchTimestamp"`
-	CustomTags                []Tag     `yaml:"customTags"`
-	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
-	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
-}
-
-type Role struct {
-	RoleArn    string `yaml:"roleArn"`
-	ExternalID string `yaml:"externalId"`
+	Regions                   []string    `yaml:"regions"`
+	Name                      string      `yaml:"name"`
+	Namespace                 string      `yaml:"namespace"`
+	Roles                     []Role      `yaml:"roles"`
+	Metrics                   []*Metric   `yaml:"metrics"`
+	Statistics                []string    `yaml:"statistics"`
+	NilToZero                 *bool       `yaml:"nilToZero"`
+	Period                    int64       `yaml:"period"`
+	Length                    int64       `yaml:"length"`
+	Delay                     int64       `yaml:"delay"`
+	AddCloudwatchTimestamp    *bool       `yaml:"addCloudwatchTimestamp"`
+	CustomTags                []model.Tag `yaml:"customTags"`
+	DimensionNameRequirements []string    `yaml:"dimensionNameRequirements"`
+	RoundingPeriod            *int64      `yaml:"roundingPeriod"`
 }
 
 type Metric struct {
@@ -92,12 +85,20 @@ type Dimension struct {
 	Value string `yaml:"value"`
 }
 
-type Tag struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
+type Role struct {
+	RoleArn    string `yaml:"roleArn"`
+	ExternalID string `yaml:"externalId"`
 }
 
-func (c *ScrapeConf) Load(file *string) error {
+func (r *Role) ValidateRole(roleIdx int, parent string) error {
+	if r.RoleArn == "" && r.ExternalID != "" {
+		return fmt.Errorf("Role [%d] in %v: RoleArn should not be empty", roleIdx, parent)
+	}
+
+	return nil
+}
+
+func (c *ScrapeConf) Load(file *string, validSvc func(string) bool) error {
 	yamlFile, err := os.ReadFile(*file)
 	if err != nil {
 		return err
@@ -125,21 +126,21 @@ func (c *ScrapeConf) Load(file *string) error {
 		}
 	}
 
-	err = c.Validate()
+	err = c.Validate(validSvc)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ScrapeConf) Validate() error {
+func (c *ScrapeConf) Validate(validSvc func(string) bool) error {
 	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomNamespace == nil {
 		return fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
 	}
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
-			err := job.validateDiscoveryJob(idx)
+			err := job.validateDiscoveryJob(idx, validSvc)
 			if err != nil {
 				return err
 			}
@@ -170,9 +171,9 @@ func (c *ScrapeConf) Validate() error {
 	return nil
 }
 
-func (j *Job) validateDiscoveryJob(jobIdx int) error {
+func (j *Job) validateDiscoveryJob(jobIdx int, validSvc func(string) bool) error {
 	if j.Type != "" {
-		if SupportedServices.GetService(j.Type) == nil {
+		if !validSvc(j.Type) {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
@@ -181,7 +182,7 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	parent := fmt.Sprintf("Discovery job [%s/%d]", j.Type, jobIdx)
 	if len(j.Roles) > 0 {
 		for roleIdx, role := range j.Roles {
-			if err := role.validateRole(roleIdx, parent); err != nil {
+			if err := role.ValidateRole(roleIdx, parent); err != nil {
 				return err
 			}
 		}
@@ -212,7 +213,7 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 	parent := fmt.Sprintf("CustomNamespace job [%s/%d]", j.Namespace, jobIdx)
 	if len(j.Roles) > 0 {
 		for roleIdx, role := range j.Roles {
-			if err := role.validateRole(roleIdx, parent); err != nil {
+			if err := role.ValidateRole(roleIdx, parent); err != nil {
 				return err
 			}
 		}
@@ -264,7 +265,7 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 	parent := fmt.Sprintf("Static job [%s/%d]", j.Name, jobIdx)
 	if len(j.Roles) > 0 {
 		for roleIdx, role := range j.Roles {
-			if err := role.validateRole(roleIdx, parent); err != nil {
+			if err := role.ValidateRole(roleIdx, parent); err != nil {
 				return err
 			}
 		}
@@ -277,14 +278,6 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (r *Role) validateRole(roleIdx int, parent string) error {
-	if r.RoleArn == "" && r.ExternalID != "" {
-		return fmt.Errorf("Role [%d] in %v: RoleArn should not be empty", roleIdx, parent)
 	}
 
 	return nil
@@ -309,7 +302,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Period != 0 {
 			mPeriod = discovery.Period
 		} else {
-			mPeriod = defaultPeriodSeconds
+			mPeriod = model.DefaultPeriodSeconds
 		}
 	}
 	if mPeriod < 1 {
@@ -320,7 +313,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Length != 0 {
 			mLength = discovery.Length
 		} else {
-			mLength = defaultLengthSeconds
+			mLength = model.DefaultLengthSeconds
 		}
 	}
 
@@ -329,7 +322,7 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *Job) er
 		if discovery.Delay != 0 {
 			mDelay = discovery.Delay
 		} else {
-			mDelay = defaultDelaySeconds
+			mDelay = model.DefaultDelaySeconds
 		}
 	}
 
