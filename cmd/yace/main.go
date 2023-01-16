@@ -12,7 +12,6 @@ import (
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -75,7 +74,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				log.Println("Parse config..")
-				if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
+				if err := cfg.Load(&configFile); err != nil {
 					log.Fatal("Couldn't read ", configFile, ": ", err)
 					os.Exit(1)
 				}
@@ -107,7 +106,7 @@ func startScraper(_ *cli.Context) error {
 	}
 
 	log.Println("Parse config..")
-	if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
+	if err := cfg.Load(&configFile); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
@@ -142,7 +141,7 @@ func startScraper(_ *cli.Context) error {
 			return
 		}
 		log.Println("Parse config..")
-		if err := cfg.Load(&configFile, services.CheckServiceName); err != nil {
+		if err := cfg.Load(&configFile); err != nil {
 			log.Fatal("Couldn't read ", &configFile, ": ", err)
 		}
 
