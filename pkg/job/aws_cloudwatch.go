@@ -1,4 +1,4 @@
-package exporter
+package job
 
 import (
 	"context"
@@ -14,6 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 )
 
 var percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
@@ -22,7 +28,7 @@ const timeFormat = "2006-01-02T15:04:05.999999-07:00"
 
 type cloudwatchInterface struct {
 	client cloudwatchiface.CloudWatchAPI
-	logger Logger
+	logger logger.Logger
 }
 
 type cloudwatchData struct {
@@ -36,15 +42,15 @@ type cloudwatchData struct {
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
-	CustomTags              []Tag
-	Tags                    []Tag
+	CustomTags              []model.Tag
+	Tags                    []model.Tag
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
 	AccountId               *string
 	Period                  int64
 }
 
-func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *Metric, logger Logger) (output *cloudwatch.GetMetricStatisticsInput) {
+func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *config.Metric, logger logger.Logger) (output *cloudwatch.GetMetricStatisticsInput) {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -96,9 +102,9 @@ func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloud
 	return g, fmt.Errorf("metric with id %s not found", value)
 }
 
-func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger Logger) (output *cloudwatch.GetMetricDataInput) {
+func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logger.Logger) (output *cloudwatch.GetMetricDataInput) {
 	var metricsDataQuery []*cloudwatch.MetricDataQuery
-	roundingPeriod := defaultPeriodSeconds
+	roundingPeriod := model.DefaultPeriodSeconds
 	for _, data := range getMetricData {
 		if data.Period < roundingPeriod {
 			roundingPeriod = data.Period
@@ -203,8 +209,8 @@ func (iface cloudwatchInterface) get(ctx context.Context, filter *cloudwatch.Get
 
 	iface.logger.Debug("GetMetricStatistics", "output", resp)
 
-	cloudwatchAPICounter.Inc()
-	cloudwatchGetMetricStatisticsAPICounter.Inc()
+	promutil.CloudwatchAPICounter.Inc()
+	promutil.CloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
 		iface.logger.Error(err, "Failed to get metric statistics")
@@ -226,8 +232,8 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 	// Using the paged version of the function
 	err := c.GetMetricDataPagesWithContext(ctx, filter,
 		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
-			cloudwatchAPICounter.Inc()
-			cloudwatchGetMetricDataAPICounter.Inc()
+			promutil.CloudwatchAPICounter.Inc()
+			promutil.CloudwatchGetMetricDataAPICounter.Inc()
 			resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
 			return !lastPage
 		})
@@ -243,7 +249,7 @@ func (iface cloudwatchInterface) getMetricData(ctx context.Context, filter *clou
 	return &resp
 }
 
-func createStaticDimensions(dimensions []Dimension) (output []*cloudwatch.Dimension) {
+func createStaticDimensions(dimensions []config.Dimension) (output []*cloudwatch.Dimension) {
 	for _, d := range dimensions {
 		d := d
 		output = append(output, &cloudwatch.Dimension{
@@ -255,7 +261,7 @@ func createStaticDimensions(dimensions []Dimension) (output []*cloudwatch.Dimens
 	return output
 }
 
-func getFullMetricsList(ctx context.Context, namespace string, metric *Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput, err error) {
+func getFullMetricsList(ctx context.Context, namespace string, metric *config.Metric, clientCloudwatch cloudwatchInterface) (resp *cloudwatch.ListMetricsOutput, err error) {
 	c := clientCloudwatch.client
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
 	var res cloudwatch.ListMetricsOutput
@@ -265,15 +271,15 @@ func getFullMetricsList(ctx context.Context, namespace string, metric *Metric, c
 			return !lastPage
 		})
 	if err != nil {
-		cloudwatchAPIErrorCounter.Inc()
+		promutil.CloudwatchAPIErrorCounter.Inc()
 		return nil, err
 	}
-	cloudwatchAPICounter.Inc()
+	promutil.CloudwatchAPICounter.Inc()
 	return &res, nil
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []Tag, tagsOnMetrics exportedTagsOnMetrics, dimensionRegexps []*string, resources []*taggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *Metric) (getMetricsData []cloudwatchData) {
-	type filterValues map[string]*taggedResource
+func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []model.Tag, tagsOnMetrics config.ExportedTagsOnMetrics, dimensionRegexps []*string, resources []*services.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []cloudwatchData) {
+	type filterValues map[string]*services.TaggedResource
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
 		dimensionRegexp := regexp.MustCompile(*dr)
@@ -300,7 +306,7 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 	for _, cwMetric := range metricsList {
 		skip := false
 		alreadyFound := false
-		r := &taggedResource{
+		r := &services.TaggedResource{
 			ARN:       "global",
 			Namespace: namespace,
 		}
@@ -308,11 +314,6 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 			continue
 		}
 
-		/**
-		This loop takes a list of dimensions for an individual metric returned from AWS ResourceGroupsTaggingApi#GetResources.
-		It filters those dimensions against a user-supplied list of dimensions by name and value, and if they match,
-		adds the metric to a list of metrics to have its values retrieved.
-		*/
 		for _, dimension := range cwMetric.Dimensions {
 			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
 				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
@@ -324,16 +325,13 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 					alreadyFound = true
 					r = d
 				}
-			} else {
-				skip = true
-				break
 			}
 		}
 
 		if !skip {
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())
-				metricTags := r.metricTags(tagsOnMetrics)
+				metricTags := r.MetricTags(tagsOnMetrics)
 				getMetricsData = append(getMetricsData, cloudwatchData{
 					ID:                     &r.ARN,
 					MetricID:               &id,
@@ -374,7 +372,7 @@ func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNameRequirem
 	return true
 }
 
-func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[string]string {
+func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool, logger logger.Logger) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
@@ -382,14 +380,29 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		labels["dimension_"+promStringTag(*dimension.Name, labelsSnakeCase)] = *dimension.Value
+		ok, promTag := promutil.PromStringTag(*dimension.Name, labelsSnakeCase)
+		if !ok {
+			logger.Warn("dimension name is an invalid prometheus label name", "dimension", *dimension.Name)
+			continue
+		}
+		labels["dimension_"+promTag] = *dimension.Value
 	}
 
 	for _, label := range cwd.CustomTags {
-		labels["custom_tag_"+promStringTag(label.Key, labelsSnakeCase)] = label.Value
+		ok, promTag := promutil.PromStringTag(label.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
+			continue
+		}
+		labels["custom_tag_"+promTag] = label.Value
 	}
 	for _, tag := range cwd.Tags {
-		labels["tag_"+promStringTag(tag.Key, labelsSnakeCase)] = tag.Value
+		ok, promTag := promutil.PromStringTag(tag.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("metric tag name is an invalid prometheus label name", "tag", tag.Key)
+			continue
+		}
+		labels["tag_"+promTag] = tag.Value
 	}
 
 	return labels
@@ -397,9 +410,9 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool) map[strin
 
 // recordLabelsForMetric adds any missing labels from promLabels in to the LabelSet for the metric name and returns
 // the updated observedMetricLabels
-func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]LabelSet) map[string]LabelSet {
+func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(LabelSet)
+		observedMetricLabels[metricName] = make(model.LabelSet)
 	}
 	for label := range promLabels {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {
@@ -410,13 +423,13 @@ func recordLabelsForMetric(metricName string, promLabels map[string]string, obse
 	return observedMetricLabels
 }
 
-// ensureLabelConsistencyForMetrics ensures that every metric has the same set of labels based on the data
+// EnsureLabelConsistencyForMetrics ensures that every metric has the same set of labels based on the data
 // in observedMetricLabels. Prometheus requires that all metrics with the same name have the same set of labels
-func ensureLabelConsistencyForMetrics(metrics []*PrometheusMetric, observedMetricLabels map[string]LabelSet) []*PrometheusMetric {
+func EnsureLabelConsistencyForMetrics(metrics []*promutil.PrometheusMetric, observedMetricLabels map[string]model.LabelSet) []*promutil.PrometheusMetric {
 	for _, prometheusMetric := range metrics {
-		for observedLabel := range observedMetricLabels[*prometheusMetric.name] {
-			if _, ok := prometheusMetric.labels[observedLabel]; !ok {
-				prometheusMetric.labels[observedLabel] = ""
+		for observedLabel := range observedMetricLabels[*prometheusMetric.Name] {
+			if _, ok := prometheusMetric.Labels[observedLabel]; !ok {
+				prometheusMetric.Labels[observedLabel] = ""
 			}
 		}
 	}
@@ -486,8 +499,8 @@ func getDatapoint(cwd *cloudwatchData, statistic string) (*float64, time.Time, e
 	return nil, time.Time{}, nil
 }
 
-func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]LabelSet) ([]*PrometheusMetric, map[string]LabelSet, error) {
-	output := make([]*PrometheusMetric, 0)
+func MigrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logger.Logger) ([]*promutil.PrometheusMetric, map[string]model.LabelSet, error) {
+	output := make([]*promutil.PrometheusMetric, 0)
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
@@ -512,16 +525,16 @@ func migrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, 
 			if !strings.HasPrefix(promNs, "aws") {
 				promNs = "aws_" + promNs
 			}
-			name := promString(promNs) + "_" + strings.ToLower(promString(*c.Metric)) + "_" + strings.ToLower(promString(statistic))
+			name := promutil.PromString(promNs) + "_" + strings.ToLower(promutil.PromString(*c.Metric)) + "_" + strings.ToLower(promutil.PromString(statistic))
 			if exportedDatapoint != nil {
-				promLabels := createPrometheusLabels(c, labelsSnakeCase)
+				promLabels := createPrometheusLabels(c, labelsSnakeCase, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
-				p := PrometheusMetric{
-					name:             &name,
-					labels:           promLabels,
-					value:            exportedDatapoint,
-					timestamp:        timestamp,
-					includeTimestamp: includeTimestamp,
+				p := promutil.PrometheusMetric{
+					Name:             &name,
+					Labels:           promLabels,
+					Value:            exportedDatapoint,
+					Timestamp:        timestamp,
+					IncludeTimestamp: includeTimestamp,
 				}
 				output = append(output, &p)
 			}

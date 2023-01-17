@@ -1,4 +1,4 @@
-package exporter
+package services
 
 import (
 	"context"
@@ -11,19 +11,21 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           tagsInterface
-		inputResources  []*taggedResource
-		outputResources []*taggedResource
+		iface           TagsInterface
+		inputResources  []*TaggedResource
+		outputResources []*TaggedResource
 	}{
 		{
 			"api gateway resources skip stages",
-			tagsInterface{
-				apiGatewayClient: apiGatewayClient{
+			TagsInterface{
+				ApiGatewayClient: apiGatewayClient{
 					getRestApisOutput: &apigateway.GetRestApisOutput{
 						Items: []*apigateway.RestApi{
 							{
@@ -46,12 +48,12 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*taggedResource{
+			[]*TaggedResource{
 				{
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/gwid1234/stages/main",
 					Namespace: "apigateway",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value",
@@ -62,7 +64,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/gwid1234",
 					Namespace: "apigateway",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 2",
@@ -70,12 +72,12 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*taggedResource{
+			[]*TaggedResource{
 				{
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/apiname",
 					Namespace: "apigateway",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 2",
@@ -115,20 +117,20 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 func TestDMSFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           tagsInterface
-		inputResources  []*taggedResource
-		outputResources []*taggedResource
+		iface           TagsInterface
+		inputResources  []*TaggedResource
+		outputResources []*TaggedResource
 	}{
 		{
 			"empty input resources",
-			tagsInterface{},
-			[]*taggedResource{},
-			[]*taggedResource{},
+			TagsInterface{},
+			[]*TaggedResource{},
+			[]*TaggedResource{},
 		},
 		{
 			"replication tasks and instances",
-			tagsInterface{
-				dmsClient: dmsClient{
+			TagsInterface{
+				DmsClient: dmsClient{
 					describeReplicationInstancesOutput: &databasemigrationservice.DescribeReplicationInstancesOutput{
 						ReplicationInstances: []*databasemigrationservice.ReplicationInstance{
 							{
@@ -163,12 +165,12 @@ func TestDMSFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*taggedResource{
+			[]*TaggedResource{
 				{
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:ABCDEFG1234567890",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value",
@@ -179,7 +181,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:WXYZ987654321",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 2",
@@ -190,7 +192,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:task:9999999999999999",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 3",
@@ -201,7 +203,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:task:5555555555555555",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 4",
@@ -212,7 +214,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:subgrp:demo-subgrp",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 5",
@@ -223,7 +225,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:endpoint:1111111111111111",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 6",
@@ -231,12 +233,12 @@ func TestDMSFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*taggedResource{
+			[]*TaggedResource{
 				{
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:ABCDEFG1234567890/repl-instance-identifier-1",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value",
@@ -247,7 +249,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:WXYZ987654321",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 2",
@@ -258,7 +260,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:task:9999999999999999/repl-instance-identifier-2",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 3",
@@ -269,7 +271,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:task:5555555555555555",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 4",
@@ -280,7 +282,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:subgrp:demo-subgrp",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 5",
@@ -291,7 +293,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					ARN:       "arn:aws:dms:us-east-1:123123123123:endpoint:1111111111111111",
 					Namespace: "dms",
 					Region:    "us-east-1",
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Test",
 							Value: "Value 6",
@@ -336,7 +338,6 @@ type dmsClient struct {
 type apiGatewayClient struct {
 	apigatewayiface.APIGatewayAPI
 	getRestApisOutput *apigateway.GetRestApisOutput
-	getRestApisInput  *apigateway.GetRestApisInput
 }
 
 func (apigateway apiGatewayClient) GetRestApisPagesWithContext(context2 aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
@@ -348,6 +349,7 @@ func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(ctx aws.Contex
 	fn(dms.describeReplicationInstancesOutput, true)
 	return nil
 }
+
 func (dms dmsClient) DescribeReplicationTasksPagesWithContext(ctx aws.Context, input *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, opts ...request.Option) error {
 	fn(dms.describeReplicationTasksOutput, true)
 	return nil

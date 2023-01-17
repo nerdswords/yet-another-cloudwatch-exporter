@@ -42,6 +42,8 @@ service:
   type: ClusterIP
   port: 80
 
+testConnection: true
+
 ingress:
   enabled: false
   className: ""
@@ -71,6 +73,8 @@ resources: {}
   #   memory: 128Mi
 
 nodeSelector: {}
+
+priorityClassName:
 
 tolerations: []
 
@@ -155,7 +159,7 @@ prometheusRule:
 
 config: |-
   apiVersion: v1alpha1
-  sts-endpoint: eu-west-1
+  sts-region: eu-west-1
   discovery:
     exportedTagsOnMetrics:
       ec2:
@@ -307,7 +311,7 @@ config: |-
           statistics:
             - Average
           period: 600
-          length: 600      
+          length: 600
         - name: CapacityUtilization
           statistics:
             - Average
@@ -337,7 +341,7 @@ config: |-
           statistics:
             - Average
           period: 600
-          length: 600		
+          length: 600
     - type: backup
       regions:
         - eu-central-1
@@ -349,7 +353,7 @@ config: |-
           statistics:
             - Average
           period: 600
-          length: 600		
+          length: 600
   static:
     - namespace: AWS/AutoScaling
       name: must_be_set
