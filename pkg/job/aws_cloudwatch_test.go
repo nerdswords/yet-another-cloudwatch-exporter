@@ -1,4 +1,4 @@
-package exporter
+package job
 
 import (
 	"reflect"
@@ -9,6 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 )
 
 func TestDimensionsToCliString(t *testing.T) {
@@ -66,13 +71,13 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		region                    string
 		accountId                 *string
 		namespace                 string
-		customTags                []Tag
-		tagsOnMetrics             exportedTagsOnMetrics
+		customTags                []model.Tag
+		tagsOnMetrics             config.ExportedTagsOnMetrics
 		dimensionRegexps          []*string
 		dimensionNameRequirements []string
-		resources                 []*taggedResource
+		resources                 []*services.TaggedResource
 		metricsList               []*cloudwatch.Metric
-		m                         *Metric
+		m                         *config.Metric
 	}
 	tests := []struct {
 		name               string
@@ -92,11 +97,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: SupportedServices.GetService("efs").DimensionRegexps,
-				resources: []*taggedResource{
+				dimensionRegexps: services.SupportedServices.GetService("efs").DimensionRegexps,
+				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
-						Tags: []Tag{
+						Tags: []model.Tag{
 							{
 								Key:   "Tag",
 								Value: "some-Tag",
@@ -122,7 +127,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: aws.String("AWS/EFS"),
 					},
 				},
-				m: &Metric{
+				m: &config.Metric{
 					Name: "StorageBytes",
 					Statistics: []string{
 						"Average",
@@ -157,7 +162,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Average",
 					},
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Value1",
 							Value: "",
@@ -183,11 +188,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: SupportedServices.GetService("ec2").DimensionRegexps,
-				resources: []*taggedResource{
+				dimensionRegexps: services.SupportedServices.GetService("ec2").DimensionRegexps,
+				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
-						Tags: []Tag{
+						Tags: []model.Tag{
 							{
 								Key:   "Name",
 								Value: "some-Node",
@@ -209,7 +214,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: aws.String("AWS/EC2"),
 					},
 				},
-				m: &Metric{
+				m: &config.Metric{
 					Name: "CPUUtilization",
 					Statistics: []string{
 						"Average",
@@ -240,7 +245,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Average",
 					},
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Value1",
 							Value: "",
@@ -266,11 +271,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: SupportedServices.GetService("kafka").DimensionRegexps,
-				resources: []*taggedResource{
+				dimensionRegexps: services.SupportedServices.GetService("kafka").DimensionRegexps,
+				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
-						Tags: []Tag{
+						Tags: []model.Tag{
 							{
 								Key:   "Test",
 								Value: "Value",
@@ -292,7 +297,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: aws.String("AWS/Kafka"),
 					},
 				},
-				m: &Metric{
+				m: &config.Metric{
 					Name: "GlobalTopicCount",
 					Statistics: []string{
 						"Average",
@@ -323,7 +328,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Average",
 					},
-					Tags: []Tag{
+					Tags: []model.Tag{
 						{
 							Key:   "Value1",
 							Value: "",
@@ -344,12 +349,12 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,
-				dimensionRegexps:          SupportedServices.GetService("alb").DimensionRegexps,
+				dimensionRegexps:          services.SupportedServices.GetService("alb").DimensionRegexps,
 				dimensionNameRequirements: []string{"LoadBalancer", "TargetGroup"},
-				resources: []*taggedResource{
+				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345",
-						Tags: []Tag{
+						Tags: []model.Tag{
 							{
 								Key:   "Name",
 								Value: "some-ALB",
@@ -417,7 +422,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: aws.String("AWS/ApplicationELB"),
 					},
 				},
-				m: &Metric{
+				m: &config.Metric{
 					Name: "RequestCount",
 					Statistics: []string{
 						"Sum",
@@ -452,7 +457,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Statistics: []string{
 						"Sum",
 					},
-					Tags: []Tag{},
+					Tags: []model.Tag{},
 				},
 			},
 		},
@@ -504,34 +509,34 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 
 func Test_ensureLabelConsistencyForMetrics(t *testing.T) {
 	value1 := 1.0
-	metric1 := PrometheusMetric{
-		name:   aws.String("metric1"),
-		labels: map[string]string{"label1": "value1"},
-		value:  &value1,
+	metric1 := promutil.PrometheusMetric{
+		Name:   aws.String("metric1"),
+		Labels: map[string]string{"label1": "value1"},
+		Value:  &value1,
 	}
 
 	value2 := 2.0
-	metric2 := PrometheusMetric{
-		name:   aws.String("metric1"),
-		labels: map[string]string{"label2": "value2"},
-		value:  &value2,
+	metric2 := promutil.PrometheusMetric{
+		Name:   aws.String("metric1"),
+		Labels: map[string]string{"label2": "value2"},
+		Value:  &value2,
 	}
 
 	value3 := 2.0
-	metric3 := PrometheusMetric{
-		name:   aws.String("metric1"),
-		labels: map[string]string{},
-		value:  &value3,
+	metric3 := promutil.PrometheusMetric{
+		Name:   aws.String("metric1"),
+		Labels: map[string]string{},
+		Value:  &value3,
 	}
 
-	metrics := []*PrometheusMetric{&metric1, &metric2, &metric3}
-	result := ensureLabelConsistencyForMetrics(metrics, map[string]LabelSet{"metric1": {"label1": struct{}{}, "label2": struct{}{}, "label3": struct{}{}}})
+	metrics := []*promutil.PrometheusMetric{&metric1, &metric2, &metric3}
+	result := EnsureLabelConsistencyForMetrics(metrics, map[string]model.LabelSet{"metric1": {"label1": struct{}{}, "label2": struct{}{}, "label3": struct{}{}}})
 
 	expected := []string{"label1", "label2", "label3"}
 	for _, metric := range result {
-		assert.Equal(t, len(expected), len(metric.labels))
+		assert.Equal(t, len(expected), len(metric.Labels))
 		labels := []string{}
-		for labelName := range metric.labels {
+		for labelName := range metric.Labels {
 			labels = append(labels, labelName)
 		}
 

@@ -1,4 +1,4 @@
-package exporter
+package services
 
 import (
 	"context"
@@ -15,10 +15,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-// taggedResource is an AWS resource with tags
-type taggedResource struct {
+// TaggedResource is an AWS resource with tags
+type TaggedResource struct {
 	// ARN is the unique AWS ARN (Amazon Resource Name) of the resource
 	ARN string
 
@@ -29,12 +34,12 @@ type taggedResource struct {
 	Region string
 
 	// Tags is a set of tags associated to the resource
-	Tags []Tag
+	Tags []model.Tag
 }
 
 // filterThroughTags returns true if all filterTags match
-// with tags of the taggedResource, returns false otherwise.
-func (r taggedResource) filterThroughTags(filterTags []Tag) bool {
+// with tags of the TaggedResource, returns false otherwise.
+func (r TaggedResource) FilterThroughTags(filterTags []model.Tag) bool {
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -51,17 +56,17 @@ func (r taggedResource) filterThroughTags(filterTags []Tag) bool {
 	return tagMatches == len(filterTags)
 }
 
-// metricTags returns a list of tags built from the tags of
-// taggedResource, if there's a definition for its namespace
+// MetricTags returns a list of tags built from the tags of
+// TaggedResource, if there's a definition for its namespace
 // in tagsOnMetrics.
 //
 // Returned tags have as key the key from tagsOnMetrics, and
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
-func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
+func (r TaggedResource) MetricTags(tagsOnMetrics config.ExportedTagsOnMetrics) []model.Tag {
+	tags := make([]model.Tag, 0)
 	for _, tagName := range tagsOnMetrics[r.Namespace] {
-		tag := Tag{
+		tag := model.Tag{
 			Key: tagName,
 		}
 		for _, resourceTag := range r.Tags {
@@ -78,52 +83,52 @@ func (r taggedResource) metricTags(tagsOnMetrics exportedTagsOnMetrics) []Tag {
 }
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
-type tagsInterface struct {
-	client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asgClient            autoscalingiface.AutoScalingAPI
-	apiGatewayClient     apigatewayiface.APIGatewayAPI
-	ec2Client            ec2iface.EC2API
-	dmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	prometheusClient     prometheusserviceiface.PrometheusServiceAPI
-	storagegatewayClient storagegatewayiface.StorageGatewayAPI
-	logger               Logger
+type TagsInterface struct {
+	Client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	AsgClient            autoscalingiface.AutoScalingAPI
+	ApiGatewayClient     apigatewayiface.APIGatewayAPI
+	Ec2Client            ec2iface.EC2API
+	DmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	PrometheusClient     prometheusserviceiface.PrometheusServiceAPI
+	StoragegatewayClient storagegatewayiface.StorageGatewayAPI
+	Logger               logger.Logger
 }
 
-func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]*taggedResource, error) {
+func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region string) ([]*TaggedResource, error) {
 	svc := SupportedServices.GetService(job.Type)
-	var resources []*taggedResource
+	var resources []*TaggedResource
 
 	if len(svc.ResourceFilters) > 0 {
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
 		}
-		c := iface.client
+		c := iface.Client
 		pageNum := 0
 
 		err := c.GetResourcesPagesWithContext(ctx, inputparams, func(page *resourcegroupstaggingapi.GetResourcesOutput, lastPage bool) bool {
 			pageNum++
-			resourceGroupTaggingAPICounter.Inc()
+			promutil.ResourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				iface.logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
+				iface.Logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
-				resource := taggedResource{
+				resource := TaggedResource{
 					ARN:       aws.StringValue(resourceTagMapping.ResourceARN),
 					Namespace: job.Type,
 					Region:    region,
 				}
 
 				for _, t := range resourceTagMapping.Tags {
-					resource.Tags = append(resource.Tags, Tag{Key: *t.Key, Value: *t.Value})
+					resource.Tags = append(resource.Tags, model.Tag{Key: *t.Key, Value: *t.Value})
 				}
 
-				if resource.filterThroughTags(job.SearchTags) {
+				if resource.FilterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				} else {
-					iface.logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
+					iface.Logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
 				}
 			}
 			return !lastPage
@@ -152,8 +157,8 @@ func (iface tagsInterface) get(ctx context.Context, job *Job, region string) ([]
 	return resources, nil
 }
 
-func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []*PrometheusMetric {
-	output := make([]*PrometheusMetric, 0)
+func MigrateTagsToPrometheus(tagData []*TaggedResource, labelsSnakeCase bool, logger logger.Logger) []*promutil.PrometheusMetric {
+	output := make([]*promutil.PrometheusMetric, 0)
 
 	tagList := make(map[string][]string)
 
@@ -170,12 +175,18 @@ func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []
 		if !strings.HasPrefix(promNs, "aws") {
 			promNs = "aws_" + promNs
 		}
-		name := promString(promNs) + "_info"
+		name := promutil.PromString(promNs) + "_info"
 		promLabels := make(map[string]string)
 		promLabels["name"] = d.ARN
 
 		for _, entry := range tagList[d.Namespace] {
-			labelKey := "tag_" + promStringTag(entry, labelsSnakeCase)
+			ok, promTag := promutil.PromStringTag(entry, labelsSnakeCase)
+			if !ok {
+				logger.Warn("tag name is an invalid prometheus label name", "tag", entry)
+				continue
+			}
+
+			labelKey := "tag_" + promTag
 			promLabels[labelKey] = ""
 
 			for _, rTag := range d.Tags {
@@ -188,14 +199,23 @@ func migrateTagsToPrometheus(tagData []*taggedResource, labelsSnakeCase bool) []
 		var i int
 		f := float64(i)
 
-		p := PrometheusMetric{
-			name:   &name,
-			labels: promLabels,
-			value:  &f,
+		p := promutil.PrometheusMetric{
+			Name:   &name,
+			Labels: promLabels,
+			Value:  &f,
 		}
 
 		output = append(output, &p)
 	}
 
 	return output
+}
+
+func stringInSlice(str string, list []string) bool {
+	for _, v := range list {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }

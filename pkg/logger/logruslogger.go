@@ -1,4 +1,4 @@
-package exporter
+package logger
 
 import (
 	"encoding"
@@ -9,6 +9,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+type Logger interface {
+	Info(message string, keyvals ...interface{})
+	Debug(message string, keyvals ...interface{})
+	Error(err error, message string, keyvals ...interface{})
+	Warn(message string, keyvals ...interface{})
+	With(keyvals ...interface{}) Logger
+	IsDebugEnabled() bool
+}
 
 type logrusLogger struct {
 	entry *log.Entry
