@@ -198,7 +198,8 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 	return cw
 }
 
-func getMetricDataInputLength(metrics []*config.Metric) (length int64) {
+func getMetricDataInputLength(metrics []*config.Metric) int64 {
+	var length int64 = 0
 	for _, metric := range metrics {
 		if metric.Length > length {
 			length = metric.Length
