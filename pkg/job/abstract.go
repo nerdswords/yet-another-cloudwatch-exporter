@@ -216,7 +216,7 @@ func getMetricDataInputLength(job *config.Job) int64 {
 func getMetricDataForQueries(
 	ctx context.Context,
 	discoveryJob *config.Job,
-	svc *services.ServiceFilter,
+	svc *config.ServiceConfig,
 	region string,
 	accountId *string,
 	tagsOnMetrics config.ExportedTagsOnMetrics,
@@ -277,7 +277,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		return
 	}
 
-	svc := services.SupportedServices.GetService(job.Type)
+	svc := config.SupportedServices.GetService(job.Type)
 	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {

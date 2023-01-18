@@ -19,7 +19,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile, testServices); err != nil {
+		if err := config.Load(&configFile); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -60,7 +60,7 @@ func TestBadConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile, testServices); err != nil {
+		if err := config.Load(&configFile); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
@@ -69,23 +69,5 @@ func TestBadConfigs(t *testing.T) {
 			t.Log("expected validation error")
 			t.FailNow()
 		}
-	}
-}
-
-func testServices(s string) bool {
-	switch s {
-	case
-		"alb",
-		"billing",
-		"ebs",
-		"elb",
-		"es",
-		"kafka",
-		"kinesis",
-		"s3",
-		"vpn":
-		return true
-	default:
-		return false
 	}
 }
