@@ -97,7 +97,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: services.SupportedServices.GetService("efs").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("efs").DimensionRegexps,
 				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
@@ -188,7 +188,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: services.SupportedServices.GetService("ec2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("ec2").DimensionRegexps,
 				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
@@ -271,7 +271,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						"Value2",
 					},
 				},
-				dimensionRegexps: services.SupportedServices.GetService("kafka").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("kafka").DimensionRegexps,
 				resources: []*services.TaggedResource{
 					{
 						ARN: "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
@@ -349,7 +349,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,
-				dimensionRegexps:          services.SupportedServices.GetService("alb").DimensionRegexps,
+				dimensionRegexps:          config.SupportedServices.GetService("alb").DimensionRegexps,
 				dimensionNameRequirements: []string{"LoadBalancer", "TargetGroup"},
 				resources: []*services.TaggedResource{
 					{

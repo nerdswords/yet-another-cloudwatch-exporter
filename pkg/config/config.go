@@ -97,7 +97,7 @@ func (r *Role) ValidateRole(roleIdx int, parent string) error {
 	return nil
 }
 
-func (c *ScrapeConf) Load(file *string, validSvc func(string) bool) error {
+func (c *ScrapeConf) Load(file *string) error {
 	yamlFile, err := os.ReadFile(*file)
 	if err != nil {
 		return err
@@ -125,21 +125,21 @@ func (c *ScrapeConf) Load(file *string, validSvc func(string) bool) error {
 		}
 	}
 
-	err = c.Validate(validSvc)
+	err = c.Validate()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ScrapeConf) Validate(validSvc func(string) bool) error {
+func (c *ScrapeConf) Validate() error {
 	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomNamespace == nil {
 		return fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
 	}
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
-			err := job.validateDiscoveryJob(idx, validSvc)
+			err := job.validateDiscoveryJob(idx)
 			if err != nil {
 				return err
 			}
@@ -170,9 +170,9 @@ func (c *ScrapeConf) Validate(validSvc func(string) bool) error {
 	return nil
 }
 
-func (j *Job) validateDiscoveryJob(jobIdx int, validSvc func(string) bool) error {
+func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	if j.Type != "" {
-		if !validSvc(j.Type) {
+		if SupportedServices.GetService(j.Type) == nil {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
