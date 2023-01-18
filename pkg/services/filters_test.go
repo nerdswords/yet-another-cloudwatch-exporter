@@ -12,8 +12,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
+
+func TestValidServiceNames(t *testing.T) {
+	for svc, filter := range serviceFilters {
+		if config.SupportedServices.GetService(svc) == nil {
+			t.Errorf("invalid service name '%s'", svc)
+			t.Fail()
+		}
+
+		if filter.FilterFunc == nil && filter.ResourceFunc == nil {
+			t.Errorf("no filter functions defined for service name '%s'", svc)
+			t.FailNow()
+		}
+	}
+}
 
 func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
@@ -90,7 +105,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			apigateway := filterFuncs["AWS/ApiGateway"]
+			apigateway := serviceFilters["AWS/ApiGateway"]
 
 			outputResources, err := apigateway.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {
@@ -305,7 +320,7 @@ func TestDMSFilterFunc(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dms := filterFuncs["AWS/DMS"]
+			dms := serviceFilters["AWS/DMS"]
 
 			outputResources, err := dms.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {

@@ -138,7 +138,7 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 		}
 	}
 
-	if ext, ok := filterFuncs[svc.Namespace]; ok {
+	if ext, ok := serviceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
 			newResources, err := ext.ResourceFunc(ctx, iface, job, region)
 			if err != nil {

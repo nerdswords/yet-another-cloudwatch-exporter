@@ -27,8 +27,8 @@ type serviceFilter struct {
 	FilterFunc func(context.Context, TagsInterface, []*TaggedResource) ([]*TaggedResource, error)
 }
 
-// filterFuncs maps a service namespace to (optional) serviceFilter
-var filterFuncs map[string]serviceFilter = map[string]serviceFilter{
+// serviceFilters maps a service namespace to (optional) serviceFilter
+var serviceFilters map[string]serviceFilter = map[string]serviceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, iface TagsInterface, inputResources []*TaggedResource) (outputResources []*TaggedResource, err error) {
 			promutil.ApiGatewayAPICounter.Inc()
