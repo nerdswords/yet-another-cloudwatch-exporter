@@ -6,3 +6,4 @@ Dockerfile
 Jenkinsfile
 README.md
 vendor/
+charts/
