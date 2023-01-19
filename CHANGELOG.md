@@ -1,3 +1,79 @@
+# 0.43.0-alpha
+
+* add support to custom namespaces with their dimensions (by @arielly-parussulo)
+* Optimise support for custom namespaces to use GetMetricData API (by @code-haven)
+* GH workflows: run "publish" workflows only in this repo. (by @cristiangreco)
+* Bump Go version to 1.19 for CI and docker image. (by @cristiangreco)
+* Fix not to refer to loop variable in a goroutine (by @masshash)
+* Validate tags when converting to prometheus labels (by @cristiangreco)
+* Bump github.com/aws/aws-sdk-go from 1.44.127 to 1.44.167
+* Bump golangci/golangci-lint-action from 3.3.0 to 3.3.1
+* Bump github.com/urfave/cli/v2 from 2.23.0 to 2.23.7
+
+# 0.42.0-alpha
+
+* Resolve logging issue (@datsabk)
+* MediaTailor - Correct dimension regex for MT (@scott-mccracken)
+* Helm chart update for optional test-connection pod (@nikosmeds)
+* Helm chart update to set priorityClassName (@nikosmeds)
+* Bump github.com/aws/aws-sdk-go from 1.44.122 to 1.44.127
+* Bump github.com/urfave/cli/v2 from 2.20.3 to 2.23.0
+
+# 0.41.0-alpha
+
+* Clean up unused variables. (@cristiangreco)
+* Fix typo: sts-endpoint should be sts-region. (@cristiangreco)
+* Enabled Managed prometheus metrics (@datsabk)
+* Add support for AWS Kafka Connect (@cgowthaman)
+* Import CloudWatch mixin. (@jeschkies)
+* main.go refactoring: define cmd action as a separate func. (@cristiangreco)
+* Add support for EMR Serverless (@cgowthaman)
+
+# 0.40.0-alpha
+* Fix typo in Charts.yml (@yasharne)
+* Subcommand `verify-config` actually validates the config file. (@cristiangreco)
+* Add dimensions regex for AmazonMQ. (@cristiangreco)
+* Fix metrics with additional dimensions being not being scraped. (@cristiangreco)
+* Remove unused code, add test for RemoveDuplicateMetrics. (@cristiangreco)
+* Bump github.com/sirupsen/logrus
+* Bump github.com/urfave/cli/v2
+* Bump github.com/aws/aws-sdk-go
+* Bump actions/setup-python
+
+# 0.39.0-alpha
+* Improve code quality and unblock this release (cristiangreco)
+* Add helm chart (vkobets)
+* Fix DX metrics (paulojmdias)
+* Fix searchTags and bad dimension name (femiagbabiaka)
+* Handle empty list in filter metric tests (mtt88)
+* Add AWS Elemental MediaTailor support (scott-mccracken)
+* Support storagegateway metrics (sedan07)
+* Filter api gateway resources to skip "stages" (ch4rms)
+* Bump aws-sdk, urfave/cli, prometheus/client_golang
+
+# 0.38.0-alpha
+
+* Set max page size for tagging API requests (#617)
+* Build with Go 1.18
+
+# 0.37.0-alpha
+* New config `dimensionNameRequirements` allows autodiscovery jobs to only
+  fetch metrics that include specified dimensions (jutley)
+* Update deps
+
+# 0.36.2-alpha
+* Cost Reduction - Use less API requests if no tagged resources are found (cristiangreco)
+* Update deps
+
+# 0.36.1-alpha
+* Use structured logs for logging interface (kgeckhart)
+
+# 0.36.0-alpha
+
+* *BREAKING CHANGE FOR LIBRARY USERS* Major refactoring of usage of logging library (kgeckhart)
+* Minor update of deps and security patches (urfave/cli/v2, golangci/golangci-lint-action, github.com/prometheus/client_golang, github.com/stretchr/testify, github.com/aws/aws-sdk-go
+* Updates of Readme (markwallsgrove)
+
 # 0.35.0-alpha
 * Update dependencies
 * Improve / Document way how to use the exporter as external library (kgeckhart)
@@ -165,7 +241,7 @@ Freshly shipped new integrations:
 
 - Make exporter a library. (jeschkies)
 - Add CLI option to validate config file (zswanson)
-- Fix multidimensional static metric (nmiculinic) 
+- Fix multidimensional static metric (nmiculinic)
 - Fix scrapes running in EKS fail after first scrape (rrusso1982)
 - Fix Docker build (jeschkies)
 - Allow to use this project in China (insectme)
@@ -488,7 +564,7 @@ aws_elb_request_count_sum
 period: 60
 length: 900
 delay: 300
-``` 
+```
 
 # 0.10.0
 * Reduce usage of listMetrics calls (nhinds)
@@ -665,4 +741,3 @@ jobs:
 * Implement minimum, average, maximum, sum for cloudwatch api
 * Implement way to handle multiple data returned by cloudwatch
 * Update go dependencies
-

@@ -34,6 +34,7 @@ We will contact you as soon as possible.
 * Static metrics support for all cloudwatch metrics without auto discovery
 * Pull data from multiple AWS accounts using cross-account roles
 * Can be used as a library in an external application
+* Support the scraping of custom namespaces metrics with the CloudWatch Dimensions.
 * Supported services with auto discovery through tags:
 
   * acm (AWS/CertificateManager) - Certificate Manager
@@ -42,6 +43,7 @@ We will contact you as soon as possible.
   * apigateway (AWS/ApiGateway) - API Gateway
   * appstream (AWS/AppStream) - AppStream
   * appsync (AWS/AppSync) - AppSync
+  * amp (AWS/Prometheus) - Managed Service for Prometheus
   * athena (AWS/Athena) - Athena
   * backup (AWS/Backup) - Backup
   * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk
@@ -62,16 +64,19 @@ We will contact you as soon as possible.
   * efs (AWS/EFS) - Elastic File System
   * elb (AWS/ELB) - Elastic Load Balancer
   * emr (AWS/ElasticMapReduce) - Elastic MapReduce
+  * emr-serverless (AWS/EMRServerless) - Amazon EMR Serverless
   * es (AWS/ES) - ElasticSearch
   * fsx (AWS/FSx) - FSx File System
   * gamelift (AWS/GameLift) - GameLift
   * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
   * glue (Glue) - AWS Glue Jobs
   * iot (AWS/IoT) - IoT
+  * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
@@ -85,6 +90,7 @@ We will contact you as soon as possible.
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
+  * storagegateway (AWS/StorageGateway) - On-premises access to cloud storage
   * tgw (AWS/TransitGateway) - Transit Gateway
   * vpn (AWS/VPN) - VPN connection
   * asg (AWS/AutoScaling) - Auto Scaling Group
@@ -110,12 +116,13 @@ We will contact you as soon as possible.
 
 ### Top level configuration
 
-| Key        | Description                          |
-|------------|--------------------------------------|
-| apiVersion | Configuration file version           |
-| sts-region | Use STS regional endpoint (Optional) |
-| discovery  | Auto-discovery configuration         |
-| static     | List of static configurations        |
+| Key          | Description                                  |
+|--------------|----------------------------------------------|
+| apiVersion   | Configuration file version                   |
+| sts-region   | Use STS regional endpoint (Optional)         |
+| discovery    | Auto-discovery configuration                 |
+| static       | List of static configurations                |
+| customNamespace | List of custom namespace configurations        |
 
 ### Auto-discovery configuration
 
@@ -150,6 +157,7 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 | roundingPeriod         | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.                     |
 | addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
 | customTags             | Custom tags to be added as a list of Key/Value pairs                                                     |
+| dimensionNameRequirements | List of metric dimensions to query. Before querying metric values, the total list of metrics will be filtered to only those that contain exactly this list of dimensions. An empty or undefined list results in all dimension combinations being included. |
 | metrics                | List of metric definitions                                                                               |
 
 searchTags example:
@@ -193,7 +201,7 @@ general setting.  The currently inherited settings are period, and addCloudwatch
 
 ```yaml
 apiVersion: v1alpha1
-sts-endpoint: eu-west-1
+sts-region: eu-west-1
 discovery:
   exportedTagsOnMetrics:
     ec2:
@@ -345,7 +353,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600      
+        length: 600
       - name: CapacityUtilization
         statistics:
           - Average
@@ -375,7 +383,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600		
+        length: 600
   - type: backup
     regions:
       - eu-central-1
@@ -387,7 +395,7 @@ discovery:
         statistics:
           - Average
         period: 600
-        length: 600		
+        length: 600
 static:
   - namespace: AWS/AutoScaling
     name: must_be_set
@@ -407,7 +415,48 @@ static:
         length: 300
 ```
 
-[Source: [config_test.yml](pkg/testdata/config_test.yml)]
+[Source: [config_test.yml](pkg/config/testdata/config_test.yml)]
+
+### Custom Namespace configuration
+
+| Key                    | Description                                                      |
+|------------------------| -----------------------------------------------------------------|
+| regions                | List of AWS regions                                              |
+| name                   | the name of your rule. It will be added as a label in Prometheus |
+| namespace              | The Custom CloudWatch namespace                                  |
+| roles                  | Roles that the exporter will assume                              |
+| metrics                | List of metric definitions                                       |
+| statistics             | default value for statistics                                     |
+| nilToZero              | default value for nilToZero                                      |
+| period                 | default value for period                                         |
+| length                 | default value for length                                         |
+| delay                  | default value for delay                                          |
+| addCloudwatchTimestamp | default value for addCloudwatchTimestamp                         |
+
+### Example of config File
+
+```yaml
+apiVersion: v1alpha1
+sts-region: eu-west-1
+customNamespace:
+  - name: customEC2Metrics
+    namespace: CustomEC2Metrics
+    regions:
+      - us-east-1
+    metrics:
+      - name: cpu_usage_idle
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_free
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+```
 
 ## Metrics Examples
 
@@ -481,6 +530,9 @@ The following IAM permissions are required to discover tagged Database Migration
 "dms:DescribeReplicationTasks"
 ```
 
+## EC2 and STS Assume Role
+YACE will automatically attempt to assume the role associated with a machine within EC2. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
+
 ## Running locally
 
 ```shell
@@ -499,7 +551,11 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 ```
 
 ## Kubernetes Installation
+### Install with HELM
+* [README](charts/yet-another-cloudwatch-exporter/README.md)
 
+
+### Install with manifests
 ```yaml
 ---
 apiVersion: v1
@@ -588,23 +644,26 @@ The default value is 300.
 ### Embedding YACE as a library in an external application
 It is possible to embed YACE in to an external application. This mode might be useful to you if you would like to scrape on demand or run in a stateless manner.
 
-The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.go](./pkg/update.go#L15) which requires,
+The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.go](./pkg/exporter.go#L35) which requires,
 - `config`: this is the struct representation of the configuration defined in [Top Level Configuration](#top-level-configuration)
 - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
 - `metricsPerQuery`: controls the same behavior defined by the CLI flag `metrics-per-query`
 - `labelsSnakeCase`: controls the same behavior defined by the CLI flag `labels-snake-case`
 - `cloudwatchSemaphore`/`tagSemaphore`: adjusts the concurrency of requests as defined by [Requests concurrency](#requests-concurrency). Pass in a different length channel to adjust behavior
 - `cache`
-  - Any implementation of the [SessionCache Interface](./pkg/sessions.go#L34)
-  - `exporter.NewSessionCache(config, <fips value>)` would be the default
+  - Any implementation of the [SessionCache Interface](./pkg/session/sessions.go#L41)
+  - `session.NewSessionCache(config, <fips value>)` would be the default
   - `<fips value>` is defined by the `fips` CLI flag
 - `observedMetricLabels`
   - Prometheus requires that all metrics exported with the same key have the same labels
   - This map will track all labels observed and ensure they are exported on all metrics with the same key in the provided `registry`
   - You should provide the same instance of this map if you intend to re-use the `registry` between calls
+- `logger`
+  - Any implementation of the [Logger Interface](./pkg/logger/logruslogger.go#L13)
+  - `logger.NewLogrusLogger(log.StandardLogger())` is an acceptable default
 
-The update definition also includes an exported slice of [Metrics](./pkg/update.go#L11) which includes AWS API call metrics. These can be registered with the provided `registry` if you want them
-included in the AWS scrape results. If you are using multiple instances of `registry` it might make more sense to register these metrics in the application using YACE as a library to better 
+The update definition also includes an exported slice of [Metrics](./pkg/exporter.go#L18) which includes AWS API call metrics. These can be registered with the provided `registry` if you want them
+included in the AWS scrape results. If you are using multiple instances of `registry` it might make more sense to register these metrics in the application using YACE as a library to better
 track them over the lifetime of the application.
 
 ## Troubleshooting / Debugging

@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
-	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 var version = "custom-build"
@@ -31,11 +30,10 @@ var (
 	metricsPerQuery       int
 	labelsSnakeCase       bool
 
-	config = exporter.ScrapeConf{}
+	cfg = config.ScrapeConf{}
 )
 
 func init() {
-
 	// Set JSON structured logging as the default log formatter
 	log.SetFormatter(&log.JSONFormatter{})
 
@@ -44,7 +42,6 @@ func init() {
 
 	// Only log Info severity or above.
 	log.SetLevel(log.InfoLevel)
-
 }
 
 func main() {
@@ -70,53 +67,53 @@ func main() {
 	}
 
 	yace.Commands = []*cli.Command{
-		{Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CICD validation",
+		{
+			Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CI/CD validation",
 			Flags: []cli.Flag{
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
 			Action: func(c *cli.Context) error {
+				log.Println("Parse config..")
+				if err := cfg.Load(&configFile); err != nil {
+					log.Fatal("Couldn't read ", configFile, ": ", err)
+					os.Exit(1)
+				}
 				log.Info("Config ", configFile, " is valid")
 				os.Exit(0)
 				return nil
-			}},
-		{Name: "version", Aliases: []string{"v"}, Usage: "prints current yace version.",
+			},
+		},
+		{
+			Name: "version", Aliases: []string{"v"}, Usage: "prints current yace version.",
 			Action: func(c *cli.Context) error {
 				fmt.Println(version)
 				os.Exit(0)
 				return nil
-			}},
+			},
+		},
 	}
 
-	err := yace.Run(os.Args)
-	if err != nil {
+	yace.Action = startScraper
+
+	if err := yace.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
 
+func startScraper(_ *cli.Context) error {
 	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	log.Println("Parse config..")
-	if err := config.Load(&configFile); err != nil {
-		log.Fatal("Couldn't read ", configFile, ": ", err)
-		os.Exit(1)
+	if err := cfg.Load(&configFile); err != nil {
+		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
 	log.Println("Startup completed")
 
-	var maxJobLength int64
-	for _, discoveryJob := range config.Discovery.Jobs {
-		length := exporter.GetMetricDataInputLength(discoveryJob)
-		//S3 can have upto 1 day to day will need to address it in seperate block
-		//TBD
-		svc := exporter.SupportedServices.GetService(discoveryJob.Type)
-		if (maxJobLength < length) && !svc.IgnoreLength {
-			maxJobLength = length
-		}
-	}
-
 	s := NewScraper()
-	cache := exporter.NewSessionCache(config, fips)
+	cache := session.NewSessionCache(cfg, fips, logger.NewLogrusLogger(log.StandardLogger()))
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, cache)
@@ -144,86 +141,17 @@ func main() {
 			return
 		}
 		log.Println("Parse config..")
-		if err := config.Load(&configFile); err != nil {
+		if err := cfg.Load(&configFile); err != nil {
 			log.Fatal("Couldn't read ", &configFile, ": ", err)
 		}
 
 		log.Println("Reset session cache")
-		cache = exporter.NewSessionCache(config, fips)
+		cache = session.NewSessionCache(cfg, fips, logger.NewLogrusLogger(log.StandardLogger()))
 
 		cancelRunningScrape()
-		// TODO: Pipe ctx through to the AWS calls.
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
 		go s.decoupled(ctx, cache)
 	})
 
-	log.Fatal(http.ListenAndServe(addr, nil))
-}
-
-type scraper struct {
-	cloudwatchSemaphore chan struct{}
-	tagSemaphore        chan struct{}
-	registry            *prometheus.Registry
-}
-
-func NewScraper() *scraper {
-	return &scraper{
-		cloudwatchSemaphore: make(chan struct{}, cloudwatchConcurrency),
-		tagSemaphore:        make(chan struct{}, tagConcurrency),
-		registry:            prometheus.NewRegistry(),
-	}
-}
-
-func (s *scraper) makeHandler(ctx context.Context, cache exporter.SessionCache) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
-			DisableCompression: false,
-		})
-		handler.ServeHTTP(w, r)
-	}
-}
-
-func (s *scraper) decoupled(ctx context.Context, cache exporter.SessionCache) {
-	log.Debug("Starting scraping async")
-	log.Debug("Scrape initially first time")
-	s.scrape(ctx, cache)
-
-	scrapingDuration := time.Duration(scrapingInterval) * time.Second
-	ticker := time.NewTicker(scrapingDuration)
-	log.Debugf("Scraping every %d seconds", scrapingInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			log.Debug("Starting scraping async")
-			go s.scrape(ctx, cache)
-		}
-	}
-}
-
-var observedMetricLabels = map[string]exporter.LabelSet{}
-
-func (s *scraper) scrape(ctx context.Context, cache exporter.SessionCache) {
-	if !sem.TryAcquire(1) {
-		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
-		// Let them know by logging a warning.
-		log.Warn("Another scrape is already in process, will not start a new one. " +
-			"Adjust your configuration to ensure the previous scrape completes first.")
-		return
-	}
-	defer sem.Release(1)
-
-	newRegistry := prometheus.NewRegistry()
-	for _, metric := range exporter.Metrics {
-		if err := newRegistry.Register(metric); err != nil {
-			log.Warning("Could not register cloudwatch api metric")
-		}
-	}
-	exporter.UpdateMetrics(ctx, config, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels)
-
-	// this might have a data race to access registry
-	s.registry = newRegistry
-	log.Debug("Metrics scraped.")
+	return http.ListenAndServe(addr, nil)
 }

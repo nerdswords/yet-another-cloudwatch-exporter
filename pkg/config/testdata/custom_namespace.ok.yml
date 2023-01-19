@@ -1,0 +1,20 @@
+apiVersion: v1alpha1
+sts-endpoint: eu-west-1
+customNamespace:
+  - name: customMetrics
+    namespace: CustomEC2Metrics
+    regions:
+      - us-east-1
+    metrics:
+      - name: cpu_usage_idle
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
+      - name: disk_free
+        statistics:
+          - Average
+        period: 300
+        length: 300
+        nilToZero: true
