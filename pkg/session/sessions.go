@@ -37,7 +37,7 @@ import (
 // SessionCache is an interface to a cache of sessions and clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
-type SessionCache interface {
+type SessionCache interface { //nolint:revive
 	GetSTS(config.Role) stsiface.STSAPI
 	GetCloudwatch(*string, config.Role) cloudwatchiface.CloudWatchAPI
 	GetTagging(*string, config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
@@ -143,12 +143,12 @@ func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logger.Logger) Ses
 
 	endpointResolver := endpoints.DefaultResolver().EndpointFor
 
-	endpointUrlOverride := os.Getenv("AWS_ENDPOINT_URL")
-	if endpointUrlOverride != "" {
+	endpointURLOverride := os.Getenv("AWS_ENDPOINT_URL")
+	if endpointURLOverride != "" {
 		// allow override of all endpoints for local testing
 		endpointResolver = func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 			return endpoints.ResolvedEndpoint{
-				URL: endpointUrlOverride,
+				URL: endpointURLOverride,
 			}, nil
 		}
 	}

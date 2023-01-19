@@ -23,7 +23,7 @@ var Metrics = []prometheus.Collector{
 	promutil.ResourceGroupTaggingAPICounter,
 	promutil.AutoScalingAPICounter,
 	promutil.TargetGroupsAPICounter,
-	promutil.ApiGatewayAPICounter,
+	promutil.APIGatewayAPICounter,
 	promutil.Ec2APICounter,
 	promutil.DmsAPICounter,
 	promutil.StoragegatewayAPICounter,
