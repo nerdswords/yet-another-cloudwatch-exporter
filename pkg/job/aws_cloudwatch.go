@@ -78,17 +78,20 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		ExtendedStatistics: extendedStatistics,
 	}
 
-	logger.Debug("CLI helper - " +
-		"aws cloudwatch get-metric-statistics" +
-		" --metric-name " + metric.Name +
-		" --dimensions " + dimensionsToCliString(dimensions) +
-		" --namespace " + *namespace +
-		" --statistics " + *statistics[0] +
-		" --period " + strconv.FormatInt(period, 10) +
-		" --start-time " + startTime.Format(time.RFC3339) +
-		" --end-time " + endTime.Format(time.RFC3339))
+	if logger.IsDebugEnabled() {
+		logger.Debug("CLI helper - " +
+			"aws cloudwatch get-metric-statistics" +
+			" --metric-name " + metric.Name +
+			" --dimensions " + dimensionsToCliString(dimensions) +
+			" --namespace " + *namespace +
+			" --statistics " + *statistics[0] +
+			" --period " + strconv.FormatInt(period, 10) +
+			" --start-time " + startTime.Format(time.RFC3339) +
+			" --end-time " + endTime.Format(time.RFC3339))
 
-	logger.Debug("createGetMetricStatisticsInput", "output", *output)
+		logger.Debug("createGetMetricStatisticsInput", "output", *output)
+	}
+
 	return output
 }
 
@@ -135,7 +138,10 @@ func createGetMetricDataInput(getMetricData []cloudwatchData, namespace *string,
 		time.Duration(roundingPeriod)*time.Second,
 		time.Duration(length)*time.Second,
 		time.Duration(delay)*time.Second)
-	logger.Debug("GetMetricData Window", "start_time", startTime.Format(timeFormat), "end_time", endTime.Format(timeFormat))
+
+	if logger.IsDebugEnabled() {
+		logger.Debug("GetMetricData Window", "start_time", startTime.Format(timeFormat), "end_time", endTime.Format(timeFormat))
+	}
 
 	dataPointOrder := "TimestampDescending"
 	output = &cloudwatch.GetMetricDataInput{

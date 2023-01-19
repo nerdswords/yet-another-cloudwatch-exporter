@@ -12,8 +12,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
+
+func TestValidServiceNames(t *testing.T) {
+	for svc, filter := range serviceFilters {
+		if config.SupportedServices.GetService(svc) == nil {
+			t.Errorf("invalid service name '%s'", svc)
+			t.Fail()
+		}
+
+		if filter.FilterFunc == nil && filter.ResourceFunc == nil {
+			t.Errorf("no filter functions defined for service name '%s'", svc)
+			t.FailNow()
+		}
+	}
+}
 
 func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
@@ -90,7 +105,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			apigateway := SupportedServices.GetService("apigateway")
+			apigateway := serviceFilters["AWS/ApiGateway"]
 
 			outputResources, err := apigateway.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {
@@ -305,7 +320,7 @@ func TestDMSFilterFunc(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dms := SupportedServices.GetService("dms")
+			dms := serviceFilters["AWS/DMS"]
 
 			outputResources, err := dms.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {
@@ -335,22 +350,22 @@ type dmsClient struct {
 	describeReplicationTasksOutput     *databasemigrationservice.DescribeReplicationTasksOutput
 }
 
+func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(_ aws.Context, input *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, opts ...request.Option) error {
+	fn(dms.describeReplicationInstancesOutput, true)
+	return nil
+}
+
+func (dms dmsClient) DescribeReplicationTasksPagesWithContext(_ aws.Context, input *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, opts ...request.Option) error {
+	fn(dms.describeReplicationTasksOutput, true)
+	return nil
+}
+
 type apiGatewayClient struct {
 	apigatewayiface.APIGatewayAPI
 	getRestApisOutput *apigateway.GetRestApisOutput
 }
 
-func (apigateway apiGatewayClient) GetRestApisPagesWithContext(context2 aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
+func (apigateway apiGatewayClient) GetRestApisPagesWithContext(_ aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
 	fn(apigateway.getRestApisOutput, true)
-	return nil
-}
-
-func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(ctx aws.Context, input *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, opts ...request.Option) error {
-	fn(dms.describeReplicationInstancesOutput, true)
-	return nil
-}
-
-func (dms dmsClient) DescribeReplicationTasksPagesWithContext(ctx aws.Context, input *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, opts ...request.Option) error {
-	fn(dms.describeReplicationTasksOutput, true)
 	return nil
 }
