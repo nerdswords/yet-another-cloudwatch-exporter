@@ -95,7 +95,7 @@ type TagsInterface struct {
 }
 
 func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region string) ([]*TaggedResource, error) {
-	svc := SupportedServices.GetService(job.Type)
+	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*TaggedResource
 
 	if len(svc.ResourceFilters) > 0 {
@@ -138,20 +138,22 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 		}
 	}
 
-	if svc.ResourceFunc != nil {
-		newResources, err := svc.ResourceFunc(ctx, iface, job, region)
-		if err != nil {
-			return nil, err
+	if ext, ok := serviceFilters[svc.Namespace]; ok {
+		if ext.ResourceFunc != nil {
+			newResources, err := ext.ResourceFunc(ctx, iface, job, region)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, newResources...)
 		}
-		resources = append(resources, newResources...)
-	}
 
-	if svc.FilterFunc != nil {
-		filteredResources, err := svc.FilterFunc(ctx, iface, resources)
-		if err != nil {
-			return nil, err
+		if ext.FilterFunc != nil {
+			filteredResources, err := ext.FilterFunc(ctx, iface, resources)
+			if err != nil {
+				return nil, err
+			}
+			resources = filteredResources
 		}
-		resources = filteredResources
 	}
 
 	return resources, nil

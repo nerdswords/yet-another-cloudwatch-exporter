@@ -11,7 +11,6 @@ import (
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
@@ -199,13 +198,9 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 	return cw
 }
 
-func getMetricDataInputLength(job *config.Job) int64 {
-	length := model.DefaultLengthSeconds
-
-	if job.Length > 0 {
-		length = job.Length
-	}
-	for _, metric := range job.Metrics {
+func getMetricDataInputLength(metrics []*config.Metric) int64 {
+	var length int64 = 0
+	for _, metric := range metrics {
 		if metric.Length > length {
 			length = metric.Length
 		}
@@ -216,7 +211,7 @@ func getMetricDataInputLength(job *config.Job) int64 {
 func getMetricDataForQueries(
 	ctx context.Context,
 	discoveryJob *config.Job,
-	svc *services.ServiceFilter,
+	svc *config.ServiceConfig,
 	region string,
 	accountId *string,
 	tagsOnMetrics config.ExportedTagsOnMetrics,
@@ -277,7 +272,7 @@ func scrapeDiscoveryJobUsingMetricData(
 		return
 	}
 
-	svc := services.SupportedServices.GetService(job.Type)
+	svc := config.SupportedServices.GetService(job.Type)
 	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
@@ -286,7 +281,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	maxMetricCount := metricsPerQuery
-	length := getMetricDataInputLength(job)
+	length := getMetricDataInputLength(job.Metrics)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 
 	mux := &sync.Mutex{}
@@ -348,6 +343,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	}
 
 	maxMetricCount := metricsPerQuery
+	length := getMetricDataInputLength(customNamespaceJob.Metrics)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 
 	wg.Add(partition)
@@ -366,7 +362,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := createGetMetricDataInput(input, &customNamespaceJob.Namespace, customNamespaceJob.Length, customNamespaceJob.Delay, customNamespaceJob.RoundingPeriod, logger)
+			filter := createGetMetricDataInput(input, &customNamespaceJob.Namespace, length, customNamespaceJob.Delay, customNamespaceJob.RoundingPeriod, logger)
 			data := clientCloudwatch.getMetricData(ctx, filter)
 			if data != nil {
 				output := make([]*cloudwatchData, 0)
