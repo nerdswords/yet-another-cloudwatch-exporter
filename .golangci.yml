@@ -4,18 +4,27 @@ output:
 linters:
   disable-all: true
   enable:
+    - asasalint
     - bodyclose
-    - deadcode
     - errcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
     - gofmt
+    - gofumpt
     - goimports
     - gosimple
     - govet
     - ineffassign
+    - misspell
+    - nilerr
+    - nolintlint
+    - predeclared
+    - revive
     - staticcheck
     - typecheck
+    - unconvert
     - unused
-    - varcheck
 
 linters-settings:
   goimports:

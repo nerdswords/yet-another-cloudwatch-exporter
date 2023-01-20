@@ -40,7 +40,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 		{
 			"api gateway resources skip stages",
 			TagsInterface{
-				ApiGatewayClient: apiGatewayClient{
+				APIGatewayClient: apiGatewayClient{
 					getRestApisOutput: &apigateway.GetRestApisOutput{
 						Items: []*apigateway.RestApi{
 							{

@@ -12,7 +12,7 @@ import (
 )
 
 type ScrapeConf struct {
-	ApiVersion      string             `yaml:"apiVersion"`
+	APIVersion      string             `yaml:"apiVersion"`
 	StsRegion       string             `yaml:"sts-region"`
 	Discovery       Discovery          `yaml:"discovery"`
 	Static          []*Static          `yaml:"static"`
@@ -163,8 +163,8 @@ func (c *ScrapeConf) Validate() error {
 			}
 		}
 	}
-	if c.ApiVersion != "" && c.ApiVersion != "v1alpha1" {
-		return fmt.Errorf("apiVersion line missing or version is unknown (%s)", c.ApiVersion)
+	if c.APIVersion != "" && c.APIVersion != "v1alpha1" {
+		return fmt.Errorf("apiVersion line missing or version is unknown (%s)", c.APIVersion)
 	}
 
 	return nil

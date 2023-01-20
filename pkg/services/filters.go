@@ -28,16 +28,16 @@ type serviceFilter struct {
 }
 
 // serviceFilters maps a service namespace to (optional) serviceFilter
-var serviceFilters map[string]serviceFilter = map[string]serviceFilter{
+var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, iface TagsInterface, inputResources []*TaggedResource) (outputResources []*TaggedResource, err error) {
-			promutil.ApiGatewayAPICounter.Inc()
+			promutil.APIGatewayAPICounter.Inc()
 			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
 			input := apigateway.GetRestApisInput{Limit: &limit}
 			output := apigateway.GetRestApisOutput{}
 			var pageNum int
-			err = iface.ApiGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+			err = iface.APIGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages

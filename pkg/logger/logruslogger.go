@@ -47,7 +47,7 @@ func (l logrusLogger) IsDebugEnabled() bool {
 	return l.entry.Logger.IsLevelEnabled(log.DebugLevel)
 }
 
-func NewLogrusLogger(logger *log.Logger) logrusLogger {
+func NewLogrusLogger(logger *log.Logger) logrusLogger { //nolint:revive
 	return logrusLogger{log.NewEntry(logger)}
 }
 

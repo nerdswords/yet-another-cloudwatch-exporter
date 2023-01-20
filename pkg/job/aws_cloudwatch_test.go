@@ -69,7 +69,7 @@ func TestSortyByTimeStamp(t *testing.T) {
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
 		region                    string
-		accountId                 *string
+		accountID                 *string
 		namespace                 string
 		customTags                []model.Tag
 		tagsOnMetrics             config.ExportedTagsOnMetrics
@@ -88,7 +88,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"additional dimension",
 			args{
 				region:     "us-east-1",
-				accountId:  aws.String("123123123123"),
+				accountID:  aws.String("123123123123"),
 				namespace:  "efs",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -141,7 +141,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]cloudwatchData{
 				{
-					AccountId:              aws.String("123123123123"),
+					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*cloudwatch.Dimension{
 						{
@@ -179,7 +179,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"ec2",
 			args{
 				region:     "us-east-1",
-				accountId:  aws.String("123123123123"),
+				accountID:  aws.String("123123123123"),
 				namespace:  "ec2",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -228,7 +228,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]cloudwatchData{
 				{
-					AccountId:              aws.String("123123123123"),
+					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*cloudwatch.Dimension{
 						{
@@ -262,7 +262,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"kafka",
 			args{
 				region:     "us-east-1",
-				accountId:  aws.String("123123123123"),
+				accountID:  aws.String("123123123123"),
 				namespace:  "kafka",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -311,7 +311,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]cloudwatchData{
 				{
-					AccountId:              aws.String("123123123123"),
+					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*cloudwatch.Dimension{
 						{
@@ -345,7 +345,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"alb",
 			args{
 				region:                    "us-east-1",
-				accountId:                 aws.String("123123123123"),
+				accountID:                 aws.String("123123123123"),
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,
@@ -436,7 +436,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]cloudwatchData{
 				{
-					AccountId:              aws.String("123123123123"),
+					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*cloudwatch.Dimension{
 						{
@@ -464,13 +464,13 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metricDatas := getFilteredMetricDatas(tt.args.region, tt.args.accountId, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
+			metricDatas := getFilteredMetricDatas(tt.args.region, tt.args.accountID, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}
 			for i, got := range metricDatas {
-				if *got.AccountId != *tt.wantGetMetricsData[i].AccountId {
-					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountId, *tt.wantGetMetricsData[i].AccountId)
+				if *got.AccountID != *tt.wantGetMetricsData[i].AccountID {
+					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountID, *tt.wantGetMetricsData[i].AccountID)
 				}
 				if *got.ID != *tt.wantGetMetricsData[i].ID {
 					t.Errorf("getFilteredMetricDatas().ID = %v, want %v", *got.ID, *tt.wantGetMetricsData[i].ID)
