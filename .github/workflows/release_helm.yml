@@ -2,8 +2,10 @@ name: Build, test and publish Helm chart
 
 on:
   push:
-    tags:
-    - 'v*'
+    branches:
+    - 'master'
+    paths:
+    - "charts/yet-another-cloudwatch-exporter/Chart.yaml"
 
 jobs:
   publishHelmChart:
