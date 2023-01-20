@@ -21,7 +21,7 @@ type scraper struct {
 	registry            *prometheus.Registry
 }
 
-func NewScraper() *scraper {
+func NewScraper() *scraper { //nolint:revive
 	return &scraper{
 		cloudwatchSemaphore: make(chan struct{}, cloudwatchConcurrency),
 		tagSemaphore:        make(chan struct{}, tagConcurrency),

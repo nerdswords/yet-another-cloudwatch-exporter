@@ -86,7 +86,7 @@ func (r TaggedResource) MetricTags(tagsOnMetrics config.ExportedTagsOnMetrics) [
 type TagsInterface struct {
 	Client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	AsgClient            autoscalingiface.AutoScalingAPI
-	ApiGatewayClient     apigatewayiface.APIGatewayAPI
+	APIGatewayClient     apigatewayiface.APIGatewayAPI
 	Ec2Client            ec2iface.EC2API
 	DmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	PrometheusClient     prometheusserviceiface.PrometheusServiceAPI

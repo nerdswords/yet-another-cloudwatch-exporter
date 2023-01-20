@@ -23,7 +23,7 @@ func ScrapeAwsData(
 	tagSemaphore chan struct{},
 	cache session.SessionCache,
 	logger logger.Logger,
-) ([]*services.TaggedResource, []*cloudwatchData) {
+) ([]*services.TaggedResource, []*cloudwatchData) { //nolint:revive
 	mux := &sync.Mutex{}
 
 	cwData := make([]*cloudwatchData, 0)
@@ -57,7 +57,7 @@ func ScrapeAwsData(
 
 					clientTag := services.TagsInterface{
 						Client:               cache.GetTagging(&region, role),
-						ApiGatewayClient:     cache.GetAPIGateway(&region, role),
+						APIGatewayClient:     cache.GetAPIGateway(&region, role),
 						AsgClient:            cache.GetASG(&region, role),
 						DmsClient:            cache.GetDMS(&region, role),
 						Ec2Client:            cache.GetEC2(&region, role),
@@ -149,7 +149,7 @@ func ScrapeAwsData(
 	return awsInfoData, cwData
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountId *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}, logger logger.Logger) (cw []*cloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}, logger logger.Logger) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -175,7 +175,7 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
 				Region:                 &region,
-				AccountId:              accountId,
+				AccountID:              accountID,
 			}
 
 			filter := createGetMetricStatisticsInput(
@@ -199,7 +199,7 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
-	var length int64 = 0
+	var length int64
 	for _, metric := range metrics {
 		if metric.Length > length {
 			length = metric.Length
@@ -213,7 +213,7 @@ func getMetricDataForQueries(
 	discoveryJob *config.Job,
 	svc *config.ServiceConfig,
 	region string,
-	accountId *string,
+	accountID *string,
 	tagsOnMetrics config.ExportedTagsOnMetrics,
 	clientCloudwatch cloudwatchInterface,
 	resources []*services.TaggedResource,
@@ -240,7 +240,7 @@ func getMetricDataForQueries(
 		if len(resources) == 0 {
 			logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
 		}
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountId, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)...)
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)...)
 	}
 	return getMetricDatas
 }
@@ -249,7 +249,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	ctx context.Context,
 	job *config.Job,
 	region string,
-	accountId *string,
+	accountID *string,
 	tagsOnMetrics config.ExportedTagsOnMetrics,
 	clientTag services.TagsInterface,
 	clientCloudwatch cloudwatchInterface,
@@ -273,7 +273,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	svc := config.SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountId, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
+	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Debug("No metrics data found")
@@ -301,7 +301,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			if data != nil {
 				output := make([]*cloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataById(input, *MetricDataResult.Id)
+					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
@@ -325,7 +325,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	ctx context.Context,
 	customNamespaceJob *config.CustomNamespace,
 	region string,
-	accountId *string,
+	accountID *string,
 	clientCloudwatch cloudwatchInterface,
 	cloudwatchSemaphore chan struct{},
 	tagSemaphore chan struct{},
@@ -335,7 +335,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
-	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, customNamespaceJob, region, accountId, clientCloudwatch, tagSemaphore, logger)
+	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, customNamespaceJob, region, accountID, clientCloudwatch, tagSemaphore, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Debug("No metrics data found")
@@ -367,7 +367,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 			if data != nil {
 				output := make([]*cloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataById(input, *MetricDataResult.Id)
+					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
@@ -391,7 +391,7 @@ func getMetricDataForQueriesForCustomNamespace(
 	ctx context.Context,
 	customNamespaceJob *config.CustomNamespace,
 	region string,
-	accountId *string,
+	accountID *string,
 	clientCloudwatch cloudwatchInterface,
 	tagSemaphore chan struct{},
 	logger logger.Logger,
@@ -431,7 +431,7 @@ func getMetricDataForQueriesForCustomNamespace(
 					CustomTags:             customNamespaceJob.CustomTags,
 					Dimensions:             cwMetric.Dimensions,
 					Region:                 &region,
-					AccountId:              accountId,
+					AccountID:              accountID,
 					Period:                 metric.Period,
 				})
 			}

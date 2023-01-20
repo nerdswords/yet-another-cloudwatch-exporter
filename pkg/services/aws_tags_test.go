@@ -304,7 +304,7 @@ func Test_MigrateTagsToPrometheus(t *testing.T) {
 	}}
 
 	prometheusMetricName := "aws_service_info"
-	var metricValue float64 = 0
+	var metricValue float64
 	expected := []*promutil.PrometheusMetric{{
 		Name: &prometheusMetricName,
 		Labels: map[string]string{

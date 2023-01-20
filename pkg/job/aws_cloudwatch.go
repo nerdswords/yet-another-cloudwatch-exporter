@@ -46,7 +46,7 @@ type cloudwatchData struct {
 	Tags                    []model.Tag
 	Dimensions              []*cloudwatch.Dimension
 	Region                  *string
-	AccountId               *string
+	AccountID               *string
 	Period                  int64
 }
 
@@ -95,7 +95,7 @@ func createGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	return output
 }
 
-func findGetMetricDataById(getMetricDatas []cloudwatchData, value string) (cloudwatchData, error) {
+func findGetMetricDataByID(getMetricDatas []cloudwatchData, value string) (cloudwatchData, error) {
 	var g cloudwatchData
 	for _, getMetricData := range getMetricDatas {
 		if *getMetricData.MetricID == value {
@@ -284,7 +284,7 @@ func getFullMetricsList(ctx context.Context, namespace string, metric *config.Me
 	return &res, nil
 }
 
-func getFilteredMetricDatas(region string, accountId *string, namespace string, customTags []model.Tag, tagsOnMetrics config.ExportedTagsOnMetrics, dimensionRegexps []*string, resources []*services.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics config.ExportedTagsOnMetrics, dimensionRegexps []*string, resources []*services.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*services.TaggedResource
 	dimensionsFilter := make(map[string]filterValues)
 	for _, dr := range dimensionRegexps {
@@ -350,8 +350,8 @@ func getFilteredMetricDatas(region string, accountId *string, namespace string, 
 					CustomTags:             customTags,
 					Dimensions:             cwMetric.Dimensions,
 					Region:                 &region,
-					AccountId:              accountId,
-					Period:                 int64(m.Period),
+					AccountID:              accountID,
+					Period:                 m.Period,
 				})
 			}
 		}
@@ -382,7 +382,7 @@ func createPrometheusLabels(cwd *cloudwatchData, labelsSnakeCase bool, logger lo
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
 	labels["region"] = *cwd.Region
-	labels["account_id"] = *cwd.AccountId
+	labels["account_id"] = *cwd.AccountID
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
@@ -519,11 +519,11 @@ func MigrateCloudwatchToPrometheus(cwd []*cloudwatchData, labelsSnakeCase bool, 
 				return nil, nil, err
 			}
 			if exportedDatapoint == nil && (c.AddCloudwatchTimestamp == nil || !*c.AddCloudwatchTimestamp) {
-				var nan float64 = math.NaN()
+				nan := math.NaN()
 				exportedDatapoint = &nan
 				includeTimestamp = false
 				if *c.NilToZero {
-					var zero float64 = 0
+					var zero float64
 					exportedDatapoint = &zero
 				}
 			}
