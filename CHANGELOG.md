@@ -1,3 +1,31 @@
+# 0.44.0-alpha
+
+**Breaking changes**:
+- Note if you use Yace as a library: this release changes the packages
+  and funcs exported publicly, you will need to review the imports
+  (although signatures are mostly unchanged)
+
+**Bugfixes and features**:
+* Refactor code into separate packages by @cristiangreco
+* Refactor list of supported services and filter funcs by @cristiangreco
+* Wrap debug logging to avoid expensive operations by @cristiangreco
+* Fix to use length of metrics level on customNamespace by @masshash
+* feat: bump helm chart by @rasta-rocket
+* feat: release helm chart when Chart.yml is updated by @rasta-rocket
+* Add test for configuration of services list by @cristiangreco
+* GolangCI: review linters settings by @cristiangreco
+
+**Dependencies**:
+* Bump azure/setup-helm from 1 to 3
+* Bump docker/setup-buildx-action from 1 to 2
+* Bump docker/setup-qemu-action from 1 to 2
+* Bump github.com/aws/aws-sdk-go from 1.44.175 to 1.44.182
+* Bump github.com/prometheus/client_golang from 1.13.0 to 1.14.0
+* Bump helm/chart-releaser-action from 1.4.1 to 1.5.0
+* Bump helm/kind-action from 1.2.0 to 1.5.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.43.0-alpha...v0.44.0-alpha
+
 # 0.43.0-alpha
 
 * add support to custom namespaces with their dimensions (by @arielly-parussulo)
