@@ -1,6 +1,6 @@
 # yet-another-cloudwatch-exporter
 
-![Version: 0.9.0](https://img.shields.io/badge/Version-0.9.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.43.0-alpha](https://img.shields.io/badge/AppVersion-v0.43.0--alpha-informational?style=flat-square)
+![Version: 0.10.0](https://img.shields.io/badge/Version-0.10.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.44.0-alpha](https://img.shields.io/badge/AppVersion-v0.44.0--alpha-informational?style=flat-square)
 
 Yet Another Cloudwatch Exporter
 
