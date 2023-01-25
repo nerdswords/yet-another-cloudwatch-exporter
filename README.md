@@ -103,6 +103,62 @@ We will contact you as soon as possible.
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
   * workspaces (AWS/WorkSpaces) - Workspaces
 
+## Running YACE
+## Locally
+
+```shell
+docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
+-p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
+```
+
+## Kubernetes
+### Install with HELM
+YACE can be configured in a Kubernetes cluster through it's [HELM chart](charts/yet-another-cloudwatch-exporter/README.md).
+
+### Install with manifests
+```yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yace
+data:
+  config.yml: |-
+    ---
+    # Start of config file
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: yace
+  template:
+    metadata:
+      labels:
+        name: yace
+    spec:
+      containers:
+      - name: yace
+        image: ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--config.file=/tmp/config.yml"
+        ports:
+        - name: app
+          containerPort: 5000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: yace
+```
+
 ## Image
 
 * `ghcr.io/nerdswords/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
@@ -141,6 +197,7 @@ As a quick start, the following IAM policy can be used to grant the permissions 
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
+
 
 ## Configuration
 
@@ -578,13 +635,6 @@ The following IAM permissions are required to discover tagged Database Migration
 "dms:DescribeReplicationTasks"
 ```
 
-## Running locally
-
-```shell
-docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
--p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
-```
-
 ## Override AWS endpoint urls
 to support local testing all AWS urls can be overridden with by setting an environment variable `AWS_ENDPOINT_URL`
 ```shell
@@ -592,53 +642,6 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 -e AWS_ENDPOINT_URL=http://localhost:4766 -p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
 ```
 
-## Kubernetes Installation
-### Install with HELM
-* [README](charts/yet-another-cloudwatch-exporter/README.md)
-
-### Install with manifests
-```yaml
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: yace
-data:
-  config.yml: |-
-    ---
-    # Start of config file
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: yace
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: yace
-  template:
-    metadata:
-      labels:
-        name: yace
-    spec:
-      containers:
-      - name: yace
-        image: ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
-        imagePullPolicy: IfNotPresent
-        args:
-          - "--config.file=/tmp/config.yml"
-        ports:
-        - name: app
-          containerPort: 5000
-        volumeMounts:
-        - name: config-volume
-          mountPath: /tmp
-      volumes:
-      - name: config-volume
-        configMap:
-          name: yace
-```
 ## Options
 ### RoleArns
 
@@ -722,7 +725,7 @@ go without losing data. ELB metrics on AWS are written every 5 minutes (300) in 
 
 [Development Setup / Guide](/CONTRIBUTE.md)
 
-# Thank you
+## Thank you
 
 * [Justin Santa Barbara](https://github.com/justinsb) - For telling me about AWS tags api which simplified a lot - Thanks!
 * [Brian Brazil](https://github.com/brian-brazil) - Who gave a lot of feedback regarding UX and prometheus lib - Thanks!
