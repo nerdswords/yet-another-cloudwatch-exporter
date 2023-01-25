@@ -1,5 +1,7 @@
 # YACE - yet another cloudwatch exporter
 
+YACE, or `yet another cloudwatch exporter`, is a [prometheus exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations) for AWS cloudwatch metrics. It is written in Go and uses the official AWS SDK.
+
 ## What is this organisation?
 
 [Medium Article about rebranding yace](https://medium.com/@IT_Supertramp/reorganizing-yace-79d7149b9584)
@@ -107,6 +109,40 @@ We will contact you as soon as possible.
 * See [Releases](https://github.com/nerdswords/yet-another-cloudwatch-exporter/releases) for binaries
 
 ## Configuration
+
+### Authentication
+
+The agent will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
+
+As a quick start, the following IAM policy can be used to grant the permissions for all YACE's features to work. If some of the features are not needed, the policy can be adjusted accordingly, as described in [this section](#required-iam-permissions).
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1674249227793",
+      "Action": [
+        "tag:GetResources",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:ListMetrics",
+        "ec2:DescribeTags",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
+        "ec2:DescribeTransitGateway*",
+        "apigateway:GET",
+        "dms:DescribeReplicationInstances",
+        "dms:DescribeReplicationTasks"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
 
 ### Command Line Options
 
@@ -497,7 +533,7 @@ predict_linear(aws_es_free_storage_space_minimum[2d], 86400 * 7) + on (name) gro
 ((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
 ```
 
-## IAM
+## Required IAM permissions
 
 The following IAM permissions are required for YACE to work.
 
@@ -531,29 +567,24 @@ The following IAM permissions are required to discover tagged Database Migration
 ```
 
 ## EC2 and STS Assume Role
-YACE will automatically attempt to assume the role associated with a machine within EC2. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
 
 ## Running locally
 
 ```shell
 docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
 -p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
-
 ```
-
 
 ## Override AWS endpoint urls
 to support local testing all AWS urls can be overridden with by setting an environment variable `AWS_ENDPOINT_URL`
 ```shell
 docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
 -e AWS_ENDPOINT_URL=http://localhost:4766 -p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
-
 ```
 
 ## Kubernetes Installation
 ### Install with HELM
 * [README](charts/yet-another-cloudwatch-exporter/README.md)
-
 
 ### Install with manifests
 ```yaml
