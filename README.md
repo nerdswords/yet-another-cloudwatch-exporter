@@ -108,9 +108,7 @@ We will contact you as soon as possible.
 * `ghcr.io/nerdswords/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
 * See [Releases](https://github.com/nerdswords/yet-another-cloudwatch-exporter/releases) for binaries
 
-## Configuration
-
-### Authentication
+## Authentication
 
 The agent will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
 
@@ -144,21 +142,35 @@ As a quick start, the following IAM policy can be used to grant the permissions 
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
 
+## Configuration
+
+YACE has two configuration mechanisms, that work side by side. First, some global parameters can be configured through command line arguemnts. Second, the scraping configuration has to be provided through a YAML file. The configuration file path is passed to the exporter through the `--config.file` command line argument.
+
 ### Command Line Options
 
-| Option               | Description                                                                       |
-| -------------------- | --------------------------------------------------------------------------------- |
-| labels-snake-case    | Causes labels on metrics to be output in snake case instead of camel case         |
+| Option                 | Description                                                               | Default    |
+| ---------------------- | ------------------------------------------------------------------------- | ---------- |
+| listen-address         | Network address to listen to                                              | :5000      |
+| config.file            | Path to the configuration file                                            | config.yml |
+| debug                  | Add verbose logging                                                       | false      |
+| fips                   | Use FIPS compliant AWS API                                                | false      |
+| cloudwatch-concurrency | Maximum number of concurrent requests to CloudWatch API                   | 5          |
+| tag-concurrency        | Maximum number of concurrent requests to Resource Tagging API             | 5          |
+| scraping-interval      | Seconds to wait between scraping the AWS metrics                          | 300        |
+| metrics-per-query      | Number of metrics made in a single GetMetricsData request                 | 500        |
+| labels-snake-case      | Causes labels on metrics to be output in snake case instead of camel case | false      |
 
 ### Top level configuration
 
-| Key          | Description                                  |
-|--------------|----------------------------------------------|
-| apiVersion   | Configuration file version                   |
-| sts-region   | Use STS regional endpoint (Optional)         |
-| discovery    | Auto-discovery configuration                 |
-| static       | List of static configurations                |
-| customNamespace | List of custom namespace configurations        |
+Below are the top level fields of the YAML configuration file.
+
+| Key             | Description                             |
+| --------------- | --------------------------------------- |
+| apiVersion      | Configuration file version              |
+| sts-region      | Use STS regional endpoint (Optional)    |
+| discovery       | Auto-discovery configuration            |
+| static          | List of static configurations           |
+| customNamespace | List of custom namespace configurations |
 
 ### Auto-discovery configuration
 
@@ -180,21 +192,21 @@ Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_
 
 ### Auto-discovery job
 
-| Key                    | Description                                                                                              |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| regions                | List of AWS regions                                                                                      |
-| type                   | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).               |
-| length (Default 120)   | How far back to request data for in seconds                                                              |
-| delay                  | If set it will request metrics up until `current_time - delay`                                           |
-| roles                  | List of IAM roles to assume (optional)                                                                   |
-| searchTags             | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                 |
-| period                 | Statistic period in seconds (General Setting for all metrics in this job)                                |
-| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)    |
-| roundingPeriod         | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.                     |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)   |
-| customTags             | Custom tags to be added as a list of Key/Value pairs                                                     |
-| dimensionNameRequirements | List of metric dimensions to query. Before querying metric values, the total list of metrics will be filtered to only those that contain exactly this list of dimensions. An empty or undefined list results in all dimension combinations being included. |
-| metrics                | List of metric definitions                                                                               |
+| Key                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| regions                   | List of AWS regions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| type                      | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| length (Default 120)      | How far back to request data for in seconds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| delay                     | If set it will request metrics up until `current_time - delay`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| roles                     | List of IAM roles to assume (optional)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| searchTags                | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| period                    | Statistic period in seconds (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| statistics                | List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| roundingPeriod            | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job. |
+| addCloudwatchTimestamp    | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| customTags                | Custom tags to be added as a list of Key/Value pairs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| dimensionNameRequirements | List of metric dimensions to query. Before querying metric values, the total list of metrics will be filtered to only those that contain exactly this list of dimensions. An empty or undefined list results in all dimension combinations being included.                                                                                                                                                                                                                                                                                        |
+| metrics                   | List of metric definitions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 searchTags example:
 
@@ -456,7 +468,7 @@ static:
 ### Custom Namespace configuration
 
 | Key                    | Description                                                      |
-|------------------------| -----------------------------------------------------------------|
+| ---------------------- | ---------------------------------------------------------------- |
 | regions                | List of AWS regions                                              |
 | name                   | the name of your rule. It will be added as a label in Prometheus |
 | namespace              | The Custom CloudWatch namespace                                  |
@@ -565,8 +577,6 @@ The following IAM permissions are required to discover tagged Database Migration
 "dms:DescribeReplicationInstances",
 "dms:DescribeReplicationTasks"
 ```
-
-## EC2 and STS Assume Role
 
 ## Running locally
 
