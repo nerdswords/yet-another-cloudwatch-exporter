@@ -603,6 +603,9 @@ spec:
 
 Multiple roleArns are useful, when you are monitoring multi-account setup, where all accounts are using same AWS services. For example, you are running yace in monitoring account and you have number of accounts (for example newspapers, radio and television) running ECS clusters. Each account gives yace permissions to assume local IAM role, which has all the necessary permissions for Cloudwatch metrics. On this kind of setup, you could simply list:
 ```yaml
+apiVersion: v1alpha1
+sts-region: eu-west-1
+discovery:
   jobs:
     - type: ecs-svc
       regions:

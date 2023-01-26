@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -97,8 +99,8 @@ func (r *Role) ValidateRole(roleIdx int, parent string) error {
 	return nil
 }
 
-func (c *ScrapeConf) Load(file *string) error {
-	yamlFile, err := os.ReadFile(*file)
+func (c *ScrapeConf) Load(file string, logrusLogger logger.Logger) error {
+	yamlFile, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -106,6 +108,8 @@ func (c *ScrapeConf) Load(file *string) error {
 	if err != nil {
 		return err
 	}
+
+	LogConfigErrors(yamlFile, logrusLogger)
 
 	for _, job := range c.Discovery.Jobs {
 		if len(job.Roles) == 0 {
@@ -164,7 +168,7 @@ func (c *ScrapeConf) Validate() error {
 		}
 	}
 	if c.APIVersion != "" && c.APIVersion != "v1alpha1" {
-		return fmt.Errorf("apiVersion line missing or version is unknown (%s)", c.APIVersion)
+		return fmt.Errorf("unknown apiVersion value '%s'", c.APIVersion)
 	}
 
 	return nil
@@ -335,4 +339,29 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	m.Statistics = mStatistics
 
 	return nil
+}
+
+// LogConfigErrors logs as warning any config unmarshalling error.
+func LogConfigErrors(cfg []byte, logrusLogger logger.Logger) {
+	var sc ScrapeConf
+	var errMsgs []string
+	if err := yaml.UnmarshalStrict(cfg, &sc); err != nil {
+		terr := &yaml.TypeError{}
+		if errors.As(err, &terr) {
+			errMsgs = append(errMsgs, terr.Errors...)
+		} else {
+			errMsgs = append(errMsgs, err.Error())
+		}
+	}
+
+	if sc.APIVersion == "" {
+		errMsgs = append(errMsgs, "missing apiVersion")
+	}
+
+	if len(errMsgs) > 0 {
+		for _, msg := range errMsgs {
+			logrusLogger.Warn("config file syntax error", "err", msg)
+		}
+		logrusLogger.Warn(`Config file error(s) detected: Yace might not work as expected. Future versions of Yace might fail to run with an invalid config file.`)
+	}
 }

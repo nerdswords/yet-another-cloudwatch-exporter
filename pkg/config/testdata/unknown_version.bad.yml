@@ -48,8 +48,8 @@ discovery:
     length: 900
     delay: 120
     searchTags:
-      - Key: KubernetesCluster
-        Value: production-19
+      - key: KubernetesCluster
+        value: production-19
     metrics:
       - name: HealthyHostCount
         statistics:
