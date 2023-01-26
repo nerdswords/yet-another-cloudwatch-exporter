@@ -113,7 +113,7 @@ docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config
 
 ## Kubernetes
 ### Install with HELM
-YACE can be configured in a Kubernetes cluster through it's [HELM chart](charts/yet-another-cloudwatch-exporter/README.md).
+YACE can be configured in a Kubernetes cluster through its [HELM chart](charts/yet-another-cloudwatch-exporter/README.md).
 
 ### Install with manifests
 ```yaml
@@ -166,7 +166,7 @@ spec:
 
 ## Authentication
 
-The agent will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
+The exporter will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
 
 As a quick start, the following IAM policy can be used to grant the permissions for all YACE's features to work. If some of the features are not needed, the policy can be adjusted accordingly, as described in [this section](#required-iam-permissions).
 
@@ -196,12 +196,12 @@ As a quick start, the following IAM policy can be used to grant the permissions 
 }
 ```
 
-If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use of the use of metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
+If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
 
 
 ## Configuration
 
-YACE has two configuration mechanisms, that work side by side. First, some global parameters can be configured through command line arguemnts. Second, the scraping configuration has to be provided through a YAML file. The configuration file path is passed to the exporter through the `--config.file` command line argument.
+YACE has two configuration mechanisms, that work side by side. First, some global parameters can be configured through command line arguments. Second, the scraping configuration has to be provided through a YAML file. The configuration file path is passed to the exporter through the `--config.file` command line argument.
 
 ### Command Line Options
 
