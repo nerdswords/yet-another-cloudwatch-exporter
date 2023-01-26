@@ -27,6 +27,8 @@ podAnnotations: {}
 
 podLabels: {}
 
+portName: http
+
 podSecurityContext: {}
   # fsGroup: 2000
 
