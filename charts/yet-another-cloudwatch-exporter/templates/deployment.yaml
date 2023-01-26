@@ -80,17 +80,17 @@ spec:
           {{- end }}
           {{- end }}
           ports:
-            - name: http
+            - name: {{ .Values.portName }}
               containerPort: 5000
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: {{ .Values.portName }}
           readinessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: {{ .Values.portName }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
