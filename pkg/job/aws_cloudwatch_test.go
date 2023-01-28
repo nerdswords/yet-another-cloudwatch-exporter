@@ -2,6 +2,7 @@ package job
 
 import (
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -73,7 +74,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		namespace                 string
 		customTags                []model.Tag
 		tagsOnMetrics             config.ExportedTagsOnMetrics
-		dimensionRegexps          []*string
+		dimensionRegexps          []*regexp.Regexp
 		dimensionNameRequirements []string
 		resources                 []*services.TaggedResource
 		metricsList               []*cloudwatch.Metric

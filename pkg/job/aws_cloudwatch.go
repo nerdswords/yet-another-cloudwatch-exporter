@@ -284,11 +284,10 @@ func getFullMetricsList(ctx context.Context, namespace string, metric *config.Me
 	return &res, nil
 }
 
-func getFilteredMetricDatas(region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics config.ExportedTagsOnMetrics, dimensionRegexps []*string, resources []*services.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []cloudwatchData) {
+func getFilteredMetricDatas(region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics config.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*services.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []cloudwatchData) {
 	type filterValues map[string]*services.TaggedResource
 	dimensionsFilter := make(map[string]filterValues)
-	for _, dr := range dimensionRegexps {
-		dimensionRegexp := regexp.MustCompile(*dr)
+	for _, dimensionRegexp := range dimensionRegexps {
 		names := dimensionRegexp.SubexpNames()
 		for i, dimensionName := range names {
 			if i != 0 {

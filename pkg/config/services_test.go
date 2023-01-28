@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,10 +25,8 @@ func TestSupportedServices(t *testing.T) {
 			require.NotEmpty(t, svc.DimensionRegexps)
 
 			for _, regex := range svc.DimensionRegexps {
-				require.NotEmpty(t, aws.StringValue(regex))
-
-				_, err := regexp.Compile(aws.StringValue(regex))
-				require.Nil(t, err, fmt.Sprintf("Invalid regex for service '%s' at index '%d'", svc.Namespace, i))
+				require.NotEmpty(t, regex.String())
+				require.Positive(t, regex.NumSubexp())
 			}
 		}
 	}
