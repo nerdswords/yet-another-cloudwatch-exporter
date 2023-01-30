@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
 )
 
 func TestConfLoad(t *testing.T) {
@@ -19,7 +23,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile); err != nil {
+		if err := config.Load(configFile, logger.NewLogrusLogger(logrus.New())); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -41,7 +45,7 @@ func TestBadConfigs(t *testing.T) {
 		},
 		{
 			configFile: "unknown_version.bad.yml",
-			errorMsg:   "apiVersion line missing or version is unknown (invalidVersion)",
+			errorMsg:   "unknown apiVersion value 'invalidVersion'",
 		},
 		{
 			configFile: "custom_namespace_without_name.bad.yml",
@@ -60,7 +64,7 @@ func TestBadConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(&configFile); err != nil {
+		if err := config.Load(configFile, logger.NewLogrusLogger(logrus.New())); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
