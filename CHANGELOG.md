@@ -1,3 +1,24 @@
+# 0.45.0-alpha
+
+**Breaking changes**:
+- Note if you use Yace as a library: this release changes the signature
+  of `config.Load` method.
+
+**Bugfixes and features**:
+* Helm chart update to customize port name by @nikosmeds
+* Clear up docs and re-organize sections by @thepalbi
+* Helm: add README file template by @cristiangreco
+* Config parsing: emit warning messages for invalid configs by @cristiangreco
+* Pre-compile dimensions regexps for supported services by @cristiangreco
+* AWS/DX: add more dimension regexps by @cristiangreco
+
+**Dependencies**:
+* Bump github.com/aws/aws-sdk-go from 1.44.182 to 1.44.189
+* Bump github.com/urfave/cli/v2 from 2.23.7 to 2.24.2
+* Bump golangci/golangci-lint-action from 3.3.1 to 3.4.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.44.0-alpha...v0.45.0-alpha
+
 # 0.44.0-alpha
 
 **Breaking changes**:
