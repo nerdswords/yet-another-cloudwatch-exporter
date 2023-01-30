@@ -189,6 +189,8 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":dxcon/(?P<ConnectionId>[^/]+)"),
+			regexp.MustCompile(":dxlag/(?P<LagId>[^/]+)"),
+			regexp.MustCompile(":dxvif/(?P<VirtualInterfaceId>[^/]+)"),
 		},
 	},
 	{
