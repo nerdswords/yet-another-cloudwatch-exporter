@@ -7,7 +7,7 @@ import (
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
@@ -41,7 +41,7 @@ func UpdateMetrics(
 	cloudwatchSemaphore, tagSemaphore chan struct{},
 	cache session.SessionCache,
 	observedMetricLabels map[string]model.LabelSet,
-	logger logger.Logger,
+	logger logging.Logger,
 ) {
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,

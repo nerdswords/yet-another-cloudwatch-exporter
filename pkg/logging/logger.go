@@ -1,13 +1,14 @@
-package logger
+package logging
 
 import (
 	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type Logger interface {
@@ -20,7 +21,7 @@ type Logger interface {
 }
 
 type logrusLogger struct {
-	entry *log.Entry
+	entry *logrus.Entry
 }
 
 func (l logrusLogger) Info(message string, keyvals ...interface{}) {
@@ -44,18 +45,24 @@ func (l logrusLogger) With(keyvals ...interface{}) Logger {
 }
 
 func (l logrusLogger) IsDebugEnabled() bool {
-	return l.entry.Logger.IsLevelEnabled(log.DebugLevel)
+	return l.entry.Logger.IsLevelEnabled(logrus.DebugLevel)
 }
 
-func NewLogrusLogger(logger *log.Logger) logrusLogger { //nolint:revive
-	return logrusLogger{log.NewEntry(logger)}
+func NewLogger(l *logrus.Logger) logrusLogger { //nolint:revive
+	return logrusLogger{logrus.NewEntry(l)}
+}
+
+func NewNopLogger() logrusLogger { //nolint:revive
+	l := logrus.New()
+	l.Out = io.Discard
+	return logrusLogger{logrus.NewEntry(l)}
 }
 
 var ErrMissingValue = errors.New("(MISSING)")
 
 // This code is from https://github.com/go-kit/log/blob/main/json_logger.go#L23-L91 which safely handles odd keyvals
 // lengths, and safely converting interface{} -> string
-func toFields(keyvals ...interface{}) log.Fields {
+func toFields(keyvals ...interface{}) logrus.Fields {
 	n := (len(keyvals) + 1) / 2 // +1 to handle case when len is odd
 	m := make(map[string]interface{}, n)
 	for i := 0; i < len(keyvals); i += 2 {

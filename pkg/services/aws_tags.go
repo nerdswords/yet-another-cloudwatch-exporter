@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
@@ -91,7 +91,7 @@ type TagsInterface struct {
 	DmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	PrometheusClient     prometheusserviceiface.PrometheusServiceAPI
 	StoragegatewayClient storagegatewayiface.StorageGatewayAPI
-	Logger               logger.Logger
+	Logger               logging.Logger
 }
 
 func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region string) ([]*TaggedResource, error) {
@@ -159,7 +159,7 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 	return resources, nil
 }
 
-func MigrateTagsToPrometheus(tagData []*TaggedResource, labelsSnakeCase bool, logger logger.Logger) []*promutil.PrometheusMetric {
+func MigrateTagsToPrometheus(tagData []*TaggedResource, labelsSnakeCase bool, logger logging.Logger) []*promutil.PrometheusMetric {
 	output := make([]*promutil.PrometheusMetric, 0)
 
 	tagList := make(map[string][]string)
