@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -99,7 +99,7 @@ func (r *Role) ValidateRole(roleIdx int, parent string) error {
 	return nil
 }
 
-func (c *ScrapeConf) Load(file string, logrusLogger logger.Logger) error {
+func (c *ScrapeConf) Load(file string, logger logging.Logger) error {
 	yamlFile, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (c *ScrapeConf) Load(file string, logrusLogger logger.Logger) error {
 		return err
 	}
 
-	LogConfigErrors(yamlFile, logrusLogger)
+	logConfigErrors(yamlFile, logger)
 
 	for _, job := range c.Discovery.Jobs {
 		if len(job.Roles) == 0 {
@@ -341,8 +341,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	return nil
 }
 
-// LogConfigErrors logs as warning any config unmarshalling error.
-func LogConfigErrors(cfg []byte, logrusLogger logger.Logger) {
+// logConfigErrors logs as warning any config unmarshalling error.
+func logConfigErrors(cfg []byte, logger logging.Logger) {
 	var sc ScrapeConf
 	var errMsgs []string
 	if err := yaml.UnmarshalStrict(cfg, &sc); err != nil {
@@ -360,8 +360,8 @@ func LogConfigErrors(cfg []byte, logrusLogger logger.Logger) {
 
 	if len(errMsgs) > 0 {
 		for _, msg := range errMsgs {
-			logrusLogger.Warn("config file syntax error", "err", msg)
+			logger.Warn("config file syntax error", "err", msg)
 		}
-		logrusLogger.Warn(`Config file error(s) detected: Yace might not work as expected. Future versions of Yace might fail to run with an invalid config file.`)
+		logger.Warn(`Config file error(s) detected: Yace might not work as expected. Future versions of Yace might fail to run with an invalid config file.`)
 	}
 }

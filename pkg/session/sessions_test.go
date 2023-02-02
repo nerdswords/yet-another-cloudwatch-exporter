@@ -11,10 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/awstesting/mock"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
 func cmpCache(t *testing.T, initialCache *sessionCache, cache *sessionCache) {
@@ -69,7 +68,7 @@ func TestNewSessionCache(t *testing.T) {
 			"an empty config gives an empty cache",
 			config.ScrapeConf{},
 			false,
-			&sessionCache{logger: logger.NewLogrusLogger(log.StandardLogger())},
+			&sessionCache{logger: logging.NewNopLogger()},
 		},
 		{
 			"if fips is set then the session has fips",
@@ -77,7 +76,7 @@ func TestNewSessionCache(t *testing.T) {
 			true,
 			&sessionCache{
 				fips:   true,
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 		{
@@ -142,7 +141,7 @@ func TestNewSessionCache(t *testing.T) {
 						"ap-northeast-3": &clientCache{},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 		{
@@ -228,7 +227,7 @@ func TestNewSessionCache(t *testing.T) {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 		{
@@ -353,7 +352,7 @@ func TestNewSessionCache(t *testing.T) {
 						"ap-northeast-3": &clientCache{},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 		{
@@ -442,7 +441,7 @@ func TestNewSessionCache(t *testing.T) {
 						"ap-northeast-1": &clientCache{onlyStatic: true},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 	}
@@ -451,7 +450,7 @@ func TestNewSessionCache(t *testing.T) {
 		test := l
 		t.Run(test.descrip, func(t *testing.T) {
 			t.Parallel()
-			cache := NewSessionCache(test.config, test.fips, logger.NewLogrusLogger(log.StandardLogger())).(*sessionCache)
+			cache := NewSessionCache(test.config, test.fips, logging.NewNopLogger()).(*sessionCache)
 			t.Logf("the cache is: %v", cache)
 
 			if test.cache.cleared != cache.cleared {
@@ -508,7 +507,7 @@ func TestClear(t *testing.T) {
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 		{
@@ -533,7 +532,7 @@ func TestClear(t *testing.T) {
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 		},
 	}
@@ -630,7 +629,7 @@ func TestRefresh(t *testing.T) {
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			false,
 		},
@@ -658,7 +657,7 @@ func TestRefresh(t *testing.T) {
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			true,
 		},
@@ -685,7 +684,7 @@ func TestRefresh(t *testing.T) {
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			false,
 		},
@@ -888,7 +887,7 @@ func testGetAWSClient(
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			true,
 		},
@@ -915,7 +914,7 @@ func testGetAWSClient(
 						},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			false,
 		},
@@ -933,7 +932,7 @@ func testGetAWSClient(
 						"us-east-1": &clientCache{},
 					},
 				},
-				logger: logger.NewLogrusLogger(log.StandardLogger()),
+				logger: logging.NewNopLogger(),
 			},
 			false,
 		},
