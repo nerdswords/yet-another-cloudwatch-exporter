@@ -5,3 +5,4 @@ chart-dirs:
 chart-repos:
   - nerdswords=https://nerdswords.github.io/yet-another-cloudwatch-exporter
 helm-extra-args: --timeout 600s
+validate-maintainers: false
