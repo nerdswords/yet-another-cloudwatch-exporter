@@ -1,3 +1,18 @@
+# 0.46.0-alpha
+
+**Breaking changes**:
+- If you use Yace as a library: this release changes the package
+  name `pkg/logger` to `pkg/logging`.
+
+**Bugfixes and features**:
+* Fix to set logging level correctly by @cristiangreco
+* ct: disable validate-maintainers by @cristiangreco
+
+**Dependencies**:
+* Bump github.com/aws/aws-sdk-go from 1.44.189 to 1.44.192
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/helm-chart-0.11.0...v0.46.0-alpha
+
 # 0.45.0-alpha
 
 **Breaking changes**:
