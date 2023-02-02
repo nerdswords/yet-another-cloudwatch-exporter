@@ -31,7 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
 // SessionCache is an interface to a cache of sessions and clients for all the
@@ -61,7 +61,7 @@ type sessionCache struct {
 	refreshed        bool
 	mu               sync.Mutex
 	fips             bool
-	logger           logger.Logger
+	logger           logging.Logger
 }
 
 type clientCache struct {
@@ -81,7 +81,7 @@ type clientCache struct {
 
 // NewSessionCache creates a new session cache to use when fetching data from
 // AWS.
-func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logger.Logger) SessionCache {
+func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) SessionCache {
 	stscache := map[config.Role]stsiface.STSAPI{}
 	roleCache := map[config.Role]map[string]*clientCache{}
 

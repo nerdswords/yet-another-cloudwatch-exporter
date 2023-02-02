@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
@@ -22,7 +22,7 @@ func ScrapeAwsData(
 	cloudwatchSemaphore,
 	tagSemaphore chan struct{},
 	cache session.SessionCache,
-	logger logger.Logger,
+	logger logging.Logger,
 ) ([]*services.TaggedResource, []*cloudwatchData) { //nolint:revive
 	mux := &sync.Mutex{}
 
@@ -149,7 +149,7 @@ func ScrapeAwsData(
 	return awsInfoData, cwData
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}, logger logger.Logger) (cw []*cloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch cloudwatchInterface, cloudwatchSemaphore chan struct{}, logger logging.Logger) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -218,7 +218,7 @@ func getMetricDataForQueries(
 	clientCloudwatch cloudwatchInterface,
 	resources []*services.TaggedResource,
 	tagSemaphore chan struct{},
-	logger logger.Logger,
+	logger logging.Logger,
 ) []cloudwatchData {
 	var getMetricDatas []cloudwatchData
 
@@ -256,7 +256,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	metricsPerQuery int,
 	roundingPeriod *int64,
 	tagSemaphore chan struct{},
-	logger logger.Logger,
+	logger logging.Logger,
 ) (resources []*services.TaggedResource, cw []*cloudwatchData) {
 	// Add the info tags of all the resources
 	tagSemaphore <- struct{}{}
@@ -329,7 +329,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	clientCloudwatch cloudwatchInterface,
 	cloudwatchSemaphore chan struct{},
 	tagSemaphore chan struct{},
-	logger logger.Logger,
+	logger logging.Logger,
 	metricsPerQuery int,
 ) (cw []*cloudwatchData) {
 	mux := &sync.Mutex{}
@@ -394,7 +394,7 @@ func getMetricDataForQueriesForCustomNamespace(
 	accountID *string,
 	clientCloudwatch cloudwatchInterface,
 	tagSemaphore chan struct{},
-	logger logger.Logger,
+	logger logging.Logger,
 ) []cloudwatchData {
 	var getMetricDatas []cloudwatchData
 

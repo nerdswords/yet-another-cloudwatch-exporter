@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -30,7 +30,7 @@ var (
 	metricsPerQuery       int
 	labelsSnakeCase       bool
 
-	logrusLogger logger.Logger
+	logger logging.Logger
 
 	cfg = config.ScrapeConf{}
 )
@@ -57,7 +57,10 @@ func main() {
 		&cli.BoolFlag{Name: "labels-snake-case", Value: false, Usage: "If labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase},
 	}
 
-	logrusLogger = newLogger(debug)
+	yace.Before = func(ctx *cli.Context) error {
+		logger = newLogger(debug)
+		return nil
+	}
 
 	yace.Commands = []*cli.Command{
 		{
@@ -66,12 +69,12 @@ func main() {
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
 			Action: func(c *cli.Context) error {
-				logrusLogger.Info("Parsing config")
-				if err := cfg.Load(configFile, logrusLogger); err != nil {
-					logrusLogger.Error(err, "Couldn't read config file", "path", configFile)
+				logger.Info("Parsing config")
+				if err := cfg.Load(configFile, logger); err != nil {
+					logger.Error(err, "Couldn't read config file", "path", configFile)
 					os.Exit(1)
 				}
-				logrusLogger.Info("Config file is valid", "path", configFile)
+				logger.Info("Config file is valid", "path", configFile)
 				os.Exit(0)
 				return nil
 			},
@@ -89,24 +92,24 @@ func main() {
 	yace.Action = startScraper
 
 	if err := yace.Run(os.Args); err != nil {
-		logrusLogger.Error(err, "Error running yace")
+		logger.Error(err, "Error running yace")
 		os.Exit(1)
 	}
 }
 
 func startScraper(_ *cli.Context) error {
-	logrusLogger.Info("Parsing config")
-	if err := cfg.Load(configFile, logrusLogger); err != nil {
+	logger.Info("Parsing config")
+	if err := cfg.Load(configFile, logger); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
-	logrusLogger.Info("Startup completed")
+	logger.Info("Startup completed")
 
 	s := NewScraper()
-	cache := session.NewSessionCache(cfg, fips, logrusLogger)
+	cache := session.NewSessionCache(cfg, fips, logger)
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
-	go s.decoupled(ctx, cache)
+	go s.decoupled(ctx, logger, cache)
 
 	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
 
@@ -130,24 +133,24 @@ func startScraper(_ *cli.Context) error {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		logrusLogger.Info("Parsing config")
-		if err := cfg.Load(configFile, logrusLogger); err != nil {
-			logrusLogger.Error(err, "Couldn't read config file", "path", configFile)
+		logger.Info("Parsing config")
+		if err := cfg.Load(configFile, logger); err != nil {
+			logger.Error(err, "Couldn't read config file", "path", configFile)
 			return
 		}
 
-		logrusLogger.Info("Reset session cache")
-		cache = session.NewSessionCache(cfg, fips, logrusLogger)
+		logger.Info("Reset session cache")
+		cache = session.NewSessionCache(cfg, fips, logger)
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
-		go s.decoupled(ctx, cache)
+		go s.decoupled(ctx, logger, cache)
 	})
 
 	return http.ListenAndServe(addr, nil)
 }
 
-func newLogger(debug bool) logger.Logger {
+func newLogger(debug bool) logging.Logger {
 	l := logrus.New()
 	l.SetFormatter(&logrus.JSONFormatter{})
 	l.SetOutput(os.Stdout)
@@ -158,5 +161,5 @@ func newLogger(debug bool) logger.Logger {
 		l.SetLevel(logrus.InfoLevel)
 	}
 
-	return logger.NewLogrusLogger(l)
+	return logging.NewLogger(l)
 }

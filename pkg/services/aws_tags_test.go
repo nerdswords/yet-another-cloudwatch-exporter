@@ -3,11 +3,10 @@ package services
 import (
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logger"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
@@ -314,7 +313,7 @@ func Test_MigrateTagsToPrometheus(t *testing.T) {
 		Value: &metricValue,
 	}}
 
-	actual := MigrateTagsToPrometheus(resources, false, logger.NewLogrusLogger(log.StandardLogger()))
+	actual := MigrateTagsToPrometheus(resources, false, logging.NewNopLogger())
 
 	require.Equal(t, expected, actual)
 }
