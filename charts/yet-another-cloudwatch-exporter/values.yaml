@@ -86,10 +86,10 @@ extraArgs: []
 #   decoupled-scraping: false
 #   scraping-interval: 300
 
-# Define extra environmental variables list
-extraEnv: 
+# Define extra environmental variables list as follows
   # - name : key1,
   #   value: value1
+extraEnv: []
 
 aws:
   role:
