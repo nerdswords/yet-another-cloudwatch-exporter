@@ -88,8 +88,8 @@ extraArgs: []
 
 # Define extra environmental variables list
 extraEnv: 
-  - name : key1,
-    value: 'value1'
+  # - name : key1,
+  #   value: value1
 
 aws:
   role:
