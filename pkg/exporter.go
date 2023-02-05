@@ -10,7 +10,6 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/services"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -53,14 +52,14 @@ func UpdateMetrics(
 		logger,
 	)
 
-	metrics, observedMetricLabels, err := job.MigrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels, logger)
+	metrics, observedMetricLabels, err := promutil.MigrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels, logger)
 	if err != nil {
 		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return
 	}
-	metrics = job.EnsureLabelConsistencyForMetrics(metrics, observedMetricLabels)
+	metrics = promutil.EnsureLabelConsistencyForMetrics(metrics, observedMetricLabels)
 
-	metrics = append(metrics, services.MigrateTagsToPrometheus(tagsData, labelsSnakeCase, logger)...)
+	metrics = append(metrics, promutil.MigrateTagsToPrometheus(tagsData, labelsSnakeCase, logger)...)
 
 	registry.MustRegister(promutil.NewPrometheusCollector(metrics))
 }
