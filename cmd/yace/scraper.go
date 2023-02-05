@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -40,12 +39,11 @@ func (s *scraper) makeHandler(ctx context.Context, cache session.SessionCache) f
 
 func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache session.SessionCache) {
 	logger.Debug("Starting scraping async")
-	logger.Debug("Scrape initially first time")
 	s.scrape(ctx, logger, cache)
 
 	scrapingDuration := time.Duration(scrapingInterval) * time.Second
 	ticker := time.NewTicker(scrapingDuration)
-	logger.Debug(fmt.Sprintf("Scraping every %d seconds", scrapingInterval))
+	logger.Debug("Initial scrape completed", "scraping_interval", scrapingInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -80,5 +78,5 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 
 	// this might have a data race to access registry
 	s.registry = newRegistry
-	logger.Debug("Metrics scraped.")
+	logger.Debug("Metrics scraped")
 }

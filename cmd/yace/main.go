@@ -103,7 +103,7 @@ func startScraper(_ *cli.Context) error {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
-	logger.Info("Startup completed")
+	logger.Info("Yace startup completed", "version", version)
 
 	s := NewScraper()
 	cache := session.NewSessionCache(cfg, fips, logger)
