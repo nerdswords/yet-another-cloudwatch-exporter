@@ -425,6 +425,30 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/MediaConnect",
+		Alias:     "mediaconnect",
+		ResourceFilters: []*string{
+			aws.String("mediaconnect:flow"),
+			aws.String("mediaconnect:source"),
+			aws.String("mediaconnect:output"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("^(?P<FlowARN>.*:flow:.*)$"),
+			regexp.MustCompile("^(?P<SourceARN>.*:source:.*)$"),
+			regexp.MustCompile("^(?P<OutputARN>.*:output:.*)$"),
+		},
+	},
+	{
+		Namespace: "AWS/MediaLive",
+		Alias:     "medialive",
+		ResourceFilters: []*string{
+			aws.String("medialive:channel"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":channel:(?P<ChannelId>.+)$"),
+		},
+	},
+	{
 		Namespace: "AWS/MediaTailor",
 		Alias:     "mediatailor",
 		ResourceFilters: []*string{
