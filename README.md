@@ -79,6 +79,8 @@ We will contact you as soon as possible.
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * mediaconnect (AWS/MediaConnect) - AWS Elemental MediaConnect
+  * medialive (AWS/MediaLive) - AWS Elemental MediaLive
   * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
   * neptune (AWS/Neptune) - Neptune
