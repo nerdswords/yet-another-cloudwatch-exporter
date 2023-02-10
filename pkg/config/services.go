@@ -643,4 +643,14 @@ var SupportedServices = serviceConfigs{
 			regexp.MustCompile(":directory/(?P<DirectoryId>[^/]+)$"),
 		},
 	},
+	{
+		Namespace: "AWS/AOSS",
+		Alias:     "aoss",
+		ResourceFilters: []*string{
+			aws.String("aoss:collection"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":collection/(?P<CollectionId>[^/]+)"),
+		},
+	},
 }

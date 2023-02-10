@@ -46,6 +46,7 @@ We will contact you as soon as possible.
   * appstream (AWS/AppStream) - AppStream
   * appsync (AWS/AppSync) - AppSync
   * amp (AWS/Prometheus) - Managed Service for Prometheus
+  * aoss (AWS/AOSS) - OpenSearch Serverless
   * athena (AWS/Athena) - Athena
   * backup (AWS/Backup) - Backup
   * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk
