@@ -1,3 +1,18 @@
+# v0.47.0-alpha
+
+**Bugfixes and features**:
+* Add Elemental MediaLive, MediaConnect to supported services by @davemt
+* Add support for OpenSearch Serverless by @Hussainoxious
+* Makefile: always add build version ldflags by @cristiangreco
+* Publish helm chart before releasing binaries by @cristiangreco
+* Build with Go 1.20 by @cristiangreco
+
+**Dependencies**:
+* Bump github.com/aws/aws-sdk-go from 1.44.192 to 1.44.194
+* Bump github.com/urfave/cli/v2 from 2.24.2 to 2.24.3
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.46.0-alpha...v0.47.0-alpha
+
 # 0.46.0-alpha
 
 **Breaking changes**:
