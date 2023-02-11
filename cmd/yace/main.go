@@ -114,13 +114,14 @@ func startScraper(_ *cli.Context) error {
 	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`<html>
+		_, _ = w.Write([]byte(fmt.Sprintf(`<html>
     <head><title>Yet another cloudwatch exporter</title></head>
     <body>
-    <h1>Thanks for using our product :)</h1>
+    <h1>Thanks for using Yace :)</h1>
+		Version: %s
     <p><a href="/metrics">Metrics</a></p>
     </body>
-    </html>`))
+    </html>`, version)))
 	})
 
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
