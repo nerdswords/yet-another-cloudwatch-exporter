@@ -1,3 +1,10 @@
+# v0.48.0-alpha
+
+**Bugfixes and features**:
+* Revert "Publish helm chart before releasing binaries".
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.47.0-alpha...v0.48.0-alpha
+
 # v0.47.0-alpha
 
 **Bugfixes and features**:
