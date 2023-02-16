@@ -41,6 +41,7 @@ We will contact you as soon as possible.
 
   * acm (AWS/CertificateManager) - Certificate Manager
   * airflow (AmazonMWAA) - Managed Apache Airflow
+  * mwaa (AWS/MWAA) - Managed Apache Airflow (Container, queue, and database metrics)
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - API Gateway
   * appstream (AWS/AppStream) - AppStream
