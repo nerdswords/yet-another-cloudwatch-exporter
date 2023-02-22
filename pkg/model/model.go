@@ -22,6 +22,8 @@ type Tag struct {
 	Value string `yaml:"value"`
 }
 
+// CloudwatchData is an internal representation of a CloudWatch
+// metric with attached data points, metric and resource information.
 type CloudwatchData struct {
 	ID                      *string
 	MetricID                *string

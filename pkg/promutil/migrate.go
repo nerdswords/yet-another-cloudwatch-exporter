@@ -79,7 +79,7 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func MigrateCloudwatchToPrometheus(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func MigrateCloudwatchDataToPrometheus(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {

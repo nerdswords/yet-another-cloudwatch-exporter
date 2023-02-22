@@ -52,7 +52,7 @@ func UpdateMetrics(
 		logger,
 	)
 
-	metrics, observedMetricLabels, err := promutil.MigrateCloudwatchToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels, logger)
+	metrics, observedMetricLabels, err := promutil.MigrateCloudwatchDataToPrometheus(cloudwatchData, labelsSnakeCase, observedMetricLabels, logger)
 	if err != nil {
 		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return
