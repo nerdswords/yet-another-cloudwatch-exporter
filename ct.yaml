@@ -1,8 +1,0 @@
-remote: origin
-target-branch: master
-chart-dirs:
-  - charts
-chart-repos:
-  - nerdswords=https://nerdswords.github.io/yet-another-cloudwatch-exporter
-helm-extra-args: --timeout 600s
-validate-maintainers: false
