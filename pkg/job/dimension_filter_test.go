@@ -40,6 +40,28 @@ var globalAcceleratorResources = []*model.TaggedResource{
 	globalAcceleratorEndpointGroup,
 }
 
+var ecsCluster = &model.TaggedResource{
+	ARN:       "arn:aws:ecs:af-south-1:123456789222:cluster/sampleCluster",
+	Namespace: "AWS/ECS",
+	Region:    "af-south-1",
+}
+var ecsService1 = &model.TaggedResource{
+	ARN:       "arn:aws:ecs:af-south-1:123456789222:service/sampleCluster/service1",
+	Namespace: "AWS/ECS",
+	Region:    "af-south-1",
+}
+
+var ecsService2 = &model.TaggedResource{
+	ARN:       "arn:aws:ecs:af-south-1:123456789222:service/sampleCluster/service1",
+	Namespace: "AWS/ECS",
+	Region:    "af-south-1",
+}
+var ecsResources = []*model.TaggedResource{
+	ecsCluster,
+	ecsService1,
+	ecsService2,
+}
+
 func TestDimensionsFilter(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
@@ -166,6 +188,56 @@ func TestDimensionsFilter(t *testing.T) {
 			},
 			expectedSkip:     false,
 			expectedResource: globalAcceleratorEndpointGroup,
+		},
+		{
+			name: "multiple ecs resources, cluster metric should be assigned cluster resource",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				resources:        ecsResources,
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("MemoryReservation"),
+					Namespace:  aws.String("AWS/ECS"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: ecsCluster,
+		},
+		{
+			name: "multiple ecs resources, service metric should be assigned service1 resource",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				resources:        ecsResources,
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("CPUUtilization"),
+					Namespace:  aws.String("AWS/ECS"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+						{Name: aws.String("ServiceName"), Value: aws.String("service1")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: ecsService1,
+		},
+		{
+			name: "multiple ecs resources, service metric should be assigned service2 resource",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				resources:        ecsResources,
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("CPUUtilization"),
+					Namespace:  aws.String("AWS/ECS"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+						{Name: aws.String("ServiceName"), Value: aws.String("service2")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: ecsService2,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
