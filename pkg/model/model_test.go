@@ -1,32 +1,27 @@
-package services
+package model
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
 func Test_FilterThroughTags(t *testing.T) {
 	testCases := []struct {
 		testName     string
-		resourceTags []model.Tag
-		filterTags   []model.Tag
+		resourceTags []Tag
+		filterTags   []Tag
 		result       bool
 	}{
 		{
 			testName: "exactly matching tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -36,13 +31,13 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "unmatching tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k2",
 					Value: "v2",
@@ -52,7 +47,7 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "resource has more tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -62,7 +57,7 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v2",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -72,13 +67,13 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "filter has more tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -92,13 +87,13 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "unmatching tag key",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k2",
 					Value: "v1",
@@ -108,13 +103,13 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "unmatching tag value",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v2",
@@ -124,8 +119,8 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName:     "resource without tags",
-			resourceTags: []model.Tag{},
-			filterTags: []model.Tag{
+			resourceTags: []Tag{},
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v2",
@@ -135,24 +130,24 @@ func Test_FilterThroughTags(t *testing.T) {
 		},
 		{
 			testName: "empty filter tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{},
+			filterTags: []Tag{},
 			result:     true,
 		},
 		{
 			testName: "filter with value regex",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			filterTags: []model.Tag{
+			filterTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v.*",
@@ -179,33 +174,33 @@ func Test_FilterThroughTags(t *testing.T) {
 func Test_MetricTags(t *testing.T) {
 	testCases := []struct {
 		testName     string
-		resourceTags []model.Tag
-		exportedTags config.ExportedTagsOnMetrics
-		result       []model.Tag
+		resourceTags []Tag
+		exportedTags ExportedTagsOnMetrics
+		result       []Tag
 	}{
 		{
 			testName: "empty exported tag",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			exportedTags: config.ExportedTagsOnMetrics{},
-			result:       []model.Tag{},
+			exportedTags: ExportedTagsOnMetrics{},
+			result:       []Tag{},
 		},
 		{
 			testName: "single exported tag",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			exportedTags: config.ExportedTagsOnMetrics{
+			exportedTags: ExportedTagsOnMetrics{
 				"AWS/Service": []string{"k1"},
 			},
-			result: []model.Tag{
+			result: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -214,16 +209,16 @@ func Test_MetricTags(t *testing.T) {
 		},
 		{
 			testName: "multiple exported tags",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			exportedTags: config.ExportedTagsOnMetrics{
+			exportedTags: ExportedTagsOnMetrics{
 				"AWS/Service": []string{"k1", "k2"},
 			},
-			result: []model.Tag{
+			result: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
@@ -236,11 +231,11 @@ func Test_MetricTags(t *testing.T) {
 		},
 		{
 			testName:     "resource without tags",
-			resourceTags: []model.Tag{},
-			exportedTags: config.ExportedTagsOnMetrics{
+			resourceTags: []Tag{},
+			exportedTags: ExportedTagsOnMetrics{
 				"AWS/Service": []string{"k1"},
 			},
-			result: []model.Tag{
+			result: []Tag{
 				{
 					Key:   "k1",
 					Value: "",
@@ -249,29 +244,29 @@ func Test_MetricTags(t *testing.T) {
 		},
 		{
 			testName: "empty exported tags for service",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			exportedTags: config.ExportedTagsOnMetrics{
+			exportedTags: ExportedTagsOnMetrics{
 				"AWS/Service": []string{},
 			},
-			result: []model.Tag{},
+			result: []Tag{},
 		},
 		{
 			testName: "unmatching service",
-			resourceTags: []model.Tag{
+			resourceTags: []Tag{
 				{
 					Key:   "k1",
 					Value: "v1",
 				},
 			},
-			exportedTags: config.ExportedTagsOnMetrics{
+			exportedTags: ExportedTagsOnMetrics{
 				"AWS/Service_unknown": []string{"k1"},
 			},
-			result: []model.Tag{},
+			result: []Tag{},
 		},
 	}
 
@@ -287,33 +282,4 @@ func Test_MetricTags(t *testing.T) {
 			require.Equal(t, tc.result, res.MetricTags(tc.exportedTags))
 		})
 	}
-}
-
-func Test_MigrateTagsToPrometheus(t *testing.T) {
-	resources := []*TaggedResource{{
-		ARN:       "aws::arn",
-		Namespace: "AWS/Service",
-		Region:    "us-east-1",
-		Tags: []model.Tag{
-			{
-				Key:   "Name",
-				Value: "tag_Value",
-			},
-		},
-	}}
-
-	prometheusMetricName := "aws_service_info"
-	var metricValue float64
-	expected := []*promutil.PrometheusMetric{{
-		Name: &prometheusMetricName,
-		Labels: map[string]string{
-			"name":     "aws::arn",
-			"tag_Name": "tag_Value",
-		},
-		Value: &metricValue,
-	}}
-
-	actual := MigrateTagsToPrometheus(resources, false, logging.NewNopLogger())
-
-	require.Equal(t, expected, actual)
 }
