@@ -1,6 +1,7 @@
 package job
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"regexp"
@@ -62,6 +63,17 @@ var ecsResources = []*model.TaggedResource{
 	ecsService2,
 }
 
+func generateEC2Resources(region string, instanceIDs ...string) (res []*model.TaggedResource) {
+	for _, id := range instanceIDs {
+		res = append(res, &model.TaggedResource{
+			ARN:       fmt.Sprintf("arn:aws:ec2:%s:123456789012:instance/%s", region, id),
+			Namespace: "AWS/EC2",
+			Region:    region,
+		})
+	}
+	return
+}
+
 func TestDimensionsFilter(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
@@ -115,6 +127,25 @@ func TestDimensionsFilter(t *testing.T) {
 			},
 			expectedSkip:     false,
 			expectedResource: someEC2Instance,
+		},
+		{
+			name: "filtering ec2 instances by id",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
+				resources:        generateEC2Resources("us-east-2", "i-1", "i-2", "i-3"),
+				metric: &cloudwatch.Metric{
+					Namespace:  aws.String("AWS/EC2"),
+					MetricName: aws.String("CPUUtilization"),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("InstanceId"),
+							Value: aws.String("i-2"),
+						},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: generateEC2Resources("us-east-2", "i-2")[0],
 		},
 		{
 			name: "metric dropped",
