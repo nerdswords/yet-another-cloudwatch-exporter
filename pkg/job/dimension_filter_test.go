@@ -147,7 +147,7 @@ func TestDimensionsFilter(t *testing.T) {
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: globalAcceleratorAccelerator,
+			expectedResource: globalAcceleratorListener,
 		},
 		{
 			name: "multiple ga resources, should match endpoint group",
@@ -165,7 +165,7 @@ func TestDimensionsFilter(t *testing.T) {
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: globalAcceleratorAccelerator,
+			expectedResource: globalAcceleratorEndpointGroup,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
