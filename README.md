@@ -1,6 +1,6 @@
 # YACE - yet another cloudwatch exporter
 
-YACE, or `yet another cloudwatch exporter`, is a [prometheus exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations) for AWS cloudwatch metrics. It is written in Go and uses the official AWS SDK.
+YACE, or `yet another cloudwatch exporter`, is a [prometheus exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations) for AWS CloudWatch metrics. It is written in Go and uses the official AWS SDK.
 
 ## What is this organisation?
 
@@ -8,7 +8,9 @@ YACE, or `yet another cloudwatch exporter`, is a [prometheus exporter](https://p
 
 ## Project Status
 
-YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
+While YACE is at version less than 1.0.0, expect that any new release might introduce breaking changes. We'll document changes in [CHANGELOG.md](CHANGELOG.md).
+
+Where feasible, features will be deprecated instead of being immediately changed or removed. This means that YACE will continue to work but might log warning messages. Expect deprecated features to be permanently changed/removed within the next 2/3 releases.
 
 ## Security
 
@@ -18,7 +20,7 @@ Only latest version gets security updates. We won't support older versions.
 
 ## Reporting a Vulnerability
 
-In case of a vulnerability please directly contact us via mail - security@nerdswords.de
+In case of a vulnerability please directly contact us via mail - `security@nerdswords.de`.
 
 Do not disclose any specifics in github issues! - Thank you.
 
@@ -110,13 +112,18 @@ We will contact you as soon as possible.
 ## Locally
 
 ```shell
-docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
--p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
+docker run -d --rm \
+  -v $PWD/credentials:/exporter/.aws/credentials \
+  -v $PWD/config.yml:/tmp/config.yml \
+  -p 5000:5000 \
+  --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x
 ```
+
+Do not forget the `v` prefix in the image version tag.
 
 ## Kubernetes
 ### Install with HELM
-YACE can be configured in a Kubernetes cluster through its [HELM chart](charts/yet-another-cloudwatch-exporter/README.md).
+YACE can be configured in a Kubernetes cluster through its [HELM chart](https://github.com/nerdswords/helm-charts).
 
 ### Install with manifests
 ```yaml

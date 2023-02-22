@@ -1,4 +1,4 @@
-package services
+package apitagging
 
 import (
 	"context"
@@ -34,8 +34,8 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
 		iface           TagsInterface
-		inputResources  []*TaggedResource
-		outputResources []*TaggedResource
+		inputResources  []*model.TaggedResource
+		outputResources []*model.TaggedResource
 	}{
 		{
 			"api gateway resources skip stages",
@@ -63,7 +63,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*TaggedResource{
+			[]*model.TaggedResource{
 				{
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/gwid1234/stages/main",
 					Namespace: "apigateway",
@@ -87,7 +87,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*TaggedResource{
+			[]*model.TaggedResource{
 				{
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/apiname",
 					Namespace: "apigateway",
@@ -133,14 +133,14 @@ func TestDMSFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
 		iface           TagsInterface
-		inputResources  []*TaggedResource
-		outputResources []*TaggedResource
+		inputResources  []*model.TaggedResource
+		outputResources []*model.TaggedResource
 	}{
 		{
 			"empty input resources",
 			TagsInterface{},
-			[]*TaggedResource{},
-			[]*TaggedResource{},
+			[]*model.TaggedResource{},
+			[]*model.TaggedResource{},
 		},
 		{
 			"replication tasks and instances",
@@ -180,7 +180,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*TaggedResource{
+			[]*model.TaggedResource{
 				{
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:ABCDEFG1234567890",
 					Namespace: "dms",
@@ -248,7 +248,7 @@ func TestDMSFilterFunc(t *testing.T) {
 					},
 				},
 			},
-			[]*TaggedResource{
+			[]*model.TaggedResource{
 				{
 					ARN:       "arn:aws:dms:us-east-1:123123123123:rep:ABCDEFG1234567890/repl-instance-identifier-1",
 					Namespace: "dms",

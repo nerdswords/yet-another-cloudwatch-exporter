@@ -22,11 +22,9 @@ type ScrapeConf struct {
 }
 
 type Discovery struct {
-	ExportedTagsOnMetrics ExportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
-	Jobs                  []*Job                `yaml:"jobs"`
+	ExportedTagsOnMetrics model.ExportedTagsOnMetrics `yaml:"exportedTagsOnMetrics"`
+	Jobs                  []*Job                      `yaml:"jobs"`
 }
-
-type ExportedTagsOnMetrics map[string][]string
 
 type JobLevelMetricFields struct {
 	Statistics             []string `yaml:"statistics"`
