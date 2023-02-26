@@ -23,15 +23,15 @@ func runStaticJob(
 	account *string,
 	cloudwatchSemaphore chan struct{},
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewCloudWatchInterface(
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewClient(
 		logger,
+		cache.GetCloudwatch(&region, role),
 	)
 
 	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, cloudwatchSemaphore, logger)
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.CloudwatchInterface, cloudwatchSemaphore chan struct{}, logger logging.Logger) (cw []*model.CloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.Client, cloudwatchSemaphore chan struct{}, logger logging.Logger) (cw []*model.CloudwatchData) {
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 

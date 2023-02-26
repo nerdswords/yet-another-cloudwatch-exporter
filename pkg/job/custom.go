@@ -26,9 +26,9 @@ func runCustomNamespaceJob(
 	role config.Role,
 	account *string,
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewCloudWatchInterface(
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewClient(
 		logger,
+		cache.GetCloudwatch(&region, role),
 	)
 
 	return scrapeCustomNamespaceJobUsingMetricData(
@@ -49,7 +49,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	job *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.CloudwatchInterface,
+	clientCloudwatch *apicloudwatch.Client,
 	cloudwatchSemaphore chan struct{},
 	tagSemaphore chan struct{},
 	logger logging.Logger,
@@ -115,7 +115,7 @@ func getMetricDataForQueriesForCustomNamespace(
 	customNamespaceJob *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.CloudwatchInterface,
+	clientCloudwatch *apicloudwatch.Client,
 	tagSemaphore chan struct{},
 	logger logging.Logger,
 ) []model.CloudwatchData {

@@ -21,23 +21,23 @@ import (
 
 type serviceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
-	ResourceFunc func(context.Context, TagsInterface, *config.Job, string) ([]*model.TaggedResource, error)
+	ResourceFunc func(context.Context, Client, *config.Job, string) ([]*model.TaggedResource, error)
 
 	// FilterFunc can be used to the input resources or to drop based on some condition
-	FilterFunc func(context.Context, TagsInterface, []*model.TaggedResource) ([]*model.TaggedResource, error)
+	FilterFunc func(context.Context, Client, []*model.TaggedResource) ([]*model.TaggedResource, error)
 }
 
 // serviceFilters maps a service namespace to (optional) serviceFilter
 var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, iface TagsInterface, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
+		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
 			promutil.APIGatewayAPICounter.Inc()
 			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
 			input := apigateway.GetRestApisInput{Limit: &limit}
 			output := apigateway.GetRestApisOutput{}
 			var pageNum int
-			err = iface.APIGatewayClient.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+			err = client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
@@ -58,9 +58,9 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/AutoScaling": {
-		ResourceFunc: func(ctx context.Context, iface TagsInterface, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
 			pageNum := 0
-			return resources, iface.AsgClient.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
+			return resources, client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
 				func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
 					pageNum++
 					promutil.AutoScalingAPICounter.Inc()
@@ -87,14 +87,14 @@ var serviceFilters = map[string]serviceFilter{
 	},
 	"AWS/DMS": {
 		// Append the replication instance identifier to DMS task and instance ARNs
-		FilterFunc: func(ctx context.Context, iface TagsInterface, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
+		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
 			if len(inputResources) == 0 {
 				return inputResources, nil
 			}
 
 			replicationInstanceIdentifiers := make(map[string]string)
 			pageNum := 0
-			if err := iface.DmsClient.DescribeReplicationInstancesPagesWithContext(ctx, nil,
+			if err := client.dmsAPI.DescribeReplicationInstancesPagesWithContext(ctx, nil,
 				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, lastPage bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
@@ -109,7 +109,7 @@ var serviceFilters = map[string]serviceFilter{
 				return nil, err
 			}
 			pageNum = 0
-			if err := iface.DmsClient.DescribeReplicationTasksPagesWithContext(ctx, nil,
+			if err := client.dmsAPI.DescribeReplicationTasksPagesWithContext(ctx, nil,
 				func(page *databasemigrationservice.DescribeReplicationTasksOutput, lastPage bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
@@ -139,9 +139,9 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/EC2Spot": {
-		ResourceFunc: func(ctx context.Context, iface TagsInterface, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
 			pageNum := 0
-			return resources, iface.Ec2Client.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
+			return resources, client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
 				func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
@@ -167,9 +167,9 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/Prometheus": {
-		ResourceFunc: func(ctx context.Context, iface TagsInterface, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
 			pageNum := 0
-			return resources, iface.PrometheusClient.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
+			return resources, client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
 				func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
 					pageNum++
 					promutil.ManagedPrometheusAPICounter.Inc()
@@ -195,9 +195,9 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/StorageGateway": {
-		ResourceFunc: func(ctx context.Context, iface TagsInterface, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
 			pageNum := 0
-			return resources, iface.StoragegatewayClient.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
+			return resources, client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
 				func(page *storagegateway.ListGatewaysOutput, more bool) bool {
 					pageNum++
 					promutil.StoragegatewayAPICounter.Inc()
@@ -212,7 +212,7 @@ var serviceFilters = map[string]serviceFilter{
 						tagsRequest := &storagegateway.ListTagsForResourceInput{
 							ResourceARN: gwa.GatewayARN,
 						}
-						tagsResponse, _ := iface.StoragegatewayClient.ListTagsForResource(tagsRequest)
+						tagsResponse, _ := client.storageGatewayAPI.ListTagsForResource(tagsRequest)
 						promutil.StoragegatewayAPICounter.Inc()
 
 						for _, t := range tagsResponse.Tags {
@@ -230,9 +230,9 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/TransitGateway": {
-		ResourceFunc: func(ctx context.Context, iface TagsInterface, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
 			pageNum := 0
-			return resources, iface.Ec2Client.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+			return resources, client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
 				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()

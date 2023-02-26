@@ -31,21 +31,21 @@ func runDiscoveryJob(
 	account *string,
 	exportedTags model.ExportedTagsOnMetrics,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
-	clientCloudwatch := apicloudwatch.NewCloudWatchInterface(
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewClient(
 		logger,
+		cache.GetCloudwatch(&region, role),
 	)
 
-	clientTag := apitagging.TagsInterface{
-		Client:               cache.GetTagging(&region, role),
-		APIGatewayClient:     cache.GetAPIGateway(&region, role),
-		AsgClient:            cache.GetASG(&region, role),
-		DmsClient:            cache.GetDMS(&region, role),
-		Ec2Client:            cache.GetEC2(&region, role),
-		StoragegatewayClient: cache.GetStorageGateway(&region, role),
-		PrometheusClient:     cache.GetPrometheus(&region, role),
-		Logger:               logger,
-	}
+	clientTag := apitagging.NewClient(
+		logger,
+		cache.GetTagging(&region, role),
+		cache.GetASG(&region, role),
+		cache.GetAPIGateway(&region, role),
+		cache.GetEC2(&region, role),
+		cache.GetDMS(&region, role),
+		cache.GetPrometheus(&region, role),
+		cache.GetStorageGateway(&region, role),
+	)
 
 	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, tagSemaphore, logger)
 }
@@ -56,8 +56,8 @@ func scrapeDiscoveryJobUsingMetricData(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientTag apitagging.TagsInterface,
-	clientCloudwatch *apicloudwatch.CloudwatchInterface,
+	clientTag apitagging.Client,
+	clientCloudwatch *apicloudwatch.Client,
 	metricsPerQuery int,
 	roundingPeriod *int64,
 	tagSemaphore chan struct{},
@@ -66,7 +66,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	// Add the info tags of all the resources
 	logger.Debug("Get tagged resources")
 	tagSemaphore <- struct{}{}
-	resources, err := clientTag.Get(ctx, job, region)
+	resources, err := clientTag.GetResources(ctx, job, region)
 	<-tagSemaphore
 	if err != nil {
 		logger.Error(err, "Couldn't describe resources")
@@ -154,7 +154,7 @@ func getMetricDataForQueries(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch *apicloudwatch.CloudwatchInterface,
+	clientCloudwatch *apicloudwatch.Client,
 	resources []*model.TaggedResource,
 	tagSemaphore chan struct{},
 	logger logging.Logger,
