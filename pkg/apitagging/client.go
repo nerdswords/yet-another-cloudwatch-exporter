@@ -3,6 +3,7 @@ package apitagging
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
@@ -102,7 +103,7 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 		if ext.ResourceFunc != nil {
 			newResources, err := ext.ResourceFunc(ctx, c, job, region)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to apply ResourceFunc for %s, %v", svc.Namespace, err)
 			}
 			resources = append(resources, newResources...)
 			c.logger.Debug("ResourceFunc finished", "total", len(resources))
@@ -111,7 +112,7 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 		if ext.FilterFunc != nil {
 			filteredResources, err := ext.FilterFunc(ctx, c, resources)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to apply FilterFunc for %s, %v", svc.Namespace, err)
 			}
 			resources = filteredResources
 			c.logger.Debug("FilterFunc finished", "total", len(resources))
