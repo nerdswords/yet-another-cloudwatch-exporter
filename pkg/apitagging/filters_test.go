@@ -33,14 +33,14 @@ func TestValidServiceNames(t *testing.T) {
 func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           TagsInterface
+		iface           Client
 		inputResources  []*model.TaggedResource
 		outputResources []*model.TaggedResource
 	}{
 		{
 			"api gateway resources skip stages",
-			TagsInterface{
-				APIGatewayClient: apiGatewayClient{
+			Client{
+				apiGatewayAPI: apiGatewayClient{
 					getRestApisOutput: &apigateway.GetRestApisOutput{
 						Items: []*apigateway.RestApi{
 							{
@@ -132,20 +132,20 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 func TestDMSFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           TagsInterface
+		iface           Client
 		inputResources  []*model.TaggedResource
 		outputResources []*model.TaggedResource
 	}{
 		{
 			"empty input resources",
-			TagsInterface{},
+			Client{},
 			[]*model.TaggedResource{},
 			[]*model.TaggedResource{},
 		},
 		{
 			"replication tasks and instances",
-			TagsInterface{
-				DmsClient: dmsClient{
+			Client{
+				dmsAPI: dmsClient{
 					describeReplicationInstancesOutput: &databasemigrationservice.DescribeReplicationInstancesOutput{
 						ReplicationInstances: []*databasemigrationservice.ReplicationInstance{
 							{

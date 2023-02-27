@@ -17,15 +17,15 @@ import (
 
 const timeFormat = "2006-01-02T15:04:05.999999-07:00"
 
-type CloudwatchInterface struct {
-	client cloudwatchiface.CloudWatchAPI
-	logger logging.Logger
+type Client struct {
+	logger        logging.Logger
+	cloudwatchAPI cloudwatchiface.CloudWatchAPI
 }
 
-func NewCloudWatchInterface(client cloudwatchiface.CloudWatchAPI, logger logging.Logger) *CloudwatchInterface {
-	return &CloudwatchInterface{
-		client: client,
-		logger: logger,
+func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAPI) *Client {
+	return &Client{
+		logger:        logger,
+		cloudwatchAPI: cloudwatchAPI,
 	}
 }
 
@@ -175,37 +175,37 @@ func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
 	return output
 }
 
-func (iface CloudwatchInterface) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricStatistics", "input", filter)
+func (c Client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("GetMetricStatistics", "input", filter)
 	}
 
-	resp, err := iface.client.GetMetricStatisticsWithContext(ctx, filter)
+	resp, err := c.cloudwatchAPI.GetMetricStatisticsWithContext(ctx, filter)
 
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricStatistics", "output", resp)
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("GetMetricStatistics", "output", resp)
 	}
 
 	promutil.CloudwatchAPICounter.Inc()
 	promutil.CloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
-		iface.logger.Error(err, "Failed to get metric statistics")
+		c.logger.Error(err, "Failed to get metric statistics")
 		return nil
 	}
 
 	return resp.Datapoints
 }
 
-func (iface CloudwatchInterface) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+func (c Client) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	var resp cloudwatch.GetMetricDataOutput
 
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricData", "input", filter)
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("GetMetricData", "input", filter)
 	}
 
 	// Using the paged version of the function
-	err := iface.client.GetMetricDataPagesWithContext(ctx, filter,
+	err := c.cloudwatchAPI.GetMetricDataPagesWithContext(ctx, filter,
 		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
 			promutil.CloudwatchAPICounter.Inc()
 			promutil.CloudwatchGetMetricDataAPICounter.Inc()
@@ -213,37 +213,37 @@ func (iface CloudwatchInterface) GetMetricData(ctx context.Context, filter *clou
 			return !lastPage
 		})
 
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("GetMetricData", "output", resp)
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("GetMetricData", "output", resp)
 	}
 
 	if err != nil {
-		iface.logger.Error(err, "GetMetricData error")
+		c.logger.Error(err, "GetMetricData error")
 		return nil
 	}
 	return &resp
 }
 
-func (iface CloudwatchInterface) ListMetrics(ctx context.Context, namespace string, metric *config.Metric) (*cloudwatch.ListMetricsOutput, error) {
+func (c Client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric) (*cloudwatch.ListMetricsOutput, error) {
 	filter := createListMetricsInput(nil, &namespace, &metric.Name)
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("ListMetrics", "input", filter)
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("ListMetrics", "input", filter)
 	}
 
 	var res cloudwatch.ListMetricsOutput
-	err := iface.client.ListMetricsPagesWithContext(ctx, filter,
+	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter,
 		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
 			res.Metrics = append(res.Metrics, page.Metrics...)
 			return !lastPage
 		})
 	if err != nil {
 		promutil.CloudwatchAPIErrorCounter.Inc()
-		iface.logger.Error(err, "ListMetrics error")
+		c.logger.Error(err, "ListMetrics error")
 		return nil, err
 	}
 
-	if iface.logger.IsDebugEnabled() {
-		iface.logger.Debug("ListMetrics", "output", res)
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("ListMetrics", "output", res)
 	}
 
 	promutil.CloudwatchAPICounter.Inc()

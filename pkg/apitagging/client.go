@@ -20,19 +20,40 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-// https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface/
-type TagsInterface struct {
-	Client               resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	AsgClient            autoscalingiface.AutoScalingAPI
-	APIGatewayClient     apigatewayiface.APIGatewayAPI
-	Ec2Client            ec2iface.EC2API
-	DmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	PrometheusClient     prometheusserviceiface.PrometheusServiceAPI
-	StoragegatewayClient storagegatewayiface.StorageGatewayAPI
-	Logger               logging.Logger
+type Client struct {
+	logger            logging.Logger
+	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	autoscalingAPI    autoscalingiface.AutoScalingAPI
+	apiGatewayAPI     apigatewayiface.APIGatewayAPI
+	ec2API            ec2iface.EC2API
+	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
+	storageGatewayAPI storagegatewayiface.StorageGatewayAPI
 }
 
-func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func NewClient(
+	logger logging.Logger,
+	taggingAPI resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI,
+	autoscalingAPI autoscalingiface.AutoScalingAPI,
+	apiGatewayAPI apigatewayiface.APIGatewayAPI,
+	ec2API ec2iface.EC2API,
+	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
+	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
+	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
+) Client {
+	return Client{
+		logger:            logger,
+		taggingAPI:        taggingAPI,
+		autoscalingAPI:    autoscalingAPI,
+		apiGatewayAPI:     apiGatewayAPI,
+		ec2API:            ec2API,
+		dmsAPI:            dmsClient,
+		prometheusSvcAPI:  prometheusClient,
+		storageGatewayAPI: storageGatewayAPI,
+	}
+}
+
+func (c Client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 
@@ -43,12 +64,12 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 		}
 		pageNum := 0
 
-		err := iface.Client.GetResourcesPagesWithContext(ctx, inputparams, func(page *resourcegroupstaggingapi.GetResourcesOutput, lastPage bool) bool {
+		err := c.taggingAPI.GetResourcesPagesWithContext(ctx, inputparams, func(page *resourcegroupstaggingapi.GetResourcesOutput, lastPage bool) bool {
 			pageNum++
 			promutil.ResourceGroupTaggingAPICounter.Inc()
 
 			if len(page.ResourceTagMappingList) == 0 {
-				iface.Logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
+				c.logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
@@ -65,7 +86,7 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 				if resource.FilterThroughTags(job.SearchTags) {
 					resources = append(resources, &resource)
 				} else {
-					iface.Logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
+					c.logger.Debug("Skipping resource because search tags do not match", "arn", resource.ARN)
 				}
 			}
 			return !lastPage
@@ -74,26 +95,26 @@ func (iface TagsInterface) Get(ctx context.Context, job *config.Job, region stri
 			return nil, err
 		}
 
-		iface.Logger.Debug("GetResourcesPages finished", "total", len(resources))
+		c.logger.Debug("GetResourcesPages finished", "total", len(resources))
 	}
 
 	if ext, ok := serviceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
-			newResources, err := ext.ResourceFunc(ctx, iface, job, region)
+			newResources, err := ext.ResourceFunc(ctx, c, job, region)
 			if err != nil {
 				return nil, err
 			}
 			resources = append(resources, newResources...)
-			iface.Logger.Debug("ResourceFunc finished", "total", len(resources))
+			c.logger.Debug("ResourceFunc finished", "total", len(resources))
 		}
 
 		if ext.FilterFunc != nil {
-			filteredResources, err := ext.FilterFunc(ctx, iface, resources)
+			filteredResources, err := ext.FilterFunc(ctx, c, resources)
 			if err != nil {
 				return nil, err
 			}
 			resources = filteredResources
-			iface.Logger.Debug("FilterFunc finished", "total", len(resources))
+			c.logger.Debug("FilterFunc finished", "total", len(resources))
 		}
 	}
 
