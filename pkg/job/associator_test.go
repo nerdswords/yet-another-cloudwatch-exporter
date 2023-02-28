@@ -278,7 +278,7 @@ func TestAssociator(t *testing.T) {
 			expectedResource: ecsService2,
 		},
 		{
-			name: "multiple ga resources, metric contains dimension that maps to non discovered resource, should not skip",
+			name: "multiple ga resources, metrics with extra dimension is mapped in a best effort way",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
@@ -292,7 +292,7 @@ func TestAssociator(t *testing.T) {
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: nil,
+			expectedResource: globalAcceleratorAccelerator,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

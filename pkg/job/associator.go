@@ -18,7 +18,10 @@ type valueToResource map[string]*model.TaggedResource
 // associator contains for set of dimensions, the matched values and resources. Each set of dimensions
 // is expressed as a concatenation of their names, order lexicographically, and using a separator in-between.
 type associator struct {
-	associations   map[string]valueToResource
+	// associations contains the dimension set -> values -> resource mappings.
+	associations map[string]valueToResource
+
+	// seenDimensions contains a set of all seen dimensions when building the associator.
 	seenDimensions stringSet
 }
 
@@ -68,12 +71,17 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 				for nameIdx, value := range dimensionMatch {
 					// avoid using whole match group
 					if nameIdx != 0 {
-						dimensionName := names[nameIdx]
+						dimensionName := strings.ReplaceAll(names[nameIdx], "_", " ")
 						resourceMatches = append(resourceMatches, match{dimensionName, value})
 						seenDimensions.add(dimensionName)
 					}
 				}
 			}
+		}
+
+		// avoid mapping if there are no matches
+		if len(resourceMatches) == 0 {
+			continue
 		}
 
 		encodedDimensions, encodedValues := encodeMatches(resourceMatches)
@@ -89,9 +97,18 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 	}
 }
 
-// associateMetricsToResources finds for a cloudwatch.Metric, the resource that matches the better. The match is performed
-// by taking every dimension in the metric, and producing its encodings as described in encodeMatches. Since the associator
-// now for each dimension set, the mapping from values to resources, a match can be found.
+// associateMetricsToResources finds for a cloudwatch.Metric, the resource that matches, or decides if it can still be used
+// with a generic enough resource. The matching process is best effort, meaning that it will for a dimension, the resource
+// that matches all dimension only considering the ones seen by the associator. The algorithm works in the following way:
+//
+// 1. First, it will only consider the dimensions from the metric that were seen by the associator. This allows matching
+// a metric that targets a specific resource, but is scoped over a property of it. For example, GlobalAccelerator's
+// `NewFlowCount` metric scoped just over the `tcp` connections started in an accelerator. This will contain the
+// `Accelerator` and `TransportProtocol` dimensions.
+// 2. For that given set of dimensions, it will check if the associator contains any resources. If there's none, the metric
+// will still be used.
+// 3a. If that set of dimensions is known by the associator, and there is a resource that matches all, it will be returned.
+// 3b. If not, nil will be returned, and the metric should be omitted.
 func (a *associator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	matches := []match{}
 	metricDimensions := make(stringSet)
