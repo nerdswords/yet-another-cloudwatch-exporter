@@ -315,6 +315,6 @@ func TestStringSet(t *testing.T) {
 	other.add("bonjour")
 
 	intersection := ss.intersect(other)
-	require.Contains(t, intersection, "bonjour")
+	require.True(t, intersection.contains("bonjour"))
 	require.Len(t, intersection, 1)
 }

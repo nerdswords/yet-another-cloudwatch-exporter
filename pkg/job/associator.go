@@ -19,7 +19,7 @@ type valueToResource map[string]*model.TaggedResource
 // is expressed as a concatenation of their names, order lexicographically, and using a separator in-between.
 type associator struct {
 	associations   map[string]valueToResource
-	seenDimensions []string
+	seenDimensions stringSet
 }
 
 // match represents a dimension name and its value that were extracted from a discovered resource ARN.
@@ -57,6 +57,7 @@ func encodeMatches(ms []match) (string, string) {
 // dimensions from a resource ARN, and a set of resources from which to extract.
 func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) *associator {
 	assoc := make(map[string]valueToResource)
+	seenDimensions := make(stringSet)
 	for _, resource := range resources {
 		resourceMatches := []match{}
 
@@ -67,7 +68,9 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 				for nameIdx, value := range dimensionMatch {
 					// avoid using whole match group
 					if nameIdx != 0 {
-						resourceMatches = append(resourceMatches, match{names[nameIdx], value})
+						dimensionName := names[nameIdx]
+						resourceMatches = append(resourceMatches, match{dimensionName, value})
+						seenDimensions.add(dimensionName)
 					}
 				}
 			}
@@ -81,7 +84,8 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 	}
 
 	return &associator{
-		associations: assoc,
+		associations:   assoc,
+		seenDimensions: seenDimensions,
 	}
 }
 
@@ -89,10 +93,21 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 // by taking every dimension in the metric, and producing its encodings as described in encodeMatches. Since the associator
 // now for each dimension set, the mapping from values to resources, a match can be found.
 func (a *associator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
-	matches := make([]match, len(cwMetric.Dimensions))
-	for i, dim := range cwMetric.Dimensions {
-		matches[i].name = *dim.Name
-		matches[i].value = *dim.Value
+	matches := []match{}
+	metricDimensions := make(stringSet)
+	for _, dim := range cwMetric.Dimensions {
+		metricDimensions.add(*dim.Name)
+	}
+	intersect := a.seenDimensions.intersect(metricDimensions)
+	for _, dim := range cwMetric.Dimensions {
+		// only consider dimensions that are both in the ones seen by the associator, and the current metric. This gives
+		// the algorithm the best effort matching
+		if intersect.contains(*dim.Name) {
+			matches = append(matches, match{
+				name:  *dim.Name,
+				value: *dim.Value,
+			})
+		}
 	}
 	encodedDimensions, encodedValues := encodeMatches(matches)
 	// if the dimension set of which we are looking a resource doesn't exist, return nil but avoid skipping the metric we
@@ -116,6 +131,13 @@ type stringSet map[string]byte
 // add adds an element to the string set. It mutates the base object.
 func (ss stringSet) add(key string) {
 	ss[key] = presentByte
+}
+
+func (ss stringSet) contains(key string) bool {
+	if _, ok := ss[key]; ok {
+		return true
+	}
+	return false
 }
 
 // intersect creates a new stringSet that contains the set intersection between the base object, and the argument stringSet.
