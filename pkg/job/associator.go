@@ -109,7 +109,8 @@ func (asoc metricsToResourceAssociator) xxxassociateMetricsToResources(cwMetric 
 			if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
 				// esto lo que hace es que si matchea al menos una dimension, devuelve ese recurso
 				if !alreadyFound {
-					// este branch del if se ejecuta solo si el primero no matchea
+					// este branch del if se ejecuta solo si el primero no matchea. Esto quiere decir que existe un recurso con esa
+					// dimension, pero con otro valor, entonces la metrica corresponde a un recurso no "descubierto"
 					skip = true
 				}
 				break
