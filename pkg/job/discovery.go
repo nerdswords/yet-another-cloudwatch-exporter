@@ -199,7 +199,7 @@ func getFilteredMetricDatas(logger logging.Logger, region string, accountID *str
 		}
 
 		// TODO: refactor this logic after failing scenarios are fixed
-		matchedResource, skip := associator.associateMetricsToResources(namespace, cwMetric)
+		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
 		if matchedResource != nil {
 			resource = matchedResource
 		}

@@ -1,16 +1,24 @@
 package job
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"regexp"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
+// valueToResource contains the mapping of, given a dimension, values of it to a resource. For example, if the  dimension
+// for which this valueToResource has been creates is InstanceId, it will contain for a given EC2 instance ID the resource
+// that matches it.
 type valueToResource map[string]*model.TaggedResource
+
+// metricsToResourceAssociator contains for each dimension, the matched values and resources.
 type metricsToResourceAssociator map[string]valueToResource
 
+// newMetricsToResourceAssociator creates a new metricsToResourceAssociator given a set of dimensions regexs that can extract
+// dimensions from a resource ARN, and a set of resources from which to extract.
 func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) metricsToResourceAssociator {
 	dimensionsFilter := make(map[string]valueToResource)
 	for _, dimensionRegexp := range dimensionRegexps {
@@ -37,7 +45,10 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 	return dimensionsFilter
 }
 
-func (asoc metricsToResourceAssociator) associateMetricsToResources(namespace string, cwMetric *cloudwatch.Metric) (r *model.TaggedResource, skip bool) {
+// associateMetricsToResources finds for a cloudwatch.Metrics, the resource that matches the better. If no match is found,
+// nil is returned. Also, there's some conditions in which the metric shouldn't be considered, and that is dictated by the
+// skip return value.
+func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (r *model.TaggedResource, skip bool) {
 	alreadyFound := false
 	for _, dimension := range cwMetric.Dimensions {
 		if dimensionFilterValues, ok := asoc[*dimension.Name]; ok {

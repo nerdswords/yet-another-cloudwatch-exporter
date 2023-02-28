@@ -17,7 +17,9 @@ var someEC2Instance = &model.TaggedResource{
 	ARN:       "arn:aws:ec2:us-east-1:123456789012:instance/i-bla",
 	Namespace: "AWS/EC2",
 	Region:    "us-east-2",
-	Tags:      []model.Tag{{"name", "test-instance"}},
+	Tags: []model.Tag{
+		{Key: "name", Value: "test-instance"},
+	},
 }
 
 var globalAcceleratorAccelerator = &model.TaggedResource{
@@ -25,16 +27,19 @@ var globalAcceleratorAccelerator = &model.TaggedResource{
 	Namespace: "AWS/GlobalAccelerator",
 	Region:    "us-east-2",
 }
+
 var globalAcceleratorListener = &model.TaggedResource{
 	ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/super-accelerator/listener/some_listener",
 	Namespace: "AWS/GlobalAccelerator",
 	Region:    "us-east-2",
 }
+
 var globalAcceleratorEndpointGroup = &model.TaggedResource{
 	ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/super-accelerator/listener/some_listener/endpoint-group/eg1",
 	Namespace: "AWS/GlobalAccelerator",
 	Region:    "us-east-2",
 }
+
 var globalAcceleratorResources = []*model.TaggedResource{
 	globalAcceleratorAccelerator,
 	globalAcceleratorListener,
@@ -46,6 +51,7 @@ var ecsCluster = &model.TaggedResource{
 	Namespace: "AWS/ECS",
 	Region:    "af-south-1",
 }
+
 var ecsService1 = &model.TaggedResource{
 	ARN:       "arn:aws:ecs:af-south-1:123456789222:service/sampleCluster/service1",
 	Namespace: "AWS/ECS",
@@ -57,6 +63,7 @@ var ecsService2 = &model.TaggedResource{
 	Namespace: "AWS/ECS",
 	Region:    "af-south-1",
 }
+
 var ecsResources = []*model.TaggedResource{
 	ecsCluster,
 	ecsService1,
@@ -283,7 +290,7 @@ func TestAssociator(t *testing.T) {
 				return
 			}
 			associator := newMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
-			res, skip := associator.associateMetricsToResources(*tc.args.metric.Namespace, tc.args.metric)
+			res, skip := associator.associateMetricsToResources(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)
 		})
