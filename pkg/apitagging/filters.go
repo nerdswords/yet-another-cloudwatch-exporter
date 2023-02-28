@@ -30,14 +30,15 @@ type serviceFilter struct {
 // serviceFilters maps a service namespace to (optional) serviceFilter
 var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
+		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			promutil.APIGatewayAPICounter.Inc()
 			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
 			input := apigateway.GetRestApisInput{Limit: &limit}
 			output := apigateway.GetRestApisOutput{}
 			var pageNum int
-			err = client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+			var outputResources []*model.TaggedResource
+			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
@@ -54,13 +55,17 @@ var serviceFilters = map[string]serviceFilter{
 					}
 				}
 			}
-			return outputResources, err
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApis, %w", err)
+			}
+			return outputResources, nil
 		},
 	},
 	"AWS/AutoScaling": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
-			return resources, client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
+			var resources []*model.TaggedResource
+			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
 				func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
 					pageNum++
 					promutil.AutoScalingAPICounter.Inc()
@@ -83,11 +88,15 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error calling autoscalingAPI.DescribeAutoScalingGroups, %w", err)
+			}
+			return resources, nil
 		},
 	},
 	"AWS/DMS": {
 		// Append the replication instance identifier to DMS task and instance ARNs
-		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) (outputResources []*model.TaggedResource, err error) {
+		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			if len(inputResources) == 0 {
 				return inputResources, nil
 			}
@@ -106,7 +115,7 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error calling dmsAPI.DescribeReplicationInstances, %w", err)
 			}
 			pageNum = 0
 			if err := client.dmsAPI.DescribeReplicationTasksPagesWithContext(ctx, nil,
@@ -124,9 +133,10 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error calling dmsAPI.DescribeReplicationTasks, %w", err)
 			}
 
+			var outputResources []*model.TaggedResource
 			for _, resource := range inputResources {
 				r := resource
 				// Append the replication instance identifier to replication instance and task ARNs
@@ -135,13 +145,14 @@ var serviceFilters = map[string]serviceFilter{
 				}
 				outputResources = append(outputResources, r)
 			}
-			return
+			return outputResources, nil
 		},
 	},
 	"AWS/EC2Spot": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
-			return resources, client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
+			var resources []*model.TaggedResource
+			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
 				func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
@@ -164,12 +175,17 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error calling describing ec2API.DescribeSpotFleetRequests, %w", err)
+			}
+			return resources, nil
 		},
 	},
 	"AWS/Prometheus": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
-			return resources, client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
+			var resources []*model.TaggedResource
+			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
 				func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
 					pageNum++
 					promutil.ManagedPrometheusAPICounter.Inc()
@@ -192,12 +208,17 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error while calling prometheusSvcAPI.ListWorkspaces, %w", err)
+			}
+			return resources, nil
 		},
 	},
 	"AWS/StorageGateway": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
-			return resources, client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
+			var resources []*model.TaggedResource
+			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
 				func(page *storagegateway.ListGatewaysOutput, more bool) bool {
 					pageNum++
 					promutil.StoragegatewayAPICounter.Inc()
@@ -227,12 +248,17 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error calling storageGatewayAPI.ListGateways, %w", err)
+			}
+			return resources, nil
 		},
 	},
 	"AWS/TransitGateway": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) (resources []*model.TaggedResource, err error) {
+		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
-			return resources, client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
+			var resources []*model.TaggedResource
+			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
 				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
@@ -255,6 +281,10 @@ var serviceFilters = map[string]serviceFilter{
 					return pageNum < 100
 				},
 			)
+			if err != nil {
+				return nil, fmt.Errorf("error calling ec2API.DescribeTransitGatewayAttachments, %w", err)
+			}
+			return resources, nil
 		},
 	},
 }

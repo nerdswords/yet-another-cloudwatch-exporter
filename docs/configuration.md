@@ -320,7 +320,7 @@ static:
         length: 300
 ```
 
-[Source: [config_test.yml](pkg/config/testdata/config_test.yml)]
+[Source: [config_test.yml](../pkg/config/testdata/config_test.yml)]
 
 ### Custom Namespace configuration
 
