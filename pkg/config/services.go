@@ -266,7 +266,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{
@@ -278,7 +278,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{
@@ -370,7 +370,7 @@ var SupportedServices = serviceConfigs{
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("destinationEdge/(?P<DestinationEdge>[^/]+)"),
 			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)"),
-			regexp.MustCompile("endpointGroup/(?P<EndpointGroup>[^/]+)"),
+			regexp.MustCompile("endpoint-group/(?P<EndpointGroup>[^/]+)"),
 			regexp.MustCompile("listener/(?P<Listener>[^/]+)"),
 			regexp.MustCompile("transportProtocol/(?P<TransportProtocol>[^/]+)"),
 		},
