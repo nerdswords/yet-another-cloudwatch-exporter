@@ -59,7 +59,7 @@ var ecsService1 = &model.TaggedResource{
 }
 
 var ecsService2 = &model.TaggedResource{
-	ARN:       "arn:aws:ecs:af-south-1:123456789222:service/sampleCluster/service1",
+	ARN:       "arn:aws:ecs:af-south-1:123456789222:service/sampleCluster/service2",
 	Namespace: "AWS/ECS",
 	Region:    "af-south-1",
 }
@@ -180,8 +180,7 @@ func TestAssociator(t *testing.T) {
 		// The tests below exercise cases in which there's a metrics that might apply to more than one resource
 		// depending on the set of dimensions it has.
 		{
-			expectFailure: true,
-			name:          "multiple ga resources, should match accelerator",
+			name: "multiple ga resources, should match accelerator",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
@@ -197,8 +196,7 @@ func TestAssociator(t *testing.T) {
 			expectedResource: globalAcceleratorAccelerator,
 		},
 		{
-			expectFailure: true,
-			name:          "multiple ga resources, should match listener",
+			name: "multiple ga resources, should match listener",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
@@ -233,8 +231,7 @@ func TestAssociator(t *testing.T) {
 			expectedResource: globalAcceleratorEndpointGroup,
 		},
 		{
-			expectFailure: true,
-			name:          "multiple ecs resources, cluster metric should be assigned cluster resource",
+			name: "multiple ecs resources, cluster metric should be assigned cluster resource",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
