@@ -88,9 +88,6 @@ func TestAssociator(t *testing.T) {
 		metric           *cloudwatch.Metric
 	}
 	type testCase struct {
-		// Some tests are expected to fail due to https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821
-		// Remove this safe-guard after the issue is fixed
-		expectFailure    bool
 		name             string
 		args             args
 		expectedSkip     bool
@@ -282,10 +279,6 @@ func TestAssociator(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.expectFailure {
-				t.Skip("failure is expected. Remove skip after https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821 is fixed.")
-				return
-			}
 			associator := newMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.associateMetricsToResources(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)

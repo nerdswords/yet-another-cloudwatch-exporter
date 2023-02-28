@@ -10,25 +10,30 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-// valueToResource contains the mapping of, given a dimension, values of it to a resource. For example, if the  dimension
-// for which this valueToResource has been creates is InstanceId, it will contain for a given EC2 instance ID the resource
-// that matches it.
+// valueToResource contains the mapping of, given a set of dimensions, the values of each to a resource. For example,
+// if the dimensions for AWS/ECS `ClusterName` and `ServiceName` are considered, this mapping will contain for each set
+// of `some_cluster, some_service` the corresponding ECS service resource.
 type valueToResource map[string]*model.TaggedResource
 
-// metricsToResourceAssociator contains for each dimension, the matched values and resources.
+// metricsToResourceAssociator contains for set of dimensions, the matched values and resources. Each set of dimensions
+// is expressed as a concatenation of their names, order lexicographically, and using a separator in-between.
 type metricsToResourceAssociator map[string]valueToResource
 
+// match represents a dimension name and its value that were extracted from a discovered resource ARN.
 type match struct {
 	name, value string
 }
 
 const separator = byte('#')
 
+// encodeMatches encodes a list of matches in two strings. One describing the dimension name of every match result, and
+// one describing the value. The order of these is consistent, in order to be able to pair them with match
+// es generated from a cloudwatch.Metric. For example, given the matches for dimensions `ClusterName=cluster` and
+// `ServiceName=service`, this will produce the encodings `ClusterName#ServiceName` and `cluster#service`.
 func encodeMatches(ms []match) (string, string) {
 	var dimensionsBuilder, valuesBuilder strings.Builder
 	// first, sort all matches
 	sort.Slice(ms, func(i, j int) bool {
-		// check if i < j
 		// order lexicographically
 		return ms[i].name < ms[j].name
 	})
@@ -48,51 +53,52 @@ func encodeMatches(ms []match) (string, string) {
 // newMetricsToResourceAssociator creates a new metricsToResourceAssociator given a set of dimensions regexs that can extract
 // dimensions from a resource ARN, and a set of resources from which to extract.
 func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) metricsToResourceAssociator {
-	dimensionsFilter := make(map[string]valueToResource)
-	for _, r := range resources {
-		matches := []match{}
+	asocciator := make(map[string]valueToResource)
+	for _, resource := range resources {
+		resourceMatches := []match{}
 
 		for _, dimensionRegexp := range dimensionRegexps {
 			names := dimensionRegexp.SubexpNames()
-			if dimensionRegexp.Match([]byte(r.ARN)) {
-				dimensionMatch := dimensionRegexp.FindStringSubmatch(r.ARN)
-				for i, value := range dimensionMatch {
+			if dimensionRegexp.Match([]byte(resource.ARN)) {
+				dimensionMatch := dimensionRegexp.FindStringSubmatch(resource.ARN)
+				for nameIdx, value := range dimensionMatch {
 					// avoid using whole match group
-					if i != 0 {
-						matches = append(matches, match{names[i], value})
+					if nameIdx != 0 {
+						resourceMatches = append(resourceMatches, match{names[nameIdx], value})
 					}
 				}
 			}
 		}
 
-		dims, vals := encodeMatches(matches)
-
-		if _, ok := dimensionsFilter[dims]; !ok {
-			dimensionsFilter[dims] = make(valueToResource)
+		encodedDimensions, encodedValues := encodeMatches(resourceMatches)
+		if _, ok := asocciator[encodedDimensions]; !ok {
+			asocciator[encodedDimensions] = make(valueToResource)
 		}
-
-		dimensionsFilter[dims][vals] = r
+		asocciator[encodedDimensions][encodedValues] = resource
 	}
 
-	return dimensionsFilter
+	return asocciator
 }
 
+// associateMetricsToResources finds for a cloudwatch.Metric, the resource that matches the better. The match is performed
+// by taking every dimension in the metric, and producing its encodings as described in encodeMatches. Since the associator
+// now for each dimension set, the mapping from values to resources, a match can be found.
 func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	matches := make([]match, len(cwMetric.Dimensions))
 	for i, dim := range cwMetric.Dimensions {
 		matches[i].name = *dim.Name
 		matches[i].value = *dim.Value
 	}
-	dims, vals := encodeMatches(matches)
-	// if the dimension set of which we are looking a resource doesn't exists, return nil but avoid skipping
-	// this is the default logic
-	if _, ok := asoc[dims]; !ok {
+	encodedDimensions, encodedValues := encodeMatches(matches)
+	// if the dimension set of which we are looking a resource doesn't exist, return nil but avoid skipping the metric we
+	// are matching. This is the default logic, and it will associate with a generic resource
+	if _, ok := asoc[encodedDimensions]; !ok {
 		return nil, false
 	}
 
 	// the dimension set exists in the associator, so there needs to be a match in order for the metrics to be used
-	if res, ok := asoc[dims][vals]; ok {
-		return res, false
+	if matchedResource, ok := asoc[encodedDimensions][encodedValues]; ok {
+		return matchedResource, false
 	}
 	return nil, true
 }
