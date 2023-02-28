@@ -97,6 +97,8 @@ func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cl
 	return nil, true
 }
 
+// TODO: remove this, keeping below for documenting every branch
+
 // associateMetricsToResources finds for a cloudwatch.Metrics, the resource that matches the better. If no match is found,
 // nil is returned. Also, there's some conditions in which the metric shouldn't be considered, and that is dictated by the
 // skip return value.
@@ -104,13 +106,14 @@ func (asoc metricsToResourceAssociator) xxxassociateMetricsToResources(cwMetric 
 	alreadyFound := false
 	for _, dimension := range cwMetric.Dimensions {
 		if dimensionFilterValues, ok := asoc[*dimension.Name]; ok {
-			// si estamos aca es que por lo menos un recurso tenia asignada esa dimension, luego, deberia haber un match
-			// como para asociarla a alguno
+			// If we are here, there is at least one discovered resource that has the dimension we are testing, therefore,
+			// there should be a match in order for us to care about this metric
 			if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-				// esto lo que hace es que si matchea al menos una dimension, devuelve ese recurso
+				// If there was already a resource match, and there's more dimensions that don't match, keep the discovered resource
 				if !alreadyFound {
-					// este branch del if se ejecuta solo si el primero no matchea. Esto quiere decir que existe un recurso con esa
-					// dimension, pero con otro valor, entonces la metrica corresponde a un recurso no "descubierto"
+					// If we are here, it means that alreadyFound == false => this is the first dimension we are testing
+					// and there's no discovered resource with the dimension value. Avoid scraping this metric, since it
+					// doesn't match any discovered resource
 					skip = true
 				}
 				break
@@ -120,5 +123,7 @@ func (asoc metricsToResourceAssociator) xxxassociateMetricsToResources(cwMetric 
 			}
 		}
 	}
+	// If there were no dimensions, or none of the dimensions was involved in the discovered resources, don't skip the metrics
+	// but return a nil resource
 	return r, skip
 }
