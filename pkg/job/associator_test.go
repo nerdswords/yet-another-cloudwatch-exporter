@@ -303,3 +303,18 @@ func TestAssociator(t *testing.T) {
 		})
 	}
 }
+
+func TestStringSet(t *testing.T) {
+	ss := make(stringSet)
+	ss.add("hola")
+	ss.add("bonjour")
+	ss.add("boungiorno")
+
+	other := make(stringSet)
+	other.add("holis")
+	other.add("bonjour")
+
+	intersection := ss.intersect(other)
+	require.Contains(t, intersection, "bonjour")
+	require.Len(t, intersection, 1)
+}

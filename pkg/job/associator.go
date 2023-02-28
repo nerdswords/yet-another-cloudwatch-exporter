@@ -15,9 +15,12 @@ import (
 // of `some_cluster, some_service` the corresponding ECS service resource.
 type valueToResource map[string]*model.TaggedResource
 
-// metricsToResourceAssociator contains for set of dimensions, the matched values and resources. Each set of dimensions
+// associator contains for set of dimensions, the matched values and resources. Each set of dimensions
 // is expressed as a concatenation of their names, order lexicographically, and using a separator in-between.
-type metricsToResourceAssociator map[string]valueToResource
+type associator struct {
+	associations   map[string]valueToResource
+	seenDimensions []string
+}
 
 // match represents a dimension name and its value that were extracted from a discovered resource ARN.
 type match struct {
@@ -52,8 +55,8 @@ func encodeMatches(ms []match) (string, string) {
 
 // newMetricsToResourceAssociator creates a new metricsToResourceAssociator given a set of dimensions regexs that can extract
 // dimensions from a resource ARN, and a set of resources from which to extract.
-func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) metricsToResourceAssociator {
-	asocciator := make(map[string]valueToResource)
+func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) *associator {
+	assoc := make(map[string]valueToResource)
 	for _, resource := range resources {
 		resourceMatches := []match{}
 
@@ -71,19 +74,21 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 		}
 
 		encodedDimensions, encodedValues := encodeMatches(resourceMatches)
-		if _, ok := asocciator[encodedDimensions]; !ok {
-			asocciator[encodedDimensions] = make(valueToResource)
+		if _, ok := assoc[encodedDimensions]; !ok {
+			assoc[encodedDimensions] = make(valueToResource)
 		}
-		asocciator[encodedDimensions][encodedValues] = resource
+		assoc[encodedDimensions][encodedValues] = resource
 	}
 
-	return asocciator
+	return &associator{
+		associations: assoc,
+	}
 }
 
 // associateMetricsToResources finds for a cloudwatch.Metric, the resource that matches the better. The match is performed
 // by taking every dimension in the metric, and producing its encodings as described in encodeMatches. Since the associator
 // now for each dimension set, the mapping from values to resources, a match can be found.
-func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (a *associator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	matches := make([]match, len(cwMetric.Dimensions))
 	for i, dim := range cwMetric.Dimensions {
 		matches[i].name = *dim.Name
@@ -92,44 +97,34 @@ func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cl
 	encodedDimensions, encodedValues := encodeMatches(matches)
 	// if the dimension set of which we are looking a resource doesn't exist, return nil but avoid skipping the metric we
 	// are matching. This is the default logic, and it will associate with a generic resource
-	if _, ok := asoc[encodedDimensions]; !ok {
+	if _, ok := a.associations[encodedDimensions]; !ok {
 		return nil, false
 	}
 
 	// the dimension set exists in the associator, so there needs to be a match in order for the metrics to be used
-	if matchedResource, ok := asoc[encodedDimensions][encodedValues]; ok {
+	if matchedResource, ok := a.associations[encodedDimensions][encodedValues]; ok {
 		return matchedResource, false
 	}
 	return nil, true
 }
 
-// TODO: remove this, keeping below for documenting every branch
+const presentByte = byte('#')
 
-// associateMetricsToResources finds for a cloudwatch.Metrics, the resource that matches the better. If no match is found,
-// nil is returned. Also, there's some conditions in which the metric shouldn't be considered, and that is dictated by the
-// skip return value.
-func (asoc metricsToResourceAssociator) xxxassociateMetricsToResources(cwMetric *cloudwatch.Metric) (r *model.TaggedResource, skip bool) {
-	alreadyFound := false
-	for _, dimension := range cwMetric.Dimensions {
-		if dimensionFilterValues, ok := asoc[*dimension.Name]; ok {
-			// If we are here, there is at least one discovered resource that has the dimension we are testing, therefore,
-			// there should be a match in order for us to care about this metric
-			if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-				// If there was already a resource match, and there's more dimensions that don't match, keep the discovered resource
-				if !alreadyFound {
-					// If we are here, it means that alreadyFound == false => this is the first dimension we are testing
-					// and there's no discovered resource with the dimension value. Avoid scraping this metric, since it
-					// doesn't match any discovered resource
-					skip = true
-				}
-				break
-			} else { //nolint:revive
-				alreadyFound = true
-				r = d
-			}
+// stringSet is a simple set implementation, with string values, that allows intersection operations.
+type stringSet map[string]byte
+
+// add adds an element to the string set. It mutates the base object.
+func (ss stringSet) add(key string) {
+	ss[key] = presentByte
+}
+
+// intersect creates a new stringSet that contains the set intersection between the base object, and the argument stringSet.
+func (ss stringSet) intersect(other stringSet) stringSet {
+	intersection := make(stringSet)
+	for k, _ := range ss {
+		if _, ok := other[k]; ok {
+			intersection[k] = presentByte
 		}
 	}
-	// If there were no dimensions, or none of the dimensions was involved in the discovered resources, don't skip the metrics
-	// but return a nil resource
-	return r, skip
+	return intersection
 }
