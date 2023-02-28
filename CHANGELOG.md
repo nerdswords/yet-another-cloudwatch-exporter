@@ -1,3 +1,8 @@
+# master
+
+**Bugfixes and features**:
+* Fix [resource association bug](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821) on discovery mode by @thepalbi
+
 # v0.49.2
 
 ## Bugfixes and features
