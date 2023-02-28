@@ -140,14 +140,12 @@ func (a *associator) associateMetricsToResources(cwMetric *cloudwatch.Metric) (*
 	return nil, true
 }
 
-const presentByte = byte('#')
-
 // stringSet is a simple set implementation, with string values, that allows intersection operations.
-type stringSet map[string]byte
+type stringSet map[string]struct{}
 
 // add adds an element to the string set. It mutates the base object.
 func (ss stringSet) add(key string) {
-	ss[key] = presentByte
+	ss[key] = struct{}{}
 }
 
 func (ss stringSet) contains(key string) bool {
@@ -162,7 +160,7 @@ func (ss stringSet) intersect(other stringSet) stringSet {
 	intersection := make(stringSet)
 	for k := range ss {
 		if _, ok := other[k]; ok {
-			intersection[k] = presentByte
+			intersection[k] = struct{}{}
 		}
 	}
 	return intersection
