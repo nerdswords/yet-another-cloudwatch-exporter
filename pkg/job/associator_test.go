@@ -277,6 +277,23 @@ func TestAssociator(t *testing.T) {
 			expectedSkip:     false,
 			expectedResource: ecsService2,
 		},
+		{
+			name: "multiple ga resources, metric contains dimension that maps to non discovered resource, should not skip",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				resources:        globalAcceleratorResources,
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("NewFlowCount"),
+					Namespace:  aws.String("AWS/GlobalAccelerator"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
+						{Name: aws.String("SourceRegion"), Value: aws.String("europe")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: nil,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			associator := newMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
