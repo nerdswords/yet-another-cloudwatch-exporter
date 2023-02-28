@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -185,63 +184,32 @@ func getMetricDataForQueries(
 }
 
 func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []model.CloudwatchData) {
-	type filterValues map[string]*model.TaggedResource
-	dimensionsFilter := make(map[string]filterValues)
-	for _, dimensionRegexp := range dimensionRegexps {
-		names := dimensionRegexp.SubexpNames()
-		for i, dimensionName := range names {
-			if i != 0 {
-				names[i] = strings.ReplaceAll(dimensionName, "_", " ")
-				if _, ok := dimensionsFilter[names[i]]; !ok {
-					dimensionsFilter[names[i]] = make(filterValues)
-				}
-			}
-		}
-		for _, r := range resources {
-			if dimensionRegexp.Match([]byte(r.ARN)) {
-				dimensionMatch := dimensionRegexp.FindStringSubmatch(r.ARN)
-				for i, value := range dimensionMatch {
-					if i != 0 {
-						dimensionsFilter[names[i]][value] = r
-					}
-				}
-			}
-		}
-	}
+	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
 
-	logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", dimensionsFilter)
+	logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
 
 	for _, cwMetric := range metricsList {
-		skip := false
-		alreadyFound := false
-		r := &model.TaggedResource{
-			ARN:       "global",
-			Namespace: namespace,
-		}
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue
 		}
 
-		for _, dimension := range cwMetric.Dimensions {
-			if dimensionFilterValues, ok := dimensionsFilter[*dimension.Name]; ok {
-				if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
-					if !alreadyFound {
-						skip = true
-					}
-					break
-				} else {
-					alreadyFound = true
-					r = d
-				}
-			}
+		resource := &model.TaggedResource{
+			ARN:       "global",
+			Namespace: namespace,
+		}
+
+		// TODO: refactor this logic after failing scenarios are fixed
+		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
+		if matchedResource != nil {
+			resource = matchedResource
 		}
 
 		if !skip {
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())
-				metricTags := r.MetricTags(tagsOnMetrics)
+				metricTags := resource.MetricTags(tagsOnMetrics)
 				getMetricsData = append(getMetricsData, model.CloudwatchData{
-					ID:                     &r.ARN,
+					ID:                     &resource.ARN,
 					MetricID:               &id,
 					Metric:                 &m.Name,
 					Namespace:              &namespace,
