@@ -160,7 +160,7 @@ func (ss stringSet) contains(key string) bool {
 // intersect creates a new stringSet that contains the set intersection between the base object, and the argument stringSet.
 func (ss stringSet) intersect(other stringSet) stringSet {
 	intersection := make(stringSet)
-	for k, _ := range ss {
+	for k := range ss {
 		if _, ok := other[k]; ok {
 			intersection[k] = presentByte
 		}
