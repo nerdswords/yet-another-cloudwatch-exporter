@@ -408,6 +408,84 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 			},
 		},
+		{
+			"best effort matching in GlobalAccelerator metric",
+			args{
+				region:           "us-east-1",
+				accountID:        aws.String("123123123123"),
+				namespace:        "AWS/GlobalAccelerator",
+				customTags:       nil,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				resources: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1",
+						Namespace: "AWS/GlobalAccelerator",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{Key: "Name", Value: "SomeAccelerator"},
+						},
+					},
+				},
+				tagsOnMetrics: map[string][]string{
+					"AWS/GlobalAccelerator": {"Name"},
+				},
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("NewFlowCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("Accelerator"),
+								Value: aws.String("5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+							},
+							{
+								Name:  aws.String("TransportProtocol"),
+								Value: aws.String("tcp"),
+							},
+						},
+						Namespace: aws.String("AWS/GlobalAccelerator"),
+					},
+				},
+				m: &config.Metric{
+					Name: "NewFlowCount",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]model.CloudwatchData{
+				{
+					AccountID:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("Accelerator"),
+							Value: aws.String("5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+						},
+						{
+							Name:  aws.String("TransportProtocol"),
+							Value: aws.String("tcp"),
+						},
+					},
+					ID:        aws.String("arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+					Metric:    aws.String("NewFlowCount"),
+					Namespace: aws.String("AWS/GlobalAccelerator"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []model.Tag{
+						{Key: "Name", Value: "SomeAccelerator"},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
