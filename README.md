@@ -1,28 +1,27 @@
 # YACE - yet another cloudwatch exporter
 
-YACE, or `yet another cloudwatch exporter`, is a [prometheus exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations) for AWS cloudwatch metrics. It is written in Go and uses the official AWS SDK.
+YACE, or `yet another cloudwatch exporter`, is a [Prometheus exporter](https://prometheus.io/docs/instrumenting/exporters/#exporters-and-integrations) for [AWS CloudWatch](http://aws.amazon.com/cloudwatch/) metrics. It is written in Go and uses the official AWS SDK.
 
-## What is this organisation?
+The project was originally created by Thomas Peitz while working at InVision.de, then later moved outside of the company repo. Read the full rebranding story [here](https://medium.com/@IT_Supertramp/reorganizing-yace-79d7149b9584).
 
-[Medium Article about rebranding yace](https://medium.com/@IT_Supertramp/reorganizing-yace-79d7149b9584)
+## Alternatives
+
+Consider using the official [CloudWatch Exporter](https://github.com/prometheus/cloudwatch_exporter) if you prefer a Java implementation.
+
 
 ## Project Status
 
-YACE is currently in quick iteration mode. Things will probably break in upcoming versions. However, it has been in production use at InVision AG for a couple of months already.
+While YACE is at version less than 1.0.0, expect that any new release might introduce breaking changes. We'll document changes in [CHANGELOG.md](CHANGELOG.md).
+
+Where feasible, features will be deprecated instead of being immediately changed or removed. This means that YACE will continue to work but might log warning messages. Expect deprecated features to be permanently changed/removed within the next 2/3 releases.
 
 ## Security
 
+Read more how to report a security vulnerability in [SECURITY.md](SECURITY.md).
+
 ### Supported Versions
 
-Only latest version gets security updates. We won't support older versions.
-
-## Reporting a Vulnerability
-
-In case of a vulnerability please directly contact us via mail - security@nerdswords.de
-
-Do not disclose any specifics in github issues! - Thank you.
-
-We will contact you as soon as possible.
+Only the latest version gets security updates. We won't support older versions.
 
 ## Features
 
@@ -107,66 +106,9 @@ We will contact you as soon as possible.
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
   * workspaces (AWS/WorkSpaces) - Workspaces
 
-## Running YACE
-## Locally
+## Installing and running
 
-```shell
-docker run -d --rm -v $PWD/credentials:/exporter/.aws/credentials -v $PWD/config.yml:/tmp/config.yml \
--p 5000:5000 --name yace ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.xx.x # release version as tag - Do not forget the version 'v'
-```
-
-## Kubernetes
-### Install with HELM
-YACE can be configured in a Kubernetes cluster through its [HELM chart](charts/yet-another-cloudwatch-exporter/README.md).
-
-### Install with manifests
-```yaml
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: yace
-data:
-  config.yml: |-
-    ---
-    # Start of config file
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: yace
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: yace
-  template:
-    metadata:
-      labels:
-        name: yace
-    spec:
-      containers:
-      - name: yace
-        image: ghcr.io/nerdswords/yet-another-cloudwatch-exporter:vx.x.x # release version as tag - Do not forget the version 'v'
-        imagePullPolicy: IfNotPresent
-        args:
-          - "--config.file=/tmp/config.yml"
-        ports:
-        - name: app
-          containerPort: 5000
-        volumeMounts:
-        - name: config-volume
-          mountPath: /tmp
-      volumes:
-      - name: config-volume
-        configMap:
-          name: yace
-```
-
-## Image
-
-* `ghcr.io/nerdswords/yet-another-cloudwatch-exporter:x.x.x` e.g. 0.5.0
-* See [Releases](https://github.com/nerdswords/yet-another-cloudwatch-exporter/releases) for binaries
+Refer to the [installing guide](docs/install.md).
 
 ## Authentication
 
@@ -202,370 +144,9 @@ As a quick start, the following IAM policy can be used to grant the permissions 
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
 
-
 ## Configuration
 
-YACE has two configuration mechanisms, that work side by side. First, some global parameters can be configured through command line arguments. Second, the scraping configuration has to be provided through a YAML file. The configuration file path is passed to the exporter through the `--config.file` command line argument.
-
-### Command Line Options
-
-| Option                 | Description                                                               | Default    |
-| ---------------------- | ------------------------------------------------------------------------- | ---------- |
-| listen-address         | Network address to listen to                                              | :5000      |
-| config.file            | Path to the configuration file                                            | config.yml |
-| debug                  | Add verbose logging                                                       | false      |
-| fips                   | Use FIPS compliant AWS API                                                | false      |
-| cloudwatch-concurrency | Maximum number of concurrent requests to CloudWatch API                   | 5          |
-| tag-concurrency        | Maximum number of concurrent requests to Resource Tagging API             | 5          |
-| scraping-interval      | Seconds to wait between scraping the AWS metrics                          | 300        |
-| metrics-per-query      | Number of metrics made in a single GetMetricsData request                 | 500        |
-| labels-snake-case      | Causes labels on metrics to be output in snake case instead of camel case | false      |
-
-### Top level configuration
-
-Below are the top level fields of the YAML configuration file.
-
-| Key             | Description                             |
-| --------------- | --------------------------------------- |
-| apiVersion      | Configuration file version              |
-| sts-region      | Use STS regional endpoint (Optional)    |
-| discovery       | Auto-discovery configuration            |
-| static          | List of static configurations           |
-| customNamespace | List of custom namespace configurations |
-
-### Auto-discovery configuration
-
-| Key                   | Description                                       |
-| --------------------- | ------------------------------------------------- |
-| exportedTagsOnMetrics | List of tags per service to export to all metrics |
-| jobs                  | List of auto-discovery jobs                       |
-
-exportedTagsOnMetrics example:
-
-```yaml
-exportedTagsOnMetrics:
-  ec2:
-    - Name
-    - type
-```
-
-Note: Only [tagged resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html) are discovered.
-
-### Auto-discovery job
-
-| Key                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| regions                   | List of AWS regions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| type                      | Cloudwatch service alias ("alb", "ec2", etc) or namespace name ("AWS/EC2", "AWS/S3", etc).                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| length (Default 120)      | How far back to request data for in seconds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| delay                     | If set it will request metrics up until `current_time - delay`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| roles                     | List of IAM roles to assume (optional)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| searchTags                | List of Key/Value pairs to use for tag filtering (all must match), Value can be a regex.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| period                    | Statistic period in seconds (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| statistics                | List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| roundingPeriod            | Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests. This rounding is optimize performance of the CloudWatch request. This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes).  to For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job. |
-| addCloudwatchTimestamp    | Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| customTags                | Custom tags to be added as a list of Key/Value pairs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| dimensionNameRequirements | List of metric dimensions to query. Before querying metric values, the total list of metrics will be filtered to only those that contain exactly this list of dimensions. An empty or undefined list results in all dimension combinations being included.                                                                                                                                                                                                                                                                                        |
-| metrics                   | List of metric definitions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-
-searchTags example:
-
-```yaml
-searchTags:
-  - key: env
-    value: production
-```
-
-### Metric definition
-
-| Key                    | Description                                                                             |
-| ---------------------- | --------------------------------------------------------------------------------------- |
-| name                   | CloudWatch metric name                                                                  |
-| statistics             | List of statistic types, e.g. "Minimum", "Maximum", etc.                                |
-| period                 | Statistic period in seconds (Overrides job level setting)                               |
-| length                 | How far back to request data for in seconds(for static jobs)                            |
-| delay                  | If set it will request metrics up until `current_time - delay`(for static jobs)         |
-| nilToZero              | Return 0 value if Cloudwatch returns no metrics at all. By default NaN will be reported |
-| addCloudwatchTimestamp | Export the metric with the original CloudWatch timestamp (Overrides job level setting)  |
-
-* Available statistics: Maximum, Minimum, Sum, SampleCount, Average, pXX.
-* **Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours**
-* **Setting Inheritance: Some settings at the job level are overridden by settings at the metric level.  This allows for a specific setting to override a
-general setting.  The currently inherited settings are period, and addCloudwatchTimestamp**
-
-### Static configuration
-
-| Key        | Description                                                |
-| ---------- | ---------------------------------------------------------- |
-| regions    | List of AWS regions                                        |
-| roles      | List of IAM roles to assume                                |
-| namespace  | CloudWatch namespace                                       |
-| name       | Must be set with multiple block definitions per namespace  |
-| customTags | Custom tags to be added as a list of Key/Value pairs       |
-| dimensions | CloudWatch metric dimensions as a list of Name/Value pairs |
-| metrics    | List of metric definitions                                 |
-
-### Example of config File
-
-```yaml
-apiVersion: v1alpha1
-sts-region: eu-west-1
-discovery:
-  exportedTagsOnMetrics:
-    ec2:
-      - Name
-    ebs:
-      - VolumeId
-  jobs:
-  - type: es
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: type
-        value: ^(easteregg|k8s)$
-    metrics:
-      - name: FreeStorageSpace
-        statistics:
-        - Sum
-        period: 60
-        length: 600
-      - name: ClusterStatus.green
-        statistics:
-        - Minimum
-        period: 60
-        length: 600
-      - name: ClusterStatus.yellow
-        statistics:
-        - Maximum
-        period: 60
-        length: 600
-      - name: ClusterStatus.red
-        statistics:
-        - Maximum
-        period: 60
-        length: 600
-  - type: elb
-    regions:
-      - eu-west-1
-    length: 900
-    delay: 120
-    statistics:
-      - Minimum
-      - Maximum
-      - Sum
-    searchTags:
-      - key: KubernetesCluster
-        value: production-19
-    metrics:
-      - name: HealthyHostCount
-        statistics:
-        - Minimum
-        period: 600
-        length: 600 #(this will be ignored)
-      - name: HTTPCode_Backend_4XX
-        statistics:
-        - Sum
-        period: 60
-        length: 900 #(this will be ignored)
-        delay: 300 #(this will be ignored)
-        nilToZero: true
-      - name: HTTPCode_Backend_5XX
-        period: 60
-  - type: alb
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: kubernetes.io/service-name
-        value: .*
-    metrics:
-      - name: UnHealthyHostCount
-        statistics: [Maximum]
-        period: 60
-        length: 600
-  - type: vpn
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: kubernetes.io/service-name
-        value: .*
-    metrics:
-      - name: TunnelState
-        statistics:
-        - p90
-        period: 60
-        length: 300
-  - type: kinesis
-    regions:
-      - eu-west-1
-    metrics:
-      - name: PutRecords.Success
-        statistics:
-        - Sum
-        period: 60
-        length: 300
-  - type: s3
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: type
-        value: public
-    metrics:
-      - name: NumberOfObjects
-        statistics:
-          - Average
-        period: 86400
-        length: 172800
-      - name: BucketSizeBytes
-        statistics:
-          - Average
-        period: 86400
-        length: 172800
-  - type: ebs
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: type
-        value: public
-    metrics:
-      - name: BurstBalance
-        statistics:
-        - Minimum
-        period: 600
-        length: 600
-        addCloudwatchTimestamp: true
-  - type: kafka
-    regions:
-      - eu-west-1
-    searchTags:
-      - key: env
-        value: dev
-    metrics:
-      - name: BytesOutPerSec
-        statistics:
-        - Average
-        period: 600
-        length: 600
-  - type: appstream
-    regions:
-      - eu-central-1
-    searchTags:
-      - key: saas_monitoring
-        value: true
-    metrics:
-      - name: ActualCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: AvailableCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: CapacityUtilization
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: DesiredCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: InUseCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: PendingCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: RunningCapacity
-        statistics:
-          - Average
-        period: 600
-        length: 600
-      - name: InsufficientCapacityError
-        statistics:
-          - Average
-        period: 600
-        length: 600
-  - type: backup
-    regions:
-      - eu-central-1
-    searchTags:
-      - key: saas_monitoring
-        value: true
-    metrics:
-      - name: NumberOfBackupJobsCompleted
-        statistics:
-          - Average
-        period: 600
-        length: 600
-static:
-  - namespace: AWS/AutoScaling
-    name: must_be_set
-    regions:
-      - eu-west-1
-    dimensions:
-     - name: AutoScalingGroupName
-       value: Test
-    customTags:
-      - key: CustomTag
-        value: CustomValue
-    metrics:
-      - name: GroupInServiceInstances
-        statistics:
-        - Minimum
-        period: 60
-        length: 300
-```
-
-[Source: [config_test.yml](pkg/config/testdata/config_test.yml)]
-
-### Custom Namespace configuration
-
-| Key                    | Description                                                      |
-| ---------------------- | ---------------------------------------------------------------- |
-| regions                | List of AWS regions                                              |
-| name                   | the name of your rule. It will be added as a label in Prometheus |
-| namespace              | The Custom CloudWatch namespace                                  |
-| roles                  | Roles that the exporter will assume                              |
-| metrics                | List of metric definitions                                       |
-| statistics             | default value for statistics                                     |
-| nilToZero              | default value for nilToZero                                      |
-| period                 | default value for period                                         |
-| length                 | default value for length                                         |
-| delay                  | default value for delay                                          |
-| addCloudwatchTimestamp | default value for addCloudwatchTimestamp                         |
-
-### Example of config File
-
-```yaml
-apiVersion: v1alpha1
-sts-region: eu-west-1
-customNamespace:
-  - name: customEC2Metrics
-    namespace: CustomEC2Metrics
-    regions:
-      - us-east-1
-    metrics:
-      - name: cpu_usage_idle
-        statistics:
-          - Average
-        period: 300
-        length: 300
-        nilToZero: true
-      - name: disk_free
-        statistics:
-          - Average
-        period: 300
-        length: 300
-        nilToZero: true
-```
+Refer to the [configuration](docs/configuration.md) docs.
 
 ## Metrics Examples
 
@@ -692,7 +273,8 @@ This protects from the abuse of API requests that can cause extra billing in AWS
 The flag 'scraping-interval' defines the seconds between scrapes.
 The default value is 300.
 
-### Embedding YACE as a library in an external application
+## Using YACE as a Go library
+
 It is possible to embed YACE in to an external application. This mode might be useful to you if you would like to scrape on demand or run in a stateless manner.
 
 The entrypoint to use YACE as a library is the `UpdateMetrics` func in [update.go](./pkg/exporter.go#L35) which requires,
