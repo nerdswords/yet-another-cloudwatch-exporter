@@ -40,6 +40,7 @@ Only the latest version gets security updates. We won't support older versions.
 
   * acm (AWS/CertificateManager) - Certificate Manager
   * airflow (AmazonMWAA) - Managed Apache Airflow
+  * mwaa (AWS/MWAA) - Managed Apache Airflow (Container, queue, and database metrics)
   * alb (AWS/ApplicationELB) - Application Load Balancer
   * apigateway (AWS/ApiGateway) - API Gateway
   * appstream (AWS/AppStream) - AppStream
