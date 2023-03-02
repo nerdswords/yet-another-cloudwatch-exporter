@@ -1,0 +1,35 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/ELB
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: BackendConnectionErrors
+          statistics: [Sum]
+        - name: HTTPCode_Backend_2XX
+          statistics: [Sum]
+        - name: HTTPCode_Backend_3XX
+          statistics: [Sum]
+        - name: HTTPCode_Backend_4XX
+          statistics: [Sum]
+        - name: HTTPCode_Backend_5XX
+          statistics: [Sum]
+        - name: HTTPCode_ELB_4XX
+          statistics: [Sum]
+        - name: HTTPCode_ELB_5XX
+          statistics: [Sum]
+        - name: RequestCount
+          statistics: [Sum]
+        - name: Latency
+          statistics: [Average]
+        - name: SurgeQueueLength
+          statistics: [Average]
+        - name: SpilloverCount
+          statistics: [Sum]
+        - name: HealthyHostCount
+          statistics: [Minimum, Maximum]
+        - name: UnHealthyHostCount
+          statistics: [Minimum, Maximum]

@@ -1,0 +1,13 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/S3
+      regions:
+        - us-east-1
+      period: 86400
+      length: 86400
+      metrics:
+        - name: NumberOfObjects
+          statistics: [Average]
+        - name: BucketSizeBytes
+          statistics: [Average]
