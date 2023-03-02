@@ -1,0 +1,33 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/EC2
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: CPUUtilization
+          statistics: [Average]
+        - name: NetworkIn
+          statistics: [Average, Sum]
+        - name: NetworkOut
+          statistics: [Average, Sum]
+        - name: NetworkPacketsIn
+          statistics: [Sum]
+        - name: NetworkPacketsOut
+          statistics: [Sum]
+        - name: DiskReadBytes
+          statistics: [Sum]
+        - name: DiskWriteBytes
+          statistics: [Sum]
+        - name: DiskReadOps
+          statistics: [Sum]
+        - name: DiskWriteOps
+          statistics: [Sum]
+        - name: StatusCheckFailed
+          statistics: [Sum]
+        - name: StatusCheckFailed_Instance
+          statistics: [Sum]
+        - name: StatusCheckFailed_System
+          statistics: [Sum]
