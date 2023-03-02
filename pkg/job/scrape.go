@@ -14,14 +14,16 @@ import (
 
 func ScrapeAwsData(
 	ctx context.Context,
-	cfg config.ScrapeConf,
-	metricsPerQuery int,
-	cloudwatchSemaphore,
-	tagSemaphore chan struct{},
-	cache session.SessionCache,
 	logger logging.Logger,
+	cfg config.ScrapeConf,
+	cache session.SessionCache,
+	metricsPerQuery int,
+	cloudWatchAPIConcurrency int,
+	taggingAPIConcurrency int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	mux := &sync.Mutex{}
+	cloudwatchSemaphore := make(chan struct{}, cloudWatchAPIConcurrency)
+	tagSemaphore := make(chan struct{}, taggingAPIConcurrency)
 
 	cwData := make([]*model.CloudwatchData, 0)
 	awsInfoData := make([]*model.TaggedResource, 0)
