@@ -1,3 +1,38 @@
+# v0.49.0
+
+**Important breaking changes**:
+* From now on we're dropping the `-alpha` suffix from the version number. YACE will be considered alpha quality until v1.0.0.
+* The helm chart is now hosted at https://github.com/nerdswords/helm-charts, please refer to the instructions in the new repo.
+
+**Bugfixes and features**:
+Helm chart:
+* Move helm chart out of this repo by @cristiangreco
+* Update helm repo link in README.md by @cristiangreco
+
+New services:
+* Add support for Container, queue, and database metrics for MWAA by @millin
+* Add support for acm-pca service by @jutley
+
+Docs updates:
+* Docs review: move "install" and "configuration" in separate docs by @cristiangreco
+* Docs: Fix example config link by @matej-g
+* Add example config files by @cristiangreco
+
+Internal refactoring:
+* Code refactoring: split out job and api code by @cristiangreco
+* Minor refactoring of pkg/apicloudwatch and pkg/apitagging by @cristiangreco
+* Refactor CW metrics to resource association logic and add tests by @thepalbi
+* Wrap service filter errors by @kgeckhart
+
+**Dependencies**:
+* Bump github.com/aws/aws-sdk-go from 1.44.194 to 1.44.215
+* Bump github.com/prometheus/common from 0.37.0 to 0.41.0
+* Bump github.com/stretchr/testify from 1.8.1 to 1.8.2
+* Bump github.com/urfave/cli/v2 from 2.24.3 to 2.25.0
+* Bump golang.org/x/sync from 0.0.0-20220722155255-886fb9371eb4 to 0.1.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.48.0-alpha...v0.49.0-alpha
+
 # v0.48.0-alpha
 
 **Bugfixes and features**:
