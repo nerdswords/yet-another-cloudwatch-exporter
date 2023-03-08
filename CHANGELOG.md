@@ -1,3 +1,8 @@
+# v0.49.2
+
+## Bugfixes and features
+* Update release action to use goreleaser docker image v1.16.0
+
 # v0.49.1
 
 ## Bugfixes and features
