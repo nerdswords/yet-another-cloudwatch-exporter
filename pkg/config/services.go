@@ -33,6 +33,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/ACMPrivateCA",
+		Alias:     "acm-pca",
+		ResourceFilters: []*string{
+			aws.String("acm-pca:certificate-authority"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("(?P<PrivateCAArn>.*)"),
+		},
+	},
+	{
 		Namespace: "AmazonMWAA",
 		Alias:     "airflow",
 		ResourceFilters: []*string{

@@ -39,6 +39,7 @@ Only the latest version gets security updates. We won't support older versions.
 * Supported services with auto discovery through tags:
 
   * acm (AWS/CertificateManager) - Certificate Manager
+  * acm-pca (AWS/ACMPrivateCA) - ACM Private CA
   * airflow (AmazonMWAA) - Managed Apache Airflow
   * mwaa (AWS/MWAA) - Managed Apache Airflow (Container, queue, and database metrics)
   * alb (AWS/ApplicationELB) - Application Load Balancer
