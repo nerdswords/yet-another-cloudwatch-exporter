@@ -1,3 +1,8 @@
+# v0.49.1
+
+## Bugfixes and features
+* Update release action to use Go 1.20
+
 # v0.49.0
 
 ## Important breaking changes
