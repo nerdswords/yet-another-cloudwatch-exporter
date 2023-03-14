@@ -48,7 +48,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", *result.Account)
 
 					resources, metrics := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, tagSemaphore, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics)
-					if len(resources) != 0 && len(metrics) != 0 {
+					if len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
 						cwData = append(cwData, metrics...)

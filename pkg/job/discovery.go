@@ -62,18 +62,12 @@ func scrapeDiscoveryJobUsingMetricData(
 	tagSemaphore chan struct{},
 	logger logging.Logger,
 ) (resources []*model.TaggedResource, cw []*model.CloudwatchData) {
-	// Add the info tags of all the resources
 	logger.Debug("Get tagged resources")
 	tagSemaphore <- struct{}{}
 	resources, err := clientTag.GetResources(ctx, job, region)
 	<-tagSemaphore
 	if err != nil {
 		logger.Error(err, "Couldn't describe resources")
-		return
-	}
-
-	if len(resources) == 0 {
-		logger.Info("No tagged resources made it through filtering")
 		return
 	}
 

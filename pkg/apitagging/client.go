@@ -57,8 +57,10 @@ func NewClient(
 func (c Client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
+	shouldHaveDiscoveredResources := false
 
 	if len(svc.ResourceFilters) > 0 {
+		shouldHaveDiscoveredResources = true
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
@@ -101,6 +103,7 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 
 	if ext, ok := serviceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
+			shouldHaveDiscoveredResources = true
 			newResources, err := ext.ResourceFunc(ctx, c, job, region)
 			if err != nil {
 				return nil, fmt.Errorf("failed to apply ResourceFunc for %s, %w", svc.Namespace, err)
@@ -119,5 +122,11 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 		}
 	}
 
+	if shouldHaveDiscoveredResources && len(resources) == 0 {
+		return nil, ErrExpectedToFindResources
+	}
+
 	return resources, nil
 }
+
+var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
