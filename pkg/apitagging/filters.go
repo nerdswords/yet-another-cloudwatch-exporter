@@ -32,7 +32,6 @@ type serviceFilter struct {
 var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
-			promutil.APIGatewayAPICounter.Inc()
 			const maxPages = 10
 
 			var (
@@ -44,6 +43,7 @@ var serviceFilters = map[string]serviceFilter{
 			)
 
 			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+				promutil.APIGatewayAPICounter.Inc()
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
@@ -52,6 +52,7 @@ var serviceFilters = map[string]serviceFilter{
 				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
 			}
 			outputV2, err := client.apiGatewayAPIv2.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			promutil.APIGatewayAPIV2Counter.Inc()
 			if err != nil {
 				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
 			}
