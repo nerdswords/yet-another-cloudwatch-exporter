@@ -82,8 +82,10 @@ var SupportedServices = serviceConfigs{
 			aws.String("apigateway"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)$"),
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)$"),
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)$"),
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)/stages/(?P<Stage>[^/]+)$"),
 		},
 	},
 	{
