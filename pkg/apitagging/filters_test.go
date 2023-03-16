@@ -64,7 +64,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 						Position: nil,
 					},
 				},
-				apiGatewayAPIv2: apiGatewayV2Client{
+				apiGatewayV2API: apiGatewayV2Client{
 					getRestApisOutput: &apigatewayv2.GetApisOutput{
 						Items: []*apigatewayv2.Api{},
 					},
@@ -116,7 +116,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 						Items: []*apigateway.RestApi{},
 					},
 				},
-				apiGatewayAPIv2: apiGatewayV2Client{
+				apiGatewayV2API: apiGatewayV2Client{
 					getRestApisOutput: &apigatewayv2.GetApisOutput{
 						Items: []*apigatewayv2.Api{
 							{

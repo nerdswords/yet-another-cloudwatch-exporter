@@ -27,7 +27,7 @@ type Client struct {
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	autoscalingAPI    autoscalingiface.AutoScalingAPI
 	apiGatewayAPI     apigatewayiface.APIGatewayAPI
-	apiGatewayAPIv2   apigatewayv2iface.ApiGatewayV2API
+	apiGatewayV2API   apigatewayv2iface.ApiGatewayV2API
 	ec2API            ec2iface.EC2API
 	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
@@ -39,7 +39,7 @@ func NewClient(
 	taggingAPI resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI,
 	autoscalingAPI autoscalingiface.AutoScalingAPI,
 	apiGatewayAPI apigatewayiface.APIGatewayAPI,
-	apiGatewayAPIv2 apigatewayv2iface.ApiGatewayV2API,
+	apiGatewayV2API apigatewayv2iface.ApiGatewayV2API,
 	ec2API ec2iface.EC2API,
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
@@ -50,7 +50,7 @@ func NewClient(
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
 		apiGatewayAPI:     apiGatewayAPI,
-		apiGatewayAPIv2:   apiGatewayAPIv2,
+		apiGatewayV2API:   apiGatewayV2API,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,

@@ -51,7 +51,7 @@ var serviceFilters = map[string]serviceFilter{
 			if err != nil {
 				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
 			}
-			outputV2, err := client.apiGatewayAPIv2.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
 			promutil.APIGatewayAPIV2Counter.Inc()
 			if err != nil {
 				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
