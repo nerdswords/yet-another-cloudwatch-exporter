@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -32,20 +33,32 @@ var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			promutil.APIGatewayAPICounter.Inc()
-			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
-			input := apigateway.GetRestApisInput{Limit: &limit}
-			output := apigateway.GetRestApisOutput{}
-			var pageNum int
-			var outputResources []*model.TaggedResource
+
+			var (
+				limit           int64 = 500 // max number of results per page. default=25, max=500
+				input                 = apigateway.GetRestApisInput{Limit: &limit}
+				output                = apigateway.GetRestApisOutput{}
+				pageNum         int
+				outputResources []*model.TaggedResource
+			)
+
 			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
 			})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
+			}
+			outputV2, err := client.apiGatewayAPIv2.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
+			}
+
 			for _, resource := range inputResources {
 				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.Id))
+					searchString := regexp.MustCompile(fmt.Sprintf(".*restapis/%s$", *gw.Id))
 					if searchString.MatchString(resource.ARN) {
 						r := resource
 						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
@@ -54,9 +67,14 @@ var serviceFilters = map[string]serviceFilter{
 						break
 					}
 				}
-			}
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApis, %w", err)
+				for i, gw := range outputV2.Items {
+					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
+					if searchString.MatchString(resource.ARN) {
+						outputResources = append(outputResources, resource)
+						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
+						break
+					}
+				}
 			}
 			return outputResources, nil
 		},

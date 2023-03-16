@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 
@@ -62,6 +64,11 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 						Position: nil,
 					},
 				},
+				apiGatewayAPIv2: apiGatewayV2Client{
+					getRestApisOutput: &apigatewayv2.GetApisOutput{
+						Items: []*apigatewayv2.Api{},
+					},
+				},
 			},
 			[]*model.TaggedResource{
 				{
@@ -90,6 +97,70 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 			[]*model.TaggedResource{
 				{
 					ARN:       "arn:aws:apigateway:us-east-1::/restapis/apiname",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []model.Tag{
+						{
+							Key:   "Test",
+							Value: "Value 2",
+						},
+					},
+				},
+			},
+		},
+		{
+			"api gateway v2",
+			Client{
+				apiGatewayAPI: apiGatewayClient{
+					getRestApisOutput: &apigateway.GetRestApisOutput{
+						Items: []*apigateway.RestApi{},
+					},
+				},
+				apiGatewayAPIv2: apiGatewayV2Client{
+					getRestApisOutput: &apigatewayv2.GetApisOutput{
+						Items: []*apigatewayv2.Api{
+							{
+								CreatedDate:               nil,
+								Description:               nil,
+								DisableExecuteApiEndpoint: nil,
+								ApiId:                     aws.String("gwid9876"),
+								Name:                      aws.String("apiv2name"),
+								Tags:                      nil,
+								Version:                   nil,
+								Warnings:                  nil,
+							},
+						},
+						NextToken: nil,
+					},
+				},
+			},
+			[]*model.TaggedResource{
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/apis/gwid9876/stages/$default",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []model.Tag{
+						{
+							Key:   "Test",
+							Value: "Value",
+						},
+					},
+				},
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/apis/gwid9876",
+					Namespace: "apigateway",
+					Region:    "us-east-1",
+					Tags: []model.Tag{
+						{
+							Key:   "Test",
+							Value: "Value 2",
+						},
+					},
+				},
+			},
+			[]*model.TaggedResource{
+				{
+					ARN:       "arn:aws:apigateway:us-east-1::/apis/gwid9876",
 					Namespace: "apigateway",
 					Region:    "us-east-1",
 					Tags: []model.Tag{
@@ -368,4 +439,13 @@ type apiGatewayClient struct {
 func (apigateway apiGatewayClient) GetRestApisPagesWithContext(_ aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
 	fn(apigateway.getRestApisOutput, true)
 	return nil
+}
+
+type apiGatewayV2Client struct {
+	apigatewayv2iface.ApiGatewayV2API
+	getRestApisOutput *apigatewayv2.GetApisOutput
+}
+
+func (apigateway apiGatewayV2Client) GetApisWithContext(_ aws.Context, input *apigatewayv2.GetApisInput, opts ...request.Option) (*apigatewayv2.GetApisOutput, error) {
+	return apigateway.getRestApisOutput, nil
 }
