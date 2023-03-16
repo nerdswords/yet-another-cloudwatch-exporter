@@ -40,6 +40,7 @@ func runDiscoveryJob(
 		cache.GetTagging(&region, role),
 		cache.GetASG(&region, role),
 		cache.GetAPIGateway(&region, role),
+		cache.GetAPIGatewayV2(&region, role),
 		cache.GetEC2(&region, role),
 		cache.GetDMS(&region, role),
 		cache.GetPrometheus(&region, role),

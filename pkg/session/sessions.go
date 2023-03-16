@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -45,6 +47,7 @@ type SessionCache interface { //nolint:revive
 	GetEC2(*string, config.Role) ec2iface.EC2API
 	GetDMS(*string, config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	GetAPIGateway(*string, config.Role) apigatewayiface.APIGatewayAPI
+	GetAPIGatewayV2(*string, config.Role) apigatewayv2iface.ApiGatewayV2API
 	GetStorageGateway(*string, config.Role) storagegatewayiface.StorageGatewayAPI
 	GetPrometheus(*string, config.Role) prometheusserviceiface.PrometheusServiceAPI
 	Refresh()
@@ -76,6 +79,7 @@ type clientCache struct {
 	prometheus     prometheusserviceiface.PrometheusServiceAPI
 	dms            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	apiGateway     apigatewayiface.APIGatewayAPI
+	apiGatewayV2   apigatewayv2iface.ApiGatewayV2API
 	storageGateway storagegatewayiface.StorageGatewayAPI
 }
 
@@ -223,6 +227,7 @@ func (s *sessionCache) Refresh() {
 			s.clients[role][region].ec2 = createEC2Session(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].dms = createDMSSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].apiGateway = createAPIGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
+			s.clients[role][region].apiGatewayV2 = createAPIGatewayV2Session(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].storageGateway = createStorageGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 			s.clients[role][region].prometheus = createPrometheusSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
 		}
@@ -340,6 +345,20 @@ func (s *sessionCache) GetAPIGateway(region *string, role config.Role) apigatewa
 
 	s.clients[role][*region].apiGateway = createAPIGatewaySession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
 	return s.clients[role][*region].apiGateway
+}
+
+func (s *sessionCache) GetAPIGatewayV2(region *string, role config.Role) apigatewayv2iface.ApiGatewayV2API {
+	// if we have not refreshed then we need to lock in case we are accessing concurrently
+	if !s.refreshed {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+	}
+	if sess, ok := s.clients[role][*region]; ok && sess.apiGatewayV2 != nil {
+		return sess.apiGatewayV2
+	}
+
+	s.clients[role][*region].apiGatewayV2 = createAPIGatewayV2Session(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
+	return s.clients[role][*region].apiGatewayV2
 }
 
 func (s *sessionCache) GetStorageGateway(region *string, role config.Role) storagegatewayiface.StorageGatewayAPI {
@@ -542,4 +561,20 @@ func createAPIGatewaySession(sess *session.Session, region *string, role config.
 	}
 
 	return apigateway.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createAPIGatewayV2Session(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) apigatewayv2iface.ApiGatewayV2API {
+	maxAPIGatewayAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
+	if fips {
+		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
+		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
+	if isDebugEnabled {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
+	return apigatewayv2.New(sess, setSTSCreds(sess, config, role))
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -26,6 +27,7 @@ type Client struct {
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	autoscalingAPI    autoscalingiface.AutoScalingAPI
 	apiGatewayAPI     apigatewayiface.APIGatewayAPI
+	apiGatewayAPIv2   apigatewayv2iface.ApiGatewayV2API
 	ec2API            ec2iface.EC2API
 	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
@@ -37,6 +39,7 @@ func NewClient(
 	taggingAPI resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI,
 	autoscalingAPI autoscalingiface.AutoScalingAPI,
 	apiGatewayAPI apigatewayiface.APIGatewayAPI,
+	apiGatewayAPIv2 apigatewayv2iface.ApiGatewayV2API,
 	ec2API ec2iface.EC2API,
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
@@ -47,6 +50,7 @@ func NewClient(
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
 		apiGatewayAPI:     apiGatewayAPI,
+		apiGatewayAPIv2:   apiGatewayAPIv2,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
