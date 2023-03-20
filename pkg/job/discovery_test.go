@@ -486,6 +486,87 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 			},
 		},
+		{
+			"ECS",
+			args{
+				region:           "us-east-1",
+				accountID:        aws.String("123123123123"),
+				namespace:        "AWS/ECS",
+				customTags:       nil,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				resources: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:ecs:us-east-1:366620023056:cluster/scorekeep-cluster",
+						Namespace: "AWS/ECS",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{Key: "Name", Value: "scorekeep-cluster"},
+						},
+					},
+					{
+						ARN:       "arn:aws:ecs:us-east-1:366620023056:service/scorekeep-cluster/scorekeep-service",
+						Namespace: "AWS/ECS",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{Key: "Name", Value: "scorekeep-service"},
+						},
+					},
+				},
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("CPUUtilization"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("ClusterName"),
+								Value: aws.String("scorekeep-cluster"),
+							},
+							{
+								Name:  aws.String("ServiceName"),
+								Value: aws.String("scorekeep-service"),
+							},
+						},
+						Namespace: aws.String("AWS/ECS"),
+					},
+				},
+				m: &config.Metric{
+					Name: "CPUUtilization",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]model.CloudwatchData{
+				{
+					AccountID:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("ClusterName"),
+							Value: aws.String("scorekeep-cluster"),
+						},
+						{
+							Name:  aws.String("ServiceName"),
+							Value: aws.String("scorekeep-service"),
+						},
+					},
+					ID:        aws.String("arn:aws:ecs:us-east-1:366620023056:service/scorekeep-cluster/scorekeep-service"),
+					Metric:    aws.String("CPUUtilization"),
+					Namespace: aws.String("AWS/ECS"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []model.Tag{},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
