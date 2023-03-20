@@ -88,5 +88,4 @@ func TestDimensionRegexps(t *testing.T) {
 			require.Equal(t, tc.expected, matchResults)
 		})
 	}
-
 }
