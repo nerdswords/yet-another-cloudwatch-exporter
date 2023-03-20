@@ -278,7 +278,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
 		},
 	},
 	{
