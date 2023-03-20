@@ -3,33 +3,25 @@ sts-region: us-east-1
 discovery:
   jobs:
     - type: AWS/ECS
-      regions:
-        - us-east-1
+      regions: [us-east-1]
       period: 300
       length: 300
       metrics:
-        # cluster wide metrics
         - name: CPUReservation
           statistics:
             - Average
-            - Maximum
         - name: MemoryReservation
           statistics:
             - Average
-            - Maximum
-        # cluster/service metrics
         - name: CPUUtilization
           statistics:
             - Average
-            - Maximum
         - name: MemoryUtilization
           statistics:
             - Average
-            - Maximum
     - type: AWS/EC2
       regions: [us-east-1]
       metrics:
         - name: CPUUtilization
           statistics:
             - Average
-            - Maximum

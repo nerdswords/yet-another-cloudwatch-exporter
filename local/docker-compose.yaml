@@ -34,8 +34,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      AWS_REGION: us-east-1
-      AWS_PROFILE: sandbox
+      AWS_REGION: ${AWS_REGION}
+      AWS_PROFILE: ${AWS_PROFILE}
     expose: 
       - 8080
     volumes:
@@ -46,4 +46,3 @@ services:
     command:
       - -listen-address=:8080
       - -config.file=/tmp/config.yml
-  

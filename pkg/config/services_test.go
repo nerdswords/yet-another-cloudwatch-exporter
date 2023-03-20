@@ -37,22 +37,23 @@ func TestSupportedServices(t *testing.T) {
 	}
 }
 
+// TestDimensionRegexps tests that the added DimensionRegexps matches the expected dimensions, given an ARN. These serves
+// as a first test layer, since the matches are later used in the resource matching algorithm.
 func TestDimensionRegexps(t *testing.T) {
 	type args struct {
 		serviceType string
 		arn         string
 	}
 	type testCase struct {
-		args                args
-		expectedRegexsCount int
-		expected            map[string]string
+		args     args
+		expected map[string]string
 	}
 
 	for name, tc := range map[string]testCase{
 		"AWS/ECS service resource": {
 			args: args{
 				serviceType: "AWS/ECS",
-				arn:         "arn:aws:ecs:us-east-1:366620023056:service/scorekeep-cluster/scorekeep-service",
+				arn:         "arn:aws:ecs:us-east-1:123:service/scorekeep-cluster/scorekeep-service",
 			},
 			expected: map[string]string{
 				"ServiceName": "scorekeep-service",
@@ -62,7 +63,7 @@ func TestDimensionRegexps(t *testing.T) {
 		"AWS/ECS cluster resource": {
 			args: args{
 				serviceType: "AWS/ECS",
-				arn:         "arn:aws:ecs:us-east-1:366620023056:cluster/scorekeep-cluster",
+				arn:         "arn:aws:ecs:us-east-1:123:cluster/scorekeep-cluster",
 			},
 			expected: map[string]string{
 				"ClusterName": "scorekeep-cluster",
