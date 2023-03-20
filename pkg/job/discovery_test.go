@@ -493,7 +493,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				accountID:        aws.String("123123123123"),
 				namespace:        "AWS/ECS",
 				customTags:       nil,
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources: []*model.TaggedResource{
 					{
 						ARN:       "arn:aws:ecs:us-east-1:366620023056:cluster/scorekeep-cluster",

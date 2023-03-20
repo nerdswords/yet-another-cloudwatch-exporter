@@ -265,8 +265,8 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
+			regexp.MustCompile(`^arn:aws:ecs:[^/]+:\d+:cluster/(?P<ClusterName>[^/]+)$`),
+			regexp.MustCompile(`^arn:aws:ecs:[^/]+:\d+:service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)$`),
 		},
 	},
 	{
