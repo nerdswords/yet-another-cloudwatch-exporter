@@ -1,10 +1,20 @@
+# v0.49.2
+
+## Bugfixes and features
+* Update release action to use goreleaser docker image v1.16.0
+
+# v0.49.1
+
+## Bugfixes and features
+* Update release action to use Go 1.20
+
 # v0.49.0
 
-**Important breaking changes**:
+## Important breaking changes
 * From now on we're dropping the `-alpha` suffix from the version number. YACE will be considered alpha quality until v1.0.0.
 * The helm chart is now hosted at https://github.com/nerdswords/helm-charts, please refer to the instructions in the new repo.
 
-**Bugfixes and features**:
+## Bugfixes and features
 Helm chart:
 * Move helm chart out of this repo by @cristiangreco
 * Update helm repo link in README.md by @cristiangreco
@@ -24,14 +34,14 @@ Internal refactoring:
 * Refactor CW metrics to resource association logic and add tests by @thepalbi
 * Wrap service filter errors by @kgeckhart
 
-**Dependencies**:
+## Dependencies
 * Bump github.com/aws/aws-sdk-go from 1.44.194 to 1.44.215
 * Bump github.com/prometheus/common from 0.37.0 to 0.41.0
 * Bump github.com/stretchr/testify from 1.8.1 to 1.8.2
 * Bump github.com/urfave/cli/v2 from 2.24.3 to 2.25.0
 * Bump golang.org/x/sync from 0.0.0-20220722155255-886fb9371eb4 to 0.1.0
 
-**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.48.0-alpha...v0.49.0-alpha
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.48.0-alpha...v0.49.0
 
 # v0.48.0-alpha
 

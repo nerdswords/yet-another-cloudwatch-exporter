@@ -350,12 +350,12 @@ type dmsClient struct {
 	describeReplicationTasksOutput     *databasemigrationservice.DescribeReplicationTasksOutput
 }
 
-func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(_ aws.Context, input *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, opts ...request.Option) error {
+func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, _ ...request.Option) error {
 	fn(dms.describeReplicationInstancesOutput, true)
 	return nil
 }
 
-func (dms dmsClient) DescribeReplicationTasksPagesWithContext(_ aws.Context, input *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, opts ...request.Option) error {
+func (dms dmsClient) DescribeReplicationTasksPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, _ ...request.Option) error {
 	fn(dms.describeReplicationTasksOutput, true)
 	return nil
 }
@@ -365,7 +365,7 @@ type apiGatewayClient struct {
 	getRestApisOutput *apigateway.GetRestApisOutput
 }
 
-func (apigateway apiGatewayClient) GetRestApisPagesWithContext(_ aws.Context, input *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, opts ...request.Option) error {
+func (apigateway apiGatewayClient) GetRestApisPagesWithContext(_ aws.Context, _ *apigateway.GetRestApisInput, fn func(*apigateway.GetRestApisOutput, bool) bool, _ ...request.Option) error {
 	fn(apigateway.getRestApisOutput, true)
 	return nil
 }
