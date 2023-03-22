@@ -111,7 +111,7 @@ func startScraper(_ *cli.Context) error {
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
 
-	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
+	http.HandleFunc("/metrics", s.makeHandler())
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`<html>

@@ -28,7 +28,7 @@ func NewScraper() *scraper { //nolint:revive
 	}
 }
 
-func (s *scraper) makeHandler(ctx context.Context, cache session.SessionCache) func(http.ResponseWriter, *http.Request) {
+func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
