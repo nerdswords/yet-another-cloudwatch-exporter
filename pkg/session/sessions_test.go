@@ -940,7 +940,7 @@ func testGetAWSClient(
 
 	for _, l := range tests {
 		test := l
-		t.Run(test.descrip, func(t *testing.T) {
+		t.Run(name+" "+test.descrip, func(t *testing.T) {
 			t.Parallel()
 			if test.parallelRun {
 				go testClientGet(t, test.cache, &region, role)
