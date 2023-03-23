@@ -15,20 +15,16 @@ import (
 )
 
 type scraper struct {
-	cloudwatchSemaphore chan struct{}
-	tagSemaphore        chan struct{}
-	registry            *prometheus.Registry
+	registry *prometheus.Registry
 }
 
 func NewScraper() *scraper { //nolint:revive
 	return &scraper{
-		cloudwatchSemaphore: make(chan struct{}, cloudwatchConcurrency),
-		tagSemaphore:        make(chan struct{}, tagConcurrency),
-		registry:            prometheus.NewRegistry(),
+		registry: prometheus.NewRegistry(),
 	}
 }
 
-func (s *scraper) makeHandler(ctx context.Context, cache session.SessionCache) func(http.ResponseWriter, *http.Request) {
+func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
 			DisableCompression: false,
@@ -74,7 +70,22 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 			logger.Warn("Could not register cloudwatch api metric")
 		}
 	}
-	exporter.UpdateMetrics(ctx, cfg, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels, logger)
+
+	err := exporter.UpdateMetrics(
+		ctx,
+		logger,
+		cfg,
+		newRegistry,
+		cache,
+		observedMetricLabels,
+		exporter.MetricsPerQuery(metricsPerQuery),
+		exporter.LabelsSnakeCase(labelsSnakeCase),
+		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
+		exporter.TaggingAPIConcurrency(tagConcurrency),
+	)
+	if err != nil {
+		logger.Error(err, "error updating metrics")
+	}
 
 	// this might have a data race to access registry
 	s.registry = newRegistry
