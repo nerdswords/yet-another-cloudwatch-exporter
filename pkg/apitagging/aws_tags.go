@@ -3,6 +3,7 @@ package apitagging
 import (
 	"context"
 	"errors"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
@@ -26,6 +27,7 @@ type TagsInterface struct {
 	AsgClient            autoscalingiface.AutoScalingAPI
 	APIGatewayClient     apigatewayiface.APIGatewayAPI
 	Ec2Client            ec2iface.EC2API
+	DynamoDBClient       dynamodbiface.DynamoDBAPI
 	DmsClient            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	PrometheusClient     prometheusserviceiface.PrometheusServiceAPI
 	StoragegatewayClient storagegatewayiface.StorageGatewayAPI

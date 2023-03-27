@@ -9,6 +9,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -20,11 +21,12 @@ func ScrapeAwsData(
 	tagSemaphore chan struct{},
 	cache session.SessionCache,
 	logger logging.Logger,
-) ([]*model.TaggedResource, []*model.CloudwatchData) {
+) ([]*model.TaggedResource, []*model.CloudwatchData, []*promutil.PrometheusMetric) {
 	mux := &sync.Mutex{}
 
 	cwData := make([]*model.CloudwatchData, 0)
 	awsInfoData := make([]*model.TaggedResource, 0)
+	additionalMetrics := make([]*promutil.PrometheusMetric, 0)
 	var wg sync.WaitGroup
 
 	// since we have called refresh, we have loaded all the credentials
@@ -47,11 +49,12 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", *result.Account)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, tagSemaphore, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics)
+					resources, metrics, otherOutput := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, tagSemaphore, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics)
 					if len(resources) != 0 && len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
 						cwData = append(cwData, metrics...)
+						additionalMetrics = append(additionalMetrics, otherOutput...)
 						mux.Unlock()
 					}
 				}(discoveryJob, region, role)
@@ -107,5 +110,5 @@ func ScrapeAwsData(
 		}
 	}
 	wg.Wait()
-	return awsInfoData, cwData
+	return awsInfoData, cwData, additionalMetrics
 }

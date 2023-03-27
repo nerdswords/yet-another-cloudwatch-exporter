@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
@@ -43,6 +45,7 @@ type SessionCache interface { //nolint:revive
 	GetTagging(*string, config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	GetASG(*string, config.Role) autoscalingiface.AutoScalingAPI
 	GetEC2(*string, config.Role) ec2iface.EC2API
+	GetDynamoDB(*string, config.Role) dynamodbiface.DynamoDBAPI
 	GetDMS(*string, config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	GetAPIGateway(*string, config.Role) apigatewayiface.APIGatewayAPI
 	GetStorageGateway(*string, config.Role) storagegatewayiface.StorageGatewayAPI
@@ -73,6 +76,7 @@ type clientCache struct {
 	tagging        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	asg            autoscalingiface.AutoScalingAPI
 	ec2            ec2iface.EC2API
+	dynamodb       dynamodbiface.DynamoDBAPI
 	prometheus     prometheusserviceiface.PrometheusServiceAPI
 	dms            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	apiGateway     apigatewayiface.APIGatewayAPI
@@ -300,6 +304,20 @@ func (s *sessionCache) GetEC2(region *string, role config.Role) ec2iface.EC2API 
 	return s.clients[role][*region].ec2
 }
 
+func (s *sessionCache) GetDynamoDB(region *string, role config.Role) dynamodbiface.DynamoDBAPI {
+	// if we have not refreshed then we need to lock in case we are accessing concurrently
+	if !s.refreshed {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+	}
+	if sess, ok := s.clients[role][*region]; ok && sess.dynamodb != nil {
+		return sess.dynamodb
+	}
+
+	s.clients[role][*region].dynamodb = createDynamoDBSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
+	return s.clients[role][*region].dynamodb
+}
+
 func (s *sessionCache) GetPrometheus(region *string, role config.Role) prometheusserviceiface.PrometheusServiceAPI {
 	// if we have not refreshed then we need to lock in case we are accessing concurrently
 	if !s.refreshed {
@@ -495,6 +513,22 @@ func createEC2Session(sess *session.Session, region *string, role config.Role, f
 	}
 
 	return ec2.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createDynamoDBSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) dynamodbiface.DynamoDBAPI {
+	maxDynamoDBAPIRetries := 10
+	config := &aws.Config{Region: region, MaxRetries: &maxDynamoDBAPIRetries}
+	if fips {
+		// https://docs.aws.amazon.com/general/latest/gr/ec2-service.html
+		endpoint := fmt.Sprintf("https://dynamodb-fips.%s.amazonaws.com", *region)
+		config.Endpoint = aws.String(endpoint)
+	}
+
+	if isDebugEnabled {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
+	return dynamodb.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createPrometheusSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {

@@ -645,6 +645,12 @@ The following IAM permissions are required to discover tagged Database Migration
 "dms:DescribeReplicationTasks"
 ```
 
+The following IAM permissions are required to fetch additional metrics for DynamoDB (like number of items):
+```json
+"dynamodb:DescribeTable"
+```
+
+
 ## Override AWS endpoint urls
 to support local testing all AWS urls can be overridden with by setting an environment variable `AWS_ENDPOINT_URL`
 ```shell

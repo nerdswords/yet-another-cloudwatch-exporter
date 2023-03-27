@@ -42,7 +42,7 @@ func UpdateMetrics(
 	observedMetricLabels map[string]model.LabelSet,
 	logger logging.Logger,
 ) {
-	tagsData, cloudwatchData := job.ScrapeAwsData(
+	tagsData, cloudwatchData, additionalMetrics := job.ScrapeAwsData(
 		ctx,
 		config,
 		metricsPerQuery,
@@ -60,6 +60,7 @@ func UpdateMetrics(
 	metrics = promutil.EnsureLabelConsistencyForMetrics(metrics, observedMetricLabels)
 
 	metrics = append(metrics, promutil.MigrateTagsToPrometheus(tagsData, labelsSnakeCase, logger)...)
+	metrics = append(metrics, additionalMetrics...)
 
 	registry.MustRegister(promutil.NewPrometheusCollector(metrics))
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -30,7 +31,7 @@ func runDiscoveryJob(
 	role config.Role,
 	account *string,
 	exportedTags model.ExportedTagsOnMetrics,
-) ([]*model.TaggedResource, []*model.CloudwatchData) {
+) ([]*model.TaggedResource, []*model.CloudwatchData, []*promutil.PrometheusMetric) {
 	clientCloudwatch := apicloudwatch.NewCloudWatchInterface(
 		cache.GetCloudwatch(&region, role),
 		logger,
@@ -42,12 +43,17 @@ func runDiscoveryJob(
 		AsgClient:            cache.GetASG(&region, role),
 		DmsClient:            cache.GetDMS(&region, role),
 		Ec2Client:            cache.GetEC2(&region, role),
+		DynamoDBClient:       cache.GetDynamoDB(&region, role),
 		StoragegatewayClient: cache.GetStorageGateway(&region, role),
 		PrometheusClient:     cache.GetPrometheus(&region, role),
 		Logger:               logger,
 	}
 
-	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, tagSemaphore, logger)
+	resources, cwData := scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, tagSemaphore, logger)
+
+	additionalMetrics, _ := scrapeAdditionalMetrics(job, resources, clientTag)
+
+	return resources, cwData, additionalMetrics
 }
 
 func scrapeDiscoveryJobUsingMetricData(
