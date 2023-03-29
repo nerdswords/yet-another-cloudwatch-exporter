@@ -3,6 +3,8 @@ package config
 import "context"
 
 const (
+	// EncodingResourceAssociator is a feature flag used to toggle to the new resource association algorithm, implemented in discovery mode. See
+	// https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/833 for more details.
 	EncodingResourceAssociator = "encoding-resource-associator"
 )
 
