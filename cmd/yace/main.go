@@ -16,6 +16,10 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
+const (
+	enableFeatureFlag = "enable-feature"
+)
+
 var version = "custom-build"
 
 var sem = semaphore.NewWeighted(1)
@@ -37,6 +41,15 @@ var (
 )
 
 func main() {
+	app := NewYACEApp()
+	if err := app.Run(os.Args); err != nil {
+		logger.Error(err, "Error running yace")
+		os.Exit(1)
+	}
+}
+
+// NewYACEApp creates a new cli.App implementing the YACE entrypoints and CLI arguments.
+func NewYACEApp() *cli.App {
 	yace := cli.NewApp()
 	yace.Name = "Yet Another CloudWatch Exporter"
 	yace.Version = version
@@ -103,6 +116,10 @@ func main() {
 		&cli.BoolFlag{
 			Name: "labels-snake-case", Value: exporter.DefaultLabelsSnakeCase, Usage: "Whether labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase,
 		},
+		&cli.StringSliceFlag{
+			Name:  enableFeatureFlag,
+			Usage: "Comma-separated list of enabled features",
+		},
 	}
 
 	yace.Before = func(ctx *cli.Context) error {
@@ -139,13 +156,10 @@ func main() {
 
 	yace.Action = startScraper
 
-	if err := yace.Run(os.Args); err != nil {
-		logger.Error(err, "Error running yace")
-		os.Exit(1)
-	}
+	return yace
 }
 
-func startScraper(_ *cli.Context) error {
+func startScraper(c *cli.Context) error {
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
@@ -153,7 +167,9 @@ func startScraper(_ *cli.Context) error {
 
 	logger.Info("Yace startup completed", "version", version)
 
-	s := NewScraper()
+	featureFlags := c.StringSlice(enableFeatureFlag)
+
+	s := NewScraper(featureFlags)
 	cache := session.NewSessionCache(cfg, fips, logger)
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
