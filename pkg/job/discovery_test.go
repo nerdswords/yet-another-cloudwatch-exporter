@@ -1,6 +1,7 @@
 package job
 
 import (
+	"context"
 	"reflect"
 	"regexp"
 	"testing"
@@ -15,6 +16,7 @@ import (
 
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
+		useEncodingAssociator     bool
 		region                    string
 		accountID                 *string
 		namespace                 string
@@ -487,6 +489,80 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 		},
 		{
+			"multiple GlobalAccelerator resources",
+			args{
+				useEncodingAssociator: true,
+				region:                "us-east-1",
+				accountID:             aws.String("123123123123"),
+				namespace:             "AWS/GlobalAccelerator",
+				customTags:            nil,
+				dimensionRegexps:      config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				resources: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1",
+						Namespace: "AWS/GlobalAccelerator",
+						Region:    "us-east-1",
+					},
+					{
+						ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1/listener/some_listener",
+						Namespace: "AWS/GlobalAccelerator",
+						Region:    "us-east-2",
+					},
+					{
+						ARN:       "arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1/listener/some_listener/endpoint-group/eg1",
+						Namespace: "AWS/GlobalAccelerator",
+						Region:    "us-east-2",
+					},
+				},
+				tagsOnMetrics: nil,
+				metricsList: []*cloudwatch.Metric{
+					{
+						MetricName: aws.String("NewFlowCount"),
+						Dimensions: []*cloudwatch.Dimension{
+							{
+								Name:  aws.String("Accelerator"),
+								Value: aws.String("5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+							},
+						},
+						Namespace: aws.String("AWS/GlobalAccelerator"),
+					},
+				},
+				m: &config.Metric{
+					Name: "NewFlowCount",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]model.CloudwatchData{
+				{
+					AccountID:              aws.String("123123123123"),
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*cloudwatch.Dimension{
+						{
+							Name:  aws.String("Accelerator"),
+							Value: aws.String("5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+						},
+					},
+					ID:        aws.String("arn:aws:globalaccelerator::012345678901:accelerator/5555abcd-abcd-5555-abcd-5555EXAMPLE1"),
+					Metric:    aws.String("NewFlowCount"),
+					Namespace: aws.String("AWS/GlobalAccelerator"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Region:    aws.String("us-east-1"),
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []model.Tag{},
+				},
+			},
+		},
+		{
 			"ECS",
 			args{
 				region:           "us-east-1",
@@ -570,7 +646,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.region, tt.args.accountID, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
+			metricDatas := getFilteredMetricDatas(
+				config.CtxWithFlags(context.Background(), discoveryFeatureFlags{
+					useEncodingAssociator: tt.args.useEncodingAssociator,
+				}),
+				logging.NewNopLogger(), tt.args.region, tt.args.accountID, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.dimensionRegexps, tt.args.resources, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}
@@ -611,4 +691,12 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			}
 		})
 	}
+}
+
+type discoveryFeatureFlags struct {
+	useEncodingAssociator bool
+}
+
+func (ff discoveryFeatureFlags) IsFeatureEnabled(flag string) bool {
+	return flag == config.EncodingResourceAssociator && ff.useEncodingAssociator
 }

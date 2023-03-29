@@ -2,6 +2,10 @@ package config
 
 import "context"
 
+const (
+	EncodingResourceAssociator = "encoding-resource-associator"
+)
+
 var (
 	flagsCtxKey       = struct{}{}
 	defaultController = noController{}

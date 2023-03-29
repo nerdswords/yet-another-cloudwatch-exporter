@@ -178,15 +178,27 @@ func getMetricDataForQueries(
 		if len(resources) == 0 {
 			logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
 		}
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)...)
+		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)...)
 	}
 	return getMetricDatas
 }
 
-func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []model.CloudwatchData) {
-	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
+type resourceAssociator interface {
+	associateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+}
 
-	logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
+func getFilteredMetricDatas(ctx context.Context, logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []model.CloudwatchData) {
+	var ra resourceAssociator
+
+	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.EncodingResourceAssociator) {
+		// if the feature is enabled, use the new encodingAssociator instead of the old one
+		ra = newEncodingMetricsToResourceAssociator(dimensionRegexps, resources)
+	} else {
+		// default to the previous resource associator implementation
+		ra = newMetricsToResourceAssociator(dimensionRegexps, resources)
+	}
+
+	logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", ra)
 
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
@@ -199,7 +211,7 @@ func getFilteredMetricDatas(logger logging.Logger, region string, accountID *str
 		}
 
 		// TODO: refactor this logic after failing scenarios are fixed
-		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
+		matchedResource, skip := ra.associateMetricsToResources(cwMetric)
 		if matchedResource != nil {
 			resource = matchedResource
 		}

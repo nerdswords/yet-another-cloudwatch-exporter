@@ -56,8 +56,8 @@ var defaultOptions = options{
 	featureFlags:             make(featureFlagsMap),
 }
 
-func (opt options) IsFeatureEnabled(flag string) bool {
-	_, ok := opt.featureFlags[flag]
+func (ff featureFlagsMap) IsFeatureEnabled(flag string) bool {
+	_, ok := ff[flag]
 	return ok
 }
 
@@ -133,7 +133,7 @@ func UpdateMetrics(
 	}
 
 	// add feature flags to context passed down to all other layers
-	ctx = config.CtxWithFlags(ctx, options)
+	ctx = config.CtxWithFlags(ctx, options.featureFlags)
 
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,

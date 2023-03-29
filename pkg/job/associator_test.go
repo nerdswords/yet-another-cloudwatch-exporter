@@ -296,7 +296,7 @@ func TestAssociator(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := newMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := newEncodingMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.associateMetricsToResources(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)
