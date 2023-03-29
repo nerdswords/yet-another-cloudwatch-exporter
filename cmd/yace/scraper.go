@@ -15,12 +15,14 @@ import (
 )
 
 type scraper struct {
-	registry *prometheus.Registry
+	registry     *prometheus.Registry
+	featureFlags []string
 }
 
-func NewScraper() *scraper { //nolint:revive
+func NewScraper(featureFlags []string) *scraper { //nolint:revive
 	return &scraper{
-		registry: prometheus.NewRegistry(),
+		registry:     prometheus.NewRegistry(),
+		featureFlags: featureFlags,
 	}
 }
 
@@ -82,6 +84,7 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 		exporter.LabelsSnakeCase(labelsSnakeCase),
 		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
 		exporter.TaggingAPIConcurrency(tagConcurrency),
+		exporter.EnableFeatureFlag(s.featureFlags...),
 	)
 	if err != nil {
 		logger.Error(err, "error updating metrics")

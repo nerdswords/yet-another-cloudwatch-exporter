@@ -36,11 +36,16 @@ const (
 	DefaultTaggingAPIConcurrency    = 5
 )
 
+// featureFlagsMap is a map that contains the enabled feature flags. If a key is not present, it means the feature flag
+// is disabled.
+type featureFlagsMap map[string]struct{}
+
 type options struct {
 	metricsPerQuery          int
 	labelsSnakeCase          bool
 	cloudWatchAPIConcurrency int
 	taggingAPIConcurrency    int
+	featureFlags             featureFlagsMap
 }
 
 var defaultOptions = options{
@@ -48,6 +53,7 @@ var defaultOptions = options{
 	labelsSnakeCase:          DefaultLabelsSnakeCase,
 	cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
 	taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
+	featureFlags:             make(featureFlagsMap),
 }
 
 type OptionsFunc func(*options) error
@@ -88,6 +94,16 @@ func TaggingAPIConcurrency(maxConcurrency int) OptionsFunc {
 		}
 
 		o.taggingAPIConcurrency = maxConcurrency
+		return nil
+	}
+}
+
+// EnableFeatureFlag is an option that enables a feature flag on the YACE's entrypoint.
+func EnableFeatureFlag(flags ...string) OptionsFunc {
+	return func(o *options) error {
+		for _, flag := range flags {
+			o.featureFlags[flag] = struct{}{}
+		}
 		return nil
 	}
 }
