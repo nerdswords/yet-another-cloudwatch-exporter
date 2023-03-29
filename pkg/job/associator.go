@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -56,7 +57,7 @@ func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cl
 					skip = true
 				}
 				break
-			} else { //nolint:revive
+			} else {
 				alreadyFound = true
 				r = d
 			}
