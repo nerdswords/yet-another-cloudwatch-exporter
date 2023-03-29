@@ -15,7 +15,7 @@ func TestFeatureFlagsInContext_DefaultsToNonEnabled(t *testing.T) {
 
 type flags struct{}
 
-func (f flags) IsFeatureEnabled(flag string) bool {
+func (f flags) IsFeatureEnabled(_ string) bool {
 	return true
 }
 

@@ -35,6 +35,6 @@ func FlagsFromCtx(ctx context.Context) FeatureFlags {
 // noController implements a no-op FeatureFlags
 type noController struct{}
 
-func (nc noController) IsFeatureEnabled(flag string) bool {
+func (nc noController) IsFeatureEnabled(_ string) bool {
 	return false
 }
