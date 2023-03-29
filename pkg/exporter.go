@@ -56,6 +56,11 @@ var defaultOptions = options{
 	featureFlags:             make(featureFlagsMap),
 }
 
+func (opt options) IsFeatureEnabled(flag string) bool {
+	_, ok := opt.featureFlags[flag]
+	return ok
+}
+
 type OptionsFunc func(*options) error
 
 func MetricsPerQuery(metricsPerQuery int) OptionsFunc {
@@ -114,7 +119,7 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 func UpdateMetrics(
 	ctx context.Context,
 	logger logging.Logger,
-	config config.ScrapeConf,
+	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
 	cache session.SessionCache,
 	observedMetricLabels map[string]model.LabelSet,
@@ -127,10 +132,13 @@ func UpdateMetrics(
 		}
 	}
 
+	// add feature flags to context passed down to all other layers
+	ctx = config.CtxWithFlags(ctx, options)
+
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,
 		logger,
-		config,
+		cfg,
 		cache,
 		options.metricsPerQuery,
 		options.cloudWatchAPIConcurrency,
