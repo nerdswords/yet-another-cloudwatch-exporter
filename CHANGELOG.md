@@ -1,7 +1,8 @@
 # master
 
 **Bugfixes and features**:
-* Fix [resource association bug](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821) on discovery mode by @thepalbi
+* Fix [resource association bug](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821) on discovery mode. New resource association algorithm needs to be toggled by using the `encoding-resource-associator` feature flag. By @thepalbi
+* Add support for feature flags by @thepalbi
 
 # v0.49.2
 
