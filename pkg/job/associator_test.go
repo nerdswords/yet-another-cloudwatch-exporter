@@ -261,6 +261,23 @@ func TestAssociator(t *testing.T) {
 			expectedResource: ecsService1,
 		},
 		{
+			name: "multiple ecs resources, service metric should be assigned service1 resource",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				resources:        ecsResources,
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("CPUUtilization"),
+					Namespace:  aws.String("AWS/ECS"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+						{Name: aws.String("ServiceName"), Value: aws.String("service1")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: ecsService1,
+		},
+		{
 			name: "multiple ecs resources, service metric should be assigned service2 resource",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
