@@ -8,6 +8,20 @@ volumes:
   prometheus_data: {}
 
 services:
+  grafana:
+    image: grafana/grafana:9.4.3
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yml
+    environment:
+      # configure no-login required access
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_BASIC_ENABLED: "false"
+    networks:
+      - monitoring
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -41,8 +55,9 @@ services:
     volumes:
       - ./yace-config.yaml:/tmp/config.yml
       - $HOME/.aws:/exporter/.aws:ro
-    networks:
-      - monitoring
     command:
       - -listen-address=:8080
       - -config.file=/tmp/config.yml
+      - -enable-feature=encoding-resource-associator
+    networks:
+      - monitoring
