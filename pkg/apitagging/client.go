@@ -21,6 +21,8 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
+var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
+
 type Client struct {
 	logger            logging.Logger
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
@@ -128,5 +130,3 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 
 	return resources, nil
 }
-
-var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")

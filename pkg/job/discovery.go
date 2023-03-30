@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -67,7 +68,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	resources, err := clientTag.GetResources(ctx, job, region)
 	<-tagSemaphore
 	if err != nil {
-		logger.Error(err, "Couldn't describe resources")
+		if errors.Is(err, apitagging.ErrExpectedToFindResources) {
+			logger.Error(err, "No tagged resources made it through filtering")
+		} else {
+			logger.Error(err, "Couldn't describe resources")
+		}
 		return
 	}
 
