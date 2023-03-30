@@ -93,7 +93,7 @@ func newEncodingMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, r
 }
 
 // associateMetricsToResources finds for a cloudwatch.Metric, the resource that matches, or decides if it can still be used
-// with a generic enough resource. The matching process is best effort, meaning that it will for a dimension, the resource
+// with a generic enough resource. The matching process is best effort, meaning that it will guess for a dimension, the resource
 // that matches all dimension only considering the ones seen by the associator. The algorithm works in the following way:
 //
 // 1. First, it will only consider the dimensions from the metric that were seen by the associator. This allows matching

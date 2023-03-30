@@ -17,4 +17,4 @@ docker-compose build
 AWS_REGION=us-east-1 AWS_PROFILE=sandbox docker-compose up -d 
 ```
 
-After, Prometheus will be exposed in [http://localhost:9090](http://localhost:9090).
+After that, Prometheus will be exposed at [http://localhost:9090](http://localhost:9090).
