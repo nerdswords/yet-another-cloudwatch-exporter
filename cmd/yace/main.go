@@ -10,9 +10,14 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
+	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
+)
+
+const (
+	enableFeatureFlag = "enable-feature"
 )
 
 var version = "custom-build"
@@ -36,6 +41,15 @@ var (
 )
 
 func main() {
+	app := NewYACEApp()
+	if err := app.Run(os.Args); err != nil {
+		logger.Error(err, "Error running yace")
+		os.Exit(1)
+	}
+}
+
+// NewYACEApp creates a new cli.App implementing the YACE entrypoints and CLI arguments.
+func NewYACEApp() *cli.App {
 	yace := cli.NewApp()
 	yace.Name = "Yet Another CloudWatch Exporter"
 	yace.Version = version
@@ -46,15 +60,66 @@ func main() {
 	}
 
 	yace.Flags = []cli.Flag{
-		&cli.StringFlag{Name: "listen-address", Value: ":5000", Usage: "The address to listen on.", Destination: &addr, EnvVars: []string{"listen-address"}},
-		&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile, EnvVars: []string{"config.file"}},
-		&cli.BoolFlag{Name: "debug", Value: false, Usage: "Add verbose logging.", Destination: &debug, EnvVars: []string{"debug"}},
-		&cli.BoolFlag{Name: "fips", Value: false, Usage: "Use FIPS compliant aws api.", Destination: &fips},
-		&cli.IntFlag{Name: "cloudwatch-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to CloudWatch API.", Destination: &cloudwatchConcurrency},
-		&cli.IntFlag{Name: "tag-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to Resource Tagging API.", Destination: &tagConcurrency},
-		&cli.IntFlag{Name: "scraping-interval", Value: 300, Usage: "Seconds to wait between scraping the AWS metrics", Destination: &scrapingInterval, EnvVars: []string{"scraping-interval"}},
-		&cli.IntFlag{Name: "metrics-per-query", Value: 500, Usage: "Number of metrics made in a single GetMetricsData request", Destination: &metricsPerQuery, EnvVars: []string{"metrics-per-query"}},
-		&cli.BoolFlag{Name: "labels-snake-case", Value: false, Usage: "If labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase},
+		&cli.StringFlag{
+			Name:        "listen-address",
+			Value:       ":5000",
+			Usage:       "The address to listen on",
+			Destination: &addr,
+			EnvVars:     []string{"listen-address"},
+		},
+		&cli.StringFlag{
+			Name:        "config.file",
+			Value:       "config.yml",
+			Usage:       "Path to configuration file",
+			Destination: &configFile,
+			EnvVars:     []string{"config.file"},
+		},
+		&cli.BoolFlag{
+			Name:        "debug",
+			Value:       false,
+			Usage:       "Verbose logging",
+			Destination: &debug,
+			EnvVars:     []string{"debug"},
+		},
+		&cli.BoolFlag{
+			Name:        "fips",
+			Value:       false,
+			Usage:       "Use FIPS compliant AWS API endpoints",
+			Destination: &fips,
+		},
+		&cli.IntFlag{
+			Name:        "cloudwatch-concurrency",
+			Value:       exporter.DefaultCloudWatchAPIConcurrency,
+			Usage:       "Maximum number of concurrent requests to CloudWatch API.",
+			Destination: &cloudwatchConcurrency,
+		},
+		&cli.IntFlag{
+			Name:        "tag-concurrency",
+			Value:       exporter.DefaultTaggingAPIConcurrency,
+			Usage:       "Maximum number of concurrent requests to Resource Tagging API.",
+			Destination: &tagConcurrency,
+		},
+		&cli.IntFlag{
+			Name:        "scraping-interval",
+			Value:       300,
+			Usage:       "Seconds to wait between scraping the AWS metrics",
+			Destination: &scrapingInterval,
+			EnvVars:     []string{"scraping-interval"},
+		},
+		&cli.IntFlag{
+			Name:        "metrics-per-query",
+			Value:       exporter.DefaultMetricsPerQuery,
+			Usage:       "Number of metrics made in a single GetMetricsData request",
+			Destination: &metricsPerQuery,
+			EnvVars:     []string{"metrics-per-query"},
+		},
+		&cli.BoolFlag{
+			Name: "labels-snake-case", Value: exporter.DefaultLabelsSnakeCase, Usage: "Whether labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase,
+		},
+		&cli.StringSliceFlag{
+			Name:  enableFeatureFlag,
+			Usage: "Comma-separated list of enabled features",
+		},
 	}
 
 	yace.Before = func(ctx *cli.Context) error {
@@ -91,13 +156,10 @@ func main() {
 
 	yace.Action = startScraper
 
-	if err := yace.Run(os.Args); err != nil {
-		logger.Error(err, "Error running yace")
-		os.Exit(1)
-	}
+	return yace
 }
 
-func startScraper(_ *cli.Context) error {
+func startScraper(c *cli.Context) error {
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
@@ -105,13 +167,15 @@ func startScraper(_ *cli.Context) error {
 
 	logger.Info("Yace startup completed", "version", version)
 
-	s := NewScraper()
+	featureFlags := c.StringSlice(enableFeatureFlag)
+
+	s := NewScraper(featureFlags)
 	cache := session.NewSessionCache(cfg, fips, logger)
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
 
-	http.HandleFunc("/metrics", s.makeHandler(ctx, cache))
+	http.HandleFunc("/metrics", s.makeHandler())
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`<html>
