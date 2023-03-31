@@ -1,0 +1,31 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/EBS
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: VolumeReadBytes
+          statistics: [Sum]
+        - name: VolumeWriteBytes
+          statistics: [Sum]
+        - name: VolumeReadOps
+          statistics: [Average]
+        - name: VolumeWriteOps
+          statistics: [Average]
+        - name: VolumeTotalReadTime
+          statistics: [Average]
+        - name: VolumeTotalWriteTime
+          statistics: [Average]
+        - name: VolumeIdleTime
+          statistics: [Average]
+        - name: VolumeQueueLength
+          statistics: [Average]
+        - name: VolumeThroughputPercentage
+          statistics: [Average]
+        - name: VolumeConsumedReadWriteOps
+          statistics: [Average]
+        - name: BurstBalance
+          statistics: [Minimum]

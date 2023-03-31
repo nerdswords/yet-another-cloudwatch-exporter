@@ -1,0 +1,41 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/Kafka
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: BytesInPerSec
+          statistics: [Average]
+        - name: BytesOutPerSec
+          statistics: [Average]
+        - name: RootDiskUsed
+          statistics: [Average]
+        - name: KafkaDataLogsDiskUsed
+          statistics: [Average]
+        - name: KafkaAppLogsDiskUsed
+          statistics: [Average]
+        - name: MemoryFree
+          statistics: [Average]
+        - name: MemoryUsed
+          statistics: [Average]
+        - name: NetworkRxPackets
+          statistics: [Average]
+        - name: NetworkTxPackets
+          statistics: [Average]
+        - name: SwapFree
+          statistics: [Average]
+        - name: SwapUsed
+          statistics: [Average]
+        - name: GlobalTopicCount
+          statistics: [Maximum]
+        - name: GlobalPartitionCount
+          statistics: [Maximum]
+        - name: CpuUser
+          statistics: [Average]
+        - name: CpuSystem
+          statistics: [Average]
+        - name: CpuIdle
+          statistics: [Average]
