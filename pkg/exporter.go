@@ -114,9 +114,20 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 	}
 }
 
-// UpdateMetrics can be used to scrape metrics from AWS on demand using the provided parameters. Scraped metrics will be added to the provided registry and
-// any labels discovered during the scrape will be added to observedMetricLabels with their metric name as the key. Any errors encountered are not returned but
-// will be logged and will either fail the scrape or a partial metric result will be added to the registry.
+// UpdateMetrics is the entrypoint to scrape metrics from AWS on demand.
+//
+// Parameters are:
+// - `ctx`: a context for the request
+// - `config`: this is the struct representation of the configuration defined in top-level configuration
+// - `logger`: any implementation of the `Logger` interface
+// - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
+// - `cache`: any implementation of the `SessionCache`
+// - `optFuncs`: (optional) any number of options funcs
+//
+// You can pre-register any of the default metrics with the provided `registry` if you want them
+// included in the AWS scrape results. If you are using multiple instances of `registry` it
+// might make more sense to register these metrics in the application using YACE as a library to better
+// track them over the lifetime of the application.
 func UpdateMetrics(
 	ctx context.Context,
 	logger logging.Logger,
