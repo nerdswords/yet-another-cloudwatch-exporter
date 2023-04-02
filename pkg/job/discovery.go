@@ -24,30 +24,36 @@ func runDiscoveryJob(
 	logger logging.Logger,
 	cache session.SessionCache,
 	metricsPerQuery int,
-	tagSemaphore chan struct{},
 	job *config.Job,
 	region string,
 	role config.Role,
 	account *string,
 	exportedTags model.ExportedTagsOnMetrics,
+	taggingAPIConcurrency int,
+	cloudwatchAPIConcurrency int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
-	clientCloudwatch := apicloudwatch.NewClient(
-		logger,
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewWithMaxConcurrency(
+		apicloudwatch.NewClient(
+			logger,
+			cache.GetCloudwatch(&region, role),
+		),
+		cloudwatchAPIConcurrency,
 	)
 
-	clientTag := apitagging.NewClient(
-		logger,
-		cache.GetTagging(&region, role),
-		cache.GetASG(&region, role),
-		cache.GetAPIGateway(&region, role),
-		cache.GetEC2(&region, role),
-		cache.GetDMS(&region, role),
-		cache.GetPrometheus(&region, role),
-		cache.GetStorageGateway(&region, role),
-	)
+	clientTag := apitagging.NewWithMaxConcurrency(
+		apitagging.NewClient(
+			logger,
+			cache.GetTagging(&region, role),
+			cache.GetASG(&region, role),
+			cache.GetAPIGateway(&region, role),
+			cache.GetEC2(&region, role),
+			cache.GetDMS(&region, role),
+			cache.GetPrometheus(&region, role),
+			cache.GetStorageGateway(&region, role),
+		),
+		taggingAPIConcurrency)
 
-	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, tagSemaphore, logger)
+	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, logger)
 }
 
 func scrapeDiscoveryJobUsingMetricData(
@@ -56,17 +62,14 @@ func scrapeDiscoveryJobUsingMetricData(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientTag apitagging.Client,
-	clientCloudwatch *apicloudwatch.Client,
+	clientTag *apitagging.MaxConcurrencyClient,
+	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
 	metricsPerQuery int,
 	roundingPeriod *int64,
-	tagSemaphore chan struct{},
 	logger logging.Logger,
 ) (resources []*model.TaggedResource, cw []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
-	tagSemaphore <- struct{}{}
 	resources, err := clientTag.GetResources(ctx, job, region)
-	<-tagSemaphore
 	if err != nil {
 		if errors.Is(err, apitagging.ErrExpectedToFindResources) {
 			logger.Error(err, "No tagged resources made it through filtering")
@@ -77,7 +80,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 
 	svc := config.SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources, tagSemaphore, logger)
+	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Info("No metrics data found")
@@ -152,33 +155,43 @@ func getMetricDataForQueries(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch *apicloudwatch.Client,
+	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
 	resources []*model.TaggedResource,
-	tagSemaphore chan struct{},
 	logger logging.Logger,
 ) []model.CloudwatchData {
+	mux := &sync.Mutex{}
 	var getMetricDatas []model.CloudwatchData
 
-	// For every metric of the job
+	var wg sync.WaitGroup
+	wg.Add(len(discoveryJob.Metrics))
+
 	for _, metric := range discoveryJob.Metrics {
-		// Get the full list of metrics
+		// For every metric of the job get the full list of metrics.
 		// This includes, for this metric the possible combinations
-		// of dimensions and value of dimensions with data
-		tagSemaphore <- struct{}{}
+		// of dimensions and value of dimensions with data.
 
-		metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric)
-		<-tagSemaphore
+		go func(metric *config.Metric) {
+			defer wg.Done()
 
-		if err != nil {
-			logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-			continue
-		}
+			metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric)
+			if err != nil {
+				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+				return
+			}
 
-		if len(resources) == 0 {
-			logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
-		}
-		getMetricDatas = append(getMetricDatas, getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)...)
+			if len(resources) == 0 {
+				logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
+			}
+
+			data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+
+			mux.Lock()
+			getMetricDatas = append(getMetricDatas, data...)
+			mux.Unlock()
+		}(metric)
 	}
+
+	wg.Wait()
 	return getMetricDatas
 }
 
