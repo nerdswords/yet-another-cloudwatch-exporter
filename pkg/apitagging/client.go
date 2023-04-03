@@ -43,8 +43,8 @@ func NewClient(
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
-) Client {
-	return Client{
+) *Client {
+	return &Client{
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
