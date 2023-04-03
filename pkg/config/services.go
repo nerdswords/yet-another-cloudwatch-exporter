@@ -136,6 +136,9 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/ElasticBeanstalk",
 		Alias:     "beanstalk",
+		ResourceFilters: []*string{
+			aws.String("elasticbeanstalk:environment"),
+		},
 	},
 	{
 		Namespace: "AWS/Billing",
