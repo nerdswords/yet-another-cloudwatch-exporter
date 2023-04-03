@@ -1,0 +1,25 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/Backup
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: NumberOfBackupJobsCompleted
+          statistics: [Average]
+        - name: NumberOfBackupJobsCreated
+          statistics: [Average]
+        - name: NumberOfBackupJobsPending
+          statistics: [Average]
+        - name: NumberOfBackupJobsRunning
+          statistics: [Average]
+        - name: NumberOfBackupJobsAborted
+          statistics: [Average]
+        - name: NumberOfBackupJobsCompleted
+          statistics: [Average]
+        - name: NumberOfBackupJobsFailed
+          statistics: [Average]
+        - name: NumberOfBackupJobsExpired
+          statistics: [Average]

@@ -1,0 +1,45 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/Kinesis
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: PutRecord.Latency
+          statistics: [Average]
+        - name: PutRecord.Success
+          statistics: [Sum]
+        - name: PutRecord.Bytes
+          statistics: [Sum]
+        - name: PutRecords.Latency
+          statistics: [Average]
+        - name: PutRecords.Records
+          statistics: [Sum]
+        - name: PutRecords.Success
+          statistics: [Sum]
+        - name: PutRecords.Bytes
+          statistics: [Sum]
+        - name: GetRecords.Latency
+          statistics: [Average]
+        - name: GetRecords.Records
+          statistics: [Sum]
+        - name: GetRecords.Success
+          statistics: [Sum]
+        - name: GetRecords.Bytes
+          statistics: [Sum]
+        - name: GetRecords.IteratorAgeMilliseconds
+          statistics: [Average]
+        - name: IncomingBytes
+          statistics: [Sum]
+        - name: IncomingRecords
+          statistics: [Sum]
+        - name: OutgoingBytes
+          statistics: [Sum]
+        - name: OutgoingRecords
+          statistics: [Sum]
+        - name: WriteProvisionedThroughputExceeded
+          statistics: [Average]
+        - name: ReadProvisionedThroughputExceeded
+          statistics: [Average]

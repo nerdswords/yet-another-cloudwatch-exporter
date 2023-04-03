@@ -57,7 +57,7 @@ func (asoc metricsToResourceAssociator) associateMetricsToResources(cwMetric *cl
 					skip = true
 				}
 				break
-			} else {
+			} else { //nolint:revive
 				alreadyFound = true
 				r = d
 			}

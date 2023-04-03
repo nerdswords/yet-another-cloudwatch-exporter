@@ -1,0 +1,15 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/VPN
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: TunnelDataIn
+          statistics: [Sum]
+        - name: TunnelDataOut
+          statistics: [Sum]
+        - name: TunnelState
+          statistics: [Maximum]
