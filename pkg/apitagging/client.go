@@ -73,10 +73,6 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 			pageNum++
 			promutil.ResourceGroupTaggingAPICounter.Inc()
 
-			if len(page.ResourceTagMappingList) == 0 {
-				c.logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
-			}
-
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
 				resource := model.TaggedResource{
 					ARN:       aws.StringValue(resourceTagMapping.ResourceARN),
