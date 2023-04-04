@@ -19,11 +19,12 @@ All flags may be prefixed with either one hypen or two (i.e., both `-config.file
 | `-config.file` | Path to the configuration file | `config.yml` |
 | `-debug` | Log at debug level | `false` |
 | `-fips` | Use FIPS compliant AWS API | `false` |
-| `-cloudwatch-concurrency` | Maximum number of concurrent requests to CloudWatch API| `5` |
+| `-cloudwatch-concurrency` | Maximum number of concurrent requests to CloudWatch API | `5` |
 | `-tag-concurrency` | Maximum number of concurrent requests to Resource Tagging API | `5` |
 | `-scraping-interval` | Seconds to wait between scraping the AWS metrics | `300` |
 | `-metrics-per-query` | Number of metrics made in a single GetMetricsData request | `500` |
-| `-labels-snake-case`  | Causes labels on metrics to be output in snake case instead of camel case | `false` |
+| `-labels-snake-case`  | Output labels on metrics in snake case instead of camel case | `false` |
+| `-profiling.enabled` | Enable the /debug/pprof endpoints for profiling | `false` |
 
 ## YAML configuration file
 
