@@ -198,22 +198,26 @@ func getMetricDataForQueries(
 func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []model.CloudwatchData) {
 	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
 
-	logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
+	if logger.IsDebugEnabled() {
+		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
+	}
 
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue
 		}
 
-		resource := &model.TaggedResource{
-			ARN:       "global",
-			Namespace: namespace,
-		}
+		var resource *model.TaggedResource
 
 		// TODO: refactor this logic after failing scenarios are fixed
 		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
 		if matchedResource != nil {
 			resource = matchedResource
+		} else {
+			resource = &model.TaggedResource{
+				ARN:       "global",
+				Namespace: namespace,
+			}
 		}
 
 		if !skip {
