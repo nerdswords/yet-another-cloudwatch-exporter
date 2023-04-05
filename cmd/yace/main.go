@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -18,6 +19,16 @@ import (
 
 const (
 	enableFeatureFlag = "enable-feature"
+	htmlVersion       = `<html>
+<head><title>Yet Another CloudWatch Exporter</title></head>
+<body>
+<h1>Thanks for using YACE :)</h1>
+Version: %s
+<p><a href="/metrics">Metrics</a></p>
+%s
+</body>
+</html>`
+	htmlPprof = `<p><a href="/debug/pprof">Pprof</a><p>`
 )
 
 var version = "custom-build"
@@ -34,6 +45,7 @@ var (
 	scrapingInterval      int
 	metricsPerQuery       int
 	labelsSnakeCase       bool
+	profilingEnabled      bool
 
 	logger logging.Logger
 
@@ -114,7 +126,16 @@ func NewYACEApp() *cli.App {
 			EnvVars:     []string{"metrics-per-query"},
 		},
 		&cli.BoolFlag{
-			Name: "labels-snake-case", Value: exporter.DefaultLabelsSnakeCase, Usage: "Whether labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase,
+			Name:        "labels-snake-case",
+			Value:       exporter.DefaultLabelsSnakeCase,
+			Usage:       "Whether labels should be output in snake case instead of camel case",
+			Destination: &labelsSnakeCase,
+		},
+		&cli.BoolFlag{
+			Name:        "profiling.enabled",
+			Value:       false,
+			Usage:       "Enable pprof endpoints",
+			Destination: &profilingEnabled,
 		},
 		&cli.StringSliceFlag{
 			Name:  enableFeatureFlag,
@@ -175,25 +196,33 @@ func startScraper(c *cli.Context) error {
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
 
-	http.HandleFunc("/metrics", s.makeHandler())
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`<html>
-    <head><title>Yet another cloudwatch exporter</title></head>
-    <body>
-    <h1>Thanks for using Yace :)</h1>
-		Version: %s
-    <p><a href="/metrics">Metrics</a></p>
-    </body>
-    </html>`, version)))
+	if profilingEnabled {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
+
+	mux.HandleFunc("/metrics", s.makeHandler())
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		pprofLink := ""
+		if profilingEnabled {
+			pprofLink = htmlPprof
+		}
+
+		_, _ = w.Write([]byte(fmt.Sprintf(htmlVersion, version, pprofLink)))
 	})
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -212,7 +241,8 @@ func startScraper(c *cli.Context) error {
 		go s.decoupled(ctx, logger, cache)
 	})
 
-	return http.ListenAndServe(addr, nil)
+	srv := &http.Server{Addr: addr, Handler: mux}
+	return srv.ListenAndServe()
 }
 
 func newLogger(debug bool) logging.Logger {
