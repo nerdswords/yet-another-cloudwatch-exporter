@@ -34,7 +34,8 @@ func runStaticJob(
 	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, logger)
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.MaxConcurrencyClient, logger logging.Logger) (cw []*model.CloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.MaxConcurrencyClient, logger logging.Logger) []*model.CloudwatchData {
+	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -78,14 +79,15 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 	return cw
 }
 
-func createStaticDimensions(dimensions []config.Dimension) (output []*cloudwatch.Dimension) {
+func createStaticDimensions(dimensions []config.Dimension) []*cloudwatch.Dimension {
+	out := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, d := range dimensions {
 		d := d
-		output = append(output, &cloudwatch.Dimension{
+		out = append(out, &cloudwatch.Dimension{
 			Name:  &d.Name,
 			Value: &d.Value,
 		})
 	}
 
-	return output
+	return out
 }

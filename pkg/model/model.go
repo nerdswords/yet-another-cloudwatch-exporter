@@ -85,8 +85,13 @@ func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
 func (r TaggedResource) MetricTags(tagsOnMetrics ExportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
-	for _, tagName := range tagsOnMetrics[r.Namespace] {
+	wantedTags, ok := tagsOnMetrics[r.Namespace]
+	if !ok {
+		return []Tag{}
+	}
+
+	tags := make([]Tag, 0, len(wantedTags))
+	for _, tagName := range wantedTags {
 		tag := Tag{
 			Key: tagName,
 		}
