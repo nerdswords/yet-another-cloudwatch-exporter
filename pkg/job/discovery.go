@@ -67,8 +67,11 @@ func scrapeDiscoveryJobUsingMetricData(
 	metricsPerQuery int,
 	roundingPeriod *int64,
 	logger logging.Logger,
-) (resources []*model.TaggedResource, cw []*model.CloudwatchData) {
+) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
+
+	cw := []*model.CloudwatchData{}
+
 	resources, err := clientTag.GetResources(ctx, job, region)
 	if err != nil {
 		if errors.Is(err, apitagging.ErrExpectedToFindResources) {
@@ -76,15 +79,15 @@ func scrapeDiscoveryJobUsingMetricData(
 		} else {
 			logger.Error(err, "Couldn't describe resources")
 		}
-		return
+		return resources, cw
 	}
 
 	svc := config.SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(ctx, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources, logger)
+	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Info("No metrics data found")
-		return
+		return resources, cw
 	}
 
 	maxMetricCount := metricsPerQuery
@@ -106,7 +109,7 @@ func scrapeDiscoveryJobUsingMetricData(
 			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
 			data := clientCloudwatch.GetMetricData(ctx, filter)
 			if data != nil {
-				output := make([]*model.CloudwatchData, 0)
+				output := make([]*model.CloudwatchData, 0, len(data.MetricDataResults))
 				for _, MetricDataResult := range data.MetricDataResults {
 					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
 					if err == nil {
@@ -150,6 +153,7 @@ func findGetMetricDataByID(getMetricDatas []model.CloudwatchData, value string) 
 
 func getMetricDataForQueries(
 	ctx context.Context,
+	logger logging.Logger,
 	discoveryJob *config.Job,
 	svc *config.ServiceConfig,
 	region string,
@@ -157,7 +161,6 @@ func getMetricDataForQueries(
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
 	resources []*model.TaggedResource,
-	logger logging.Logger,
 ) []model.CloudwatchData {
 	mux := &sync.Mutex{}
 	var getMetricDatas []model.CloudwatchData
@@ -195,13 +198,14 @@ func getMetricDataForQueries(
 	return getMetricDatas
 }
 
-func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) (getMetricsData []model.CloudwatchData) {
+func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) []model.CloudwatchData {
 	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
 
 	if logger.IsDebugEnabled() {
 		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
 	}
 
+	getMetricsData := make([]model.CloudwatchData, 0, len(metricsList))
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue

@@ -19,6 +19,7 @@ linters:
     - misspell
     - nilerr
     - nolintlint
+    - nonamedreturns
     - predeclared
     - revive
     - staticcheck

@@ -3,6 +3,7 @@ package apicloudwatch
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,7 +30,7 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) (output *cloudwatch.GetMetricStatisticsInput) {
+func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -46,7 +47,7 @@ func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 		}
 	}
 
-	output = &cloudwatch.GetMetricStatisticsInput{
+	output := &cloudwatch.GetMetricStatisticsInput{
 		Dimensions:         dimensions,
 		Namespace:          namespace,
 		StartTime:          &startTime,
@@ -74,8 +75,8 @@ func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	return output
 }
 
-func CreateGetMetricDataInput(getMetricData []model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logging.Logger) (output *cloudwatch.GetMetricDataInput) {
-	var metricsDataQuery []*cloudwatch.MetricDataQuery
+func CreateGetMetricDataInput(getMetricData []model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logging.Logger) *cloudwatch.GetMetricDataInput {
+	metricsDataQuery := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
 	roundingPeriod := model.DefaultPeriodSeconds
 	for _, data := range getMetricData {
 		if data.Period < roundingPeriod {
@@ -90,11 +91,10 @@ func CreateGetMetricDataInput(getMetricData []model.CloudwatchData, namespace *s
 			Period: &data.Period,
 			Stat:   &data.Statistics[0],
 		}
-		ReturnData := true
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
 			Id:         data.MetricID,
 			MetricStat: metricStat,
-			ReturnData: &ReturnData,
+			ReturnData: aws.Bool(true),
 		})
 	}
 
@@ -113,14 +113,12 @@ func CreateGetMetricDataInput(getMetricData []model.CloudwatchData, namespace *s
 	}
 
 	dataPointOrder := "TimestampDescending"
-	output = &cloudwatch.GetMetricDataInput{
+	return &cloudwatch.GetMetricDataInput{
 		EndTime:           &endTime,
 		StartTime:         &startTime,
 		MetricDataQueries: metricsDataQuery,
 		ScanBy:            &dataPointOrder,
 	}
-
-	return output
 }
 
 // Clock small interface which allows for stubbing the time.Now() function for unit testing
@@ -151,7 +149,7 @@ func determineGetMetricDataWindow(clock Clock, roundingPeriod time.Duration, len
 	return startTime, endTime
 }
 
-func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) (output *cloudwatch.ListMetricsInput) {
+func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *string, metricsName *string) *cloudwatch.ListMetricsInput {
 	var dimensionsFilter []*cloudwatch.DimensionFilter
 
 	for _, dim := range dimensions {
@@ -159,20 +157,24 @@ func createListMetricsInput(dimensions []*cloudwatch.Dimension, namespace *strin
 			dimensionsFilter = append(dimensionsFilter, &cloudwatch.DimensionFilter{Name: dim.Name, Value: dim.Value})
 		}
 	}
-	output = &cloudwatch.ListMetricsInput{
+	return &cloudwatch.ListMetricsInput{
 		MetricName: metricsName,
 		Dimensions: dimensionsFilter,
 		Namespace:  namespace,
 		NextToken:  nil,
 	}
-	return output
 }
 
-func dimensionsToCliString(dimensions []*cloudwatch.Dimension) (output string) {
+func dimensionsToCliString(dimensions []*cloudwatch.Dimension) string {
+	out := strings.Builder{}
 	for _, dim := range dimensions {
-		output = output + "Name=" + *dim.Name + ",Value=" + *dim.Value + " "
+		out.WriteString("Name=")
+		out.WriteString(*dim.Name)
+		out.WriteString(",Value=")
+		out.WriteString(*dim.Value)
+		out.WriteString(" ")
 	}
-	return output
+	return out.String()
 }
 
 func (c Client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {

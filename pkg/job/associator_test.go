@@ -70,7 +70,8 @@ var ecsResources = []*model.TaggedResource{
 	ecsService2,
 }
 
-func generateEC2Resources(region string, instanceIDs ...string) (res []*model.TaggedResource) {
+func generateEC2Resources(region string, instanceIDs ...string) []*model.TaggedResource {
+	res := make([]*model.TaggedResource, 0, len(instanceIDs))
 	for _, id := range instanceIDs {
 		res = append(res, &model.TaggedResource{
 			ARN:       fmt.Sprintf("arn:aws:ec2:%s:123456789012:instance/%s", region, id),
@@ -78,7 +79,7 @@ func generateEC2Resources(region string, instanceIDs ...string) (res []*model.Ta
 			Region:    region,
 		})
 	}
-	return
+	return res
 }
 
 func TestAssociator(t *testing.T) {
