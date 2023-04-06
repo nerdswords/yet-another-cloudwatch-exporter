@@ -1,3 +1,34 @@
+# v0.50.0
+
+**Important breaking changes**
+* Change `UpdateMetrics` signature to accept options and return error by @cristiangreco -- if you embed YACE as a Go library this is a breaking change.
+
+**Bugfixes and features**
+Features:
+* Refactor API clients concurrency handling by @cristiangreco
+* Add feature flags support by @thepalbi
+* Allow discovery jobs to return result even if there are no resources by @kgeckhart
+* Add flag to enable pprof profiling endpoints by @cristiangreco
+
+Services:
+* Add a ResourceFilter to ElasticBeanstalk by @benbridts
+
+Docs:
+* Update config docs format by @cristiangreco
+
+Refactoring:
+* Linting: fix revive issues by @cristiangreco
+* Remove extra error log when no resources are found by @kgeckhart
+* Wrap debug logging in FilterMetricData by @cristiangreco
+* Minor internal refactorings by @cristiangreco
+
+**Dependencies**
+* Bump actions/setup-go from 3 to 4
+* Bump github.com/aws/aws-sdk-go from 1.44.215 to 1.44.235
+* Bump github.com/urfave/cli/v2 from 2.25.0 to 2.25.1
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.49.2...v0.50.0
+
 # v0.49.2
 
 ## Bugfixes and features
