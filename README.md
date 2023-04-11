@@ -107,6 +107,10 @@ Only the latest version gets security updates. We won't support older versions.
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
   * workspaces (AWS/WorkSpaces) - Workspaces
 
+## Feature flags
+
+To provide backwards compatibility, some new of YACE's features or changes might be guarded under a feature flag. Refer to [docs/feature_flags.md](./docs/feature_flags.md) for deatils.
+
 ## Installing and running
 
 Refer to the [installing guide](docs/install.md).
