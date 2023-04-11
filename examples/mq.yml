@@ -1,0 +1,27 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/AmazonMQ
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: NetworkOut
+          statistics: [Minimum, Maximum, Average]
+        - name: NetworkIn
+          statistics: [Minimum, Maximum, Average]
+        - name: QueueSize
+          statistics: [Minimum, Maximum, Average]
+        - name: ConsumerCount
+          statistics: [Minimum, Maximum, Average]
+        - name: ProducerCount
+          statistics: [Minimum, Maximum, Average]
+        - name: EnqueueCount
+          statistics: [Minimum, Maximum, Average]
+        - name: DequeueCount
+          statistics: [Minimum, Maximum, Average]
+        - name: MemoryUsage
+          statistics: [Minimum, Maximum, Average]
+        - name: CpuUtilization
+          statistics: [Minimum, Maximum, Average]

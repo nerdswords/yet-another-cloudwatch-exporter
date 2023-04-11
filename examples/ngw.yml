@@ -1,0 +1,37 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/NATGateway
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: ActiveConnectionCount
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: BytesInFromDestination
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: BytesInFromSource
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: BytesOutToDestination
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: BytesOutToSource
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: ConnectionAttemptCount
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: ConnectionEstablishedCount
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: ErrorPortAllocation
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: IdleTimeoutCount
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: PacketsDropCount
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: PacketsInFromDestination
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: PacketsInFromSource
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: PacketsOutToDestination
+          statistics: [Average, Minimum, Maximum, Sum]
+        - name: PacketsOutToSource
+          statistics: [Average, Minimum, Maximum, Sum]
