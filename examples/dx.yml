@@ -1,0 +1,21 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/DX
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: ConnectionState
+          statistics: [Maximum]
+        - name: VirtualInterfaceBpsIngress
+          statistics: [Average]
+        - name: VirtualInterfaceBpsEgress
+          statistics: [Average]
+        - name: VirtualInterfacePpsIngress
+          statistics: [Average]
+        - name: VirtualInterfacePpsEgress
+          statistics: [Average]
+        - name: ConnectionErrorCount
+          statistics: [Minimum, Maximum, Sum]
