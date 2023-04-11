@@ -109,7 +109,7 @@ Only the latest version gets security updates. We won't support older versions.
 
 ## Feature flags
 
-To provide backwards compatibility, some new of YACE's features or changes might be guarded under a feature flag. Refer to [docs/feature_flags.md](./docs/feature_flags.md) for deatils.
+To provide backwards compatibility, some of YACE's new features or breaking changes might be guarded under a feature flag. Refer to [docs/feature_flags.md](./docs/feature_flags.md) for details.
 
 ## Installing and running
 
