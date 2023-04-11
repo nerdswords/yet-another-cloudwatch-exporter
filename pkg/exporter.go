@@ -56,6 +56,12 @@ var defaultOptions = options{
 	featureFlags:             make(featureFlagsMap),
 }
 
+// IsFeatureFlag implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
+func (ff featureFlagsMap) IsFeatureEnabled(flag string) bool {
+	_, ok := ff[flag]
+	return ok
+}
+
 type OptionsFunc func(*options) error
 
 func MetricsPerQuery(metricsPerQuery int) OptionsFunc {
@@ -114,7 +120,7 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 func UpdateMetrics(
 	ctx context.Context,
 	logger logging.Logger,
-	config config.ScrapeConf,
+	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
 	cache session.SessionCache,
 	observedMetricLabels map[string]model.LabelSet,
@@ -127,10 +133,13 @@ func UpdateMetrics(
 		}
 	}
 
+	// add feature flags to context passed down to all other layers
+	ctx = config.CtxWithFlags(ctx, options.featureFlags)
+
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,
 		logger,
-		config,
+		cfg,
 		cache,
 		options.metricsPerQuery,
 		options.cloudWatchAPIConcurrency,
