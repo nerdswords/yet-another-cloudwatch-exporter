@@ -146,14 +146,14 @@ func UpdateMetrics(
 		options.taggingAPIConcurrency,
 	)
 
-	metrics, observedMetricLabels, err := promutil.MigrateCloudwatchDataToPrometheus(cloudwatchData, options.labelsSnakeCase, observedMetricLabels, logger)
+	metrics, observedMetricLabels, err := promutil.BuildMetrics(cloudwatchData, options.labelsSnakeCase, observedMetricLabels, logger)
 	if err != nil {
 		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return nil
 	}
 	metrics = promutil.EnsureLabelConsistencyForMetrics(metrics, observedMetricLabels)
 
-	metrics = append(metrics, promutil.MigrateTagsToPrometheus(tagsData, options.labelsSnakeCase, logger)...)
+	metrics = append(metrics, promutil.BuildNamespaceInfoMetrics(tagsData, options.labelsSnakeCase, logger)...)
 
 	registry.MustRegister(promutil.NewPrometheusCollector(metrics))
 

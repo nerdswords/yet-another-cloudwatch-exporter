@@ -13,7 +13,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-func Test_MigrateTagsToPrometheus(t *testing.T) {
+func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	resources := []*model.TaggedResource{{
 		ARN:       "aws::arn",
 		Namespace: "AWS/Service",
@@ -26,18 +26,16 @@ func Test_MigrateTagsToPrometheus(t *testing.T) {
 		},
 	}}
 
-	prometheusMetricName := "aws_service_info"
-	var metricValue float64
 	expected := []*PrometheusMetric{{
-		Name: &prometheusMetricName,
+		Name: aws.String("aws_service_info"),
 		Labels: map[string]string{
 			"name":     "aws::arn",
 			"tag_Name": "tag_Value",
 		},
-		Value: &metricValue,
+		Value: aws.Float64(0),
 	}}
 
-	actual := MigrateTagsToPrometheus(resources, false, logging.NewNopLogger())
+	actual := BuildNamespaceInfoMetrics(resources, false, logging.NewNopLogger())
 
 	require.Equal(t, expected, actual)
 }

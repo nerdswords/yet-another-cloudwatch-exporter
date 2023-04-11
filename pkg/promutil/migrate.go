@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -16,8 +17,8 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func MigrateTagsToPrometheus(tagData []*model.TaggedResource, labelsSnakeCase bool, logger logging.Logger) []*PrometheusMetric {
-	output := make([]*PrometheusMetric, 0)
+func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, labelsSnakeCase bool, logger logging.Logger) []*PrometheusMetric {
+	output := make([]*PrometheusMetric, 0, len(tagData))
 
 	tagList := make(map[string][]string)
 
@@ -30,12 +31,16 @@ func MigrateTagsToPrometheus(tagData []*model.TaggedResource, labelsSnakeCase bo
 	}
 
 	for _, d := range tagData {
-		promNs := strings.ToLower(d.Namespace)
+		sb := strings.Builder{}
+		promNs := PromString(d.Namespace)
 		if !strings.HasPrefix(promNs, "aws") {
-			promNs = "aws_" + promNs
+			sb.WriteString("aws_")
 		}
-		name := PromString(promNs) + "_info"
-		promLabels := make(map[string]string)
+		sb.WriteString(promNs)
+		sb.WriteString("_info")
+		name := sb.String()
+
+		promLabels := make(map[string]string, len(tagList[d.Namespace]))
 		promLabels["name"] = d.ARN
 
 		for _, entry := range tagList[d.Namespace] {
@@ -55,16 +60,11 @@ func MigrateTagsToPrometheus(tagData []*model.TaggedResource, labelsSnakeCase bo
 			}
 		}
 
-		var i int
-		f := float64(i)
-
-		p := PrometheusMetric{
+		output = append(output, &PrometheusMetric{
 			Name:   &name,
 			Labels: promLabels,
-			Value:  &f,
-		}
-
-		output = append(output, &p)
+			Value:  aws.Float64(0),
+		})
 	}
 
 	return output
@@ -79,7 +79,7 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func MigrateCloudwatchDataToPrometheus(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 
 	for _, c := range cwd {
@@ -93,30 +93,35 @@ func MigrateCloudwatchDataToPrometheus(cwd []*model.CloudwatchData, labelsSnakeC
 				return nil, nil, err
 			}
 			if exportedDatapoint == nil && (c.AddCloudwatchTimestamp == nil || !*c.AddCloudwatchTimestamp) {
-				nan := math.NaN()
-				exportedDatapoint = &nan
+				exportedDatapoint = aws.Float64(math.NaN())
 				includeTimestamp = false
 				if *c.NilToZero {
-					var zero float64
-					exportedDatapoint = &zero
+					exportedDatapoint = aws.Float64(0)
 				}
 			}
-			promNs := strings.ToLower(*c.Namespace)
+
+			sb := strings.Builder{}
+			promNs := PromString(*c.Namespace)
 			if !strings.HasPrefix(promNs, "aws") {
-				promNs = "aws_" + promNs
+				sb.WriteString("aws_")
 			}
-			name := PromString(promNs) + "_" + strings.ToLower(PromString(*c.Metric)) + "_" + strings.ToLower(PromString(statistic))
+			sb.WriteString(PromString(promNs))
+			sb.WriteString("_")
+			sb.WriteString(PromString(*c.Metric))
+			sb.WriteString("_")
+			sb.WriteString(PromString(statistic))
+			name := sb.String()
+
 			if exportedDatapoint != nil {
 				promLabels := createPrometheusLabels(c, labelsSnakeCase, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
-				p := PrometheusMetric{
+				output = append(output, &PrometheusMetric{
 					Name:             &name,
 					Labels:           promLabels,
 					Value:            exportedDatapoint,
 					Timestamp:        timestamp,
 					IncludeTimestamp: includeTimestamp,
-				}
-				output = append(output, &p)
+				})
 			}
 		}
 	}
@@ -211,6 +216,7 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 		}
 		labels["custom_tag_"+promTag] = label.Value
 	}
+
 	for _, tag := range cwd.Tags {
 		ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 		if !ok {
