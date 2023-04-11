@@ -58,6 +58,5 @@ services:
     command:
       - -listen-address=:8080
       - -config.file=/tmp/config.yml
-      - -enable-feature=encoding-resource-associator
     networks:
       - monitoring
