@@ -78,6 +78,7 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 					ARN:       aws.StringValue(resourceTagMapping.ResourceARN),
 					Namespace: job.Type,
 					Region:    region,
+					Tags:      make([]model.Tag, 0, len(resourceTagMapping.Tags)),
 				}
 
 				for _, t := range resourceTagMapping.Tags {
