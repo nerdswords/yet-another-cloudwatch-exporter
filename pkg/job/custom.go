@@ -25,7 +25,7 @@ func runCustomNamespaceJob(
 	account *string,
 	cloudwatchAPIConcurrency int,
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewWithMaxConcurrency(
+	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
 		apicloudwatch.NewClient(
 			logger,
 			cache.GetCloudwatch(&region, role),
@@ -49,7 +49,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	job *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	logger logging.Logger,
 	metricsPerQuery int,
 ) []*model.CloudwatchData {
@@ -110,7 +110,7 @@ func getMetricDataForQueriesForCustomNamespace(
 	customNamespaceJob *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	logger logging.Logger,
 ) []model.CloudwatchData {
 	mux := &sync.Mutex{}

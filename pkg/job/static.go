@@ -23,7 +23,7 @@ func runStaticJob(
 	account *string,
 	cloudwatchAPIConcurrency int,
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewWithMaxConcurrency(
+	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
 		apicloudwatch.NewClient(
 			logger,
 			cache.GetCloudwatch(&region, role),
@@ -34,7 +34,7 @@ func runStaticJob(
 	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, logger)
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.MaxConcurrencyClient, logger logging.Logger) []*model.CloudwatchData {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch apicloudwatch.CloudWatchClient, logger logging.Logger) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup

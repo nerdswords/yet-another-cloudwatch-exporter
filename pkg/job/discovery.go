@@ -32,7 +32,7 @@ func runDiscoveryJob(
 	taggingAPIConcurrency int,
 	cloudwatchAPIConcurrency int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
-	clientCloudwatch := apicloudwatch.NewWithMaxConcurrency(
+	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
 		apicloudwatch.NewClient(
 			logger,
 			cache.GetCloudwatch(&region, role),
@@ -40,7 +40,7 @@ func runDiscoveryJob(
 		cloudwatchAPIConcurrency,
 	)
 
-	clientTag := apitagging.NewWithMaxConcurrency(
+	clientTag := apitagging.NewLimitedConcurrencyClient(
 		apitagging.NewClient(
 			logger,
 			cache.GetTagging(&region, role),
@@ -62,8 +62,8 @@ func scrapeDiscoveryJobUsingMetricData(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientTag *apitagging.MaxConcurrencyClient,
-	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
+	clientTag apitagging.TaggingClient,
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	metricsPerQuery int,
 	roundingPeriod *int64,
 	logger logging.Logger,
@@ -159,7 +159,7 @@ func getMetricDataForQueries(
 	region string,
 	accountID *string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch *apicloudwatch.MaxConcurrencyClient,
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	resources []*model.TaggedResource,
 ) []model.CloudwatchData {
 	mux := &sync.Mutex{}
