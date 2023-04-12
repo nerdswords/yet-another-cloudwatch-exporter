@@ -1,9 +1,8 @@
 package config
 
 import (
-	"regexp"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/grafana/regexp"
 )
 
 type ServiceConfig struct {

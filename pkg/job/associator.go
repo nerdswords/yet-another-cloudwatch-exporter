@@ -1,10 +1,10 @@
 package job
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )

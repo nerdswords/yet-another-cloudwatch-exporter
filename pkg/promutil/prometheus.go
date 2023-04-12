@@ -1,11 +1,11 @@
 package promutil
 
 import (
-	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 )
