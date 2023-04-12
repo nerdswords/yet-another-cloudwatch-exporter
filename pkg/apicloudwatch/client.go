@@ -16,6 +16,14 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
+type CloudWatchClient interface {
+	GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint
+	GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput
+	ListMetrics(ctx context.Context, namespace string, metric *config.Metric) (*cloudwatch.ListMetricsOutput, error)
+}
+
+var _ CloudWatchClient = (*Client)(nil)
+
 const timeFormat = "2006-01-02T15:04:05.999999-07:00"
 
 type Client struct {
@@ -250,4 +258,39 @@ func (c Client) ListMetrics(ctx context.Context, namespace string, metric *confi
 
 	promutil.CloudwatchAPICounter.Inc()
 	return &res, nil
+}
+
+var _ CloudWatchClient = (*LimitedConcurrencyClient)(nil)
+
+type LimitedConcurrencyClient struct {
+	client *Client
+	sem    chan struct{}
+}
+
+func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
+	return &LimitedConcurrencyClient{
+		client: client,
+		sem:    make(chan struct{}, maxConcurrency),
+	}
+}
+
+func (c LimitedConcurrencyClient) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+	c.sem <- struct{}{}
+	res := c.client.GetMetricStatistics(ctx, filter)
+	<-c.sem
+	return res
+}
+
+func (c LimitedConcurrencyClient) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+	c.sem <- struct{}{}
+	res := c.client.GetMetricData(ctx, filter)
+	<-c.sem
+	return res
+}
+
+func (c LimitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric) (*cloudwatch.ListMetricsOutput, error) {
+	c.sem <- struct{}{}
+	res, err := c.client.ListMetrics(ctx, namespace, metric)
+	<-c.sem
+	return res, err
 }
