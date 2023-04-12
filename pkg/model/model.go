@@ -1,10 +1,10 @@
 package model
 
 import (
-	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 )
 
 const (

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"regexp"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"

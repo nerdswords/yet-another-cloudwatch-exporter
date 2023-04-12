@@ -3,7 +3,6 @@ package apitagging
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
+	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"

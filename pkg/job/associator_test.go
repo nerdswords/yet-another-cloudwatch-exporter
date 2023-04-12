@@ -2,11 +2,11 @@ package job
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
