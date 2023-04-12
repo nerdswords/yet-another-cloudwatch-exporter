@@ -85,7 +85,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 			if data != nil {
 				output := make([]*model.CloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
+					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
@@ -103,6 +103,15 @@ func scrapeCustomNamespaceJobUsingMetricData(
 
 	wg.Wait()
 	return cw
+}
+
+func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
+	for _, getMetricData := range getMetricDatas {
+		if *getMetricData.MetricID == value {
+			return getMetricData, nil
+		}
+	}
+	return nil, fmt.Errorf("metric with id %s not found", value)
 }
 
 func getMetricDataForQueriesForCustomNamespace(

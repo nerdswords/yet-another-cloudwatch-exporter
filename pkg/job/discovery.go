@@ -94,12 +94,14 @@ func scrapeDiscoveryJobUsingMetricData(
 	length := getMetricDataInputLength(job.Metrics)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 
-	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	wg.Add(partition)
 
+	getMetricDataOutput := make([]*cloudwatch.GetMetricDataOutput, partition)
+	count := 0
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
-		go func(i int) {
+		go func(i, n int) {
 			defer wg.Done()
 			end := i + maxMetricCount
 			if end > metricDataLength {
@@ -107,28 +109,48 @@ func scrapeDiscoveryJobUsingMetricData(
 			}
 			input := getMetricDatas[i:end]
 			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
-			if data != nil {
-				output := make([]*model.CloudwatchData, 0, len(data.MetricDataResults))
-				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
-					if err == nil {
-						if len(MetricDataResult.Values) != 0 {
-							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
-							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
-						}
-						output = append(output, getMetricData)
-					}
-				}
-				mux.Lock()
-				cw = append(cw, output...)
-				mux.Unlock()
+			if data := clientCloudwatch.GetMetricData(ctx, filter); data != nil {
+				getMetricDataOutput[n] = data
 			}
-		}(i)
+		}(i, count)
+		count++
+	}
+	wg.Wait()
+
+	// update getMetricDatas with fetched values and timestamps
+	for _, data := range getMetricDataOutput {
+		for _, metricDataResult := range data.MetricDataResults {
+			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
+			if idx == -1 {
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.Id)
+				continue
+			}
+			if len(metricDataResult.Values) != 0 {
+				getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Values[0]
+				getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamps[0]
+			}
+			getMetricDatas[idx].MetricID = nil // mark as processed
+		}
 	}
 
-	wg.Wait()
-	return resources, cw
+	// remove unprocessed/unknown elements in place (if any)
+	getMetricDatas = compactSlice(getMetricDatas)
+	return resources, getMetricDatas
+}
+
+func compactSlice(getMetricDatas []*model.CloudwatchData) []*model.CloudwatchData {
+	i := 0
+	for _, d := range getMetricDatas {
+		if d.MetricID == nil {
+			getMetricDatas[i] = d
+			i++
+		}
+	}
+	for j := i; j < len(getMetricDatas); j++ {
+		getMetricDatas[j] = nil
+	}
+	getMetricDatas = getMetricDatas[:i]
+	return getMetricDatas
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
@@ -141,13 +163,16 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 	return length
 }
 
-func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
-	for _, getMetricData := range getMetricDatas {
-		if *getMetricData.MetricID == value {
-			return getMetricData, nil
+func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) int {
+	for i := 0; i < len(getMetricDatas); i++ {
+		if getMetricDatas[i].MetricID == nil {
+			continue // skip elements that have been already marked
+		}
+		if *(getMetricDatas[i].MetricID) == value {
+			return i
 		}
 	}
-	return nil, fmt.Errorf("metric with id %s not found", value)
+	return -1
 }
 
 func getMetricDataForQueries(
