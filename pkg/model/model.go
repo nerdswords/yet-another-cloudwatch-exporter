@@ -61,6 +61,10 @@ type TaggedResource struct {
 // filterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
 func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+	if len(filterTags) == 0 {
+		return true
+	}
+
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
