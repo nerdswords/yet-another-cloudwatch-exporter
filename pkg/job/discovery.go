@@ -117,7 +117,7 @@ func scrapeDiscoveryJobUsingMetricData(
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 						}
-						output = append(output, &getMetricData)
+						output = append(output, getMetricData)
 					}
 				}
 				mux.Lock()
@@ -141,14 +141,13 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 	return length
 }
 
-func findGetMetricDataByID(getMetricDatas []model.CloudwatchData, value string) (model.CloudwatchData, error) {
-	var g model.CloudwatchData
+func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
 	for _, getMetricData := range getMetricDatas {
 		if *getMetricData.MetricID == value {
 			return getMetricData, nil
 		}
 	}
-	return g, fmt.Errorf("metric with id %s not found", value)
+	return nil, fmt.Errorf("metric with id %s not found", value)
 }
 
 func getMetricDataForQueries(
@@ -161,9 +160,9 @@ func getMetricDataForQueries(
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientCloudwatch apicloudwatch.CloudWatchClient,
 	resources []*model.TaggedResource,
-) []model.CloudwatchData {
+) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
-	var getMetricDatas []model.CloudwatchData
+	var getMetricDatas []*model.CloudwatchData
 
 	var wg sync.WaitGroup
 	wg.Add(len(discoveryJob.Metrics))
@@ -198,14 +197,26 @@ func getMetricDataForQueries(
 	return getMetricDatas
 }
 
-func getFilteredMetricDatas(logger logging.Logger, region string, accountID *string, namespace string, customTags []model.Tag, tagsOnMetrics model.ExportedTagsOnMetrics, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource, metricsList []*cloudwatch.Metric, dimensionNameList []string, m *config.Metric) []model.CloudwatchData {
+func getFilteredMetricDatas(
+	logger logging.Logger,
+	region string,
+	accountID *string,
+	namespace string,
+	customTags []model.Tag,
+	tagsOnMetrics model.ExportedTagsOnMetrics,
+	dimensionRegexps []*regexp.Regexp,
+	resources []*model.TaggedResource,
+	metricsList []*cloudwatch.Metric,
+	dimensionNameList []string,
+	m *config.Metric,
+) []*model.CloudwatchData {
 	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
 
 	if logger.IsDebugEnabled() {
 		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
 	}
 
-	getMetricsData := make([]model.CloudwatchData, 0, len(metricsList))
+	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
 			continue
@@ -228,7 +239,7 @@ func getFilteredMetricDatas(logger logging.Logger, region string, accountID *str
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())
 				metricTags := resource.MetricTags(tagsOnMetrics)
-				getMetricsData = append(getMetricsData, model.CloudwatchData{
+				getMetricsData = append(getMetricsData, &model.CloudwatchData{
 					ID:                     &resource.ARN,
 					MetricID:               &id,
 					Metric:                 &m.Name,
