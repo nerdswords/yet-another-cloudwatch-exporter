@@ -21,6 +21,12 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
+type TaggingClient interface {
+	GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error)
+}
+
+var _ TaggingClient = (*Client)(nil)
+
 var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
 
 type Client struct {
@@ -126,4 +132,25 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 	}
 
 	return resources, nil
+}
+
+var _ TaggingClient = (*LimitedConcurrencyClient)(nil)
+
+type LimitedConcurrencyClient struct {
+	client *Client
+	sem    chan struct{}
+}
+
+func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
+	return &LimitedConcurrencyClient{
+		client: client,
+		sem:    make(chan struct{}, maxConcurrency),
+	}
+}
+
+func (c LimitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+	c.sem <- struct{}{}
+	res, err := c.client.GetResources(ctx, job, region)
+	<-c.sem
+	return res, err
 }
