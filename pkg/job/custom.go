@@ -91,7 +91,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 						}
-						output = append(output, &getMetricData)
+						output = append(output, getMetricData)
 					}
 				}
 				mux.Lock()
@@ -112,9 +112,9 @@ func getMetricDataForQueriesForCustomNamespace(
 	accountID *string,
 	clientCloudwatch apicloudwatch.CloudWatchClient,
 	logger logging.Logger,
-) []model.CloudwatchData {
+) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
-	var getMetricDatas []model.CloudwatchData
+	var getMetricDatas []*model.CloudwatchData
 
 	var wg sync.WaitGroup
 	wg.Add(len(customNamespaceJob.Metrics))
@@ -132,7 +132,7 @@ func getMetricDataForQueriesForCustomNamespace(
 				return
 			}
 
-			var data []model.CloudwatchData
+			var data []*model.CloudwatchData
 
 			for _, cwMetric := range metricsList.Metrics {
 				if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
@@ -141,7 +141,7 @@ func getMetricDataForQueriesForCustomNamespace(
 
 				for _, stats := range metric.Statistics {
 					id := fmt.Sprintf("id_%d", rand.Int())
-					data = append(data, model.CloudwatchData{
+					data = append(data, &model.CloudwatchData{
 						ID:                     &customNamespaceJob.Name,
 						MetricID:               &id,
 						Metric:                 &metric.Name,
