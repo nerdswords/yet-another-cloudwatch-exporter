@@ -268,7 +268,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{
@@ -279,8 +279,10 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
+			// Use "new" long arns as per
+			// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-account-settings.html#ecs-resource-ids
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{
