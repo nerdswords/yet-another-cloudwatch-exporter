@@ -222,23 +222,20 @@ func getFilteredMetricDatas(
 			continue
 		}
 
-		var resource *model.TaggedResource
-
-		// TODO: refactor this logic after failing scenarios are fixed
 		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
-		if matchedResource != nil {
-			resource = matchedResource
-		} else {
-			resource = &model.TaggedResource{
-				ARN:       "global",
-				Namespace: namespace,
-			}
-		}
-
 		if !skip {
+			resource := matchedResource
+			if resource == nil {
+				resource = &model.TaggedResource{
+					ARN:       "global",
+					Namespace: namespace,
+				}
+			}
+			metricTags := resource.MetricTags(tagsOnMetrics)
+
 			for _, stats := range m.Statistics {
 				id := fmt.Sprintf("id_%d", rand.Int())
-				metricTags := resource.MetricTags(tagsOnMetrics)
+
 				getMetricsData = append(getMetricsData, &model.CloudwatchData{
 					ID:                     &resource.ARN,
 					MetricID:               &id,
