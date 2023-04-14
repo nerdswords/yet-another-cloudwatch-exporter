@@ -58,6 +58,10 @@ var (
 		Name: "yace_cloudwatch_dmsapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	DuplicateMetricsFilteredCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_duplicate_metrics_filtered",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 var replacer = strings.NewReplacer(
@@ -141,6 +145,8 @@ func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 		if _, value := keys[check]; !value {
 			keys[check] = true
 			filteredMetrics = append(filteredMetrics, metric)
+		} else {
+			DuplicateMetricsFilteredCounter.Inc()
 		}
 	}
 	return filteredMetrics

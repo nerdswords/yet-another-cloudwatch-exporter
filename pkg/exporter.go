@@ -27,6 +27,7 @@ var Metrics = []prometheus.Collector{
 	promutil.Ec2APICounter,
 	promutil.DmsAPICounter,
 	promutil.StoragegatewayAPICounter,
+	promutil.DuplicateMetricsFilteredCounter,
 }
 
 const (
