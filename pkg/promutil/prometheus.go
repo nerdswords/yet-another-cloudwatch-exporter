@@ -96,25 +96,18 @@ func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	}
 }
 
-func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
-	for _, metric := range p.metrics {
-		descs <- createDesc(metric)
-	}
+func (p *PrometheusCollector) Describe(_ chan<- *prometheus.Desc) {
+	// The exporter produces a dynamic set of metrics and the docs for prometheus.Collector Describe say
+	// 	Sending no descriptor at all marks the Collector as “unchecked”,
+	// 	i.e. no checks will be performed at registration time, and the
+	// 	Collector may yield any Metric it sees fit in its Collect method.
+	// Based on our use an "unchecked" collector is perfectly fine
 }
 
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	for _, metric := range p.metrics {
 		metrics <- createMetric(metric)
 	}
-}
-
-func createDesc(metric *PrometheusMetric) *prometheus.Desc {
-	return prometheus.NewDesc(
-		*metric.Name,
-		"Help is not implemented yet.",
-		nil,
-		metric.Labels,
-	)
 }
 
 func createMetric(metric *PrometheusMetric) prometheus.Metric {
