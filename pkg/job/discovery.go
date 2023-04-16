@@ -14,6 +14,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
@@ -185,7 +186,7 @@ func getMetricDataForQueries(
 				logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
 			}
 
-			data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+			data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
 			mux.Lock()
 			getMetricDatas = append(getMetricDatas, data...)
@@ -198,6 +199,7 @@ func getMetricDataForQueries(
 }
 
 func getFilteredMetricDatas(
+	ctx context.Context,
 	logger logging.Logger,
 	region string,
 	accountID *string,
@@ -210,10 +212,19 @@ func getFilteredMetricDatas(
 	dimensionNameList []string,
 	m *config.Metric,
 ) []*model.CloudwatchData {
-	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
+	type resourceAssociator interface {
+		AssociateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+	}
+
+	var assoc resourceAssociator
+	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
+		assoc = associator.NewAssociator(dimensionRegexps, resources)
+	} else {
+		assoc = newMetricsToResourceAssociator(dimensionRegexps, resources)
+	}
 
 	if logger.IsDebugEnabled() {
-		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
+		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", assoc)
 	}
 
 	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
@@ -222,7 +233,7 @@ func getFilteredMetricDatas(
 			continue
 		}
 
-		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
+		matchedResource, skip := assoc.AssociateMetricsToResources(cwMetric)
 		if !skip {
 			resource := matchedResource
 			if resource == nil {
@@ -252,6 +263,8 @@ func getFilteredMetricDatas(
 					Period:                 m.Period,
 				})
 			}
+		} else {
+			logger.Warn("skipping resource unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
 		}
 	}
 	return getMetricsData

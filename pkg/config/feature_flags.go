@@ -2,6 +2,10 @@ package config
 
 import "context"
 
+// MaxDimensionsAssociator is a feature flag used to toggle to the new resource association
+// algorithm for discovery jobs.
+const MaxDimensionsAssociator = "max-dimensions-associator"
+
 var (
 	flagsCtxKey         = struct{}{}
 	defaultFeatureFlags = noFeatureFlags{}
