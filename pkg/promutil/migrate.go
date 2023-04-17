@@ -54,8 +54,9 @@ func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, metrics []*Prome
 	return metrics, observedMetricLabels
 }
 
-func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
+	observedMetricLabels := make(map[string]model.LabelSet)
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
