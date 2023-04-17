@@ -234,37 +234,40 @@ func getFilteredMetricDatas(
 		}
 
 		matchedResource, skip := assoc.AssociateMetricsToResources(cwMetric)
-		if !skip {
-			resource := matchedResource
-			if resource == nil {
-				resource = &model.TaggedResource{
-					ARN:       "global",
-					Namespace: namespace,
-				}
+		if skip {
+			if logger.IsDebugEnabled() {
+				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
 			}
-			metricTags := resource.MetricTags(tagsOnMetrics)
+			continue
+		}
 
-			for _, stats := range m.Statistics {
-				id := fmt.Sprintf("id_%d", rand.Int())
-
-				getMetricsData = append(getMetricsData, &model.CloudwatchData{
-					ID:                     &resource.ARN,
-					MetricID:               &id,
-					Metric:                 &m.Name,
-					Namespace:              &namespace,
-					Statistics:             []string{stats},
-					NilToZero:              m.NilToZero,
-					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
-					Tags:                   metricTags,
-					CustomTags:             customTags,
-					Dimensions:             cwMetric.Dimensions,
-					Region:                 &region,
-					AccountID:              accountID,
-					Period:                 m.Period,
-				})
+		resource := matchedResource
+		if resource == nil {
+			resource = &model.TaggedResource{
+				ARN:       "global",
+				Namespace: namespace,
 			}
-		} else {
-			logger.Warn("skipping resource unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
+		}
+		metricTags := resource.MetricTags(tagsOnMetrics)
+
+		for _, stats := range m.Statistics {
+			id := fmt.Sprintf("id_%d", rand.Int())
+
+			getMetricsData = append(getMetricsData, &model.CloudwatchData{
+				ID:                     &resource.ARN,
+				MetricID:               &id,
+				Metric:                 &m.Name,
+				Namespace:              &namespace,
+				Statistics:             []string{stats},
+				NilToZero:              m.NilToZero,
+				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+				Tags:                   metricTags,
+				CustomTags:             customTags,
+				Dimensions:             cwMetric.Dimensions,
+				Region:                 &region,
+				AccountID:              accountID,
+				Period:                 m.Period,
+			})
 		}
 	}
 	return getMetricsData
