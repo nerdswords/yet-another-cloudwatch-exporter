@@ -1,7 +1,7 @@
 apiVersion: v1alpha1
 discovery:
   jobs:
-    - type: AWS/ApplicationELB
+    - type: AWS/RDS
       regions:
         - us-east-1
       period: 300
