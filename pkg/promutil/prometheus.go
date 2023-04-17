@@ -1,13 +1,14 @@
 package promutil
 
 import (
-	"sort"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	promCommon "github.com/prometheus/common/model"
 )
 
 var (
@@ -131,31 +132,18 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 }
 
 func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-	keys := make(map[string]bool)
-	filteredMetrics := []*PrometheusMetric{}
+	keys := make(map[string]struct{}, len(metrics))
+	filteredMetrics := make([]*PrometheusMetric, 0, len(metrics))
 	for _, metric := range metrics {
-		check := *metric.Name + combineLabels(metric.Labels)
+		check := fmt.Sprintf("%s-%d", *metric.Name, promCommon.LabelsToSignature(metric.Labels))
 		if _, value := keys[check]; !value {
-			keys[check] = true
+			keys[check] = struct{}{}
 			filteredMetrics = append(filteredMetrics, metric)
 		} else {
 			DuplicateMetricsFilteredCounter.Inc()
 		}
 	}
 	return filteredMetrics
-}
-
-func combineLabels(labels map[string]string) string {
-	var combinedLabels string
-	keys := make([]string, 0, len(labels))
-	for k := range labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		combinedLabels += PromString(k) + PromString(labels[k])
-	}
-	return combinedLabels
 }
 
 func PromString(text string) string {
