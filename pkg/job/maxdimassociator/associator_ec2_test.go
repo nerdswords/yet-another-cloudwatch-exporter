@@ -111,7 +111,7 @@ func TestAssociatorEC2(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
-			res, skip := associator.AssociateMetricsToResources(tc.args.metric)
+			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)
 		})

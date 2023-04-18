@@ -213,7 +213,7 @@ func getFilteredMetricDatas(
 	m *config.Metric,
 ) []*model.CloudwatchData {
 	type resourceAssociator interface {
-		AssociateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+		AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
 	}
 
 	var assoc resourceAssociator
@@ -233,7 +233,7 @@ func getFilteredMetricDatas(
 			continue
 		}
 
-		matchedResource, skip := assoc.AssociateMetricsToResources(cwMetric)
+		matchedResource, skip := assoc.AssociateMetricToResource(cwMetric)
 		if skip {
 			if logger.IsDebugEnabled() {
 				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)

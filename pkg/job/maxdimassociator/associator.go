@@ -84,11 +84,11 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 	return assoc
 }
 
-// AssociateMetricsToResources finds the resource that corresponds to the given set of dimensions
+// AssociateMetricToResource finds the resource that corresponds to the given set of dimensions
 // names and values of a metric. The guess is based on the mapping built from dimensions regexps.
 // In case a map can't be found, the second return parameter indicates whether the metric should be
 // ignored or not.
-func (assoc Associator) AssociateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	if len(cwMetric.Dimensions) == 0 {
 		// Do not skip the metric (create a "global" metric)
 		return nil, false

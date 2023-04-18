@@ -45,10 +45,10 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 	return dimensionsFilter
 }
 
-// AssociateMetricsToResources finds, for a given cloudwatch.Metrics, the resource that matches the better.
+// AssociateMetricToResource finds, for a given cloudwatch.Metrics, the resource that matches the better.
 // If no match is found, nil is returned. Also, there are some conditions where the metric shouldn't be
 // considered, and that is dictated by the skip return value.
-func (asoc metricsToResourceAssociator) AssociateMetricsToResources(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (asoc metricsToResourceAssociator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	var r *model.TaggedResource
 	skip := false
 	alreadyFound := false
