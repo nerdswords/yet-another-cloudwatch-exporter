@@ -36,7 +36,8 @@ type dimensionsRegexpMapping struct {
 func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
 	assoc := Associator{mappings: []*dimensionsRegexpMapping{}}
 
-	// keep track of resources that have already been mapped
+	// Keep track of resources that have already been mapped.
+	// Each resource will be matched against at most one regex.
 	// TODO(cristian): use a more memory-efficient data structure
 	mappedResources := make([]bool, len(resources))
 
