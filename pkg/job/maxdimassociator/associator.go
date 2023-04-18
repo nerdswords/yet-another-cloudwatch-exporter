@@ -1,4 +1,4 @@
-package associator
+package maxdimassociator
 
 import (
 	"strings"

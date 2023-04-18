@@ -14,7 +14,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
@@ -218,7 +218,7 @@ func getFilteredMetricDatas(
 
 	var assoc resourceAssociator
 	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-		assoc = associator.NewAssociator(dimensionRegexps, resources)
+		assoc = maxdimassociator.NewAssociator(dimensionRegexps, resources)
 	} else {
 		assoc = newMetricsToResourceAssociator(dimensionRegexps, resources)
 	}
