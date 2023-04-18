@@ -117,7 +117,13 @@ func scrapeDiscoveryJobUsingMetricData(
 	}
 	wg.Wait()
 
-	// update getMetricDatas with fetched values and timestamps
+	// Update getMetricDatas slice with values and timestamps from API response.
+	// We iterate through the response MetricDataResults and match the result ID
+	// with what was sent in the API request.
+	// In the event that the API response contains any ID we don't know about
+	// (shouldn't really happen) we log a warning and move on. On the other hand,
+	// in case the API response does not contain results for all the IDs we've
+	// requested, unprocessed elements will be removed later on.
 	for _, data := range getMetricDataOutput {
 		for _, metricDataResult := range data.MetricDataResults {
 			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
@@ -133,24 +139,12 @@ func scrapeDiscoveryJobUsingMetricData(
 		}
 	}
 
-	// remove unprocessed/unknown elements in place (if any)
-	getMetricDatas = compactSlice(getMetricDatas)
+	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
+	// is a slice of pointers, the compaction can be easily done in-place.
+	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
+		return m.MetricID == nil
+	})
 	return resources, getMetricDatas
-}
-
-func compactSlice(getMetricDatas []*model.CloudwatchData) []*model.CloudwatchData {
-	i := 0
-	for _, d := range getMetricDatas {
-		if d.MetricID == nil {
-			getMetricDatas[i] = d
-			i++
-		}
-	}
-	for j := i; j < len(getMetricDatas); j++ {
-		getMetricDatas[j] = nil
-	}
-	getMetricDatas = getMetricDatas[:i]
-	return getMetricDatas
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
