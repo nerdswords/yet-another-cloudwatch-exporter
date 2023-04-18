@@ -3,12 +3,10 @@ package cloudwatch
 import (
 	"context"
 	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -18,7 +16,7 @@ type Client interface {
 	// ListMetrics returns the list of metrics and dimensions for a given namespace
 	// and metric name. Results pagination is handled automatically: the caller can
 	// optionally pass a non-nil func in order to handle results pages.
-	ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error)
+	ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error)
 
 	// GetMetricData returns the output of the GetMetricData CloudWatch API.
 	// Results pagination is handled automatically.
@@ -42,14 +40,26 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
-	filter := &cloudwatch.ListMetricsInput{
-		MetricName: aws.String(metric.Name),
-		Namespace:  aws.String(namespace),
+func GetListMetricsInput(metricName string, namespace string, recentlyActiveOnly bool) *cloudwatch.ListMetricsInput {
+	if !recentlyActiveOnly {
+		return &cloudwatch.ListMetricsInput{
+			MetricName: aws.String(metricName),
+			Namespace:  aws.String(namespace),
+		}
 	}
+	recentActiveString := "PT3H"
+	return &cloudwatch.ListMetricsInput{
+		MetricName:     aws.String(metricName),
+		Namespace:      aws.String(namespace),
+		RecentlyActive: &recentActiveString,
+	}
+}
+
+func (c client) ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+	filter := GetListMetricsInput(metric.Name, namespace, recentlyActiveOnly)
 
 	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("ListMetrics", "input", filter)
+		c.logger.Debug("ListMetrics", "input", input)
 	}
 
 	var metrics []*model.Metric
@@ -215,9 +225,9 @@ func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logg
 	return res
 }
 
-func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
 	c.sem <- struct{}{}
-	res, err := c.client.ListMetrics(ctx, namespace, metric, fn)
+	res, err := c.client.ListMetrics(ctx, input, fn)
 	<-c.sem
 	return res, err
 }

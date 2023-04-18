@@ -176,7 +176,7 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page []*model.Metric) {
+				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
 					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
@@ -204,7 +204,7 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, nil)
+				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric.Name, discoveryJob.RecentlyActiveOnly, nil)
 				if err != nil {
 					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
 					return
