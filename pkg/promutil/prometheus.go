@@ -1,14 +1,12 @@
 package promutil
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
-	promCommon "github.com/prometheus/common/model"
 )
 
 var (
@@ -97,7 +95,7 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		metrics: removeDuplicatedMetrics(metrics),
+		metrics: metrics,
 	}
 }
 
@@ -129,21 +127,6 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 	}
 
 	return prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge)
-}
-
-func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-	keys := make(map[string]struct{}, len(metrics))
-	filteredMetrics := make([]*PrometheusMetric, 0, len(metrics))
-	for _, metric := range metrics {
-		check := fmt.Sprintf("%s-%d", *metric.Name, promCommon.LabelsToSignature(metric.Labels))
-		if _, value := keys[check]; !value {
-			keys[check] = struct{}{}
-			filteredMetrics = append(filteredMetrics, metric)
-		} else {
-			DuplicateMetricsFilteredCounter.Inc()
-		}
-	}
-	return filteredMetrics
 }
 
 func PromString(text string) string {

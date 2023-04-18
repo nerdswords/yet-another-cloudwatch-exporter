@@ -9,7 +9,6 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
@@ -124,7 +123,6 @@ func UpdateMetrics(
 	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
 	cache session.SessionCache,
-	observedMetricLabels map[string]model.LabelSet,
 	optFuncs ...OptionsFunc,
 ) error {
 	options := defaultOptions
@@ -147,16 +145,14 @@ func UpdateMetrics(
 		options.taggingAPIConcurrency,
 	)
 
-	metrics, observedMetricLabels, err := promutil.BuildMetrics(cloudwatchData, options.labelsSnakeCase, observedMetricLabels, logger)
+	metrics, observedMetricLabels, err := promutil.BuildMetrics(cloudwatchData, options.labelsSnakeCase, logger)
 	if err != nil {
 		logger.Error(err, "Error migrating cloudwatch metrics to prometheus metrics")
 		return nil
 	}
-	metrics = promutil.EnsureLabelConsistencyForMetrics(metrics, observedMetricLabels)
-
-	metrics = append(metrics, promutil.BuildNamespaceInfoMetrics(tagsData, options.labelsSnakeCase, logger)...)
+	metrics, observedMetricLabels = promutil.BuildNamespaceInfoMetrics(tagsData, metrics, observedMetricLabels, options.labelsSnakeCase, logger)
+	metrics = promutil.EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedMetricLabels)
 
 	registry.MustRegister(promutil.NewPrometheusCollector(metrics))
-
 	return nil
 }
