@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
-	promCommon "github.com/prometheus/common/model"
+	prom_model "github.com/prometheus/common/model"
 	"golang.org/x/exp/slices"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -27,9 +27,9 @@ type dimensionsRegexpMapping struct {
 	// needed to identify sub-resources)
 	dimensions []string
 
-	// mapping maps the set of dimensions (names and values) to a resource.
+	// dimensionsMapping maps the set of dimensions (names and values) to a resource.
 	// Dimensions names and values are encoded as a uint64 fingerprint.
-	mapping map[uint64]*model.TaggedResource
+	dimensionsMapping map[uint64]*model.TaggedResource
 }
 
 // NewAssociator builds all mappings for the given dimensions regexps and list of resources.
@@ -42,7 +42,7 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 	mappedResources := make([]bool, len(resources))
 
 	for _, regex := range dimensionRegexps {
-		m := &dimensionsRegexpMapping{mapping: map[uint64]*model.TaggedResource{}}
+		m := &dimensionsRegexpMapping{dimensionsMapping: map[uint64]*model.TaggedResource{}}
 
 		names := regex.SubexpNames()
 		dimensionNames := make([]string, 0, len(names)-1)
@@ -67,8 +67,8 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 			for i := 1; i < len(match); i++ {
 				labels[names[i]] = match[i]
 			}
-			signature := promCommon.LabelsToSignature(labels)
-			m.mapping[signature] = r
+			signature := prom_model.LabelsToSignature(labels)
+			m.dimensionsMapping[signature] = r
 			mappedResources[idx] = true
 		}
 
@@ -129,9 +129,9 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (
 			}
 		}
 	}
-	signature := promCommon.LabelsToSignature(labels)
+	signature := prom_model.LabelsToSignature(labels)
 
-	if resource, ok := regexpMapping.mapping[signature]; ok {
+	if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
 		return resource, false
 	}
 
