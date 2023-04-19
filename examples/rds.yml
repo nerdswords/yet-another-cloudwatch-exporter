@@ -1,0 +1,29 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/RDS
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: CPUUtilization
+          statistics: [Maximum]
+        - name: DatabaseConnections
+          statistics: [Sum]
+        - name: FreeableMemory
+          statistics: [Average]
+        - name: FreeStorageSpace
+          statistics: [Average]
+        - name: ReadThroughput
+          statistics: [Average]
+        - name: WriteThroughput
+          statistics: [Average]
+        - name: ReadLatency
+          statistics: [Maximum]
+        - name: WriteLatency
+          statistics: [Maximum]
+        - name: ReadIOPS
+          statistics: [Average]
+        - name: WriteIOPS
+          statistics: [Average]

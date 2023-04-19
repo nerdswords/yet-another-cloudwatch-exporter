@@ -4,15 +4,31 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
+	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
+)
+
+const (
+	enableFeatureFlag = "enable-feature"
+	htmlVersion       = `<html>
+<head><title>Yet Another CloudWatch Exporter</title></head>
+<body>
+<h1>Thanks for using YACE :)</h1>
+Version: %s
+<p><a href="/metrics">Metrics</a></p>
+%s
+</body>
+</html>`
+	htmlPprof = `<p><a href="/debug/pprof">Pprof</a><p>`
 )
 
 var version = "custom-build"
@@ -29,6 +45,7 @@ var (
 	scrapingInterval      int
 	metricsPerQuery       int
 	labelsSnakeCase       bool
+	profilingEnabled      bool
 
 	logger logging.Logger
 
@@ -36,6 +53,15 @@ var (
 )
 
 func main() {
+	app := NewYACEApp()
+	if err := app.Run(os.Args); err != nil {
+		logger.Error(err, "Error running yace")
+		os.Exit(1)
+	}
+}
+
+// NewYACEApp creates a new cli.App implementing the YACE entrypoints and CLI arguments.
+func NewYACEApp() *cli.App {
 	yace := cli.NewApp()
 	yace.Name = "Yet Another CloudWatch Exporter"
 	yace.Version = version
@@ -46,15 +72,75 @@ func main() {
 	}
 
 	yace.Flags = []cli.Flag{
-		&cli.StringFlag{Name: "listen-address", Value: ":5000", Usage: "The address to listen on.", Destination: &addr, EnvVars: []string{"listen-address"}},
-		&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile, EnvVars: []string{"config.file"}},
-		&cli.BoolFlag{Name: "debug", Value: false, Usage: "Add verbose logging.", Destination: &debug, EnvVars: []string{"debug"}},
-		&cli.BoolFlag{Name: "fips", Value: false, Usage: "Use FIPS compliant aws api.", Destination: &fips},
-		&cli.IntFlag{Name: "cloudwatch-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to CloudWatch API.", Destination: &cloudwatchConcurrency},
-		&cli.IntFlag{Name: "tag-concurrency", Value: 5, Usage: "Maximum number of concurrent requests to Resource Tagging API.", Destination: &tagConcurrency},
-		&cli.IntFlag{Name: "scraping-interval", Value: 300, Usage: "Seconds to wait between scraping the AWS metrics", Destination: &scrapingInterval, EnvVars: []string{"scraping-interval"}},
-		&cli.IntFlag{Name: "metrics-per-query", Value: 500, Usage: "Number of metrics made in a single GetMetricsData request", Destination: &metricsPerQuery, EnvVars: []string{"metrics-per-query"}},
-		&cli.BoolFlag{Name: "labels-snake-case", Value: false, Usage: "If labels should be output in snake case instead of camel case", Destination: &labelsSnakeCase},
+		&cli.StringFlag{
+			Name:        "listen-address",
+			Value:       ":5000",
+			Usage:       "The address to listen on",
+			Destination: &addr,
+			EnvVars:     []string{"listen-address"},
+		},
+		&cli.StringFlag{
+			Name:        "config.file",
+			Value:       "config.yml",
+			Usage:       "Path to configuration file",
+			Destination: &configFile,
+			EnvVars:     []string{"config.file"},
+		},
+		&cli.BoolFlag{
+			Name:        "debug",
+			Value:       false,
+			Usage:       "Verbose logging",
+			Destination: &debug,
+			EnvVars:     []string{"debug"},
+		},
+		&cli.BoolFlag{
+			Name:        "fips",
+			Value:       false,
+			Usage:       "Use FIPS compliant AWS API endpoints",
+			Destination: &fips,
+		},
+		&cli.IntFlag{
+			Name:        "cloudwatch-concurrency",
+			Value:       exporter.DefaultCloudWatchAPIConcurrency,
+			Usage:       "Maximum number of concurrent requests to CloudWatch API.",
+			Destination: &cloudwatchConcurrency,
+		},
+		&cli.IntFlag{
+			Name:        "tag-concurrency",
+			Value:       exporter.DefaultTaggingAPIConcurrency,
+			Usage:       "Maximum number of concurrent requests to Resource Tagging API.",
+			Destination: &tagConcurrency,
+		},
+		&cli.IntFlag{
+			Name:        "scraping-interval",
+			Value:       300,
+			Usage:       "Seconds to wait between scraping the AWS metrics",
+			Destination: &scrapingInterval,
+			EnvVars:     []string{"scraping-interval"},
+		},
+		&cli.IntFlag{
+			Name:        "metrics-per-query",
+			Value:       exporter.DefaultMetricsPerQuery,
+			Usage:       "Number of metrics made in a single GetMetricsData request",
+			Destination: &metricsPerQuery,
+			EnvVars:     []string{"metrics-per-query"},
+		},
+		&cli.BoolFlag{
+			Name:        "labels-snake-case",
+			Value:       exporter.DefaultLabelsSnakeCase,
+			Usage:       "Whether labels should be output in snake case instead of camel case",
+			Destination: &labelsSnakeCase,
+		},
+		&cli.BoolFlag{
+			Name:        "profiling.enabled",
+			Value:       false,
+			Usage:       "Enable pprof endpoints",
+			Destination: &profilingEnabled,
+		},
+		&cli.StringSliceFlag{
+			Name:  enableFeatureFlag,
+			Usage: "Comma-separated list of enabled features",
+		},
 	}
 
 	yace.Before = func(ctx *cli.Context) error {
@@ -91,13 +177,10 @@ func main() {
 
 	yace.Action = startScraper
 
-	if err := yace.Run(os.Args); err != nil {
-		logger.Error(err, "Error running yace")
-		os.Exit(1)
-	}
+	return yace
 }
 
-func startScraper(_ *cli.Context) error {
+func startScraper(c *cli.Context) error {
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
@@ -105,31 +188,41 @@ func startScraper(_ *cli.Context) error {
 
 	logger.Info("Yace startup completed", "version", version)
 
-	s := NewScraper()
+	featureFlags := c.StringSlice(enableFeatureFlag)
+
+	s := NewScraper(featureFlags)
 	cache := session.NewSessionCache(cfg, fips, logger)
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
 
-	http.HandleFunc("/metrics", s.makeHandler())
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`<html>
-    <head><title>Yet another cloudwatch exporter</title></head>
-    <body>
-    <h1>Thanks for using Yace :)</h1>
-		Version: %s
-    <p><a href="/metrics">Metrics</a></p>
-    </body>
-    </html>`, version)))
+	if profilingEnabled {
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
+
+	mux.HandleFunc("/metrics", s.makeHandler())
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		pprofLink := ""
+		if profilingEnabled {
+			pprofLink = htmlPprof
+		}
+
+		_, _ = w.Write([]byte(fmt.Sprintf(htmlVersion, version, pprofLink)))
 	})
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -148,7 +241,8 @@ func startScraper(_ *cli.Context) error {
 		go s.decoupled(ctx, logger, cache)
 	})
 
-	return http.ListenAndServe(addr, nil)
+	srv := &http.Server{Addr: addr, Handler: mux}
+	return srv.ListenAndServe()
 }
 
 func newLogger(debug bool) logging.Logger {

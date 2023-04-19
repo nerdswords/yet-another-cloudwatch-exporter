@@ -14,15 +14,14 @@ import (
 
 func ScrapeAwsData(
 	ctx context.Context,
-	cfg config.ScrapeConf,
-	metricsPerQuery int,
-	cloudwatchSemaphore,
-	tagSemaphore chan struct{},
-	cache session.SessionCache,
 	logger logging.Logger,
+	cfg config.ScrapeConf,
+	cache session.SessionCache,
+	metricsPerQuery int,
+	cloudWatchAPIConcurrency int,
+	taggingAPIConcurrency int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	mux := &sync.Mutex{}
-
 	cwData := make([]*model.CloudwatchData, 0)
 	awsInfoData := make([]*model.TaggedResource, 0)
 	var wg sync.WaitGroup
@@ -47,8 +46,8 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", *result.Account)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, tagSemaphore, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics)
-					if len(resources) != 0 && len(metrics) != 0 {
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics, taggingAPIConcurrency, cloudWatchAPIConcurrency)
+					if len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
 						cwData = append(cwData, metrics...)
@@ -73,7 +72,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", *result.Account)
 
-					metrics := runStaticJob(ctx, jobLogger, cache, region, role, staticJob, result.Account, cloudwatchSemaphore)
+					metrics := runStaticJob(ctx, jobLogger, cache, region, role, staticJob, result.Account, cloudWatchAPIConcurrency)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -84,6 +83,8 @@ func ScrapeAwsData(
 	}
 
 	for _, customNamespaceJob := range cfg.CustomNamespace {
+		logger.Warn("Jobs of type 'customNamespace' are deprecated and will be removed soon", "job", customNamespaceJob.Name)
+
 		for _, role := range customNamespaceJob.Roles {
 			for _, region := range customNamespaceJob.Regions {
 				wg.Add(1)
@@ -97,7 +98,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", *result.Account)
 
-					metrics := runCustomNamespaceJob(ctx, jobLogger, cache, metricsPerQuery, cloudwatchSemaphore, tagSemaphore, customNamespaceJob, region, role, result.Account)
+					metrics := runCustomNamespaceJob(ctx, jobLogger, cache, metricsPerQuery, customNamespaceJob, region, role, result.Account, cloudWatchAPIConcurrency)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)

@@ -1,9 +1,8 @@
 package config
 
 import (
-	"regexp"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/grafana/regexp"
 )
 
 type ServiceConfig struct {
@@ -136,6 +135,9 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/ElasticBeanstalk",
 		Alias:     "beanstalk",
+		ResourceFilters: []*string{
+			aws.String("elasticbeanstalk:environment"),
+		},
 	},
 	{
 		Namespace: "AWS/Billing",
@@ -266,7 +268,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{
@@ -277,8 +279,10 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
+			// Use "new" long arns as per
+			// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-account-settings.html#ecs-resource-ids
 			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
 		},
 	},
 	{

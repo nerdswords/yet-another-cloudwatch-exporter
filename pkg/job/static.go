@@ -21,17 +21,21 @@ func runStaticJob(
 	role config.Role,
 	job *config.Static,
 	account *string,
-	cloudwatchSemaphore chan struct{},
+	cloudwatchAPIConcurrency int,
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewClient(
-		logger,
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
+		apicloudwatch.NewClient(
+			logger,
+			cache.GetCloudwatch(&region, role),
+		),
+		cloudwatchAPIConcurrency,
 	)
 
-	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, cloudwatchSemaphore, logger)
+	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, logger)
 }
 
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch *apicloudwatch.Client, cloudwatchSemaphore chan struct{}, logger logging.Logger) (cw []*model.CloudwatchData) {
+func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch apicloudwatch.CloudWatchClient, logger logging.Logger) []*model.CloudwatchData {
+	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
@@ -40,11 +44,6 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			cloudwatchSemaphore <- struct{}{}
-			defer func() {
-				<-cloudwatchSemaphore
-			}()
 
 			id := resource.Name
 			data := model.CloudwatchData{
@@ -80,14 +79,15 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 	return cw
 }
 
-func createStaticDimensions(dimensions []config.Dimension) (output []*cloudwatch.Dimension) {
+func createStaticDimensions(dimensions []config.Dimension) []*cloudwatch.Dimension {
+	out := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, d := range dimensions {
 		d := d
-		output = append(output, &cloudwatch.Dimension{
+		out = append(out, &cloudwatch.Dimension{
 			Name:  &d.Name,
 			Value: &d.Value,
 		})
 	}
 
-	return output
+	return out
 }

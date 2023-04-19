@@ -10,21 +10,18 @@ import (
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 type scraper struct {
-	cloudwatchSemaphore chan struct{}
-	tagSemaphore        chan struct{}
-	registry            *prometheus.Registry
+	registry     *prometheus.Registry
+	featureFlags []string
 }
 
-func NewScraper() *scraper { //nolint:revive
+func NewScraper(featureFlags []string) *scraper { //nolint:revive
 	return &scraper{
-		cloudwatchSemaphore: make(chan struct{}, cloudwatchConcurrency),
-		tagSemaphore:        make(chan struct{}, tagConcurrency),
-		registry:            prometheus.NewRegistry(),
+		registry:     prometheus.NewRegistry(),
+		featureFlags: featureFlags,
 	}
 }
 
@@ -56,8 +53,6 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache se
 	}
 }
 
-var observedMetricLabels = map[string]model.LabelSet{}
-
 func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache session.SessionCache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
@@ -74,7 +69,22 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 			logger.Warn("Could not register cloudwatch api metric")
 		}
 	}
-	exporter.UpdateMetrics(ctx, cfg, newRegistry, metricsPerQuery, labelsSnakeCase, s.cloudwatchSemaphore, s.tagSemaphore, cache, observedMetricLabels, logger)
+
+	err := exporter.UpdateMetrics(
+		ctx,
+		logger,
+		cfg,
+		newRegistry,
+		cache,
+		exporter.MetricsPerQuery(metricsPerQuery),
+		exporter.LabelsSnakeCase(labelsSnakeCase),
+		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
+		exporter.TaggingAPIConcurrency(tagConcurrency),
+		exporter.EnableFeatureFlag(s.featureFlags...),
+	)
+	if err != nil {
+		logger.Error(err, "error updating metrics")
+	}
 
 	// this might have a data race to access registry
 	s.registry = newRegistry

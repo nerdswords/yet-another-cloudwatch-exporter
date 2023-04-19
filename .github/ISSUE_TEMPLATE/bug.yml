@@ -12,6 +12,18 @@ body:
       required: true
 - type: textarea
   attributes:
+    label: YACE version
+    description: The output of running `yace version`.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Config file
+    description: The config file passed to the `--config.file` option.
+  validations:
+    required: false
+- type: textarea
+  attributes:
     label: Current Behavior
     description: A concise description of what you're experiencing.
   validations:

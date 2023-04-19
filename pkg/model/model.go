@@ -1,10 +1,10 @@
 package model
 
 import (
-	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 )
 
 const (
@@ -61,6 +61,10 @@ type TaggedResource struct {
 // filterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
 func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+	if len(filterTags) == 0 {
+		return true
+	}
+
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -85,8 +89,13 @@ func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
 func (r TaggedResource) MetricTags(tagsOnMetrics ExportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
-	for _, tagName := range tagsOnMetrics[r.Namespace] {
+	wantedTags, ok := tagsOnMetrics[r.Namespace]
+	if !ok {
+		return []Tag{}
+	}
+
+	tags := make([]Tag, 0, len(wantedTags))
+	for _, tagName := range wantedTags {
 		tag := Tag{
 			Key: tagName,
 		}

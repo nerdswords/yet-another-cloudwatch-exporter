@@ -19,16 +19,18 @@ func runCustomNamespaceJob(
 	logger logging.Logger,
 	cache session.SessionCache,
 	metricsPerQuery int,
-	cloudwatchSemaphore chan struct{},
-	tagSemaphore chan struct{},
 	job *config.CustomNamespace,
 	region string,
 	role config.Role,
 	account *string,
+	cloudwatchAPIConcurrency int,
 ) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewClient(
-		logger,
-		cache.GetCloudwatch(&region, role),
+	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
+		apicloudwatch.NewClient(
+			logger,
+			cache.GetCloudwatch(&region, role),
+		),
+		cloudwatchAPIConcurrency,
 	)
 
 	return scrapeCustomNamespaceJobUsingMetricData(
@@ -37,8 +39,6 @@ func runCustomNamespaceJob(
 		region,
 		account,
 		clientCloudwatch,
-		cloudwatchSemaphore,
-		tagSemaphore,
 		logger,
 		metricsPerQuery,
 	)
@@ -49,20 +49,20 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	job *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.Client,
-	cloudwatchSemaphore chan struct{},
-	tagSemaphore chan struct{},
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	logger logging.Logger,
 	metricsPerQuery int,
-) (cw []*model.CloudwatchData) {
+) []*model.CloudwatchData {
+	cw := []*model.CloudwatchData{}
+
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
-	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, job, region, accountID, clientCloudwatch, tagSemaphore, logger)
+	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, job, region, accountID, clientCloudwatch, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Debug("No metrics data found")
-		return
+		return cw
 	}
 
 	maxMetricCount := metricsPerQuery
@@ -73,12 +73,7 @@ func scrapeCustomNamespaceJobUsingMetricData(
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i int) {
-			cloudwatchSemaphore <- struct{}{}
-
-			defer func() {
-				defer wg.Done()
-				<-cloudwatchSemaphore
-			}()
+			defer wg.Done()
 
 			end := i + maxMetricCount
 			if end > metricDataLength {
@@ -90,13 +85,13 @@ func scrapeCustomNamespaceJobUsingMetricData(
 			if data != nil {
 				output := make([]*model.CloudwatchData, 0)
 				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
+					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *MetricDataResult.Id)
 					if err == nil {
 						if len(MetricDataResult.Values) != 0 {
 							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
 							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
 						}
-						output = append(output, &getMetricData)
+						output = append(output, getMetricData)
 					}
 				}
 				mux.Lock()
@@ -110,55 +105,74 @@ func scrapeCustomNamespaceJobUsingMetricData(
 	return cw
 }
 
+func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
+	for _, getMetricData := range getMetricDatas {
+		if *getMetricData.MetricID == value {
+			return getMetricData, nil
+		}
+	}
+	return nil, fmt.Errorf("metric with id %s not found", value)
+}
+
 func getMetricDataForQueriesForCustomNamespace(
 	ctx context.Context,
 	customNamespaceJob *config.CustomNamespace,
 	region string,
 	accountID *string,
-	clientCloudwatch *apicloudwatch.Client,
-	tagSemaphore chan struct{},
+	clientCloudwatch apicloudwatch.CloudWatchClient,
 	logger logging.Logger,
-) []model.CloudwatchData {
-	var getMetricDatas []model.CloudwatchData
+) []*model.CloudwatchData {
+	mux := &sync.Mutex{}
+	var getMetricDatas []*model.CloudwatchData
 
-	// For every metric of the job
+	var wg sync.WaitGroup
+	wg.Add(len(customNamespaceJob.Metrics))
+
 	for _, metric := range customNamespaceJob.Metrics {
-		// Get the full list of metrics
+		// For every metric of the job get the full list of metrics.
 		// This includes, for this metric the possible combinations
-		// of dimensions and value of dimensions with data
-		tagSemaphore <- struct{}{}
+		// of dimensions and value of dimensions with data.
 
-		metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric)
-		<-tagSemaphore
-
-		if err != nil {
-			logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customNamespaceJob.Namespace)
-			continue
-		}
-
-		for _, cwMetric := range metricsList.Metrics {
-			if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
-				continue
+		go func(metric *config.Metric) {
+			defer wg.Done()
+			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric)
+			if err != nil {
+				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customNamespaceJob.Namespace)
+				return
 			}
 
-			for _, stats := range metric.Statistics {
-				id := fmt.Sprintf("id_%d", rand.Int())
-				getMetricDatas = append(getMetricDatas, model.CloudwatchData{
-					ID:                     &customNamespaceJob.Name,
-					MetricID:               &id,
-					Metric:                 &metric.Name,
-					Namespace:              &customNamespaceJob.Namespace,
-					Statistics:             []string{stats},
-					NilToZero:              metric.NilToZero,
-					AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-					CustomTags:             customNamespaceJob.CustomTags,
-					Dimensions:             cwMetric.Dimensions,
-					Region:                 &region,
-					AccountID:              accountID,
-					Period:                 metric.Period,
-				})
+			var data []*model.CloudwatchData
+
+			for _, cwMetric := range metricsList.Metrics {
+				if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
+					continue
+				}
+
+				for _, stats := range metric.Statistics {
+					id := fmt.Sprintf("id_%d", rand.Int())
+					data = append(data, &model.CloudwatchData{
+						ID:                     &customNamespaceJob.Name,
+						MetricID:               &id,
+						Metric:                 &metric.Name,
+						Namespace:              &customNamespaceJob.Namespace,
+						Statistics:             []string{stats},
+						NilToZero:              metric.NilToZero,
+						AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
+						CustomTags:             customNamespaceJob.CustomTags,
+						Dimensions:             cwMetric.Dimensions,
+						Region:                 &region,
+						AccountID:              accountID,
+						Period:                 metric.Period,
+					})
+				}
 			}
-		}
+
+			mux.Lock()
+			getMetricDatas = append(getMetricDatas, data...)
+			mux.Unlock()
+		}(metric)
 	}
+
+	wg.Wait()
 	return getMetricDatas
 }

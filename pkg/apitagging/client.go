@@ -21,6 +21,14 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
+type TaggingClient interface {
+	GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error)
+}
+
+var _ TaggingClient = (*Client)(nil)
+
+var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
+
 type Client struct {
 	logger            logging.Logger
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
@@ -41,8 +49,8 @@ func NewClient(
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
-) Client {
-	return Client{
+) *Client {
+	return &Client{
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
@@ -57,8 +65,10 @@ func NewClient(
 func (c Client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
+	shouldHaveDiscoveredResources := false
 
 	if len(svc.ResourceFilters) > 0 {
+		shouldHaveDiscoveredResources = true
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
@@ -69,15 +79,12 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 			pageNum++
 			promutil.ResourceGroupTaggingAPICounter.Inc()
 
-			if len(page.ResourceTagMappingList) == 0 {
-				c.logger.Error(errors.New("resource tag list is empty"), "Account contained no tagged resource. Tags must be defined for resources to be discovered.")
-			}
-
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
 				resource := model.TaggedResource{
 					ARN:       aws.StringValue(resourceTagMapping.ResourceARN),
 					Namespace: job.Type,
 					Region:    region,
+					Tags:      make([]model.Tag, 0, len(resourceTagMapping.Tags)),
 				}
 
 				for _, t := range resourceTagMapping.Tags {
@@ -101,6 +108,7 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 
 	if ext, ok := serviceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
+			shouldHaveDiscoveredResources = true
 			newResources, err := ext.ResourceFunc(ctx, c, job, region)
 			if err != nil {
 				return nil, fmt.Errorf("failed to apply ResourceFunc for %s, %w", svc.Namespace, err)
@@ -119,5 +127,30 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 		}
 	}
 
+	if shouldHaveDiscoveredResources && len(resources) == 0 {
+		return nil, ErrExpectedToFindResources
+	}
+
 	return resources, nil
+}
+
+var _ TaggingClient = (*LimitedConcurrencyClient)(nil)
+
+type LimitedConcurrencyClient struct {
+	client *Client
+	sem    chan struct{}
+}
+
+func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
+	return &LimitedConcurrencyClient{
+		client: client,
+		sem:    make(chan struct{}, maxConcurrency),
+	}
+}
+
+func (c LimitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+	c.sem <- struct{}{}
+	res, err := c.client.GetResources(ctx, job, region)
+	<-c.sem
+	return res, err
 }
