@@ -44,15 +44,27 @@ func TestCompact(t *testing.T) {
 			expectedRes: []*data{{n: 0}, {n: 1}},
 		},
 		{
-			name:        "two elements input, one element result",
+			name:        "two elements input, one element result (first)",
 			input:       []*data{{n: 0}, {n: 1}},
-			keepFunc:    func(el *data) bool { return el.n > 0 },
+			keepFunc:    func(el *data) bool { return el.n == 1 },
 			expectedRes: []*data{{n: 1}},
+		},
+		{
+			name:        "two elements input, one element result (last)",
+			input:       []*data{{n: 0}, {n: 1}},
+			keepFunc:    func(el *data) bool { return el.n == 0 },
+			expectedRes: []*data{{n: 0}},
 		},
 		{
 			name:        "two elements input, empty result",
 			input:       []*data{{n: 0}, {n: 1}},
 			keepFunc:    func(el *data) bool { return false },
+			expectedRes: []*data{},
+		},
+		{
+			name:        "three elements input, empty result",
+			input:       []*data{{n: 0}, {n: 1}, {n: 2}},
+			keepFunc:    func(el *data) bool { return el.n < 0 },
 			expectedRes: []*data{},
 		},
 	}
