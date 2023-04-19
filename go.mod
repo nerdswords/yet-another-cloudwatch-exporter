@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.245
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
 	github.com/prometheus/client_golang v1.14.0
-	github.com/prometheus/common v0.41.0
+	github.com/prometheus/common v0.42.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli/v2 v2.25.1
