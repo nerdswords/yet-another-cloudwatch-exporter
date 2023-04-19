@@ -10,7 +10,6 @@ import (
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
@@ -54,8 +53,6 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache se
 	}
 }
 
-var observedMetricLabels = map[string]model.LabelSet{}
-
 func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache session.SessionCache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
@@ -79,7 +76,6 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 		cfg,
 		newRegistry,
 		cache,
-		observedMetricLabels,
 		exporter.MetricsPerQuery(metricsPerQuery),
 		exporter.LabelsSnakeCase(labelsSnakeCase),
 		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
