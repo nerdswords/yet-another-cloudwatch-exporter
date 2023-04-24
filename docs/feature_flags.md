@@ -4,12 +4,8 @@ List of features or changes that are disabled by default since they are breaking
 
 You can enable them using the `-enable-feature` flag with a comma separated list of features. They may be enabled by default in future versions.
 
-<!-- 
+## ListMetrics API result processing
 
-## Example
+`-enable-feature=list-metrics-callback`
 
-`-enable-feature=example`
-
-The above is not a real feature, but an example of `feature_flags.md` entry. 
-
--->
+Enables processing of ListMetrics API results page-by-page. This seems to reduce memory usage for high values of `CloudWatchAPIConcurrency`.

@@ -7,6 +7,10 @@ var (
 	defaultFeatureFlags = noFeatureFlags{}
 )
 
+// ListMetricsCallback is a feature flag used to enable processing of ListMetrics API
+// results page by page.
+const ListMetricsCallback = "list-metrics-callback"
+
 // FeatureFlags is an interface all objects that can tell wether or not a feature flag is enabled can implement.
 type FeatureFlags interface {
 	// IsFeatureEnabled tells if the feature flag identified by flag is enabled.

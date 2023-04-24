@@ -82,6 +82,10 @@ func scrapeDiscoveryJobUsingMetricData(
 		return resources, cw
 	}
 
+	if len(resources) == 0 {
+		logger.Debug("No tagged resources", "region", region, "namespace", job.Type)
+	}
+
 	svc := config.SupportedServices.GetService(job.Type)
 	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources)
 	metricDataLength := len(getMetricDatas)
@@ -186,30 +190,45 @@ func getMetricDataForQueries(
 	var wg sync.WaitGroup
 	wg.Add(len(discoveryJob.Metrics))
 
-	for _, metric := range discoveryJob.Metrics {
-		// For every metric of the job get the full list of metrics.
-		// This includes, for this metric the possible combinations
-		// of dimensions and value of dimensions with data.
+	// For every metric of the job call the ListMetrics API
+	// to fetch the existing combinations of dimensions and
+	// value of dimensions with data.
 
-		go func(metric *config.Metric) {
-			defer wg.Done()
+	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.ListMetricsCallback) {
+		for _, metric := range discoveryJob.Metrics {
+			go func(metric *config.Metric) {
+				defer wg.Done()
+				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
+					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, page.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
-			metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric)
-			if err != nil {
-				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-				return
-			}
+					mux.Lock()
+					getMetricDatas = append(getMetricDatas, data...)
+					mux.Unlock()
+				})
+				if err != nil {
+					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+					return
+				}
+			}(metric)
+		}
+	} else {
+		for _, metric := range discoveryJob.Metrics {
+			go func(metric *config.Metric) {
+				defer wg.Done()
 
-			if len(resources) == 0 {
-				logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
-			}
+				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, nil)
+				if err != nil {
+					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+					return
+				}
 
-			data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
-			mux.Lock()
-			getMetricDatas = append(getMetricDatas, data...)
-			mux.Unlock()
-		}(metric)
+				mux.Lock()
+				getMetricDatas = append(getMetricDatas, data...)
+				mux.Unlock()
+			}(metric)
+		}
 	}
 
 	wg.Wait()
