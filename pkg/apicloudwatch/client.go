@@ -13,8 +13,16 @@ import (
 )
 
 type CloudWatchClient interface {
+	// ListMetrics returns the list of metrics and dimensions for a given namespace
+	// and metric name. Results pagination is handled automatically: the caller can
+	// optionally pass a non-nil func in order to handle results pages.
 	ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page *cloudwatch.ListMetricsOutput)) (*cloudwatch.ListMetricsOutput, error)
+
+	// GetMetricData returns the output of the GetMetricData CloudWatch API.
+	// Results pagination is handled automatically.
 	GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput
+
+	// GetMetricStatistics returns the output of the GetMetricStatistics CloudWatch API.
 	GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint
 }
 
