@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
+	prom_model "github.com/prometheus/common/model"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -17,19 +18,7 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, labelsSnakeCase bool, logger logging.Logger) []*PrometheusMetric {
-	output := make([]*PrometheusMetric, 0, len(tagData))
-
-	tagList := make(map[string][]string)
-
-	for _, d := range tagData {
-		for _, entry := range d.Tags {
-			if !stringInSlice(entry.Key, tagList[d.Namespace]) {
-				tagList[d.Namespace] = append(tagList[d.Namespace], entry.Key)
-			}
-		}
-	}
-
+func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, d := range tagData {
 		sb := strings.Builder{}
 		promNs := PromString(d.Namespace)
@@ -38,49 +27,36 @@ func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, labelsSnakeCase 
 		}
 		sb.WriteString(promNs)
 		sb.WriteString("_info")
-		name := sb.String()
+		metricName := sb.String()
 
-		promLabels := make(map[string]string, len(tagList[d.Namespace]))
+		promLabels := make(map[string]string, len(d.Tags))
 		promLabels["name"] = d.ARN
 
-		for _, entry := range tagList[d.Namespace] {
-			ok, promTag := PromStringTag(entry, labelsSnakeCase)
+		for _, tag := range d.Tags {
+			ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 			if !ok {
-				logger.Warn("tag name is an invalid prometheus label name", "tag", entry)
+				logger.Warn("tag name is an invalid prometheus label name", "tag", tag.Key)
 				continue
 			}
 
-			labelKey := "tag_" + promTag
-			promLabels[labelKey] = ""
-
-			for _, rTag := range d.Tags {
-				if entry == rTag.Key {
-					promLabels[labelKey] = rTag.Value
-				}
-			}
+			labelName := "tag_" + promTag
+			promLabels[labelName] = tag.Value
 		}
 
-		output = append(output, &PrometheusMetric{
-			Name:   &name,
+		observedMetricLabels = recordLabelsForMetric(metricName, promLabels, observedMetricLabels)
+		metrics = append(metrics, &PrometheusMetric{
+			Name:   &metricName,
 			Labels: promLabels,
 			Value:  aws.Float64(0),
 		})
 	}
 
-	return output
+	return metrics, observedMetricLabels
 }
 
-func stringInSlice(str string, list []string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
+	observedMetricLabels := make(map[string]model.LabelSet)
 
 	for _, c := range cwd {
 		for _, statistic := range c.Statistics {
@@ -105,7 +81,7 @@ func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, observedMet
 			if !strings.HasPrefix(promNs, "aws") {
 				sb.WriteString("aws_")
 			}
-			sb.WriteString(PromString(promNs))
+			sb.WriteString(promNs)
 			sb.WriteString("_")
 			sb.WriteString(PromString(*c.Metric))
 			sb.WriteString("_")
@@ -244,15 +220,28 @@ func recordLabelsForMetric(metricName string, promLabels map[string]string, obse
 	return observedMetricLabels
 }
 
-// EnsureLabelConsistencyForMetrics ensures that every metric has the same set of labels based on the data
-// in observedMetricLabels. Prometheus requires that all metrics with the same name have the same set of labels
-func EnsureLabelConsistencyForMetrics(metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet) []*PrometheusMetric {
-	for _, prometheusMetric := range metrics {
-		for observedLabel := range observedMetricLabels[*prometheusMetric.Name] {
-			if _, ok := prometheusMetric.Labels[observedLabel]; !ok {
-				prometheusMetric.Labels[observedLabel] = ""
+// EnsureLabelConsistencyAndRemoveDuplicates ensures that every metric has the same set of labels based on the data
+// in observedMetricLabels and that there are no duplicate metrics.
+// Prometheus requires that all metrics with the same name have the same set of labels and that no duplicates are registered
+func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet) []*PrometheusMetric {
+	metricKeys := make(map[string]struct{}, len(metrics))
+	output := make([]*PrometheusMetric, 0, len(metrics))
+
+	for _, metric := range metrics {
+		for observedLabels := range observedMetricLabels[*metric.Name] {
+			if _, ok := metric.Labels[observedLabels]; !ok {
+				metric.Labels[observedLabels] = ""
 			}
 		}
+
+		metricKey := fmt.Sprintf("%s-%d", *metric.Name, prom_model.LabelsToSignature(metric.Labels))
+		if _, exists := metricKeys[metricKey]; !exists {
+			metricKeys[metricKey] = struct{}{}
+			output = append(output, metric)
+		} else {
+			DuplicateMetricsFilteredCounter.Inc()
+		}
 	}
-	return metrics
+
+	return output
 }

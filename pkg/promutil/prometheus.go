@@ -1,7 +1,6 @@
 package promutil
 
 import (
-	"sort"
 	"strings"
 	"time"
 
@@ -96,7 +95,7 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		metrics: removeDuplicatedMetrics(metrics),
+		metrics: metrics,
 	}
 }
 
@@ -128,34 +127,6 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 	}
 
 	return prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge)
-}
-
-func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-	keys := make(map[string]bool)
-	filteredMetrics := []*PrometheusMetric{}
-	for _, metric := range metrics {
-		check := *metric.Name + combineLabels(metric.Labels)
-		if _, value := keys[check]; !value {
-			keys[check] = true
-			filteredMetrics = append(filteredMetrics, metric)
-		} else {
-			DuplicateMetricsFilteredCounter.Inc()
-		}
-	}
-	return filteredMetrics
-}
-
-func combineLabels(labels map[string]string) string {
-	var combinedLabels string
-	keys := make([]string, 0, len(labels))
-	for k := range labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		combinedLabels += PromString(k) + PromString(labels[k])
-	}
-	return combinedLabels
 }
 
 func PromString(text string) string {

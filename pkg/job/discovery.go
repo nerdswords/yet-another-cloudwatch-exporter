@@ -83,6 +83,10 @@ func scrapeDiscoveryJobUsingMetricData(
 		return resources, cw
 	}
 
+	if len(resources) == 0 {
+		logger.Debug("No tagged resources", "region", region, "namespace", job.Type)
+	}
+
 	svc := config.SupportedServices.GetService(job.Type)
 	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources)
 	metricDataLength := len(getMetricDatas)
@@ -95,12 +99,14 @@ func scrapeDiscoveryJobUsingMetricData(
 	length := getMetricDataInputLength(job.Metrics)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
 
-	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 	wg.Add(partition)
 
+	getMetricDataOutput := make([]*cloudwatch.GetMetricDataOutput, partition)
+	count := 0
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
-		go func(i int) {
+		go func(i, n int) {
 			defer wg.Done()
 			end := i + maxMetricCount
 			if end > metricDataLength {
@@ -108,28 +114,42 @@ func scrapeDiscoveryJobUsingMetricData(
 			}
 			input := getMetricDatas[i:end]
 			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
-			if data != nil {
-				output := make([]*model.CloudwatchData, 0, len(data.MetricDataResults))
-				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByID(input, *MetricDataResult.Id)
-					if err == nil {
-						if len(MetricDataResult.Values) != 0 {
-							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
-							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
-						}
-						output = append(output, getMetricData)
-					}
-				}
-				mux.Lock()
-				cw = append(cw, output...)
-				mux.Unlock()
+			if data := clientCloudwatch.GetMetricData(ctx, filter); data != nil {
+				getMetricDataOutput[n] = data
 			}
-		}(i)
+		}(i, count)
+		count++
+	}
+	wg.Wait()
+
+	// Update getMetricDatas slice with values and timestamps from API response.
+	// We iterate through the response MetricDataResults and match the result ID
+	// with what was sent in the API request.
+	// In the event that the API response contains any ID we don't know about
+	// (shouldn't really happen) we log a warning and move on. On the other hand,
+	// in case the API response does not contain results for all the IDs we've
+	// requested, unprocessed elements will be removed later on.
+	for _, data := range getMetricDataOutput {
+		for _, metricDataResult := range data.MetricDataResults {
+			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
+			if idx == -1 {
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.Id)
+				continue
+			}
+			if len(metricDataResult.Values) != 0 {
+				getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Values[0]
+				getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamps[0]
+			}
+			getMetricDatas[idx].MetricID = nil // mark as processed
+		}
 	}
 
-	wg.Wait()
-	return resources, cw
+	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
+	// is a slice of pointers, the compaction can be easily done in-place.
+	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
+		return m.MetricID == nil
+	})
+	return resources, getMetricDatas
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
@@ -142,13 +162,16 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 	return length
 }
 
-func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
-	for _, getMetricData := range getMetricDatas {
-		if *getMetricData.MetricID == value {
-			return getMetricData, nil
+func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) int {
+	for i := 0; i < len(getMetricDatas); i++ {
+		if getMetricDatas[i].MetricID == nil {
+			continue // skip elements that have been already marked
+		}
+		if *(getMetricDatas[i].MetricID) == value {
+			return i
 		}
 	}
-	return nil, fmt.Errorf("metric with id %s not found", value)
+	return -1
 }
 
 func getMetricDataForQueries(
@@ -168,30 +191,45 @@ func getMetricDataForQueries(
 	var wg sync.WaitGroup
 	wg.Add(len(discoveryJob.Metrics))
 
-	for _, metric := range discoveryJob.Metrics {
-		// For every metric of the job get the full list of metrics.
-		// This includes, for this metric the possible combinations
-		// of dimensions and value of dimensions with data.
+	// For every metric of the job call the ListMetrics API
+	// to fetch the existing combinations of dimensions and
+	// value of dimensions with data.
 
-		go func(metric *config.Metric) {
-			defer wg.Done()
+	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.ListMetricsCallback) {
+		for _, metric := range discoveryJob.Metrics {
+			go func(metric *config.Metric) {
+				defer wg.Done()
+				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
+					data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, page.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
-			metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric)
-			if err != nil {
-				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-				return
-			}
+					mux.Lock()
+					getMetricDatas = append(getMetricDatas, data...)
+					mux.Unlock()
+				})
+				if err != nil {
+					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+					return
+				}
+			}(metric)
+		}
+	} else {
+		for _, metric := range discoveryJob.Metrics {
+			go func(metric *config.Metric) {
+				defer wg.Done()
 
-			if len(resources) == 0 {
-				logger.Debug("No resources for metric", "metric_name", metric.Name, "namespace", svc.Namespace)
-			}
+				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, nil)
+				if err != nil {
+					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+					return
+				}
 
-			data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+				data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
-			mux.Lock()
-			getMetricDatas = append(getMetricDatas, data...)
-			mux.Unlock()
-		}(metric)
+				mux.Lock()
+				getMetricDatas = append(getMetricDatas, data...)
+				mux.Unlock()
+			}(metric)
+		}
 	}
 
 	wg.Wait()
