@@ -14,6 +14,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
@@ -199,7 +200,7 @@ func getMetricDataForQueries(
 			go func(metric *config.Metric) {
 				defer wg.Done()
 				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
-					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, page.Metrics, discoveryJob.DimensionNameRequirements, metric)
+					data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, page.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -222,7 +223,7 @@ func getMetricDataForQueries(
 					return
 				}
 
-				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+				data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -236,6 +237,7 @@ func getMetricDataForQueries(
 }
 
 func getFilteredMetricDatas(
+	ctx context.Context,
 	logger logging.Logger,
 	region string,
 	accountID *string,
@@ -248,10 +250,19 @@ func getFilteredMetricDatas(
 	dimensionNameList []string,
 	m *config.Metric,
 ) []*model.CloudwatchData {
-	associator := newMetricsToResourceAssociator(dimensionRegexps, resources)
+	type resourceAssociator interface {
+		AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+	}
+
+	var assoc resourceAssociator
+	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
+		assoc = maxdimassociator.NewAssociator(dimensionRegexps, resources)
+	} else {
+		assoc = newMetricsToResourceAssociator(dimensionRegexps, resources)
+	}
 
 	if logger.IsDebugEnabled() {
-		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", associator)
+		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", assoc)
 	}
 
 	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
@@ -260,36 +271,41 @@ func getFilteredMetricDatas(
 			continue
 		}
 
-		matchedResource, skip := associator.associateMetricsToResources(cwMetric)
-		if !skip {
-			resource := matchedResource
-			if resource == nil {
-				resource = &model.TaggedResource{
-					ARN:       "global",
-					Namespace: namespace,
-				}
+		matchedResource, skip := assoc.AssociateMetricToResource(cwMetric)
+		if skip {
+			if logger.IsDebugEnabled() {
+				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
 			}
-			metricTags := resource.MetricTags(tagsOnMetrics)
+			continue
+		}
 
-			for _, stats := range m.Statistics {
-				id := fmt.Sprintf("id_%d", rand.Int())
-
-				getMetricsData = append(getMetricsData, &model.CloudwatchData{
-					ID:                     &resource.ARN,
-					MetricID:               &id,
-					Metric:                 &m.Name,
-					Namespace:              &namespace,
-					Statistics:             []string{stats},
-					NilToZero:              m.NilToZero,
-					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
-					Tags:                   metricTags,
-					CustomTags:             customTags,
-					Dimensions:             cwMetric.Dimensions,
-					Region:                 &region,
-					AccountID:              accountID,
-					Period:                 m.Period,
-				})
+		resource := matchedResource
+		if resource == nil {
+			resource = &model.TaggedResource{
+				ARN:       "global",
+				Namespace: namespace,
 			}
+		}
+		metricTags := resource.MetricTags(tagsOnMetrics)
+
+		for _, stats := range m.Statistics {
+			id := fmt.Sprintf("id_%d", rand.Int())
+
+			getMetricsData = append(getMetricsData, &model.CloudwatchData{
+				ID:                     &resource.ARN,
+				MetricID:               &id,
+				Metric:                 &m.Name,
+				Namespace:              &namespace,
+				Statistics:             []string{stats},
+				NilToZero:              m.NilToZero,
+				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+				Tags:                   metricTags,
+				CustomTags:             customTags,
+				Dimensions:             cwMetric.Dimensions,
+				Region:                 &region,
+				AccountID:              accountID,
+				Period:                 m.Period,
+			})
 		}
 	}
 	return getMetricsData
