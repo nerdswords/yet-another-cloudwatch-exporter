@@ -70,6 +70,12 @@ var ecsResources = []*model.TaggedResource{
 	ecsService2,
 }
 
+var mqBroker = &model.TaggedResource{
+	ARN:       "arn:aws:mq:af-south-1:123456789222:broker:sampleBroker:b-deadbeef",
+	Namespace: "AWS/ActiveMQ",
+	Region:    "af-south-1",
+}
+
 func generateEC2Resources(region string, instanceIDs ...string) []*model.TaggedResource {
 	res := make([]*model.TaggedResource, 0, len(instanceIDs))
 	for _, id := range instanceIDs {
@@ -283,6 +289,24 @@ func TestAssociator(t *testing.T) {
 			},
 			expectedSkip:     false,
 			expectedResource: ecsService2,
+		},
+		{
+			name: "activemq broker, metrics have a dimension with a dash-number suffix",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
+				resources: []*model.TaggedResource{
+					mqBroker,
+				},
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("CPUUtilization"),
+					Namespace:  aws.String("AWS/ActiveMQ"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("Broker"), Value: aws.String("sampleBroker-1")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: mqBroker,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
