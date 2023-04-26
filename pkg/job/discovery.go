@@ -9,16 +9,20 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
+
+type resourceAssociator interface {
+	AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+}
 
 func runDiscoveryJob(
 	ctx context.Context,
@@ -199,8 +203,19 @@ func getMetricDataForQueries(
 		for _, metric := range discoveryJob.Metrics {
 			go func(metric *config.Metric) {
 				defer wg.Done()
+
+				var assoc resourceAssociator
+				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
+					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
+				} else {
+					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
+				}
+				if logger.IsDebugEnabled() {
+					logger.Debug("associator", assoc)
+				}
+
 				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
-					data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, page.Metrics, discoveryJob.DimensionNameRequirements, metric)
+					data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -217,13 +232,23 @@ func getMetricDataForQueries(
 			go func(metric *config.Metric) {
 				defer wg.Done()
 
+				var assoc resourceAssociator
+				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
+					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
+				} else {
+					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
+				}
+				if logger.IsDebugEnabled() {
+					logger.Debug("associator", assoc)
+				}
+
 				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, nil)
 				if err != nil {
 					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
 					return
 				}
 
-				data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, svc.DimensionRegexps, resources, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric)
+				data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -244,27 +269,11 @@ func getFilteredMetricDatas(
 	namespace string,
 	customTags []model.Tag,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	dimensionRegexps []*regexp.Regexp,
-	resources []*model.TaggedResource,
 	metricsList []*cloudwatch.Metric,
 	dimensionNameList []string,
 	m *config.Metric,
+	assoc resourceAssociator,
 ) []*model.CloudwatchData {
-	type resourceAssociator interface {
-		AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
-	}
-
-	var assoc resourceAssociator
-	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-		assoc = maxdimassociator.NewAssociator(dimensionRegexps, resources)
-	} else {
-		assoc = newMetricsToResourceAssociator(dimensionRegexps, resources)
-	}
-
-	if logger.IsDebugEnabled() {
-		logger.Debug("FilterMetricData DimensionsFilter", "dimensionsFilter", assoc)
-	}
-
 	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {

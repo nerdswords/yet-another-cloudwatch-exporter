@@ -1,4 +1,4 @@
-package job
+package associator
 
 import (
 	"strings"
@@ -15,11 +15,11 @@ import (
 type valueToResource map[string]*model.TaggedResource
 
 // metricsToResourceAssociator contains for each dimension, the matched values and resources.
-type metricsToResourceAssociator map[string]valueToResource
+type Associator map[string]valueToResource
 
-// newMetricsToResourceAssociator creates a new metricsToResourceAssociator given a set of dimensions regexs that can extract
+// NewAssociator creates a new metricsToResourceAssociator given a set of dimensions regexs that can extract
 // dimensions from a resource ARN, and a set of resources from which to extract.
-func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) metricsToResourceAssociator {
+func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
 	dimensionsFilter := make(map[string]valueToResource)
 	for _, dimensionRegexp := range dimensionRegexps {
 		names := dimensionRegexp.SubexpNames()
@@ -48,7 +48,7 @@ func newMetricsToResourceAssociator(dimensionRegexps []*regexp.Regexp, resources
 // AssociateMetricToResource finds, for a given cloudwatch.Metrics, the resource that matches the better.
 // If no match is found, nil is returned. Also, there are some conditions where the metric shouldn't be
 // considered, and that is dictated by the skip return value.
-func (asoc metricsToResourceAssociator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (asoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
 	var r *model.TaggedResource
 	skip := false
 	alreadyFound := false

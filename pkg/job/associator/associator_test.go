@@ -1,4 +1,4 @@
-package job
+package associator
 
 import (
 	"fmt"
@@ -290,7 +290,7 @@ func TestAssociator(t *testing.T) {
 				t.Skip("failure is expected. Remove skip after https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821 is fixed.")
 				return
 			}
-			associator := newMetricsToResourceAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)
