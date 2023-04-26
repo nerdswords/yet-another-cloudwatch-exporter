@@ -291,7 +291,7 @@ func TestAssociator(t *testing.T) {
 			expectedResource: ecsService2,
 		},
 		{
-			name: "activemq broker, metrics have a dimension with a dash-number suffix",
+			name: "activemq broker metrics have a dimension with a dash-number suffix",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
 				resources: []*model.TaggedResource{
