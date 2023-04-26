@@ -267,8 +267,8 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
+			regexp.MustCompile(":cluster/(?P<ClusterName>[^/]+)$"),
+			regexp.MustCompile(":service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)$"),
 		},
 	},
 	{
@@ -281,8 +281,8 @@ var SupportedServices = serviceConfigs{
 		DimensionRegexps: []*regexp.Regexp{
 			// Use "new" long arns as per
 			// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-account-settings.html#ecs-resource-ids
-			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)"),
+			regexp.MustCompile(":cluster/(?P<ClusterName>[^/]+)$"),
+			regexp.MustCompile(":service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)$"),
 		},
 	},
 	{
@@ -372,11 +372,9 @@ var SupportedServices = serviceConfigs{
 			aws.String("globalaccelerator"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("destinationEdge/(?P<DestinationEdge>[^/]+)"),
-			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)"),
-			regexp.MustCompile("endpointGroup/(?P<EndpointGroup>[^/]+)"),
-			regexp.MustCompile("listener/(?P<Listener>[^/]+)"),
-			regexp.MustCompile("transportProtocol/(?P<TransportProtocol>[^/]+)"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)$"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)/listener/(?P<Listener>[^/]+)$"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)/listener/(?P<Listener>[^/]+)/endpoint-group/(?P<EndpointGroup>[^/]+)$"),
 		},
 	},
 	{
