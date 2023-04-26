@@ -38,6 +38,7 @@ jobs:
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3.4.0
+        args: --timeout=3m
 
   verify-example-configs:
     name: verify
