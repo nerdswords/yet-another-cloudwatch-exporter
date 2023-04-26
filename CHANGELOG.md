@@ -1,3 +1,44 @@
+# v0.51.0
+
+**Important breaking changes**
+* Jobs of type `customNamespace` are **deprecated** and might be removed in a future release (please reach out if you're still using this feature)
+
+**Bugfixes and features**
+
+Features:
+* Add feature flags support by @thepalbi
+* Feature flag `max-dimensions-associator`: new resource-matching algorithm for discovery jobs. It fixes metrics attribution for ECS. Please test it out and report any issue!
+* Feature flag `list-metrics-callback`: reduce memory usage of ListMetrics API requests
+
+Services:
+* Add support for AWS/Usage namespace by @cristiangreco
+* Fix ECS regexes by @cristiangreco
+
+Docs:
+* Add docker compose support for easier development by @thepalbi
+* Add more config examples by @cristiangreco
+* Review docs about embedding yace by @cristiangreco
+
+Bugs:
+* Fix for Dockerfile smell DL3007 by @grosa1
+
+Refactoring:
+* Refactor Tagging/CloudWatch clients by @cristiangreco
+* CloudWatch client: split out input builders into separate file by @cristiangreco
+* Refactor promutils migrate functions by @cristiangreco
+* Use grafana/regexp by @cristiangreco
+* Refactor implementation of getFilteredMetricDatas by @cristiangreco
+* Remove uneeded Describe implementation by @kgeckhart
+* Add counter to see if duplicate metrics are still a problem by @kgeckhart
+* Refactor label consistency and duplicates by @kgeckhart
+* Refactor GetMetricData calls in discovery jobs by @cristiangreco
+
+**Dependencies**
+* Bump github.com/aws/aws-sdk-go from 1.44.235 to 1.44.249
+* Bump github.com/prometheus/common from 0.41.0 to 0.42.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.50.0...v0.51.0
+
 # v0.50.0
 
 **Important breaking changes**
