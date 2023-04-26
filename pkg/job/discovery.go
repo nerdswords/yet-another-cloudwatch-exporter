@@ -118,8 +118,11 @@ func scrapeDiscoveryJobUsingMetricData(
 			}
 			input := getMetricDatas[i:end]
 			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
-			if data := clientCloudwatch.GetMetricData(ctx, filter); data != nil {
+			data := clientCloudwatch.GetMetricData(ctx, filter)
+			if data != nil {
 				getMetricDataOutput[n] = data
+			} else {
+				logger.Warn("GetMetricData partition empty result", "partition", n, "start", i, "end", end)
 			}
 		}(i, count)
 		count++
@@ -134,6 +137,9 @@ func scrapeDiscoveryJobUsingMetricData(
 	// in case the API response does not contain results for all the IDs we've
 	// requested, unprocessed elements will be removed later on.
 	for _, data := range getMetricDataOutput {
+		if data == nil {
+			continue
+		}
 		for _, metricDataResult := range data.MetricDataResults {
 			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
 			if idx == -1 {
