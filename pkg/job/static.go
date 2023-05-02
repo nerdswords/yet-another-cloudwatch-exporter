@@ -6,35 +6,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
+	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
-func runStaticJob(
-	ctx context.Context,
-	logger logging.Logger,
-	cache session.SessionCache,
-	region string,
-	role config.Role,
-	job *config.Static,
-	account *string,
-	cloudwatchAPIConcurrency int,
-) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
-		apicloudwatch.NewClient(
-			logger,
-			cache.GetCloudwatch(&region, role),
-		),
-		cloudwatchAPIConcurrency,
-	)
-
-	return scrapeStaticJob(ctx, job, region, account, clientCloudwatch, logger)
-}
-
-func scrapeStaticJob(ctx context.Context, resource *config.Static, region string, accountID *string, clientCloudwatch apicloudwatch.CloudWatchClient, logger logging.Logger) []*model.CloudwatchData {
+func runStaticJob(ctx context.Context, resource *config.Static, region string, accountID string, clientCloudwatch cloudwatch_client.Client, logger logging.Logger) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
@@ -56,10 +34,10 @@ func scrapeStaticJob(ctx context.Context, resource *config.Static, region string
 				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
 				Region:                 &region,
-				AccountID:              accountID,
+				AccountID:              &accountID,
 			}
 
-			filter := apicloudwatch.CreateGetMetricStatisticsInput(
+			filter := cloudwatch_client.CreateGetMetricStatisticsInput(
 				data.Dimensions,
 				&resource.Namespace,
 				metric,

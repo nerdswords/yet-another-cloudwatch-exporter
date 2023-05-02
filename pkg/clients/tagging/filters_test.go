@@ -1,4 +1,4 @@
-package apitagging
+package tagging
 
 import (
 	"context"
@@ -33,13 +33,13 @@ func TestValidServiceNames(t *testing.T) {
 func TestApiGatewayFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           Client
+		iface           client
 		inputResources  []*model.TaggedResource
 		outputResources []*model.TaggedResource
 	}{
 		{
 			"api gateway resources skip stages",
-			Client{
+			client{
 				apiGatewayAPI: apiGatewayClient{
 					getRestApisOutput: &apigateway.GetRestApisOutput{
 						Items: []*apigateway.RestApi{
@@ -132,19 +132,19 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 func TestDMSFilterFunc(t *testing.T) {
 	tests := []struct {
 		name            string
-		iface           Client
+		iface           client
 		inputResources  []*model.TaggedResource
 		outputResources []*model.TaggedResource
 	}{
 		{
 			"empty input resources",
-			Client{},
+			client{},
 			[]*model.TaggedResource{},
 			[]*model.TaggedResource{},
 		},
 		{
 			"replication tasks and instances",
-			Client{
+			client{
 				dmsAPI: dmsClient{
 					describeReplicationInstancesOutput: &databasemigrationservice.DescribeReplicationInstancesOutput{
 						ReplicationInstances: []*databasemigrationservice.ReplicationInstance{

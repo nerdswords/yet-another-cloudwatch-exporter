@@ -10,14 +10,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
+	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 type resourceAssociator interface {
@@ -26,51 +25,13 @@ type resourceAssociator interface {
 
 func runDiscoveryJob(
 	ctx context.Context,
-	logger logging.Logger,
-	cache session.SessionCache,
-	metricsPerQuery int,
 	job *config.Job,
 	region string,
-	role config.Role,
-	account *string,
-	exportedTags model.ExportedTagsOnMetrics,
-	taggingAPIConcurrency int,
-	cloudwatchAPIConcurrency int,
-) ([]*model.TaggedResource, []*model.CloudwatchData) {
-	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
-		apicloudwatch.NewClient(
-			logger,
-			cache.GetCloudwatch(&region, role),
-		),
-		cloudwatchAPIConcurrency,
-	)
-
-	clientTag := apitagging.NewLimitedConcurrencyClient(
-		apitagging.NewClient(
-			logger,
-			cache.GetTagging(&region, role),
-			cache.GetASG(&region, role),
-			cache.GetAPIGateway(&region, role),
-			cache.GetEC2(&region, role),
-			cache.GetDMS(&region, role),
-			cache.GetPrometheus(&region, role),
-			cache.GetStorageGateway(&region, role),
-		),
-		taggingAPIConcurrency)
-
-	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, logger)
-}
-
-func scrapeDiscoveryJobUsingMetricData(
-	ctx context.Context,
-	job *config.Job,
-	region string,
-	accountID *string,
+	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientTag apitagging.TaggingClient,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
+	clientTag tagging.Client,
+	clientCloudwatch cloudwatch_client.Client,
 	metricsPerQuery int,
-	roundingPeriod *int64,
 	logger logging.Logger,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
@@ -79,7 +40,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	resources, err := clientTag.GetResources(ctx, job, region)
 	if err != nil {
-		if errors.Is(err, apitagging.ErrExpectedToFindResources) {
+		if errors.Is(err, tagging.ErrExpectedToFindResources) {
 			logger.Error(err, "No tagged resources made it through filtering")
 		} else {
 			logger.Error(err, "Couldn't describe resources")
@@ -117,7 +78,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
+			filter := cloudwatch_client.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, job.RoundingPeriod, logger)
 			data := clientCloudwatch.GetMetricData(ctx, filter)
 			if data != nil {
 				getMetricDataOutput[n] = data
@@ -190,9 +151,9 @@ func getMetricDataForQueries(
 	discoveryJob *config.Job,
 	svc *config.ServiceConfig,
 	region string,
-	accountID *string,
+	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
+	clientCloudwatch cloudwatch_client.Client,
 	resources []*model.TaggedResource,
 ) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
@@ -270,7 +231,7 @@ func getMetricDataForQueries(
 func getFilteredMetricDatas(
 	logger logging.Logger,
 	region string,
-	accountID *string,
+	accountID string,
 	namespace string,
 	customTags []model.Tag,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
@@ -317,7 +278,7 @@ func getFilteredMetricDatas(
 				CustomTags:             customTags,
 				Dimensions:             cwMetric.Dimensions,
 				Region:                 &region,
-				AccountID:              accountID,
+				AccountID:              &accountID,
 				Period:                 m.Period,
 			})
 		}

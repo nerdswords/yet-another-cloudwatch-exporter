@@ -1,4 +1,4 @@
-package session
+package clients
 
 import (
 	"fmt"
@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -24,39 +23,36 @@ import (
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	r "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/account"
+	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-// SessionCache is an interface to a cache of sessions and clients for all the
+// ClientCache is an interface to a cache aws clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
-type SessionCache interface { //nolint:revive
-	GetSTS(config.Role) stsiface.STSAPI
-	GetCloudwatch(*string, config.Role) cloudwatchiface.CloudWatchAPI
-	GetTagging(*string, config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	GetASG(*string, config.Role) autoscalingiface.AutoScalingAPI
-	GetEC2(*string, config.Role) ec2iface.EC2API
-	GetDMS(*string, config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	GetAPIGateway(*string, config.Role) apigatewayiface.APIGatewayAPI
-	GetStorageGateway(*string, config.Role) storagegatewayiface.StorageGatewayAPI
-	GetPrometheus(*string, config.Role) prometheusserviceiface.PrometheusServiceAPI
+type ClientCache interface { //nolint:revive
+	GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client
+	GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client
+	GetAccountClient(region string, role config.Role) account.Client
+
 	Refresh()
 	Clear()
 }
 
-type sessionCache struct {
+type clientCache struct {
 	stsRegion        string
 	session          *session.Session
 	endpointResolver endpoints.ResolverFunc
 	stscache         map[config.Role]stsiface.STSAPI
-	clients          map[config.Role]map[string]*clientCache
+	clients          map[config.Role]map[string]*clients
 	cleared          bool
 	refreshed        bool
 	mu               sync.Mutex
@@ -64,37 +60,32 @@ type sessionCache struct {
 	logger           logging.Logger
 }
 
-type clientCache struct {
+type clients struct {
 	// if we know that this job is only used for static
 	// then we don't have to construct as many cached connections
 	// later on
-	onlyStatic     bool
-	cloudwatch     cloudwatchiface.CloudWatchAPI
-	tagging        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	asg            autoscalingiface.AutoScalingAPI
-	ec2            ec2iface.EC2API
-	prometheus     prometheusserviceiface.PrometheusServiceAPI
-	dms            databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	apiGateway     apigatewayiface.APIGatewayAPI
-	storageGateway storagegatewayiface.StorageGatewayAPI
+	onlyStatic bool
+	cloudwatch cloudwatch_client.Client
+	tagging    tagging.Client
+	account    account.Client
 }
 
-// NewSessionCache creates a new session cache to use when fetching data from
+// NewClientCache creates a new clients cache to use when fetching data from
 // AWS.
-func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) SessionCache {
+func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) ClientCache {
 	stscache := map[config.Role]stsiface.STSAPI{}
-	roleCache := map[config.Role]map[string]*clientCache{}
+	cache := map[config.Role]map[string]*clients{}
 
 	for _, discoveryJob := range cfg.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
 			}
-			if _, ok := roleCache[role]; !ok {
-				roleCache[role] = map[string]*clientCache{}
+			if _, ok := cache[role]; !ok {
+				cache[role] = map[string]*clients{}
 			}
 			for _, region := range discoveryJob.Regions {
-				roleCache[role][region] = &clientCache{}
+				cache[role][region] = &clients{}
 			}
 		}
 	}
@@ -105,14 +96,14 @@ func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) Se
 				stscache[role] = nil
 			}
 
-			if _, ok := roleCache[role]; !ok {
-				roleCache[role] = map[string]*clientCache{}
+			if _, ok := cache[role]; !ok {
+				cache[role] = map[string]*clients{}
 			}
 
 			for _, region := range staticJob.Regions {
 				// Only write a new region in if the region does not exist
-				if _, ok := roleCache[role][region]; !ok {
-					roleCache[role][region] = &clientCache{
+				if _, ok := cache[role][region]; !ok {
+					cache[role][region] = &clients{
 						onlyStatic: true,
 					}
 				}
@@ -126,14 +117,14 @@ func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) Se
 				stscache[role] = nil
 			}
 
-			if _, ok := roleCache[role]; !ok {
-				roleCache[role] = map[string]*clientCache{}
+			if _, ok := cache[role]; !ok {
+				cache[role] = map[string]*clients{}
 			}
 
 			for _, region := range customNamespaceJob.Regions {
 				// Only write a new region in if the region does not exist
-				if _, ok := roleCache[role][region]; !ok {
-					roleCache[role][region] = &clientCache{
+				if _, ok := cache[role][region]; !ok {
+					cache[role][region] = &clients{
 						onlyStatic: true,
 					}
 				}
@@ -153,12 +144,12 @@ func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) Se
 		}
 	}
 
-	return &sessionCache{
+	return &clientCache{
 		stsRegion:        cfg.StsRegion,
 		session:          nil,
 		endpointResolver: endpointResolver,
 		stscache:         stscache,
-		clients:          roleCache,
+		clients:          cache,
 		fips:             fips,
 		cleared:          false,
 		refreshed:        false,
@@ -168,192 +159,128 @@ func NewSessionCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) Se
 
 // Refresh and Clear help to avoid using lock primitives by asserting that
 // there are no ongoing writes to the map.
-func (s *sessionCache) Clear() {
-	if s.cleared {
+func (c *clientCache) Clear() {
+	if c.cleared {
 		return
 	}
 
-	for role := range s.stscache {
-		s.stscache[role] = nil
+	for role := range c.stscache {
+		c.stscache[role] = nil
 	}
 
-	for role, regions := range s.clients {
+	for role, regions := range c.clients {
 		for region := range regions {
-			s.clients[role][region].cloudwatch = nil
-			s.clients[role][region].tagging = nil
-			s.clients[role][region].asg = nil
-			s.clients[role][region].ec2 = nil
-			s.clients[role][region].prometheus = nil
-			s.clients[role][region].dms = nil
-			s.clients[role][region].apiGateway = nil
-			s.clients[role][region].storageGateway = nil
+			cachedClient := c.clients[role][region]
+			cachedClient.account = nil
+			cachedClient.cloudwatch = nil
+			cachedClient.tagging = nil
 		}
 	}
-	s.cleared = true
-	s.refreshed = false
+	c.cleared = true
+	c.refreshed = false
 }
 
-func (s *sessionCache) Refresh() {
-	// TODO: make all the getter functions atomic pointer loads and sets
-	if s.refreshed {
+func (c *clientCache) Refresh() {
+	if c.refreshed {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// Double check Refresh wasn't called concurrently
+	if c.refreshed {
 		return
 	}
 
 	// sessions really only need to be constructed once at runtime
-	if s.session == nil {
-		s.session = createAWSSession(s.endpointResolver, s.logger.IsDebugEnabled())
+	if c.session == nil {
+		c.session = createAWSSession(c.endpointResolver, c.logger.IsDebugEnabled())
 	}
 
-	for role := range s.stscache {
-		s.stscache[role] = createStsSession(s.session, role, s.stsRegion, s.fips, s.logger.IsDebugEnabled())
+	for role := range c.stscache {
+		c.stscache[role] = createStsSession(c.session, role, c.stsRegion, c.fips, c.logger.IsDebugEnabled())
 	}
 
-	for role, regions := range s.clients {
+	for role, regions := range c.clients {
 		for region := range regions {
+			cachedClient := c.clients[role][region]
 			// if the role is just used in static jobs, then we
 			// can skip creating other sessions and potentially running
 			// into permissions errors or taking up needless cycles
-			s.clients[role][region].cloudwatch = createCloudwatchSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
-			if s.clients[role][region].onlyStatic {
+			cachedClient.cloudwatch = createCloudWatchClient(c.session, &region, role, c.fips, c.logger)
+			if cachedClient.onlyStatic {
 				continue
 			}
-
-			s.clients[role][region].tagging = createTagSession(s.session, &region, role, s.logger.IsDebugEnabled())
-			s.clients[role][region].asg = createASGSession(s.session, &region, role, s.logger.IsDebugEnabled())
-			s.clients[role][region].ec2 = createEC2Session(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
-			s.clients[role][region].dms = createDMSSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
-			s.clients[role][region].apiGateway = createAPIGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
-			s.clients[role][region].storageGateway = createStorageGatewaySession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
-			s.clients[role][region].prometheus = createPrometheusSession(s.session, &region, role, s.fips, s.logger.IsDebugEnabled())
+			cachedClient.tagging = createTaggingClient(c.session, &region, role, c.fips, c.logger)
+			cachedClient.account = createAccountClient(c.logger, c.stscache[role])
 		}
 	}
 
-	s.cleared = false
-	s.refreshed = true
+	c.cleared = false
+	c.refreshed = true
 }
 
-func (s *sessionCache) GetSTS(role config.Role) stsiface.STSAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.stscache[role]; ok && sess != nil {
-		return sess
-	}
-	s.stscache[role] = createStsSession(s.session, role, s.stsRegion, s.fips, s.logger.IsDebugEnabled())
-	return s.stscache[role]
+func createCloudWatchClient(s *session.Session, region *string, role config.Role, fips bool, logger logging.Logger) cloudwatch_client.Client {
+	return cloudwatch_client.NewClient(
+		logger,
+		createCloudwatchSession(s, region, role, fips, logger.IsDebugEnabled()),
+	)
 }
 
-func (s *sessionCache) GetCloudwatch(region *string, role config.Role) cloudwatchiface.CloudWatchAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.clients[role][*region]; ok && sess.cloudwatch != nil {
-		return sess.cloudwatch
-	}
-	s.clients[role][*region].cloudwatch = createCloudwatchSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].cloudwatch
+func createTaggingClient(session *session.Session, region *string, role config.Role, fips bool, logger logging.Logger) tagging.Client {
+	return tagging.NewClient(
+		logger,
+		createTagSession(session, region, role, logger.IsDebugEnabled()),
+		createASGSession(session, region, role, logger.IsDebugEnabled()),
+		createAPIGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
+		createEC2Session(session, region, role, fips, logger.IsDebugEnabled()),
+		createDMSSession(session, region, role, fips, logger.IsDebugEnabled()),
+		createPrometheusSession(session, region, role, fips, logger.IsDebugEnabled()),
+		createStorageGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
+	)
 }
 
-func (s *sessionCache) GetTagging(region *string, role config.Role) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.clients[role][*region]; ok && sess.tagging != nil {
-		return sess.tagging
-	}
-
-	s.clients[role][*region].tagging = createTagSession(s.session, region, role, s.fips)
-	return s.clients[role][*region].tagging
+func createAccountClient(logger logging.Logger, sts stsiface.STSAPI) account.Client {
+	return account.NewClient(logger, sts)
 }
 
-func (s *sessionCache) GetASG(region *string, role config.Role) autoscalingiface.AutoScalingAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
+	if !c.refreshed {
+		// if we have not refreshed then we need to lock in case we are accessing concurrently
+		c.mu.Lock()
+		defer c.mu.Unlock()
 	}
-	if sess, ok := s.clients[role][*region]; ok && sess.asg != nil {
-		return sess.asg
+	if client := c.clients[role][region].cloudwatch; client != nil {
+		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrencyLimit)
 	}
-
-	s.clients[role][*region].asg = createASGSession(s.session, region, role, s.fips)
-	return s.clients[role][*region].asg
+	c.clients[role][region].cloudwatch = createCloudWatchClient(c.session, &region, role, c.fips, c.logger)
+	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
 }
 
-func (s *sessionCache) GetEC2(region *string, role config.Role) ec2iface.EC2API {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+func (c *clientCache) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
+	if !c.refreshed {
+		// if we have not refreshed then we need to lock in case we are accessing concurrently
+		c.mu.Lock()
+		defer c.mu.Unlock()
 	}
-	if sess, ok := s.clients[role][*region]; ok && sess.ec2 != nil {
-		return sess.ec2
+	if client := c.clients[role][region].tagging; client != nil {
+		return tagging.NewLimitedConcurrencyClient(client, concurrencyLimit)
 	}
-
-	s.clients[role][*region].ec2 = createEC2Session(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].ec2
+	c.clients[role][region].tagging = createTaggingClient(c.session, &region, role, c.fips, c.logger)
+	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 
-func (s *sessionCache) GetPrometheus(region *string, role config.Role) prometheusserviceiface.PrometheusServiceAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+func (c *clientCache) GetAccountClient(region string, role config.Role) account.Client {
+	if !c.refreshed {
+		// if we have not refreshed then we need to lock in case we are accessing concurrently
+		c.mu.Lock()
+		defer c.mu.Unlock()
 	}
-	if sess, ok := s.clients[role][*region]; ok && sess.prometheus != nil {
-		return sess.prometheus
+	if client := c.clients[role][region].account; client != nil {
+		return client
 	}
-
-	s.clients[role][*region].prometheus = createPrometheusSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].prometheus
-}
-
-func (s *sessionCache) GetDMS(region *string, role config.Role) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.clients[role][*region]; ok && sess.dms != nil {
-		return sess.dms
-	}
-
-	s.clients[role][*region].dms = createDMSSession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].dms
-}
-
-func (s *sessionCache) GetAPIGateway(region *string, role config.Role) apigatewayiface.APIGatewayAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.clients[role][*region]; ok && sess.apiGateway != nil {
-		return sess.apiGateway
-	}
-
-	s.clients[role][*region].apiGateway = createAPIGatewaySession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].apiGateway
-}
-
-func (s *sessionCache) GetStorageGateway(region *string, role config.Role) storagegatewayiface.StorageGatewayAPI {
-	// if we have not refreshed then we need to lock in case we are accessing concurrently
-	if !s.refreshed {
-		s.mu.Lock()
-		defer s.mu.Unlock()
-	}
-	if sess, ok := s.clients[role][*region]; ok && sess.storageGateway != nil {
-		return sess.storageGateway
-	}
-
-	s.clients[role][*region].storageGateway = createStorageGatewaySession(s.session, region, role, s.fips, s.logger.IsDebugEnabled())
-	return s.clients[role][*region].storageGateway
+	c.clients[role][region].account = createAccountClient(c.logger, c.stscache[role])
+	return c.clients[role][region].account
 }
 
 func setExternalID(ID string) func(p *stscreds.AssumeRoleProvider) {

@@ -1,4 +1,4 @@
-package apicloudwatch
+package cloudwatch
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type CloudWatchClient interface {
+type Client interface {
 	// ListMetrics returns the list of metrics and dimensions for a given namespace
 	// and metric name. Results pagination is handled automatically: the caller can
 	// optionally pass a non-nil func in order to handle results pages.
@@ -26,23 +26,21 @@ type CloudWatchClient interface {
 	GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint
 }
 
-var _ CloudWatchClient = (*Client)(nil)
-
 const timeFormat = "2006-01-02T15:04:05.999999-07:00"
 
-type Client struct {
+type client struct {
 	logger        logging.Logger
 	cloudwatchAPI cloudwatchiface.CloudWatchAPI
 }
 
-func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAPI) *Client {
-	return &Client{
+func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAPI) Client {
+	return &client{
 		logger:        logger,
 		cloudwatchAPI: cloudwatchAPI,
 	}
 }
 
-func (c Client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page *cloudwatch.ListMetricsOutput)) (*cloudwatch.ListMetricsOutput, error) {
+func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page *cloudwatch.ListMetricsOutput)) (*cloudwatch.ListMetricsOutput, error) {
 	filter := &cloudwatch.ListMetricsInput{
 		MetricName: aws.String(metric.Name),
 		Namespace:  aws.String(namespace),
@@ -76,7 +74,7 @@ func (c Client) ListMetrics(ctx context.Context, namespace string, metric *confi
 	return &res, nil
 }
 
-func (c Client) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+func (c client) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	var resp cloudwatch.GetMetricDataOutput
 
 	if c.logger.IsDebugEnabled() {
@@ -103,7 +101,7 @@ func (c Client) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricD
 	return &resp
 }
 
-func (c Client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+func (c client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	if c.logger.IsDebugEnabled() {
 		c.logger.Debug("GetMetricStatistics", "input", filter)
 	}
@@ -125,14 +123,12 @@ func (c Client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetM
 	return resp.Datapoints
 }
 
-var _ CloudWatchClient = (*LimitedConcurrencyClient)(nil)
-
 type LimitedConcurrencyClient struct {
-	client *Client
+	client Client
 	sem    chan struct{}
 }
 
-func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
+func NewLimitedConcurrencyClient(client Client, maxConcurrency int) Client {
 	return &LimitedConcurrencyClient{
 		client: client,
 		sem:    make(chan struct{}, maxConcurrency),
