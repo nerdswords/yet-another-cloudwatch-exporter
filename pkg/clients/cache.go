@@ -38,7 +38,7 @@ import (
 // ClientCache is an interface to a cache aws clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
-type ClientCache interface { //nolint:revive
+type ClientCache interface {
 	GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client
 	GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client
 	GetAccountClient(region string, role config.Role) account.Client

@@ -44,7 +44,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, discoveryJob, region, accountID, cfg.Discovery.ExportedTagsOnMetrics, cache.GetTaggingClient(region, role, taggingAPIConcurrency), cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery, logger)
+					resources, metrics := runDiscoveryJob(ctx, discoveryJob, region, accountID, cfg.Discovery.ExportedTagsOnMetrics, cache.GetTaggingClient(region, role, taggingAPIConcurrency), cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery, jobLogger)
 					if len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
@@ -70,7 +70,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runStaticJob(ctx, staticJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), logger)
+					metrics := runStaticJob(ctx, staticJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), jobLogger)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -96,7 +96,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runCustomNamespaceJob(ctx, customNamespaceJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), logger, metricsPerQuery)
+					metrics := runCustomNamespaceJob(ctx, customNamespaceJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), jobLogger, metricsPerQuery)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)

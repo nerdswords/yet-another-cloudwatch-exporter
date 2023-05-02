@@ -696,7 +696,7 @@ func TestClientCacheGetCloudwatchClient(t *testing.T) {
 	testGetAWSClient(
 		t, "Cloudwatch",
 		func(t *testing.T, cache *clientCache, region string, role config.Role) {
-			iface := cache.GetCloudwatchClient(region, role)
+			iface := cache.GetCloudwatchClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
 				return
@@ -708,7 +708,7 @@ func TestClientCacheGetTagging(t *testing.T) {
 	testGetAWSClient(
 		t, "Tagging",
 		func(t *testing.T, cache *clientCache, region string, role config.Role) {
-			iface := cache.GetTaggingClient(region, role)
+			iface := cache.GetTaggingClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
 				return
