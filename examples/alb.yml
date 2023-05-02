@@ -48,7 +48,7 @@ discovery:
         - name: IPv6ProcessedBytes
           statistics: [Sum]
         - name: ConsumedLCUs
-          statistics: [Sum]
+          statistics: [Average]
         - name: ClientTLSNegotiationErrorCount
           statistics: [Sum]
         - name: TargetTLSNegotiationErrorCount
