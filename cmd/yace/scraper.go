@@ -79,6 +79,8 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache clien
 		exporter.MetricsPerQuery(metricsPerQuery),
 		exporter.LabelsSnakeCase(labelsSnakeCase),
 		exporter.EnableFeatureFlag(s.featureFlags...),
+		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
+		exporter.TaggingAPIConcurrency(tagConcurrency),
 	)
 	if err != nil {
 		logger.Error(err, "error updating metrics")
