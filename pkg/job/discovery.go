@@ -221,7 +221,7 @@ func getMetricDataForQueries(
 				}
 
 				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
-					data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -254,7 +254,7 @@ func getMetricDataForQueries(
 					return
 				}
 
-				data := getFilteredMetricDatas(ctx, logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -268,7 +268,6 @@ func getMetricDataForQueries(
 }
 
 func getFilteredMetricDatas(
-	ctx context.Context,
 	logger logging.Logger,
 	region string,
 	accountID *string,
