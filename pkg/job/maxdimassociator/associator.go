@@ -121,14 +121,7 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (
 	// A mapping has been found. The metric has all (and possibly more)
 	// the dimensions computed for the mapping. Pick only exactly
 	// the dimensions of the mapping to build a labels signature.
-	labels := make(map[string]string, len(cwMetric.Dimensions))
-	for _, rDimension := range regexpMapping.dimensions {
-		for _, mDimension := range cwMetric.Dimensions {
-			if rDimension == *mDimension.Name {
-				labels[*mDimension.Name] = *mDimension.Value
-			}
-		}
-	}
+	labels := buildLabelsMap(cwMetric, regexpMapping)
 	signature := prom_model.LabelsToSignature(labels)
 
 	if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
@@ -137,6 +130,34 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (
 
 	// if there's no mapping entry for this resource, skip it
 	return nil, true
+}
+
+// buildLabelsMap returns a map of labels names and values.
+// For some namespaces, values might need to be modified in order
+// to match the dimension value extracted from ARN.
+func buildLabelsMap(cwMetric *cloudwatch.Metric, regexpMapping *dimensionsRegexpMapping) map[string]string {
+	labels := make(map[string]string, len(cwMetric.Dimensions))
+	for _, rDimension := range regexpMapping.dimensions {
+		for _, mDimension := range cwMetric.Dimensions {
+			name := *mDimension.Name
+			value := *mDimension.Value
+
+			// AmazonMQ is special - for active/standby ActiveMQ brokers,
+			// the value of the "Broker" dimension contains a number suffix
+			// that is not part of the resource ARN
+			if *cwMetric.Namespace == "AWS/AmazonMQ" && name == "Broker" {
+				brokerSuffix := regexp.MustCompile("-[0-9]+$")
+				if brokerSuffix.MatchString(value) {
+					value = brokerSuffix.ReplaceAllString(value, "")
+				}
+			}
+
+			if rDimension == *mDimension.Name {
+				labels[name] = value
+			}
+		}
+	}
+	return labels
 }
 
 // containsAll returns true if a contains all elements of b
