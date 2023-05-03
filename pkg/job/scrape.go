@@ -14,7 +14,7 @@ func ScrapeAwsData(
 	ctx context.Context,
 	logger logging.Logger,
 	cfg config.ScrapeConf,
-	cache clients.ClientsCache,
+	cache clients.Cache,
 	metricsPerQuery int,
 	cloudWatchAPIConcurrency int,
 	taggingAPIConcurrency int,

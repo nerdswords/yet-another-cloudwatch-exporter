@@ -34,7 +34,7 @@ func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache clients.ClientsCache) {
+func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache clients.Cache) {
 	logger.Debug("Starting scraping async")
 	s.scrape(ctx, logger, cache)
 
@@ -53,7 +53,7 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache cl
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache clients.ClientsCache) {
+func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache clients.Cache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
 		// Let them know by logging a warning.

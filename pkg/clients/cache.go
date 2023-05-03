@@ -35,10 +35,10 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-// ClientsCache is an interface to a cache aws clients for all the
+// Cache is an interface to a cache aws clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
-type ClientsCache interface {
+type Cache interface {
 	GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client
 	GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client
 	GetAccountClient(region string, role config.Role) account.Client
@@ -72,7 +72,7 @@ type clients struct {
 
 // NewClientCache creates a new clients cache to use when fetching data from
 // AWS.
-func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) ClientsCache {
+func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) Cache {
 	stscache := map[config.Role]stsiface.STSAPI{}
 	cache := map[config.Role]map[string]*clients{}
 
