@@ -123,33 +123,33 @@ func (c client) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetM
 	return resp.Datapoints
 }
 
-type LimitedConcurrencyClient struct {
+type limitedConcurrencyClient struct {
 	client Client
 	sem    chan struct{}
 }
 
 func NewLimitedConcurrencyClient(client Client, maxConcurrency int) Client {
-	return &LimitedConcurrencyClient{
+	return &limitedConcurrencyClient{
 		client: client,
 		sem:    make(chan struct{}, maxConcurrency),
 	}
 }
 
-func (c LimitedConcurrencyClient) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
+func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, filter *cloudwatch.GetMetricStatisticsInput) []*cloudwatch.Datapoint {
 	c.sem <- struct{}{}
 	res := c.client.GetMetricStatistics(ctx, filter)
 	<-c.sem
 	return res
 }
 
-func (c LimitedConcurrencyClient) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
+func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, filter *cloudwatch.GetMetricDataInput) *cloudwatch.GetMetricDataOutput {
 	c.sem <- struct{}{}
 	res := c.client.GetMetricData(ctx, filter)
 	<-c.sem
 	return res
 }
 
-func (c LimitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page *cloudwatch.ListMetricsOutput)) (*cloudwatch.ListMetricsOutput, error) {
+func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, fn func(page *cloudwatch.ListMetricsOutput)) (*cloudwatch.ListMetricsOutput, error) {
 	c.sem <- struct{}{}
 	res, err := c.client.ListMetrics(ctx, namespace, metric, fn)
 	<-c.sem

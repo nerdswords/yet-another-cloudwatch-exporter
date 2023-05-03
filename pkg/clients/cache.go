@@ -35,10 +35,10 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-// ClientCache is an interface to a cache aws clients for all the
+// ClientsCache is an interface to a cache aws clients for all the
 // roles specified by the exporter. For jobs with many duplicate roles, this provides
 // relief to the AWS API and prevents timeouts by excessive credential requesting.
-type ClientCache interface {
+type ClientsCache interface {
 	GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client
 	GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client
 	GetAccountClient(region string, role config.Role) account.Client
@@ -72,7 +72,7 @@ type clients struct {
 
 // NewClientCache creates a new clients cache to use when fetching data from
 // AWS.
-func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) ClientCache {
+func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) ClientsCache {
 	stscache := map[config.Role]stsiface.STSAPI{}
 	cache := map[config.Role]map[string]*clients{}
 
@@ -207,11 +207,11 @@ func (c *clientCache) Refresh() {
 			// if the role is just used in static jobs, then we
 			// can skip creating other sessions and potentially running
 			// into permissions errors or taking up needless cycles
-			cachedClient.cloudwatch = createCloudWatchClient(c.session, &region, role, c.fips, c.logger)
+			cachedClient.cloudwatch = createCloudWatchClient(c.logger, c.session, &region, role, c.fips)
 			if cachedClient.onlyStatic {
 				continue
 			}
-			cachedClient.tagging = createTaggingClient(c.session, &region, role, c.fips, c.logger)
+			cachedClient.tagging = createTaggingClient(c.logger, c.session, &region, role, c.fips)
 			cachedClient.account = createAccountClient(c.logger, c.stscache[role])
 		}
 	}
@@ -220,14 +220,14 @@ func (c *clientCache) Refresh() {
 	c.refreshed = true
 }
 
-func createCloudWatchClient(s *session.Session, region *string, role config.Role, fips bool, logger logging.Logger) cloudwatch_client.Client {
+func createCloudWatchClient(logger logging.Logger, s *session.Session, region *string, role config.Role, fips bool) cloudwatch_client.Client {
 	return cloudwatch_client.NewClient(
 		logger,
 		createCloudwatchSession(s, region, role, fips, logger.IsDebugEnabled()),
 	)
 }
 
-func createTaggingClient(session *session.Session, region *string, role config.Role, fips bool, logger logging.Logger) tagging.Client {
+func createTaggingClient(logger logging.Logger, session *session.Session, region *string, role config.Role, fips bool) tagging.Client {
 	return tagging.NewClient(
 		logger,
 		createTagSession(session, region, role, logger.IsDebugEnabled()),
@@ -253,7 +253,7 @@ func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concu
 	if client := c.clients[role][region].cloudwatch; client != nil {
 		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrencyLimit)
 	}
-	c.clients[role][region].cloudwatch = createCloudWatchClient(c.session, &region, role, c.fips, c.logger)
+	c.clients[role][region].cloudwatch = createCloudWatchClient(c.logger, c.session, &region, role, c.fips)
 	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
 }
 
@@ -266,7 +266,7 @@ func (c *clientCache) GetTaggingClient(region string, role config.Role, concurre
 	if client := c.clients[role][region].tagging; client != nil {
 		return tagging.NewLimitedConcurrencyClient(client, concurrencyLimit)
 	}
-	c.clients[role][region].tagging = createTaggingClient(c.session, &region, role, c.fips, c.logger)
+	c.clients[role][region].tagging = createTaggingClient(c.logger, c.session, &region, role, c.fips)
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 

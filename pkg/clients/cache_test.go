@@ -495,8 +495,8 @@ func TestClear(t *testing.T) {
 				clients: map[config.Role]map[string]*clients{
 					{}: {
 						"us-east-1": &clients{
-							cloudwatch: createCloudWatchClient(mock.Session, &region, role, false, logging.NewNopLogger()),
-							tagging:    createTaggingClient(mock.Session, &region, role, false, logging.NewNopLogger()),
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), nil),
 							onlyStatic: true,
 						},
@@ -634,8 +634,8 @@ func TestRefresh(t *testing.T) {
 				clients: map[config.Role]map[string]*clients{
 					{}: {
 						"us-east-1": &clients{
-							cloudwatch: createCloudWatchClient(mock.Session, &region, role, false, logging.NewNopLogger()),
-							tagging:    createTaggingClient(mock.Session, &region, role, false, logging.NewNopLogger()),
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},
@@ -752,8 +752,8 @@ func testGetAWSClient(
 				clients: map[config.Role]map[string]*clients{
 					{}: {
 						"us-east-1": &clients{
-							cloudwatch: createCloudWatchClient(mock.Session, &region, role, false, logging.NewNopLogger()),
-							tagging:    createTaggingClient(mock.Session, &region, role, false, logging.NewNopLogger()),
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},
@@ -774,8 +774,8 @@ func testGetAWSClient(
 				clients: map[config.Role]map[string]*clients{
 					{}: {
 						"us-east-1": &clients{
-							cloudwatch: createCloudWatchClient(mock.Session, &region, role, false, logging.NewNopLogger()),
-							tagging:    createTaggingClient(mock.Session, &region, role, false, logging.NewNopLogger()),
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},

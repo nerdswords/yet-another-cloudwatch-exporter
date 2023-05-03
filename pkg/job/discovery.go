@@ -25,6 +25,7 @@ type resourceAssociator interface {
 
 func runDiscoveryJob(
 	ctx context.Context,
+	logger logging.Logger,
 	job *config.Job,
 	region string,
 	accountID string,
@@ -32,7 +33,6 @@ func runDiscoveryJob(
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch_client.Client,
 	metricsPerQuery int,
-	logger logging.Logger,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 

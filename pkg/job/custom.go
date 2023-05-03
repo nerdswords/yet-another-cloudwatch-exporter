@@ -15,11 +15,11 @@ import (
 
 func runCustomNamespaceJob(
 	ctx context.Context,
+	logger logging.Logger,
 	job *config.CustomNamespace,
 	region string,
 	accountID string,
 	clientCloudwatch cloudwatch.Client,
-	logger logging.Logger,
 	metricsPerQuery int,
 ) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}

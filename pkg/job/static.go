@@ -12,7 +12,14 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-func runStaticJob(ctx context.Context, resource *config.Static, region string, accountID string, clientCloudwatch cloudwatch_client.Client, logger logging.Logger) []*model.CloudwatchData {
+func runStaticJob(
+	ctx context.Context,
+	logger logging.Logger,
+	resource *config.Static,
+	region string,
+	accountID string,
+	clientCloudwatch cloudwatch_client.Client,
+) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
