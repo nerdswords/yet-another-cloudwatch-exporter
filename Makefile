@@ -3,7 +3,7 @@
 GIT_BRANCH   ?= $(shell git rev-parse --abbrev-ref HEAD)
 GIT_REVISION ?= $(shell git rev-parse --short HEAD)
 VERSION      ?= $(GIT_BRANCH)-$(GIT_REVISION)
-GO_LDFLAGS   := -X main.version=${VERSION}
+GO_LDFLAGS   := -s -w -X main.version=${VERSION}
 
 build:
 	go build -v -ldflags "$(GO_LDFLAGS)" -o yace ./cmd/yace
