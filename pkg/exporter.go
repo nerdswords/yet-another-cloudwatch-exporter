@@ -6,11 +6,11 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 // Metrics is a slice of prometheus metrics specific to the scraping process such API call counters
@@ -121,7 +121,7 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 // - `config`: this is the struct representation of the configuration defined in top-level configuration
 // - `logger`: any implementation of the `Logger` interface
 // - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
-// - `cache`: any implementation of the `SessionCache`
+// - `cache`: any implementation of the `Cache`
 // - `optFuncs`: (optional) any number of options funcs
 //
 // You can pre-register any of the default metrics with the provided `registry` if you want them
@@ -133,7 +133,7 @@ func UpdateMetrics(
 	logger logging.Logger,
 	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
-	cache session.SessionCache,
+	cache clients.Cache,
 	optFuncs ...OptionsFunc,
 ) error {
 	options := defaultOptions

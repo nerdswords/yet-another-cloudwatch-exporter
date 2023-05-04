@@ -17,7 +17,7 @@ import (
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
 		region                    string
-		accountID                 *string
+		accountID                 string
 		namespace                 string
 		customTags                []model.Tag
 		tagsOnMetrics             model.ExportedTagsOnMetrics
@@ -36,7 +36,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"additional dimension",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "efs",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -127,7 +127,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"ec2",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "ec2",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -210,7 +210,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"kafka",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "kafka",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -293,7 +293,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"alb",
 			args{
 				region:                    "us-east-1",
-				accountID:                 aws.String("123123123123"),
+				accountID:                 "123123123123",
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,

@@ -1,4 +1,4 @@
-package apicloudwatch
+package cloudwatch
 
 import (
 	"testing"
