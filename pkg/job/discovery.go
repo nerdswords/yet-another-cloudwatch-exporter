@@ -8,9 +8,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-
-	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
@@ -20,7 +18,7 @@ import (
 )
 
 type resourceAssociator interface {
-	AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+	AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool)
 }
 
 func runDiscoveryJob(
@@ -31,7 +29,7 @@ func runDiscoveryJob(
 	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientTag tagging.Client,
-	clientCloudwatch cloudwatch_client.Client,
+	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
@@ -67,7 +65,7 @@ func runDiscoveryJob(
 	var wg sync.WaitGroup
 	wg.Add(partition)
 
-	getMetricDataOutput := make([]*cloudwatch.GetMetricDataOutput, partition)
+	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, partition)
 	count := 0
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
@@ -78,8 +76,7 @@ func runDiscoveryJob(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := cloudwatch_client.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, job.RoundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
 			if data != nil {
 				getMetricDataOutput[n] = data
 			} else {
@@ -101,16 +98,14 @@ func runDiscoveryJob(
 		if data == nil {
 			continue
 		}
-		for _, metricDataResult := range data.MetricDataResults {
-			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
+		for _, metricDataResult := range data {
+			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.ID)
 			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.Id)
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
 				continue
 			}
-			if len(metricDataResult.Values) != 0 {
-				getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Values[0]
-				getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamps[0]
-			}
+			getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Datapoint
+			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
 			getMetricDatas[idx].MetricID = nil // mark as processed
 		}
 	}
@@ -153,7 +148,7 @@ func getMetricDataForQueries(
 	region string,
 	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch cloudwatch_client.Client,
+	clientCloudwatch cloudwatch.Client,
 	resources []*model.TaggedResource,
 ) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
@@ -181,8 +176,8 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
-					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page []*model.Metric) {
+					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -215,7 +210,7 @@ func getMetricDataForQueries(
 					return
 				}
 
-				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -235,7 +230,7 @@ func getFilteredMetricDatas(
 	namespace string,
 	customTags []model.Tag,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	metricsList []*cloudwatch.Metric,
+	metricsList []*model.Metric,
 	dimensionNameList []string,
 	m *config.Metric,
 	assoc resourceAssociator,
@@ -286,14 +281,14 @@ func getFilteredMetricDatas(
 	return getMetricsData
 }
 
-func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNameRequirements []string) bool {
+func metricDimensionsMatchNames(metric *model.Metric, dimensionNameRequirements []string) bool {
 	if len(dimensionNameRequirements) != len(metric.Dimensions) {
 		return false
 	}
 	for _, dimension := range metric.Dimensions {
 		foundMatch := false
 		for _, dimensionName := range dimensionNameRequirements {
-			if *dimension.Name == dimensionName {
+			if dimension.Name == dimensionName {
 				foundMatch = true
 				break
 			}
