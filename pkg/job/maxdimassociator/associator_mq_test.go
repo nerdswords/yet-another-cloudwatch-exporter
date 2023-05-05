@@ -1,0 +1,86 @@
+package maxdimassociator
+
+import (
+	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
+	"github.com/stretchr/testify/require"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
+)
+
+var rabbitMQBroker = &model.TaggedResource{
+	ARN:       "arn:aws:mq:us-east-2:123456789012:broker:rabbitmq-broker:b-000-111-222-333",
+	Namespace: "AWS/AmazonMQ",
+}
+
+var activeMQBroker = &model.TaggedResource{
+	ARN:       "arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333",
+	Namespace: "AWS/AmazonMQ",
+}
+
+func TestAssociatorMQ(t *testing.T) {
+	type args struct {
+		dimensionRegexps []*regexp.Regexp
+		resources        []*model.TaggedResource
+		metric           *cloudwatch.Metric
+	}
+
+	type testCase struct {
+		name             string
+		args             args
+		expectedSkip     bool
+		expectedResource *model.TaggedResource
+	}
+
+	testcases := []testCase{
+		{
+			name: "should match with Broker dimension",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
+				resources:        []*model.TaggedResource{rabbitMQBroker},
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("ProducerCount"),
+					Namespace:  aws.String("AWS/AmazonMQ"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("Broker"), Value: aws.String("rabbitmq-broker")},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: rabbitMQBroker,
+		},
+		{
+			// ActiveMQ allows active/stadby modes where the `Broker` dimension has values
+			// like `brokername-1` and `brokername-2` which don't match the ARN (the dimension
+			// regex will extract `Broker` as `brokername` from ARN)
+			name: "should match with Broker dimension when broker name has a number suffix",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
+				resources:        []*model.TaggedResource{activeMQBroker},
+				metric: &cloudwatch.Metric{
+					MetricName: aws.String("ProducerCount"),
+					Namespace:  aws.String("AWS/AmazonMQ"),
+					Dimensions: []*cloudwatch.Dimension{
+						{Name: aws.String("Broker"), Value: aws.String("activemq-broker-1")},
+					},
+				},
+			},
+
+			expectedSkip:     false,
+			expectedResource: activeMQBroker,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			res, skip := associator.AssociateMetricToResource(tc.args.metric)
+			require.Equal(t, tc.expectedSkip, skip)
+			require.Equal(t, tc.expectedResource, res)
+		})
+	}
+}

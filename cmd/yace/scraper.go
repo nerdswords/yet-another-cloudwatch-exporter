@@ -9,8 +9,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 type scraper struct {
@@ -34,7 +34,7 @@ func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache session.SessionCache) {
+func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache clients.Cache) {
 	logger.Debug("Starting scraping async")
 	s.scrape(ctx, logger, cache)
 
@@ -53,7 +53,7 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache se
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache session.SessionCache) {
+func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache clients.Cache) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
 		// Let them know by logging a warning.
@@ -78,9 +78,9 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache sessi
 		cache,
 		exporter.MetricsPerQuery(metricsPerQuery),
 		exporter.LabelsSnakeCase(labelsSnakeCase),
+		exporter.EnableFeatureFlag(s.featureFlags...),
 		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
 		exporter.TaggingAPIConcurrency(tagConcurrency),
-		exporter.EnableFeatureFlag(s.featureFlags...),
 	)
 	if err != nil {
 		logger.Error(err, "error updating metrics")

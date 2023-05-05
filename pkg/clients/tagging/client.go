@@ -1,4 +1,4 @@
-package apitagging
+package tagging
 
 import (
 	"context"
@@ -21,15 +21,13 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type TaggingClient interface {
+type Client interface {
 	GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error)
 }
 
-var _ TaggingClient = (*Client)(nil)
-
 var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
 
-type Client struct {
+type client struct {
 	logger            logging.Logger
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	autoscalingAPI    autoscalingiface.AutoScalingAPI
@@ -49,8 +47,8 @@ func NewClient(
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
-) *Client {
-	return &Client{
+) Client {
+	return &client{
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
@@ -62,7 +60,7 @@ func NewClient(
 	}
 }
 
-func (c Client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false
@@ -134,21 +132,19 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 	return resources, nil
 }
 
-var _ TaggingClient = (*LimitedConcurrencyClient)(nil)
-
-type LimitedConcurrencyClient struct {
-	client *Client
+type limitedConcurrencyClient struct {
+	client Client
 	sem    chan struct{}
 }
 
-func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
-	return &LimitedConcurrencyClient{
+func NewLimitedConcurrencyClient(client Client, maxConcurrency int) Client {
+	return &limitedConcurrencyClient{
 		client: client,
 		sem:    make(chan struct{}, maxConcurrency),
 	}
 }
 
-func (c LimitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c limitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	c.sem <- struct{}{}
 	res, err := c.client.GetResources(ctx, job, region)
 	<-c.sem
