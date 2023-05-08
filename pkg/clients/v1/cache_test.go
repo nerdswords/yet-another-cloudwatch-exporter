@@ -1,4 +1,4 @@
-package clients
+package v1
 
 import (
 	"fmt"
@@ -121,24 +121,24 @@ func TestNewClientCache(t *testing.T) {
 					{RoleArn: "some-arn2"}:                     nil,
 					{RoleArn: "some-arn5"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-3": &clients{},
-						"us-east-1":      &clients{},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"us-east-1":      &cachedClients{},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"ap-northeast-3": &clients{},
-						"us-east-1":      &clients{},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"us-east-1":      &cachedClients{},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-3": &clients{},
-						"us-east-1":      &clients{},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"us-east-1":      &cachedClients{},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn5"}: {
-						"ap-northeast-3": &clients{},
+						"ap-northeast-3": &cachedClients{},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -205,26 +205,26 @@ func TestNewClientCache(t *testing.T) {
 					{RoleArn: "some-arn3"}:                     nil,
 					{RoleArn: "some-arn4"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clients{onlyStatic: true},
+						"us-east-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn3"}: {
-						"eu-west-2": &clients{onlyStatic: true},
-						"us-east-1": &clients{onlyStatic: true},
+						"eu-west-2": &cachedClients{onlyStatic: true},
+						"us-east-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -321,35 +321,35 @@ func TestNewClientCache(t *testing.T) {
 					{RoleArn: "some-arn4"}:                     nil,
 					{RoleArn: "some-arn5"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-3": &clients{},
-						"us-east-1":      &clients{},
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"us-east-1":      &cachedClients{},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clients{onlyStatic: true},
+						"us-east-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-3": &clients{},
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn3"}: {
-						"ap-northeast-3": &clients{},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{},
-						"us-west-2":      &clients{},
+						"ap-northeast-3": &cachedClients{},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{},
+						"us-west-2":      &cachedClients{},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn5"}: {
-						"ap-northeast-3": &clients{},
+						"ap-northeast-3": &cachedClients{},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -419,26 +419,26 @@ func TestNewClientCache(t *testing.T) {
 					{RoleArn: "some-arn3"}:                     nil,
 					{RoleArn: "some-arn4"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clients{onlyStatic: true},
+						"us-east-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
-						"eu-west-2":      &clients{onlyStatic: true},
-						"us-east-1":      &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
+						"eu-west-2":      &cachedClients{onlyStatic: true},
+						"us-east-1":      &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn3"}: {
-						"eu-west-2": &clients{onlyStatic: true},
-						"us-east-1": &clients{onlyStatic: true},
+						"eu-west-2": &cachedClients{onlyStatic: true},
+						"us-east-1": &cachedClients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clients{onlyStatic: true},
+						"ap-northeast-1": &cachedClients{onlyStatic: true},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -492,9 +492,9 @@ func TestClear(t *testing.T) {
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), nil),
@@ -514,9 +514,9 @@ func TestClear(t *testing.T) {
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: nil,
 							tagging:    nil,
 							account:    nil,
@@ -586,9 +586,9 @@ func TestRefresh(t *testing.T) {
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: nil,
 							tagging:    nil,
 							account:    nil,
@@ -608,9 +608,9 @@ func TestRefresh(t *testing.T) {
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: nil,
 							tagging:    nil,
 							account:    nil,
@@ -631,9 +631,9 @@ func TestRefresh(t *testing.T) {
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: createStsSession(mock.Session, role, "", false, false),
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
@@ -749,9 +749,9 @@ func testGetAWSClient(
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
@@ -771,9 +771,9 @@ func testGetAWSClient(
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{
+						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
@@ -793,9 +793,9 @@ func testGetAWSClient(
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clients{
+				clients: map[config.Role]map[string]*cachedClients{
 					{}: {
-						"us-east-1": &clients{},
+						"us-east-1": &cachedClients{},
 					},
 				},
 				logger: logging.NewNopLogger(),

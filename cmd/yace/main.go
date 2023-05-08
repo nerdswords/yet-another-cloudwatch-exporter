@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
+	v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v1"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
@@ -191,7 +191,7 @@ func startScraper(c *cli.Context) error {
 	featureFlags := c.StringSlice(enableFeatureFlag)
 
 	s := NewScraper(featureFlags)
-	cache := clients.NewClientCache(cfg, fips, logger)
+	cache := v1.NewClientCache(cfg, fips, logger)
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
@@ -234,7 +234,7 @@ func startScraper(c *cli.Context) error {
 		}
 
 		logger.Info("Reset clients cache")
-		cache = clients.NewClientCache(cfg, fips, logger)
+		cache = v1.NewClientCache(cfg, fips, logger)
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())

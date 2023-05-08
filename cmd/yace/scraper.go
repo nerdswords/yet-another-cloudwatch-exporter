@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
