@@ -7,6 +7,8 @@ import (
 	"net/http/pprof"
 	"os"
 
+	v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v2"
+
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
@@ -46,6 +48,7 @@ var (
 	metricsPerQuery       int
 	labelsSnakeCase       bool
 	profilingEnabled      bool
+	awsSdkV2Enabled       bool
 
 	logger logging.Logger
 
@@ -141,6 +144,12 @@ func NewYACEApp() *cli.App {
 			Name:  enableFeatureFlag,
 			Usage: "Comma-separated list of enabled features",
 		},
+		&cli.BoolFlag{
+			Name:        "aws.sdk.v2.enabled",
+			Value:       false,
+			Usage:       "Enable the use of aws sdk v2",
+			Destination: &awsSdkV2Enabled,
+		},
 	}
 
 	yace.Before = func(ctx *cli.Context) error {
@@ -192,6 +201,14 @@ func startScraper(c *cli.Context) error {
 
 	s := NewScraper(featureFlags)
 	cache := v1.NewClientCache(cfg, fips, logger)
+	if awsSdkV2Enabled {
+		var err error
+		// Can't override cache while also creating err
+		cache, err = v2.NewCache(cfg, fips, logger)
+		if err != nil {
+			return fmt.Errorf("failed to construct aws sdk v2 client cache: %w", err)
+		}
+	}
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)

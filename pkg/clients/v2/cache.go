@@ -58,7 +58,7 @@ type cachedClients struct {
 	account    account.Client
 }
 
-func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.Cache, error) {
+func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.Cache, error) {
 	var options []func(*aws_config.LoadOptions) error
 	options = append(options, aws_config.WithLogger(aws_logging.LoggerFunc(func(classification aws_logging.Classification, format string, v ...interface{}) {
 		if classification == aws_logging.Debug && logger.IsDebugEnabled() {
@@ -87,7 +87,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (cl
 
 	c, err := aws_config.LoadDefaultConfig(context.TODO(), options...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load default aws config: %w", err)
 	}
 
 	cache := map[config.Role]map[awsRegion]*cachedClients{}

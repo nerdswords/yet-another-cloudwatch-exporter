@@ -60,7 +60,7 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *confi
 	if c.logger.IsDebugEnabled() {
 		c.logger.Debug("ListMetrics", "output", metrics)
 	}
-	return nil, nil
+	return metrics, nil
 }
 
 func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
