@@ -4,9 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-
-	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -18,7 +16,7 @@ func runStaticJob(
 	resource *config.Static,
 	region string,
 	accountID string,
-	clientCloudwatch cloudwatch_client.Client,
+	clientCloudwatch cloudwatch.Client,
 ) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
 	mux := &sync.Mutex{}
@@ -44,14 +42,7 @@ func runStaticJob(
 				AccountID:              &accountID,
 			}
 
-			filter := cloudwatch_client.CreateGetMetricStatisticsInput(
-				data.Dimensions,
-				&resource.Namespace,
-				metric,
-				logger,
-			)
-
-			data.Points = clientCloudwatch.GetMetricStatistics(ctx, filter)
+			data.Points = clientCloudwatch.GetMetricStatistics(ctx, logger, data.Dimensions, resource.Namespace, metric)
 
 			if data.Points != nil {
 				mux.Lock()
@@ -64,13 +55,13 @@ func runStaticJob(
 	return cw
 }
 
-func createStaticDimensions(dimensions []config.Dimension) []*cloudwatch.Dimension {
-	out := make([]*cloudwatch.Dimension, 0, len(dimensions))
+func createStaticDimensions(dimensions []config.Dimension) []*model.Dimension {
+	out := make([]*model.Dimension, 0, len(dimensions))
 	for _, d := range dimensions {
 		d := d
-		out = append(out, &cloudwatch.Dimension{
-			Name:  &d.Name,
-			Value: &d.Value,
+		out = append(out, &model.Dimension{
+			Name:  d.Name,
+			Value: d.Value,
 		})
 	}
 
