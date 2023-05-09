@@ -26,7 +26,7 @@ func (tc TimeClock) Now() time.Time {
 	return time.Now()
 }
 
-func CreateGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logging.Logger) *cloudwatch.GetMetricDataInput {
+func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logging.Logger) *cloudwatch.GetMetricDataInput {
 	metricsDataQuery := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
 	roundingPeriod := model.DefaultPeriodSeconds
 	for _, data := range getMetricData {
@@ -35,7 +35,7 @@ func CreateGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 		}
 		metricStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
-				Dimensions: data.Dimensions,
+				Dimensions: toCloudWatchDimensions(data.Dimensions),
 				MetricName: data.Metric,
 				Namespace:  namespace,
 			},
@@ -71,6 +71,17 @@ func CreateGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 	}
 }
 
+func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimension {
+	cwDim := make([]*cloudwatch.Dimension, 0, len(dimensions))
+	for _, dim := range dimensions {
+		cwDim = append(cwDim, &cloudwatch.Dimension{
+			Name:  &dim.Name,
+			Value: &dim.Value,
+		})
+	}
+	return cwDim
+}
+
 // determineGetMetricDataWindow computes the start and end time for the GetMetricData request to AWS
 // Always uses the wall clock time as starting point for calculations to ensure that
 // a variety of exporter configurations will work reliably.
@@ -87,7 +98,7 @@ func determineGetMetricDataWindow(clock Clock, roundingPeriod time.Duration, len
 	return startTime, endTime
 }
 
-func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
+func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -105,7 +116,7 @@ func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 	}
 
 	output := &cloudwatch.GetMetricStatisticsInput{
-		Dimensions:         dimensions,
+		Dimensions:         toCloudWatchDimensions(dimensions),
 		Namespace:          namespace,
 		StartTime:          &startTime,
 		EndTime:            &endTime,
@@ -125,20 +136,18 @@ func CreateGetMetricStatisticsInput(dimensions []*cloudwatch.Dimension, namespac
 			" --period " + strconv.FormatInt(period, 10) +
 			" --start-time " + startTime.Format(time.RFC3339) +
 			" --end-time " + endTime.Format(time.RFC3339))
-
-		logger.Debug("createGetMetricStatisticsInput", "output", *output)
 	}
 
 	return output
 }
 
-func dimensionsToCliString(dimensions []*cloudwatch.Dimension) string {
+func dimensionsToCliString(dimensions []*model.Dimension) string {
 	out := strings.Builder{}
 	for _, dim := range dimensions {
 		out.WriteString("Name=")
-		out.WriteString(*dim.Name)
+		out.WriteString(dim.Name)
 		out.WriteString(",Value=")
-		out.WriteString(*dim.Value)
+		out.WriteString(dim.Value)
 		out.WriteString(" ")
 	}
 	return out.String()

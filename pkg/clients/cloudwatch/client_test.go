@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 func TestDimensionsToCliString(t *testing.T) {
 	// Setup Test
 
 	// Arrange
-	dimensions := []*cloudwatch.Dimension{}
+	dimensions := []*model.Dimension{}
 	expected := ""
 
 	// Act
