@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 	"golang.org/x/exp/slices"
@@ -89,7 +88,7 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 // names and values of a metric. The guess is based on the mapping built from dimensions regexps.
 // In case a map can't be found, the second return parameter indicates whether the metric should be
 // ignored or not.
-func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool) {
 	if len(cwMetric.Dimensions) == 0 {
 		// Do not skip the metric (create a "global" metric)
 		return nil, false
@@ -97,7 +96,7 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (
 
 	dimensions := make([]string, 0, len(cwMetric.Dimensions))
 	for _, dimension := range cwMetric.Dimensions {
-		dimensions = append(dimensions, *dimension.Name)
+		dimensions = append(dimensions, dimension.Name)
 	}
 
 	// Find the mapping which contains the most
@@ -135,24 +134,24 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (
 // buildLabelsMap returns a map of labels names and values.
 // For some namespaces, values might need to be modified in order
 // to match the dimension value extracted from ARN.
-func buildLabelsMap(cwMetric *cloudwatch.Metric, regexpMapping *dimensionsRegexpMapping) map[string]string {
+func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMapping) map[string]string {
 	labels := make(map[string]string, len(cwMetric.Dimensions))
 	for _, rDimension := range regexpMapping.dimensions {
 		for _, mDimension := range cwMetric.Dimensions {
-			name := *mDimension.Name
-			value := *mDimension.Value
+			name := mDimension.Name
+			value := mDimension.Value
 
 			// AmazonMQ is special - for active/standby ActiveMQ brokers,
 			// the value of the "Broker" dimension contains a number suffix
 			// that is not part of the resource ARN
-			if *cwMetric.Namespace == "AWS/AmazonMQ" && name == "Broker" {
+			if cwMetric.Namespace == "AWS/AmazonMQ" && name == "Broker" {
 				brokerSuffix := regexp.MustCompile("-[0-9]+$")
 				if brokerSuffix.MatchString(value) {
 					value = brokerSuffix.ReplaceAllString(value, "")
 				}
 			}
 
-			if rDimension == *mDimension.Name {
+			if rDimension == mDimension.Name {
 				labels[name] = value
 			}
 		}

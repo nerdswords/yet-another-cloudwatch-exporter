@@ -3,7 +3,6 @@ package model
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 )
 
@@ -22,6 +21,42 @@ type Tag struct {
 	Value string `yaml:"value"`
 }
 
+type Dimension struct {
+	Name  string
+	Value string
+}
+
+type Metric struct {
+	// The dimensions for the metric.
+	Dimensions []*Dimension
+	MetricName string
+	Namespace  string
+}
+
+type Datapoint struct {
+	// The average of the metric values that correspond to the data point.
+	Average *float64
+
+	// The percentile statistic for the data point.
+	ExtendedStatistics map[string]*float64
+
+	// The maximum metric value for the data point.
+	Maximum *float64
+
+	// The minimum metric value for the data point.
+	Minimum *float64
+
+	// The number of metric values that contributed to the aggregate value of this
+	// data point.
+	SampleCount *float64
+
+	// The sum of the metric values for the data point.
+	Sum *float64
+
+	// The time stamp used for the data point.
+	Timestamp *time.Time
+}
+
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
@@ -30,14 +65,14 @@ type CloudwatchData struct {
 	Metric                  *string
 	Namespace               *string
 	Statistics              []string
-	Points                  []*cloudwatch.Datapoint
+	Points                  []*Datapoint
 	GetMetricDataPoint      *float64
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
 	CustomTags              []Tag
 	Tags                    []Tag
-	Dimensions              []*cloudwatch.Dimension
+	Dimensions              []*Dimension
 	Region                  *string
 	AccountID               *string
 	Period                  int64

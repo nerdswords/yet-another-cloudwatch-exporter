@@ -49,18 +49,15 @@ func runCustomNamespaceJob(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := cloudwatch.CreateGetMetricDataInput(input, &job.Namespace, length, job.Delay, job.RoundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, job.Namespace, length, job.Delay, job.RoundingPeriod)
 
 			if data != nil {
 				output := make([]*model.CloudwatchData, 0)
-				for _, result := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *result.Id)
+				for _, result := range data {
+					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *result.ID)
 					if err == nil {
-						if len(result.Values) != 0 {
-							getMetricData.GetMetricDataPoint = result.Values[0]
-							getMetricData.GetMetricDataTimestamps = result.Timestamps[0]
-						}
+						getMetricData.GetMetricDataPoint = result.Datapoint
+						getMetricData.GetMetricDataTimestamps = result.Timestamp
 						output = append(output, getMetricData)
 					}
 				}
@@ -113,7 +110,7 @@ func getMetricDataForQueriesForCustomNamespace(
 
 			var data []*model.CloudwatchData
 
-			for _, cwMetric := range metricsList.Metrics {
+			for _, cwMetric := range metricsList {
 				if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
 					continue
 				}

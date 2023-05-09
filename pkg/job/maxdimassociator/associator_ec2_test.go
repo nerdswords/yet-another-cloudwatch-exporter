@@ -3,8 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -31,7 +29,7 @@ func TestAssociatorEC2(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 
 	type testCase struct {
@@ -47,11 +45,11 @@ func TestAssociatorEC2(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
 				resources:        ec2Resources,
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("InstanceId"), Value: aws.String("i-abc123")},
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
+						{Name: "InstanceId", Value: "i-abc123"},
 					},
 				},
 			},
@@ -63,11 +61,11 @@ func TestAssociatorEC2(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
 				resources:        ec2Resources,
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("InstanceId"), Value: aws.String("i-def456")},
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
+						{Name: "InstanceId", Value: "i-def456"},
 					},
 				},
 			},
@@ -79,11 +77,11 @@ func TestAssociatorEC2(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
 				resources:        ec2Resources,
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("InstanceId"), Value: aws.String("i-blahblah")},
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
+						{Name: "InstanceId", Value: "i-blahblah"},
 					},
 				},
 			},
@@ -95,11 +93,11 @@ func TestAssociatorEC2(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
 				resources:        ec2Resources,
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("StatusCheckFailed_System"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("AutoScalingGroupName"), Value: aws.String("some-asg-name")},
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "StatusCheckFailed_System",
+					Dimensions: []*model.Dimension{
+						{Name: "AutoScalingGroupName", Value: "some-asg-name"},
 					},
 				},
 			},

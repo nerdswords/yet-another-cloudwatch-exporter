@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -48,24 +47,24 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	assert.Equal(t, expectedLabels, actualLabels)
 }
 
-// TestSortyByTimeStamp validates that sortByTimestamp() sorts in descending order.
-func TestSortyByTimeStamp(t *testing.T) {
-	dataPointMiddle := &cloudwatch.Datapoint{
+// TestSortByTimeStamp validates that sortByTimestamp() sorts in descending order.
+func TestSortByTimeStamp(t *testing.T) {
+	dataPointMiddle := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * 2 * -1)),
 		Maximum:   aws.Float64(2),
 	}
 
-	dataPointNewest := &cloudwatch.Datapoint{
+	dataPointNewest := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * -1)),
 		Maximum:   aws.Float64(1),
 	}
 
-	dataPointOldest := &cloudwatch.Datapoint{
+	dataPointOldest := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * 3 * -1)),
 		Maximum:   aws.Float64(3),
 	}
 
-	cloudWatchDataPoints := []*cloudwatch.Datapoint{
+	cloudWatchDataPoints := []*model.Datapoint{
 		dataPointMiddle,
 		dataPointNewest,
 		dataPointOldest,
@@ -73,7 +72,7 @@ func TestSortyByTimeStamp(t *testing.T) {
 
 	sortedDataPoints := sortByTimestamp(cloudWatchDataPoints)
 
-	expectedDataPoints := []*cloudwatch.Datapoint{
+	expectedDataPoints := []*model.Datapoint{
 		dataPointNewest,
 		dataPointMiddle,
 		dataPointOldest,

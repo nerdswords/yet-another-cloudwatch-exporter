@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 
@@ -109,7 +108,7 @@ func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.T
 	if cwd.GetMetricDataPoint != nil {
 		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps, nil
 	}
-	var averageDataPoints []*cloudwatch.Datapoint
+	var averageDataPoints []*model.Datapoint
 
 	// sorting by timestamps so we can consistently export the most updated datapoint
 	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
@@ -160,7 +159,7 @@ func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.T
 	return nil, time.Time{}, nil
 }
 
-func sortByTimestamp(datapoints []*cloudwatch.Datapoint) []*cloudwatch.Datapoint {
+func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	sort.Slice(datapoints, func(i, j int) bool {
 		jTimestamp := *datapoints[j].Timestamp
 		return datapoints[i].Timestamp.After(jTimestamp)
@@ -176,12 +175,12 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
-		ok, promTag := PromStringTag(*dimension.Name, labelsSnakeCase)
+		ok, promTag := PromStringTag(dimension.Name, labelsSnakeCase)
 		if !ok {
-			logger.Warn("dimension name is an invalid prometheus label name", "dimension", *dimension.Name)
+			logger.Warn("dimension name is an invalid prometheus label name", "dimension", dimension.Name)
 			continue
 		}
-		labels["dimension_"+promTag] = *dimension.Value
+		labels["dimension_"+promTag] = dimension.Value
 	}
 
 	for _, label := range cwd.CustomTags {
