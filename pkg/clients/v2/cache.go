@@ -37,22 +37,20 @@ import (
 type awsRegion = string
 
 type clientCache struct {
-	sts           *sts.Client
-	logger        logging.Logger
-	configOptions []func(*aws_config.LoadOptions) error
-	clients       map[config.Role]map[awsRegion]*cachedClients
-	mu            sync.Mutex
-	refreshed     bool
-	cleared       bool
+	logger    logging.Logger
+	clients   map[config.Role]map[awsRegion]*cachedClients
+	mu        sync.Mutex
+	refreshed bool
+	cleared   bool
 }
 
 type cachedClients struct {
 	awsConfig *aws.Config
-	sts       *sts.Client
 	// if we know that this job is only used for static
 	// then we don't have to construct as many cached connections
 	// later on
 	onlyStatic bool
+	sts        *sts.Client
 	cloudwatch cloudwatch_client.Client
 	tagging    tagging.Client
 	account    account.Client
@@ -97,31 +95,10 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 				cache[role] = map[awsRegion]*cachedClients{}
 			}
 			for _, region := range discoveryJob.Regions {
-				regionConfig, regionStsClient := awsConfigAndStsForRegion(role, &c, region, role)
+				regionConfig := awsConfigForRegion(role, &c, region, role)
 				cache[role][region] = &cachedClients{
-					awsConfig: regionConfig,
-					// TODO can I defer this?
-					sts:        regionStsClient,
+					awsConfig:  regionConfig,
 					onlyStatic: false,
-				}
-			}
-		}
-	}
-
-	for _, staticJob := range cfg.Static {
-		for _, role := range staticJob.Roles {
-			if _, ok := cache[role]; !ok {
-				cache[role] = map[awsRegion]*cachedClients{}
-			}
-			for _, region := range staticJob.Regions {
-				// Discovery job client definitions have precedence
-				if _, exists := cache[role][region]; !exists {
-					regionConfig, regionStsClient := awsConfigAndStsForRegion(role, &c, region, role)
-					cache[role][region] = &cachedClients{
-						awsConfig:  regionConfig,
-						sts:        regionStsClient,
-						onlyStatic: true,
-					}
 				}
 			}
 		}
@@ -135,10 +112,9 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 			for _, region := range customNamespaceJob.Regions {
 				// Discovery job client definitions have precedence
 				if _, exists := cache[role][region]; !exists {
-					regionConfig, regionStsClient := awsConfigAndStsForRegion(role, &c, region, role)
+					regionConfig := awsConfigForRegion(role, &c, region, role)
 					cache[role][region] = &cachedClients{
 						awsConfig:  regionConfig,
-						sts:        regionStsClient,
 						onlyStatic: false,
 					}
 				}
@@ -146,11 +122,27 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 		}
 	}
 
+	for _, staticJob := range cfg.Static {
+		for _, role := range staticJob.Roles {
+			if _, ok := cache[role]; !ok {
+				cache[role] = map[awsRegion]*cachedClients{}
+			}
+			for _, region := range staticJob.Regions {
+				// Discovery job client definitions have precedence
+				if _, exists := cache[role][region]; !exists {
+					regionConfig := awsConfigForRegion(role, &c, region, role)
+					cache[role][region] = &cachedClients{
+						awsConfig:  regionConfig,
+						onlyStatic: true,
+					}
+				}
+			}
+		}
+	}
+
 	return &clientCache{
-		sts:           sts.NewFromConfig(c),
-		logger:        logger,
-		clients:       cache,
-		configOptions: options,
+		logger:  logger,
+		clients: cache,
 	}, nil
 }
 
@@ -199,7 +191,7 @@ func (c *clientCache) GetAccountClient(region string, role config.Role) account.
 	if client := c.clients[role][region].account; client != nil {
 		return client
 	}
-	c.clients[role][region].account = account_v2.NewClient(c.logger, c.clients[role][region].sts)
+	c.clients[role][region].account = account_v2.NewClient(c.logger, c.createStsClient(c.clients[role][region].awsConfig))
 	return c.clients[role][region].account
 }
 
@@ -233,7 +225,7 @@ func (c *clientCache) Refresh() {
 				c.createStorageGatewayClient(cache.awsConfig),
 			)
 
-			cache.account = account_v2.NewClient(c.logger, cache.sts)
+			cache.account = account_v2.NewClient(c.logger, c.createStsClient(cache.awsConfig))
 		}
 	}
 
@@ -255,6 +247,7 @@ func (c *clientCache) Clear() {
 
 	for _, regions := range c.clients {
 		for _, cache := range regions {
+			cache.sts = nil
 			cache.cloudwatch = nil
 			cache.account = nil
 			cache.tagging = nil
@@ -367,15 +360,22 @@ func (c *clientCache) createPrometheusClient(assumedConfig *aws.Config) *amp.Cli
 	})
 }
 
+func (c *clientCache) createStsClient(awsConfig *aws.Config) *sts.Client {
+	//TODO need to use regional sts setting here
+	return sts.NewFromConfig(*awsConfig, func(options *sts.Options) {
+		options.RetryMaxAttempts = 5
+	})
+}
+
 var defaultRole = config.Role{}
 
-func awsConfigAndStsForRegion(r config.Role, c *aws.Config, region awsRegion, role config.Role) (*aws.Config, *sts.Client) {
+func awsConfigForRegion(r config.Role, c *aws.Config, region awsRegion, role config.Role) *aws.Config {
 	regionalSts := sts.NewFromConfig(*c, func(options *sts.Options) {
 		options.Region = region
 	})
 	if r == defaultRole {
 		// We are not using delegated access so return the original config and regional sts
-		return c, regionalSts
+		return c
 	}
 
 	// based on https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#hdr-Assume_Role
@@ -386,14 +386,9 @@ func awsConfigAndStsForRegion(r config.Role, c *aws.Config, region awsRegion, ro
 		}
 	})
 
-	// TODO is this actually safe?
 	delegatedConfig := c.Copy()
 	delegatedConfig.Region = region
 	delegatedConfig.Credentials = aws.NewCredentialsCache(credentials)
 
-	delegatedStsClient := sts.NewFromConfig(delegatedConfig, func(options *sts.Options) {
-		options.RetryMaxAttempts = 5
-	})
-
-	return &delegatedConfig, delegatedStsClient
+	return &delegatedConfig
 }
