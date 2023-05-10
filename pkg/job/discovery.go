@@ -204,7 +204,7 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric.Name, discoveryJob.RecentlyActiveOnly, nil)
+				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, nil)
 				if err != nil {
 					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
 					return

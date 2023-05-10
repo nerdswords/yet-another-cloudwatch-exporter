@@ -2,10 +2,11 @@ package cloudwatch
 
 import (
 	"context"
-	"time"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"time"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -16,7 +17,7 @@ type Client interface {
 	// ListMetrics returns the list of metrics and dimensions for a given namespace
 	// and metric name. Results pagination is handled automatically: the caller can
 	// optionally pass a non-nil func in order to handle results pages.
-	ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error)
+	ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error)
 
 	// GetMetricData returns the output of the GetMetricData CloudWatch API.
 	// Results pagination is handled automatically.
@@ -55,11 +56,11 @@ func GetListMetricsInput(metricName string, namespace string, recentlyActiveOnly
 	}
 }
 
-func (c client) ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
 	filter := GetListMetricsInput(metric.Name, namespace, recentlyActiveOnly)
 
 	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("ListMetrics", "input", input)
+		c.logger.Debug("ListMetrics", "input", filter)
 	}
 
 	var metrics []*model.Metric
@@ -225,9 +226,9 @@ func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logg
 	return res
 }
 
-func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, recentlyActiveOnly bool, metric *config.Metric, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
 	c.sem <- struct{}{}
-	res, err := c.client.ListMetrics(ctx, input, fn)
+	res, err := c.client.ListMetrics(ctx, namespace, metric, recentlyActiveOnly, fn)
 	<-c.sem
 	return res, err
 }
