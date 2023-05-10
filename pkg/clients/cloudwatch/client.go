@@ -43,21 +43,6 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func getListMetricsInput(metricName string, namespace string, recentlyActiveOnly bool) *cloudwatch.ListMetricsInput {
-	if !recentlyActiveOnly {
-		return &cloudwatch.ListMetricsInput{
-			MetricName: aws.String(metricName),
-			Namespace:  aws.String(namespace),
-		}
-	}
-	recentActiveString := "PT3H"
-	return &cloudwatch.ListMetricsInput{
-		MetricName:     aws.String(metricName),
-		Namespace:      aws.String(namespace),
-		RecentlyActive: &recentActiveString,
-	}
-}
-
 func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
 	filter := getListMetricsInput(metric.Name, namespace, recentlyActiveOnly)
 
@@ -88,6 +73,19 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *confi
 	}
 
 	return metrics, nil
+}
+
+func getListMetricsInput(metricName string, namespace string, recentlyActiveOnly bool) *cloudwatch.ListMetricsInput {
+	var recentlyActive *string
+	if recentlyActiveOnly {
+		recentlyActive = aws.String("PT3H")
+	}
+
+	return &cloudwatch.ListMetricsInput{
+		MetricName:     aws.String(metricName),
+		Namespace:      aws.String(namespace),
+		RecentlyActive: recentlyActive,
+	}
 }
 
 func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {

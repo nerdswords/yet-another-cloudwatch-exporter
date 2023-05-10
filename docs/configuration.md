@@ -103,6 +103,10 @@ dimensionNameRequirements:
 # This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes). For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.
 [ roundingPeriod: <int> ]
 
+# Passes down the flag `--recently-active PT3H` to the CloudWatch API. This will only return metrics that have been active in the last 3 hours.
+# This is useful for reducing the number of metrics returned by CloudWatch, which can be very large for some services. See AWS Cloudwatch API docs for [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html) for more details.
+[ recentlyActiveOnly: <boolean> ]
+
 # List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)
 statistics:
   [ - <string> ... ]
@@ -237,6 +241,10 @@ dimensionNameRequirements:
 # This rounding is optimize performance of the CloudWatch request.
 # This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes). For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.
 [ roundingPeriod: <int> ]
+
+# Passes down the flag `--recently-active PT3H` to the CloudWatch API. This will only return metrics that have been active in the last 3 hours.
+# This is useful for reducing the number of metrics returned by CloudWatch, which can be very large for some services. See AWS Cloudwatch API docs for [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html) for more details.
+[ recentlyActiveOnly: <boolean> ]
 
 # List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)
 statistics:
