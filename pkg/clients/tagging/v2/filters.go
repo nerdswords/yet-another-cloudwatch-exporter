@@ -36,7 +36,9 @@ var serviceFilters = map[string]serviceFilter{
 			output := apigateway.GetRestApisOutput{}
 			var pageNum int
 
-			paginator := apigateway.NewGetRestApisPaginator(client.apiGatewayAPI, &input)
+			paginator := apigateway.NewGetRestApisPaginator(client.apiGatewayAPI, &input, func(options *apigateway.GetRestApisPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum <= maxPages {
 				page, err := paginator.NextPage(ctx)
 				promutil.APIGatewayAPICounter.Inc()
@@ -68,7 +70,9 @@ var serviceFilters = map[string]serviceFilter{
 		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
-			paginator := autoscaling.NewDescribeAutoScalingGroupsPaginator(client.autoscalingAPI, &autoscaling.DescribeAutoScalingGroupsInput{})
+			paginator := autoscaling.NewDescribeAutoScalingGroupsPaginator(client.autoscalingAPI, &autoscaling.DescribeAutoScalingGroupsInput{}, func(options *autoscaling.DescribeAutoScalingGroupsPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum < 100 {
 				page, err := paginator.NextPage(ctx)
 				promutil.AutoScalingAPICounter.Inc()
@@ -107,7 +111,9 @@ var serviceFilters = map[string]serviceFilter{
 			replicationInstanceIdentifiers := make(map[string]string)
 
 			pageNum := 0
-			instancesPaginator := databasemigrationservice.NewDescribeReplicationInstancesPaginator(client.dmsAPI, &databasemigrationservice.DescribeReplicationInstancesInput{})
+			instancesPaginator := databasemigrationservice.NewDescribeReplicationInstancesPaginator(client.dmsAPI, &databasemigrationservice.DescribeReplicationInstancesInput{}, func(options *databasemigrationservice.DescribeReplicationInstancesPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for instancesPaginator.HasMorePages() && pageNum < 100 {
 				page, err := instancesPaginator.NextPage(ctx)
 				promutil.DmsAPICounter.Inc()
@@ -122,7 +128,9 @@ var serviceFilters = map[string]serviceFilter{
 			}
 
 			pageNum = 0
-			tasksPaginator := databasemigrationservice.NewDescribeReplicationTasksPaginator(client.dmsAPI, &databasemigrationservice.DescribeReplicationTasksInput{})
+			tasksPaginator := databasemigrationservice.NewDescribeReplicationTasksPaginator(client.dmsAPI, &databasemigrationservice.DescribeReplicationTasksInput{}, func(options *databasemigrationservice.DescribeReplicationTasksPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for tasksPaginator.HasMorePages() && pageNum < 100 {
 				page, err := tasksPaginator.NextPage(ctx)
 				promutil.DmsAPICounter.Inc()
@@ -155,7 +163,9 @@ var serviceFilters = map[string]serviceFilter{
 		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
-			paginator := ec2.NewDescribeSpotFleetRequestsPaginator(client.ec2API, &ec2.DescribeSpotFleetRequestsInput{})
+			paginator := ec2.NewDescribeSpotFleetRequestsPaginator(client.ec2API, &ec2.DescribeSpotFleetRequestsInput{}, func(options *ec2.DescribeSpotFleetRequestsPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum < 100 {
 				page, err := paginator.NextPage(ctx)
 				promutil.Ec2APICounter.Inc()
@@ -188,7 +198,9 @@ var serviceFilters = map[string]serviceFilter{
 		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
-			paginator := amp.NewListWorkspacesPaginator(client.prometheusSvcAPI, &amp.ListWorkspacesInput{})
+			paginator := amp.NewListWorkspacesPaginator(client.prometheusSvcAPI, &amp.ListWorkspacesInput{}, func(options *amp.ListWorkspacesPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum < 100 {
 				page, err := paginator.NextPage(ctx)
 				promutil.ManagedPrometheusAPICounter.Inc()
@@ -221,7 +233,9 @@ var serviceFilters = map[string]serviceFilter{
 		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
-			paginator := storagegateway.NewListGatewaysPaginator(client.storageGatewayAPI, &storagegateway.ListGatewaysInput{})
+			paginator := storagegateway.NewListGatewaysPaginator(client.storageGatewayAPI, &storagegateway.ListGatewaysInput{}, func(options *storagegateway.ListGatewaysPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum < 100 {
 				page, err := paginator.NextPage(ctx)
 				promutil.StoragegatewayAPICounter.Inc()
@@ -260,7 +274,9 @@ var serviceFilters = map[string]serviceFilter{
 		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
-			paginator := ec2.NewDescribeTransitGatewayAttachmentsPaginator(client.ec2API, &ec2.DescribeTransitGatewayAttachmentsInput{})
+			paginator := ec2.NewDescribeTransitGatewayAttachmentsPaginator(client.ec2API, &ec2.DescribeTransitGatewayAttachmentsInput{}, func(options *ec2.DescribeTransitGatewayAttachmentsPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
 			for paginator.HasMorePages() && pageNum < 100 {
 				page, err := paginator.NextPage(ctx)
 				promutil.Ec2APICounter.Inc()

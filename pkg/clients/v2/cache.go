@@ -38,6 +38,7 @@ type awsRegion = string
 
 type clientCache struct {
 	logger    logging.Logger
+	stsRegion string
 	clients   map[config.Role]map[awsRegion]*cachedClients
 	mu        sync.Mutex
 	refreshed bool
@@ -50,7 +51,6 @@ type cachedClients struct {
 	// then we don't have to construct as many cached connections
 	// later on
 	onlyStatic bool
-	sts        *sts.Client
 	cloudwatch cloudwatch_client.Client
 	tagging    tagging.Client
 	account    account.Client
@@ -104,24 +104,6 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 		}
 	}
 
-	for _, customNamespaceJob := range cfg.CustomNamespace {
-		for _, role := range customNamespaceJob.Roles {
-			if _, ok := cache[role]; !ok {
-				cache[role] = map[awsRegion]*cachedClients{}
-			}
-			for _, region := range customNamespaceJob.Regions {
-				// Discovery job client definitions have precedence
-				if _, exists := cache[role][region]; !exists {
-					regionConfig := awsConfigForRegion(role, &c, region, role)
-					cache[role][region] = &cachedClients{
-						awsConfig:  regionConfig,
-						onlyStatic: false,
-					}
-				}
-			}
-		}
-	}
-
 	for _, staticJob := range cfg.Static {
 		for _, role := range staticJob.Roles {
 			if _, ok := cache[role]; !ok {
@@ -140,9 +122,28 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 		}
 	}
 
+	for _, customNamespaceJob := range cfg.CustomNamespace {
+		for _, role := range customNamespaceJob.Roles {
+			if _, ok := cache[role]; !ok {
+				cache[role] = map[awsRegion]*cachedClients{}
+			}
+			for _, region := range customNamespaceJob.Regions {
+				// Discovery job client definitions have precedence
+				if _, exists := cache[role][region]; !exists {
+					regionConfig := awsConfigForRegion(role, &c, region, role)
+					cache[role][region] = &cachedClients{
+						awsConfig:  regionConfig,
+						onlyStatic: true,
+					}
+				}
+			}
+		}
+	}
+
 	return &clientCache{
-		logger:  logger,
-		clients: cache,
+		logger:    logger,
+		clients:   cache,
+		stsRegion: cfg.StsRegion,
 	}, nil
 }
 
@@ -247,7 +248,6 @@ func (c *clientCache) Clear() {
 
 	for _, regions := range c.clients {
 		for _, cache := range regions {
-			cache.sts = nil
 			cache.cloudwatch = nil
 			cache.account = nil
 			cache.tagging = nil
@@ -361,8 +361,10 @@ func (c *clientCache) createPrometheusClient(assumedConfig *aws.Config) *amp.Cli
 }
 
 func (c *clientCache) createStsClient(awsConfig *aws.Config) *sts.Client {
-	//TODO need to use regional sts setting here
 	return sts.NewFromConfig(*awsConfig, func(options *sts.Options) {
+		if c.stsRegion != "" {
+			options.Region = c.stsRegion
+		}
 		options.RetryMaxAttempts = 5
 	})
 }

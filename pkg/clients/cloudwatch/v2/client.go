@@ -40,7 +40,9 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *confi
 	}
 
 	var metrics []*model.Metric
-	paginator := cloudwatch.NewListMetricsPaginator(c.cloudwatchAPI, filter)
+	paginator := cloudwatch.NewListMetricsPaginator(c.cloudwatchAPI, filter, func(options *cloudwatch.ListMetricsPaginatorOptions) {
+		options.StopOnDuplicateToken = true
+	})
 	for paginator.HasMorePages() {
 		promutil.CloudwatchAPICounter.Inc()
 		page, err := paginator.NextPage(ctx)
@@ -96,7 +98,9 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 		c.logger.Debug("GetMetricData", "input", filter)
 	}
 
-	paginator := cloudwatch.NewGetMetricDataPaginator(c.cloudwatchAPI, filter)
+	paginator := cloudwatch.NewGetMetricDataPaginator(c.cloudwatchAPI, filter, func(options *cloudwatch.GetMetricDataPaginatorOptions) {
+		options.StopOnDuplicateToken = true
+	})
 	for paginator.HasMorePages() {
 		promutil.CloudwatchAPICounter.Inc()
 		promutil.CloudwatchGetMetricDataAPICounter.Inc()

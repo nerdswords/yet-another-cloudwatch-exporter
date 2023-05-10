@@ -1,14 +1,22 @@
 package v2
 
 import (
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"context"
+	"os"
+	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	aws_config "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-func TestNewClientCache(t *testing.T) {
+func TestNewClientCache_initializes_clients(t *testing.T) {
 	role1 := config.Role{
 		RoleArn:    "role1",
 		ExternalID: "external1",
@@ -28,11 +36,10 @@ func TestNewClientCache(t *testing.T) {
 	tests := []struct {
 		name       string
 		config     config.ScrapeConf
-		fips       bool
-		onlyStatic bool
+		onlyStatic *bool
 	}{
 		{
-			name: "initializes clients from discovery config",
+			name: "from discovery config",
 			config: config.ScrapeConf{
 				Discovery: config.Discovery{
 					ExportedTagsOnMetrics: nil,
@@ -44,38 +51,37 @@ func TestNewClientCache(t *testing.T) {
 					},
 				},
 			},
-			fips:       false,
-			onlyStatic: false,
-		}, {
-			name: "initializes clients from static config",
+			onlyStatic: aws.Bool(false),
+		},
+		{
+			name: "from static config",
 			config: config.ScrapeConf{
 				Static: []*config.Static{{
 					Regions: []string{region1, region2, region3},
 					Roles:   []config.Role{role1, role2, role3},
 				}},
 			},
-			fips:       false,
-			onlyStatic: true,
-		}, {
-			name: "initializes clients from custom config",
+			onlyStatic: aws.Bool(true),
+		},
+		{
+			name: "from custom config",
 			config: config.ScrapeConf{
 				CustomNamespace: []*config.CustomNamespace{{
 					Regions: []string{region1, region2, region3},
 					Roles:   []config.Role{role1, role2, role3},
 				}},
 			},
-			fips:       false,
-			onlyStatic: false,
+			onlyStatic: aws.Bool(true),
 		},
 		{
-			name: "initializes clients from all configs",
+			name: "from all configs",
 			config: config.ScrapeConf{
 				Discovery: config.Discovery{
 					ExportedTagsOnMetrics: nil,
 					Jobs: []*config.Job{
 						{
 							Regions: []string{region1, region2},
-							Roles:   []config.Role{role1, role2, role3},
+							Roles:   []config.Role{role1, role2},
 						},
 					},
 				},
@@ -85,19 +91,19 @@ func TestNewClientCache(t *testing.T) {
 				}},
 				CustomNamespace: []*config.CustomNamespace{{
 					Regions: []string{region1, region3},
-					Roles:   []config.Role{role1, role2, role3},
+					Roles:   []config.Role{role1, role3},
 				}},
 			},
-			fips:       false,
-			onlyStatic: false,
+			onlyStatic: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			output, err := NewCache(test.config, test.fips, logging.NewNopLogger())
+			output, err := NewCache(test.config, false, logging.NewNopLogger())
 			require.NoError(t, err)
 			cache := output.(*clientCache)
+			require.NotNil(t, cache)
 
 			assert.False(t, cache.refreshed)
 			assert.False(t, cache.cleared)
@@ -116,9 +122,349 @@ func TestNewClientCache(t *testing.T) {
 
 				for region, clients := range regionalClients {
 					assert.NotNil(t, clients, "role %s region %s had nil clients", role, region)
-					assert.Equal(t, test.onlyStatic, clients.onlyStatic, "role %s region %s had unexpected onlyStatic value", role, region)
+					if test.onlyStatic != nil {
+						assert.Equal(t, *test.onlyStatic, clients.onlyStatic, "role %s region %s had unexpected onlyStatic value", role, region)
+					}
 				}
 			}
 		})
 	}
+}
+
+func TestNewClientCache_sets_fips(t *testing.T) {
+	config := config.ScrapeConf{
+		Discovery: config.Discovery{
+			ExportedTagsOnMetrics: nil,
+			Jobs: []*config.Job{
+				{
+					Roles:   []config.Role{{}},
+					Regions: []string{"region1"},
+				},
+			},
+		},
+	}
+	output, err := NewCache(config, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	cache := output.(*clientCache)
+	require.NotNil(t, cache)
+
+	clients := cache.clients[defaultRole]["region1"]
+	assert.NotNil(t, clients)
+
+	foundLoadOptions := false
+	for _, sources := range clients.awsConfig.ConfigSources {
+		options, ok := sources.(aws_config.LoadOptions)
+		if !ok {
+			continue
+		}
+		foundLoadOptions = true
+		assert.Equal(t, aws.FIPSEndpointStateEnabled, options.UseFIPSEndpoint)
+	}
+	assert.True(t, foundLoadOptions)
+}
+
+func TestNewClientCache_sets_endpoint_override(t *testing.T) {
+	config := config.ScrapeConf{
+		Discovery: config.Discovery{
+			ExportedTagsOnMetrics: nil,
+			Jobs: []*config.Job{
+				{
+					Roles:   []config.Role{{}},
+					Regions: []string{"region1"},
+				},
+			},
+		},
+	}
+
+	err := os.Setenv("AWS_ENDPOINT_URL", "https://totallynotaws.com")
+	require.NoError(t, err)
+
+	output, err := NewCache(config, false, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	cache := output.(*clientCache)
+	require.NotNil(t, cache)
+
+	clients := cache.clients[defaultRole]["region1"]
+	assert.NotNil(t, clients)
+	assert.NotNil(t, clients.awsConfig.EndpointResolverWithOptions)
+}
+
+func TestClientCache_Clear(t *testing.T) {
+	cache := &clientCache{
+		logger: logging.NewNopLogger(),
+		clients: map[config.Role]map[awsRegion]*cachedClients{
+			defaultRole: {
+				"region1": &cachedClients{
+					awsConfig:  nil,
+					cloudwatch: testClient{},
+					tagging:    testClient{},
+					account:    testClient{},
+				},
+			},
+		},
+		refreshed: true,
+		cleared:   false,
+	}
+
+	cache.Clear()
+	assert.True(t, cache.cleared)
+	assert.False(t, cache.refreshed)
+
+	clients := cache.clients[defaultRole]["region1"]
+	require.NotNil(t, clients)
+	assert.Nil(t, clients.cloudwatch)
+	assert.Nil(t, clients.account)
+	assert.Nil(t, clients.tagging)
+}
+
+func TestClientCache_Refresh(t *testing.T) {
+	t.Run("creates all clients when config contains only discovery jobs", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		cache.Refresh()
+		assert.False(t, cache.cleared)
+		assert.True(t, cache.refreshed)
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		assert.NotNil(t, clients.cloudwatch)
+		assert.NotNil(t, clients.account)
+		assert.NotNil(t, clients.tagging)
+	})
+
+	t.Run("creates only cloudwatch when config is only static jobs", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Static: []*config.Static{{
+				Regions: []string{"region1"},
+				Roles:   []config.Role{{}},
+			}},
+			CustomNamespace: []*config.CustomNamespace{{
+				Regions: []string{"region1"},
+				Roles:   []config.Role{{}},
+			}},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		cache.Refresh()
+		assert.False(t, cache.cleared)
+		assert.True(t, cache.refreshed)
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		assert.NotNil(t, clients.cloudwatch)
+		assert.Nil(t, clients.account)
+		assert.Nil(t, clients.tagging)
+	})
+}
+
+func TestClientCache_GetAccountClient(t *testing.T) {
+	t.Run("refreshed cache does not create new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		cache.Refresh()
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		assert.Equal(t, clients.account, output.GetAccountClient("region1", defaultRole))
+	})
+
+	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		require.Nil(t, clients.account)
+
+		client := output.GetAccountClient("region1", defaultRole)
+		assert.Equal(t, clients.account, client)
+	})
+}
+
+func TestClientCache_GetCloudwatchClient(t *testing.T) {
+	t.Run("refreshed cache does not create new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		cache.Refresh()
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		// Can't do equality comparison due to concurrency limiter
+		assert.NotNil(t, output.GetCloudwatchClient("region1", defaultRole, 1))
+	})
+
+	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		require.Nil(t, clients.cloudwatch)
+
+		output.GetCloudwatchClient("region1", defaultRole, 1)
+		assert.NotNil(t, clients.cloudwatch)
+	})
+}
+
+func TestClientCache_GetTaggingClient(t *testing.T) {
+	t.Run("refreshed cache does not create new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		cache.Refresh()
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		// Can't do equality comparison due to concurrency limiter
+		assert.NotNil(t, output.GetTaggingClient("region1", defaultRole, 1))
+	})
+
+	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
+		config := config.ScrapeConf{
+			Discovery: config.Discovery{
+				ExportedTagsOnMetrics: nil,
+				Jobs: []*config.Job{
+					{
+						Roles:   []config.Role{{}},
+						Regions: []string{"region1"},
+					},
+				},
+			},
+		}
+
+		output, err := NewCache(config, false, logging.NewNopLogger())
+		require.NoError(t, err)
+
+		cache := output.(*clientCache)
+		require.NotNil(t, cache)
+
+		clients := cache.clients[defaultRole]["region1"]
+		require.NotNil(t, clients)
+		require.Nil(t, clients.tagging)
+
+		output.GetTaggingClient("region1", defaultRole, 1)
+		assert.NotNil(t, clients.tagging)
+	})
+}
+
+type testClient struct{}
+
+func (t testClient) GetResources(_ context.Context, _ *config.Job, _ string) ([]*model.TaggedResource, error) {
+	return nil, nil
+}
+
+func (t testClient) GetAccount(_ context.Context) (string, error) {
+	return "", nil
+}
+
+func (t testClient) ListMetrics(_ context.Context, _ string, _ *config.Metric, _ func(page []*model.Metric)) ([]*model.Metric, error) {
+	return nil, nil
+}
+
+func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []*cloudwatch_client.MetricDataResult {
+	return nil
+}
+
+func (t testClient) GetMetricStatistics(_ context.Context, _ logging.Logger, _ []*model.Dimension, _ string, _ *config.Metric) []*model.Datapoint {
+	return nil
 }

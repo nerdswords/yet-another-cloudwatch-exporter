@@ -73,7 +73,9 @@ func (c client) GetResources(ctx context.Context, job *config.Job, region string
 			ResourcesPerPage:    aws.Int32(int32(100)), // max allowed value according to API docs
 		}
 
-		paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(c.taggingAPI, inputparams)
+		paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(c.taggingAPI, inputparams, func(options *resourcegroupstaggingapi.GetResourcesPaginatorOptions) {
+			options.StopOnDuplicateToken = true
+		})
 		for paginator.HasMorePages() {
 			promutil.ResourceGroupTaggingAPICounter.Inc()
 			page, err := paginator.NextPage(ctx)
