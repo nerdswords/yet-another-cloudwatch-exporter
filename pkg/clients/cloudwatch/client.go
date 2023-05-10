@@ -43,7 +43,7 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func GetListMetricsInput(metricName string, namespace string, recentlyActiveOnly bool) *cloudwatch.ListMetricsInput {
+func getListMetricsInput(metricName string, namespace string, recentlyActiveOnly bool) *cloudwatch.ListMetricsInput {
 	if !recentlyActiveOnly {
 		return &cloudwatch.ListMetricsInput{
 			MetricName: aws.String(metricName),
@@ -59,7 +59,7 @@ func GetListMetricsInput(metricName string, namespace string, recentlyActiveOnly
 }
 
 func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
-	filter := GetListMetricsInput(metric.Name, namespace, recentlyActiveOnly)
+	filter := getListMetricsInput(metric.Name, namespace, recentlyActiveOnly)
 
 	if c.logger.IsDebugEnabled() {
 		c.logger.Debug("ListMetrics", "input", filter)
