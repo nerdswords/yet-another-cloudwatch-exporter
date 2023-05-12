@@ -480,7 +480,7 @@ var SupportedServices = serviceConfigs{
 			aws.String("mediaconvert"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("(?P<Queue>.*:queues/.*)$"),
+			regexp.MustCompile("(?P<Queue>.*:.*:mediaconvert:.*:queues/.*)$"),
 		},
 	},
 	{
