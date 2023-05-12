@@ -49,7 +49,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
 					Dimensions: []*model.Dimension{
-						{Name: "QueueName", Value: "a-queue"},
+						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-queue"},
 					},
 				},
 			},
@@ -57,7 +57,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 			expectedResource: mediaConvertQueue,
 		},
 		{
-			name: "should match with mediaconvert queue one dimension",
+			name: "should match with mediaconvert queue two dimension",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").DimensionRegexps,
 				resources:        mediaConvertResources,
@@ -65,7 +65,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
 					Dimensions: []*model.Dimension{
-						{Name: "QueueName", Value: "a-second-queue"},
+						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-second-queue"},
 					},
 				},
 			},
@@ -81,7 +81,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
 					Dimensions: []*model.Dimension{
-						{Name: "QueueName", Value: "a-non-existing-queue"},
+						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-non-existing-queue"},
 					},
 				},
 			},
