@@ -1,3 +1,75 @@
+# v0.51.0
+
+**Important breaking changes**
+* Jobs of type `customNamespace` are **deprecated** and might be removed in a future release (please reach out if you're still using this feature)
+
+**Bugfixes and features**
+
+Features:
+* Add feature flags support by @thepalbi
+* Feature flag `max-dimensions-associator`: new resource-matching algorithm for discovery jobs. It fixes metrics attribution for ECS. Please test it out and report any issue!
+* Feature flag `list-metrics-callback`: reduce memory usage of ListMetrics API requests
+
+Services:
+* Add support for AWS/Usage namespace by @cristiangreco
+* Fix ECS regexes by @cristiangreco
+
+Docs:
+* Add docker compose support for easier development by @thepalbi
+* Add more config examples by @cristiangreco
+* Review docs about embedding yace by @cristiangreco
+
+Bugs:
+* Fix for Dockerfile smell DL3007 by @grosa1
+
+Refactoring:
+* Refactor Tagging/CloudWatch clients by @cristiangreco
+* CloudWatch client: split out input builders into separate file by @cristiangreco
+* Refactor promutils migrate functions by @cristiangreco
+* Use grafana/regexp by @cristiangreco
+* Refactor implementation of getFilteredMetricDatas by @cristiangreco
+* Remove uneeded Describe implementation by @kgeckhart
+* Add counter to see if duplicate metrics are still a problem by @kgeckhart
+* Refactor label consistency and duplicates by @kgeckhart
+* Refactor GetMetricData calls in discovery jobs by @cristiangreco
+
+**Dependencies**
+* Bump github.com/aws/aws-sdk-go from 1.44.235 to 1.44.249
+* Bump github.com/prometheus/common from 0.41.0 to 0.42.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.50.0...v0.51.0
+
+# v0.50.0
+
+**Important breaking changes**
+* Change `UpdateMetrics` signature to accept options and return error by @cristiangreco -- if you embed YACE as a Go library this is a breaking change.
+
+**Bugfixes and features**
+Features:
+* Refactor API clients concurrency handling by @cristiangreco
+* Add feature flags support by @thepalbi
+* Allow discovery jobs to return result even if there are no resources by @kgeckhart
+* Add flag to enable pprof profiling endpoints by @cristiangreco
+
+Services:
+* Add a ResourceFilter to ElasticBeanstalk by @benbridts
+
+Docs:
+* Update config docs format by @cristiangreco
+
+Refactoring:
+* Linting: fix revive issues by @cristiangreco
+* Remove extra error log when no resources are found by @kgeckhart
+* Wrap debug logging in FilterMetricData by @cristiangreco
+* Minor internal refactorings by @cristiangreco
+
+**Dependencies**
+* Bump actions/setup-go from 3 to 4
+* Bump github.com/aws/aws-sdk-go from 1.44.215 to 1.44.235
+* Bump github.com/urfave/cli/v2 from 2.25.0 to 2.25.1
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.49.2...v0.50.0
+
 # v0.49.2
 
 ## Bugfixes and features

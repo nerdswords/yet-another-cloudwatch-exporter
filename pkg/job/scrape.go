@@ -4,27 +4,22 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/sts"
-
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 func ScrapeAwsData(
 	ctx context.Context,
 	logger logging.Logger,
 	cfg config.ScrapeConf,
-	cache session.SessionCache,
+	cache clients.Cache,
 	metricsPerQuery int,
 	cloudWatchAPIConcurrency int,
 	taggingAPIConcurrency int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	mux := &sync.Mutex{}
-	cloudwatchSemaphore := make(chan struct{}, cloudWatchAPIConcurrency)
-	tagSemaphore := make(chan struct{}, taggingAPIConcurrency)
-
 	cwData := make([]*model.CloudwatchData, 0)
 	awsInfoData := make([]*model.TaggedResource, 0)
 	var wg sync.WaitGroup
@@ -42,15 +37,15 @@ func ScrapeAwsData(
 				go func(discoveryJob *config.Job, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("job_type", discoveryJob.Type, "region", region, "arn", role.RoleArn)
-					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
-					if err != nil || result.Account == nil {
+					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
-					jobLogger = jobLogger.With("account", *result.Account)
+					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, cache, metricsPerQuery, tagSemaphore, discoveryJob, region, role, result.Account, cfg.Discovery.ExportedTagsOnMetrics)
-					if len(resources) != 0 && len(metrics) != 0 {
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, accountID, cfg.Discovery.ExportedTagsOnMetrics, cache.GetTaggingClient(region, role, taggingAPIConcurrency), cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
+					if len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
 						cwData = append(cwData, metrics...)
@@ -68,14 +63,14 @@ func ScrapeAwsData(
 				go func(staticJob *config.Static, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("static_job_name", staticJob.Name, "region", region, "arn", role.RoleArn)
-					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
-					if err != nil || result.Account == nil {
+					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
-					jobLogger = jobLogger.With("account", *result.Account)
+					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runStaticJob(ctx, jobLogger, cache, region, role, staticJob, result.Account, cloudwatchSemaphore)
+					metrics := runStaticJob(ctx, jobLogger, staticJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency))
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -86,20 +81,22 @@ func ScrapeAwsData(
 	}
 
 	for _, customNamespaceJob := range cfg.CustomNamespace {
+		logger.Warn("Jobs of type 'customNamespace' are deprecated and will be removed soon", "job", customNamespaceJob.Name)
+
 		for _, role := range customNamespaceJob.Roles {
 			for _, region := range customNamespaceJob.Regions {
 				wg.Add(1)
 				go func(customNamespaceJob *config.CustomNamespace, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("custom_metric_namespace", customNamespaceJob.Namespace, "region", region, "arn", role.RoleArn)
-					result, err := cache.GetSTS(role).GetCallerIdentityWithContext(ctx, &sts.GetCallerIdentityInput{})
-					if err != nil || result.Account == nil {
+					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
-					jobLogger = jobLogger.With("account", *result.Account)
+					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runCustomNamespaceJob(ctx, jobLogger, cache, metricsPerQuery, cloudwatchSemaphore, tagSemaphore, customNamespaceJob, region, role, result.Account)
+					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)

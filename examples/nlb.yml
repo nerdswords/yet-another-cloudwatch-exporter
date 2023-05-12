@@ -1,0 +1,21 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/NetworkELB
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: ActiveFlowCount
+          statistics: [Average, Minimum, Maximum]
+        - name: ActiveFlowCount_TLS
+          statistics: [Average, Minimum, Maximum]
+        - name: ActiveFlowCount_UDP
+          statistics: [Average, Minimum, Maximum]
+        - name: PortAllocationErrorCount
+          statistics: [Minimum, Maximum, Sum]
+        - name: ProcessedBytes
+          statistics: [Minimum, Maximum, Sum]
+        - name: ProcessedPackets
+          statistics: [Minimum, Maximum, Sum]

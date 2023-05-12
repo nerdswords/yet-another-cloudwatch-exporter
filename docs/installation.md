@@ -24,6 +24,10 @@ docker run -d --rm \
 
 Do not forget the `v` prefix in the image version tag.
 
+## Docker compose
+
+See the [docker-compose directory](../docker-compose/README.md).
+
 ## Kubernetes
 
 ### Install with HELM

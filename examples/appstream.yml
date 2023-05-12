@@ -1,0 +1,25 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/AppStream
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: ActualCapacity
+          statistics: [Average]
+        - name: AvailableCapacity
+          statistics: [Average]
+        - name: CapacityUtilization
+          statistics: [Average]
+        - name: DesiredCapacity
+          statistics: [Average]
+        - name: InUseCapacity
+          statistics: [Average]
+        - name: PendingCapacity
+          statistics: [Average]
+        - name: RunningCapacity
+          statistics: [Average]
+        - name: InsufficientCapacityError
+          statistics: [Average]

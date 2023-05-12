@@ -1,15 +1,26 @@
 package config
 
 import (
-	"regexp"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/grafana/regexp"
 )
 
+// ServiceConfig defines a namespace supported by discovery jobs.
 type ServiceConfig struct {
-	Namespace        string
-	Alias            string
-	ResourceFilters  []*string
+	// Namespace is the formal AWS namespace identification string
+	Namespace string
+	// Alias is the formal AWS namespace alias
+	Alias string
+	// ResourceFilters is a list of strings used as filters in the
+	// resourcegroupstaggingapi.GetResources request. It should always
+	// be provided, except for those few namespaces where resources can't
+	// be tagged.
+	ResourceFilters []*string
+	// DimensionRegexps is an optional list of regexes that allow to
+	// extract dimensions names from a resource ARN. The regex should
+	// use named groups that correspond to AWS dimensions names.
+	// In cases where the dimension name has a space, it should be
+	// replaced with an underscore (`_`).
 	DimensionRegexps []*regexp.Regexp
 }
 
@@ -25,6 +36,10 @@ func (sc serviceConfigs) GetService(serviceType string) *ServiceConfig {
 }
 
 var SupportedServices = serviceConfigs{
+	{
+		Namespace: "AWS/Usage",
+		Alias:     "usage",
+	},
 	{
 		Namespace: "AWS/CertificateManager",
 		Alias:     "acm",
@@ -138,6 +153,9 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/ElasticBeanstalk",
 		Alias:     "beanstalk",
+		ResourceFilters: []*string{
+			aws.String("elasticbeanstalk:environment"),
+		},
 	},
 	{
 		Namespace: "AWS/Billing",
@@ -267,8 +285,8 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			regexp.MustCompile(":cluster/(?P<ClusterName>[^/]+)$"),
+			regexp.MustCompile(":service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)$"),
 		},
 	},
 	{
@@ -279,8 +297,10 @@ var SupportedServices = serviceConfigs{
 			aws.String("ecs:service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
-			regexp.MustCompile("service/(?P<ClusterName>[^/]+)/([^/]+)"),
+			// Use "new" long arns as per
+			// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-account-settings.html#ecs-resource-ids
+			regexp.MustCompile(":cluster/(?P<ClusterName>[^/]+)$"),
+			regexp.MustCompile(":service/(?P<ClusterName>[^/]+)/(?P<ServiceName>[^/]+)$"),
 		},
 	},
 	{
@@ -370,11 +390,9 @@ var SupportedServices = serviceConfigs{
 			aws.String("globalaccelerator"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("destinationEdge/(?P<DestinationEdge>[^/]+)"),
-			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)"),
-			regexp.MustCompile("endpointGroup/(?P<EndpointGroup>[^/]+)"),
-			regexp.MustCompile("listener/(?P<Listener>[^/]+)"),
-			regexp.MustCompile("transportProtocol/(?P<TransportProtocol>[^/]+)"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)$"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)/listener/(?P<Listener>[^/]+)$"),
+			regexp.MustCompile("accelerator/(?P<Accelerator>[^/]+)/listener/(?P<Listener>[^/]+)/endpoint-group/(?P<EndpointGroup>[^/]+)$"),
 		},
 	},
 	{

@@ -1,11 +1,10 @@
 package promutil
 
 import (
-	"regexp"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 )
@@ -61,6 +60,10 @@ var (
 		Name: "yace_cloudwatch_dmsapi_requests_total",
 		Help: "Help is not implemented yet.",
 	})
+	DuplicateMetricsFilteredCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_duplicate_metrics_filtered",
+		Help: "Help is not implemented yet.",
+	})
 )
 
 var replacer = strings.NewReplacer(
@@ -95,29 +98,22 @@ type PrometheusCollector struct {
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		metrics: removeDuplicatedMetrics(metrics),
+		metrics: metrics,
 	}
 }
 
-func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
-	for _, metric := range p.metrics {
-		descs <- createDesc(metric)
-	}
+func (p *PrometheusCollector) Describe(_ chan<- *prometheus.Desc) {
+	// The exporter produces a dynamic set of metrics and the docs for prometheus.Collector Describe say
+	// 	Sending no descriptor at all marks the Collector as “unchecked”,
+	// 	i.e. no checks will be performed at registration time, and the
+	// 	Collector may yield any Metric it sees fit in its Collect method.
+	// Based on our use an "unchecked" collector is perfectly fine
 }
 
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	for _, metric := range p.metrics {
 		metrics <- createMetric(metric)
 	}
-}
-
-func createDesc(metric *PrometheusMetric) *prometheus.Desc {
-	return prometheus.NewDesc(
-		*metric.Name,
-		"Help is not implemented yet.",
-		nil,
-		metric.Labels,
-	)
 }
 
 func createMetric(metric *PrometheusMetric) prometheus.Metric {
@@ -134,32 +130,6 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 	}
 
 	return prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge)
-}
-
-func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
-	keys := make(map[string]bool)
-	filteredMetrics := []*PrometheusMetric{}
-	for _, metric := range metrics {
-		check := *metric.Name + combineLabels(metric.Labels)
-		if _, value := keys[check]; !value {
-			keys[check] = true
-			filteredMetrics = append(filteredMetrics, metric)
-		}
-	}
-	return filteredMetrics
-}
-
-func combineLabels(labels map[string]string) string {
-	var combinedLabels string
-	keys := make([]string, 0, len(labels))
-	for k := range labels {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		combinedLabels += PromString(k) + PromString(labels[k])
-	}
-	return combinedLabels
 }
 
 func PromString(text string) string {

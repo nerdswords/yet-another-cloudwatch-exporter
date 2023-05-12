@@ -1,0 +1,57 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/ApplicationELB
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: HealthyHostCount
+          statistics: [Sum]
+        - name: UnHealthyHostCount
+          statistics: [Sum]
+        - name: RequestCount
+          statistics: [Average]
+        - name: TargetResponseTime
+          statistics: [Average]
+        - name: ActiveConnectionCount
+          statistics: [Sum]
+        - name: NewConnectionCount
+          statistics: [Sum]
+        - name: RejectedConnectionCount
+          statistics: [Sum]
+        - name: TargetConnectionErrorCount
+          statistics: [Sum]
+        - name: IPv6RequestCount
+          statistics: [Sum]
+        - name: RequestCountPerTarget
+          statistics: [Sum]
+        - name: NonStickyRequestCount
+          statistics: [Sum]
+        - name: HTTPCode_Target_2XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_Target_3XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_Target_4XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_Target_5XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_ELB_3XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_ELB_4XX_Count
+          statistics: [Sum]
+        - name: HTTPCode_ELB_5XX_Count
+          statistics: [Sum]
+        - name: ProcessedBytes
+          statistics: [Sum]
+        - name: IPv6ProcessedBytes
+          statistics: [Sum]
+        - name: ConsumedLCUs
+          statistics: [Average]
+        - name: ClientTLSNegotiationErrorCount
+          statistics: [Sum]
+        - name: TargetTLSNegotiationErrorCount
+          statistics: [Sum]
+        - name: RuleEvaluations
+          statistics: [Sum]

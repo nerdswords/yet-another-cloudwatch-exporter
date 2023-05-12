@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-func Test_MigrateTagsToPrometheus(t *testing.T) {
+func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	resources := []*model.TaggedResource{{
 		ARN:       "aws::arn",
 		Namespace: "AWS/Service",
@@ -26,40 +25,46 @@ func Test_MigrateTagsToPrometheus(t *testing.T) {
 		},
 	}}
 
-	prometheusMetricName := "aws_service_info"
-	var metricValue float64
-	expected := []*PrometheusMetric{{
-		Name: &prometheusMetricName,
+	expectedMetrics := []*PrometheusMetric{{
+		Name: aws.String("aws_service_info"),
 		Labels: map[string]string{
 			"name":     "aws::arn",
 			"tag_Name": "tag_Value",
 		},
-		Value: &metricValue,
+		Value: aws.Float64(0),
 	}}
 
-	actual := MigrateTagsToPrometheus(resources, false, logging.NewNopLogger())
+	expectedLabels := map[string]model.LabelSet{
+		"aws_service_info": map[string]struct{}{
+			"name":     {},
+			"tag_Name": {},
+		},
+	}
 
-	require.Equal(t, expected, actual)
+	actualMetrics, actualLabels := BuildNamespaceInfoMetrics(resources, []*PrometheusMetric{}, map[string]model.LabelSet{}, false, logging.NewNopLogger())
+
+	assert.Equal(t, expectedMetrics, actualMetrics)
+	assert.Equal(t, expectedLabels, actualLabels)
 }
 
-// TestSortyByTimeStamp validates that sortByTimestamp() sorts in descending order.
-func TestSortyByTimeStamp(t *testing.T) {
-	dataPointMiddle := &cloudwatch.Datapoint{
+// TestSortByTimeStamp validates that sortByTimestamp() sorts in descending order.
+func TestSortByTimeStamp(t *testing.T) {
+	dataPointMiddle := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * 2 * -1)),
 		Maximum:   aws.Float64(2),
 	}
 
-	dataPointNewest := &cloudwatch.Datapoint{
+	dataPointNewest := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * -1)),
 		Maximum:   aws.Float64(1),
 	}
 
-	dataPointOldest := &cloudwatch.Datapoint{
+	dataPointOldest := &model.Datapoint{
 		Timestamp: aws.Time(time.Now().Add(time.Minute * 3 * -1)),
 		Maximum:   aws.Float64(3),
 	}
 
-	cloudWatchDataPoints := []*cloudwatch.Datapoint{
+	cloudWatchDataPoints := []*model.Datapoint{
 		dataPointMiddle,
 		dataPointNewest,
 		dataPointOldest,
@@ -67,7 +72,7 @@ func TestSortyByTimeStamp(t *testing.T) {
 
 	sortedDataPoints := sortByTimestamp(cloudWatchDataPoints)
 
-	expectedDataPoints := []*cloudwatch.Datapoint{
+	expectedDataPoints := []*model.Datapoint{
 		dataPointNewest,
 		dataPointMiddle,
 		dataPointOldest,
@@ -76,39 +81,209 @@ func TestSortyByTimeStamp(t *testing.T) {
 	require.Equal(t, expectedDataPoints, sortedDataPoints)
 }
 
-func Test_ensureLabelConsistencyForMetrics(t *testing.T) {
-	value1 := 1.0
-	metric1 := PrometheusMetric{
-		Name:   aws.String("metric1"),
-		Labels: map[string]string{"label1": "value1"},
-		Value:  &value1,
+func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
+	testCases := []struct {
+		name           string
+		metrics        []*PrometheusMetric
+		observedLabels map[string]model.LabelSet
+		output         []*PrometheusMetric
+	}{
+		{
+			name: "adds missing labels",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+					Value:  aws.Float64(1.0),
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2"},
+					Value:  aws.Float64(2.0),
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{},
+					Value:  aws.Float64(3.0),
+				},
+			},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": struct{}{}, "label2": struct{}{}, "label3": struct{}{}}},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1", "label2": "", "label3": ""},
+					Value:  aws.Float64(1.0),
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "", "label3": "", "label2": "value2"},
+					Value:  aws.Float64(2.0),
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "", "label2": "", "label3": ""},
+					Value:  aws.Float64(3.0),
+				},
+			},
+		},
+		{
+			name: "duplicate metric",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+		},
+		{
+			name: "duplicate metric, multiple labels",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1", "label2": "value2"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2", "label1": "value1"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1", "label2": "value2"},
+				},
+			},
+		},
+		{
+			name: "metric with different labels",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+			},
+		},
+		{
+			name: "two metrics",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+		},
+		{
+			name: "two metrics with different labels",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+			},
+		},
+		{
+			name: "multiple duplicates and non-duplicates",
+			metrics: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+			observedLabels: map[string]model.LabelSet{},
+			output: []*PrometheusMetric{
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label2": "value2"},
+				},
+				{
+					Name:   aws.String("metric2"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+				{
+					Name:   aws.String("metric1"),
+					Labels: map[string]string{"label1": "value1"},
+				},
+			},
+		},
 	}
 
-	value2 := 2.0
-	metric2 := PrometheusMetric{
-		Name:   aws.String("metric1"),
-		Labels: map[string]string{"label2": "value2"},
-		Value:  &value2,
-	}
-
-	value3 := 2.0
-	metric3 := PrometheusMetric{
-		Name:   aws.String("metric1"),
-		Labels: map[string]string{},
-		Value:  &value3,
-	}
-
-	metrics := []*PrometheusMetric{&metric1, &metric2, &metric3}
-	result := EnsureLabelConsistencyForMetrics(metrics, map[string]model.LabelSet{"metric1": {"label1": struct{}{}, "label2": struct{}{}, "label3": struct{}{}}})
-
-	expected := []string{"label1", "label2", "label3"}
-	for _, metric := range result {
-		assert.Equal(t, len(expected), len(metric.Labels))
-		labels := []string{}
-		for labelName := range metric.Labels {
-			labels = append(labels, labelName)
-		}
-
-		assert.ElementsMatch(t, expected, labels)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := EnsureLabelConsistencyAndRemoveDuplicates(tc.metrics, tc.observedLabels)
+			require.ElementsMatch(t, tc.output, actual)
+		})
 	}
 }

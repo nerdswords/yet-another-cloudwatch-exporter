@@ -1,0 +1,39 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/ES
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: CPUUtilization
+          statistics: [Average]
+        - name: FreeStorageSpace
+          statistics: [Sum]
+        - name: ClusterStatus.green
+          statistics: [Maximum]
+        - name: ClusterStatus.yellow
+          statistics: [Maximum]
+        - name: ClusterStatus.red
+          statistics: [Maximum]
+        - name: Shards.active
+          statistics: [Sum]
+        - name: Shards.unassigned
+          statistics: [Sum]
+        - name: Shards.delayedUnassigned
+          statistics: [Sum]
+        - name: Shards.activePrimary
+          statistics: [Sum]
+        - name: Shards.initializing
+          statistics: [Sum]
+        - name: Shards.initializing
+          statistics: [Sum]
+        - name: Shards.relocating
+          statistics: [Sum]
+        - name: Nodes
+          statistics: [Maximum]
+        - name: SearchableDocuments
+          statistics: [Maximum]
+        - name: DeletedDocuments
+          statistics: [Maximum]

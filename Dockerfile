@@ -13,7 +13,7 @@ ENV CGO_ENABLED=0
 ARG VERSION
 RUN go build -v -ldflags "-X main.version=$VERSION" -o yace ./cmd/yace
 
-FROM alpine:latest
+FROM alpine:3.17.3
 
 EXPOSE 5000
 ENTRYPOINT ["yace"]

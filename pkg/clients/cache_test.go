@@ -1,4 +1,4 @@
-package session
+package clients
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-func cmpCache(t *testing.T, initialCache *sessionCache, cache *sessionCache) {
+func cmpCache(t *testing.T, initialCache *clientCache, cache *clientCache) {
 	for role := range initialCache.stscache {
 		if _, ok := cache.stscache[role]; !ok {
 			t.Logf("`role` not in sts cache %s", role.RoleArn)
@@ -57,24 +57,24 @@ func cmpCache(t *testing.T, initialCache *sessionCache, cache *sessionCache) {
 	}
 }
 
-func TestNewSessionCache(t *testing.T) {
+func TestNewClientCache(t *testing.T) {
 	tests := []struct {
 		descrip string
 		config  config.ScrapeConf
 		fips    bool
-		cache   *sessionCache
+		cache   *clientCache
 	}{
 		{
 			"an empty config gives an empty cache",
 			config.ScrapeConf{},
 			false,
-			&sessionCache{logger: logging.NewNopLogger()},
+			&clientCache{logger: logging.NewNopLogger()},
 		},
 		{
-			"if fips is set then the session has fips",
+			"if fips is set then the clients has fips",
 			config.ScrapeConf{},
 			true,
-			&sessionCache{
+			&clientCache{
 				fips:   true,
 				logger: logging.NewNopLogger(),
 			},
@@ -114,31 +114,31 @@ func TestNewSessionCache(t *testing.T) {
 				},
 			},
 			false,
-			&sessionCache{
+			&clientCache{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
 					{RoleArn: "some-arn2"}:                     nil,
 					{RoleArn: "some-arn5"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-3": &clientCache{},
-						"us-east-1":      &clientCache{},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"us-east-1":      &clients{},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"ap-northeast-3": &clientCache{},
-						"us-east-1":      &clientCache{},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"us-east-1":      &clients{},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-3": &clientCache{},
-						"us-east-1":      &clientCache{},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"us-east-1":      &clients{},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn5"}: {
-						"ap-northeast-3": &clientCache{},
+						"ap-northeast-3": &clients{},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -197,7 +197,7 @@ func TestNewSessionCache(t *testing.T) {
 				},
 			},
 			false,
-			&sessionCache{
+			&clientCache{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -205,26 +205,26 @@ func TestNewSessionCache(t *testing.T) {
 					{RoleArn: "some-arn3"}:                     nil,
 					{RoleArn: "some-arn4"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clientCache{onlyStatic: true},
+						"us-east-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn3"}: {
-						"eu-west-2": &clientCache{onlyStatic: true},
-						"us-east-1": &clientCache{onlyStatic: true},
+						"eu-west-2": &clients{onlyStatic: true},
+						"us-east-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -312,7 +312,7 @@ func TestNewSessionCache(t *testing.T) {
 				},
 			},
 			false,
-			&sessionCache{
+			&clientCache{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -321,35 +321,35 @@ func TestNewSessionCache(t *testing.T) {
 					{RoleArn: "some-arn4"}:                     nil,
 					{RoleArn: "some-arn5"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-3": &clientCache{},
-						"us-east-1":      &clientCache{},
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"us-east-1":      &clients{},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clientCache{onlyStatic: true},
+						"us-east-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-3": &clientCache{},
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn3"}: {
-						"ap-northeast-3": &clientCache{},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{},
-						"us-west-2":      &clientCache{},
+						"ap-northeast-3": &clients{},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{},
+						"us-west-2":      &clients{},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn5"}: {
-						"ap-northeast-3": &clientCache{},
+						"ap-northeast-3": &clients{},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -411,7 +411,7 @@ func TestNewSessionCache(t *testing.T) {
 				},
 			},
 			false,
-			&sessionCache{
+			&clientCache{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -419,26 +419,26 @@ func TestNewSessionCache(t *testing.T) {
 					{RoleArn: "some-arn3"}:                     nil,
 					{RoleArn: "some-arn4"}:                     nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{RoleArn: "some-arn"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn", ExternalID: "thing"}: {
-						"us-east-1": &clientCache{onlyStatic: true},
+						"us-east-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn2"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
-						"eu-west-2":      &clientCache{onlyStatic: true},
-						"us-east-1":      &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
+						"eu-west-2":      &clients{onlyStatic: true},
+						"us-east-1":      &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn3"}: {
-						"eu-west-2": &clientCache{onlyStatic: true},
-						"us-east-1": &clientCache{onlyStatic: true},
+						"eu-west-2": &clients{onlyStatic: true},
+						"us-east-1": &clients{onlyStatic: true},
 					},
 					{RoleArn: "some-arn4"}: {
-						"ap-northeast-1": &clientCache{onlyStatic: true},
+						"ap-northeast-1": &clients{onlyStatic: true},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -450,7 +450,7 @@ func TestNewSessionCache(t *testing.T) {
 		test := l
 		t.Run(test.descrip, func(t *testing.T) {
 			t.Parallel()
-			cache := NewSessionCache(test.config, test.fips, logging.NewNopLogger()).(*sessionCache)
+			cache := NewClientCache(test.config, test.fips, logging.NewNopLogger()).(*clientCache)
 			t.Logf("the cache is: %v", cache)
 
 			if test.cache.cleared != cache.cleared {
@@ -480,30 +480,25 @@ func TestClear(t *testing.T) {
 	role := config.Role{}
 
 	tests := []struct {
-		descrip string
-		cache   *sessionCache
+		description string
+		cache       *clientCache
 	}{
 		{
 			"a new clear clears all clients",
-			&sessionCache{
+			&clientCache{
 				session: mock.Session,
 				cleared: false,
 				mu:      sync.Mutex{},
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     createCloudwatchSession(mock.Session, &region, role, false, false),
-							tagging:        createTagSession(mock.Session, &region, role, false),
-							asg:            createASGSession(mock.Session, &region, role, false),
-							ec2:            createEC2Session(mock.Session, &region, role, false, false),
-							dms:            createDMSSession(mock.Session, &region, role, false, false),
-							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
-							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
-							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
-							onlyStatic:     true,
+						"us-east-1": &clients{
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							account:    createAccountClient(logging.NewNopLogger(), nil),
+							onlyStatic: true,
 						},
 					},
 				},
@@ -512,23 +507,19 @@ func TestClear(t *testing.T) {
 		},
 		{
 			"A second call to clear does nothing",
-			&sessionCache{
+			&clientCache{
 				cleared: true,
 				mu:      sync.Mutex{},
 				session: mock.Session,
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     nil,
-							tagging:        nil,
-							asg:            nil,
-							ec2:            nil,
-							apiGateway:     nil,
-							storageGateway: nil,
-							prometheus:     nil,
+						"us-east-1": &clients{
+							cloudwatch: nil,
+							tagging:    nil,
+							account:    nil,
 						},
 					},
 				},
@@ -539,7 +530,7 @@ func TestClear(t *testing.T) {
 
 	for _, l := range tests {
 		test := l
-		t.Run(test.descrip, func(t *testing.T) {
+		t.Run(test.description, func(t *testing.T) {
 			test.cache.Clear()
 			if !test.cache.cleared {
 				t.Log("Cache cleared flag not set")
@@ -567,28 +558,8 @@ func TestClear(t *testing.T) {
 						t.Logf("`tagging client` %v in region %v is not nil", role, region)
 						t.Fail()
 					}
-					if client.asg != nil {
+					if client.account != nil {
 						t.Logf("`asg client` %v in region %v is not nil", role, region)
-						t.Fail()
-					}
-					if client.ec2 != nil {
-						t.Logf("`ec2 client` %v in region %v is not nil", role, region)
-						t.Fail()
-					}
-					if client.prometheus != nil {
-						t.Logf("`Prometheus client` %v in region %v is not nil", role, region)
-						t.Fail()
-					}
-					if client.dms != nil {
-						t.Logf("`dms client` %v in region %v is not nil", role, region)
-						t.Fail()
-					}
-					if client.apiGateway != nil {
-						t.Logf("`apiGateway client` %v in region %v is not nil", role, region)
-						t.Fail()
-					}
-					if client.storageGateway != nil {
-						t.Logf("`storageGateway client` %v in region %v is not nil", role, region)
 						t.Fail()
 					}
 				}
@@ -603,29 +574,24 @@ func TestRefresh(t *testing.T) {
 
 	tests := []struct {
 		descrip    string
-		cache      *sessionCache
+		cache      *clientCache
 		cloudwatch bool
 	}{
 		{
 			"a new refresh creates clients",
-			&sessionCache{
+			&clientCache{
 				session:   mock.Session,
 				refreshed: false,
 				mu:        sync.Mutex{},
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     nil,
-							tagging:        nil,
-							asg:            nil,
-							ec2:            nil,
-							dms:            nil,
-							apiGateway:     nil,
-							storageGateway: nil,
-							prometheus:     nil,
+						"us-east-1": &clients{
+							cloudwatch: nil,
+							tagging:    nil,
+							account:    nil,
 						},
 					},
 				},
@@ -635,25 +601,20 @@ func TestRefresh(t *testing.T) {
 		},
 		{
 			"a new refresh with static only creates only cloudwatch",
-			&sessionCache{
+			&clientCache{
 				session:   mock.Session,
 				refreshed: false,
 				mu:        sync.Mutex{},
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     nil,
-							tagging:        nil,
-							asg:            nil,
-							ec2:            nil,
-							dms:            nil,
-							apiGateway:     nil,
-							storageGateway: nil,
-							prometheus:     nil,
-							onlyStatic:     true,
+						"us-east-1": &clients{
+							cloudwatch: nil,
+							tagging:    nil,
+							account:    nil,
+							onlyStatic: true,
 						},
 					},
 				},
@@ -663,24 +624,19 @@ func TestRefresh(t *testing.T) {
 		},
 		{
 			"A second call to refreshed does nothing",
-			&sessionCache{
+			&clientCache{
 				refreshed: true,
 				mu:        sync.Mutex{},
 				session:   mock.Session,
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: createStsSession(mock.Session, role, "", false, false),
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     createCloudwatchSession(mock.Session, &region, role, false, false),
-							tagging:        createTagSession(mock.Session, &region, role, false),
-							asg:            createASGSession(mock.Session, &region, role, false),
-							ec2:            createEC2Session(mock.Session, &region, role, false, false),
-							dms:            createDMSSession(mock.Session, &region, role, false, false),
-							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
-							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
-							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
+						"us-east-1": &clients{
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},
 				},
@@ -726,28 +682,8 @@ func TestRefresh(t *testing.T) {
 						t.Logf("`tagging client` %v in region %v still nil", role, region)
 						t.Fail()
 					}
-					if client.asg == nil {
+					if client.account == nil {
 						t.Logf("`asg client` %v in region %v still nil", role, region)
-						t.Fail()
-					}
-					if client.ec2 == nil {
-						t.Logf("`ec2 client` %v in region %v still nil", role, region)
-						t.Fail()
-					}
-					if client.prometheus == nil {
-						t.Logf("`prometheus client` %v in region %v still nil", role, region)
-						t.Fail()
-					}
-					if client.dms == nil {
-						t.Logf("`dms client` %v in region %v still nil", role, region)
-						t.Fail()
-					}
-					if client.apiGateway == nil {
-						t.Logf("`apiGateway client` %v in region %v still nil", role, region)
-						t.Fail()
-					}
-					if client.storageGateway == nil {
-						t.Logf("`storageGateway client` %v in region %v still nil", role, region)
 						t.Fail()
 					}
 				}
@@ -756,23 +692,11 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
-func TestSessionCacheGetSTS(t *testing.T) {
-	testGetAWSClient(
-		t, "STS",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetSTS(role)
-			if iface == nil {
-				t.Fail()
-				return
-			}
-		})
-}
-
-func TestSessionCacheGetCloudwatch(t *testing.T) {
+func TestClientCacheGetCloudwatchClient(t *testing.T) {
 	testGetAWSClient(
 		t, "Cloudwatch",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetCloudwatch(region, role)
+		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+			iface := cache.GetCloudwatchClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
 				return
@@ -780,11 +704,11 @@ func TestSessionCacheGetCloudwatch(t *testing.T) {
 		})
 }
 
-func TestSessionCacheGetTagging(t *testing.T) {
+func TestClientCacheGetTagging(t *testing.T) {
 	testGetAWSClient(
 		t, "Tagging",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetTagging(region, role)
+		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+			iface := cache.GetTaggingClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
 				return
@@ -792,59 +716,11 @@ func TestSessionCacheGetTagging(t *testing.T) {
 		})
 }
 
-func TestSessionCacheGetASG(t *testing.T) {
+func TestClientCacheGetAccount(t *testing.T) {
 	testGetAWSClient(
-		t, "ASG",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetASG(region, role)
-			if iface == nil {
-				t.Fail()
-				return
-			}
-		})
-}
-
-func TestSessionCacheGetEC2(t *testing.T) {
-	testGetAWSClient(
-		t, "EC2",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetEC2(region, role)
-			if iface == nil {
-				t.Fail()
-				return
-			}
-		})
-}
-
-func TestSessionCacheGetPrometheus(t *testing.T) {
-	testGetAWSClient(
-		t, "Prometheus",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetPrometheus(region, role)
-			if iface == nil {
-				t.Fail()
-				return
-			}
-		})
-}
-
-func TestSessionCacheGetDMS(t *testing.T) {
-	testGetAWSClient(
-		t, "DMS",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetDMS(region, role)
-			if iface == nil {
-				t.Fail()
-				return
-			}
-		})
-}
-
-func TestSessionCacheGetAPIGateway(t *testing.T) {
-	testGetAWSClient(
-		t, "APIGateway",
-		func(t *testing.T, cache *sessionCache, region *string, role config.Role) {
-			iface := cache.GetAPIGateway(region, role)
+		t, "Account",
+		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+			iface := cache.GetAccountClient(region, role)
 			if iface == nil {
 				t.Fail()
 				return
@@ -855,35 +731,30 @@ func TestSessionCacheGetAPIGateway(t *testing.T) {
 func testGetAWSClient(
 	t *testing.T,
 	name string,
-	testClientGet func(*testing.T, *sessionCache, *string, config.Role),
+	testClientGet func(*testing.T, *clientCache, string, config.Role),
 ) {
 	region := "us-east-1"
 	role := config.Role{}
 	tests := []struct {
 		descrip     string
-		cache       *sessionCache
+		cache       *clientCache
 		parallelRun bool
 	}{
 		{
 			"locks during unrefreshed parallel call",
-			&sessionCache{
+			&clientCache{
 				refreshed: false,
 				mu:        sync.Mutex{},
 				session:   mock.Session,
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     createCloudwatchSession(mock.Session, &region, role, false, false),
-							tagging:        createTagSession(mock.Session, &region, role, false),
-							asg:            createASGSession(mock.Session, &region, role, false),
-							ec2:            createEC2Session(mock.Session, &region, role, false, false),
-							dms:            createDMSSession(mock.Session, &region, role, false, false),
-							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
-							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
-							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
+						"us-east-1": &clients{
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},
 				},
@@ -892,25 +763,20 @@ func testGetAWSClient(
 			true,
 		},
 		{
-			"returns session if available",
-			&sessionCache{
+			"returns clients if available",
+			&clientCache{
 				refreshed: true,
 				session:   mock.Session,
 				mu:        sync.Mutex{},
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{
-							cloudwatch:     createCloudwatchSession(mock.Session, &region, role, false, false),
-							tagging:        createTagSession(mock.Session, &region, role, false),
-							asg:            createASGSession(mock.Session, &region, role, false),
-							ec2:            createEC2Session(mock.Session, &region, role, false, false),
-							dms:            createDMSSession(mock.Session, &region, role, false, false),
-							apiGateway:     createAPIGatewaySession(mock.Session, &region, role, false, false),
-							storageGateway: createStorageGatewaySession(mock.Session, &region, role, false, false),
-							prometheus:     createPrometheusSession(mock.Session, &region, role, false, false),
+						"us-east-1": &clients{
+							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
 						},
 					},
 				},
@@ -919,17 +785,17 @@ func testGetAWSClient(
 			false,
 		},
 		{
-			"creates a new session if not available",
-			&sessionCache{
+			"creates a new clients if not available",
+			&clientCache{
 				refreshed: true,
 				session:   mock.Session,
 				mu:        sync.Mutex{},
 				stscache: map[config.Role]stsiface.STSAPI{
 					{}: nil,
 				},
-				clients: map[config.Role]map[string]*clientCache{
+				clients: map[config.Role]map[string]*clients{
 					{}: {
-						"us-east-1": &clientCache{},
+						"us-east-1": &clients{},
 					},
 				},
 				logger: logging.NewNopLogger(),
@@ -943,9 +809,9 @@ func testGetAWSClient(
 		t.Run(name+" "+test.descrip, func(t *testing.T) {
 			t.Parallel()
 			if test.parallelRun {
-				go testClientGet(t, test.cache, &region, role)
+				go testClientGet(t, test.cache, region, role)
 			}
-			testClientGet(t, test.cache, &region, role)
+			testClientGet(t, test.cache, region, role)
 
 			if test.cache.clients[role][region] == nil {
 				t.Log("cache is nil when it should be populated")
@@ -1042,7 +908,7 @@ func TestCreateAWSSession(t *testing.T) {
 		descrip string
 	}{
 		{
-			"creates an aws session",
+			"creates an aws clients",
 		},
 	}
 
@@ -1064,31 +930,31 @@ func TestCreateStsSession(t *testing.T) {
 		stsRegion string
 	}{
 		{
-			"creates an sts session with an empty role",
+			"creates an sts clients with an empty role",
 			config.Role{},
 			"",
 		},
 		{
-			"creates an sts session with region",
+			"creates an sts clients with region",
 			config.Role{},
 			"eu-west-1",
 		},
 		{
-			"creates an sts session with an empty external id",
+			"creates an sts clients with an empty external id",
 			config.Role{
 				RoleArn: "some:arn",
 			},
 			"",
 		},
 		{
-			"creates an sts session with an empty role arn",
+			"creates an sts clients with an empty role arn",
 			config.Role{
 				ExternalID: "some-id",
 			},
 			"",
 		},
 		{
-			"creates an sts session with an sts full role",
+			"creates an sts clients with an sts full role",
 			config.Role{
 				RoleArn:    "some:arn",
 				ExternalID: "some-id",

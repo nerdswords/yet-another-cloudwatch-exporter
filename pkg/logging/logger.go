@@ -103,7 +103,7 @@ func merge(dst map[string]interface{}, k, v interface{}) {
 	dst[key] = v
 }
 
-func safeString(str fmt.Stringer) (s string) {
+func safeString(str fmt.Stringer) (s string) { //nolint:nonamedreturns
 	defer func() {
 		if panicVal := recover(); panicVal != nil {
 			if v := reflect.ValueOf(str); v.Kind() == reflect.Ptr && v.IsNil() {
@@ -117,7 +117,7 @@ func safeString(str fmt.Stringer) (s string) {
 	return
 }
 
-func safeError(err error) (s interface{}) {
+func safeError(err error) (s interface{}) { //nolint:nonamedreturns
 	defer func() {
 		if panicVal := recover(); panicVal != nil {
 			if v := reflect.ValueOf(err); v.Kind() == reflect.Ptr && v.IsNil() {

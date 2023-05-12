@@ -1,10 +1,9 @@
 package model
 
 import (
-	"regexp"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/grafana/regexp"
 )
 
 const (
@@ -22,6 +21,42 @@ type Tag struct {
 	Value string `yaml:"value"`
 }
 
+type Dimension struct {
+	Name  string
+	Value string
+}
+
+type Metric struct {
+	// The dimensions for the metric.
+	Dimensions []*Dimension
+	MetricName string
+	Namespace  string
+}
+
+type Datapoint struct {
+	// The average of the metric values that correspond to the data point.
+	Average *float64
+
+	// The percentile statistic for the data point.
+	ExtendedStatistics map[string]*float64
+
+	// The maximum metric value for the data point.
+	Maximum *float64
+
+	// The minimum metric value for the data point.
+	Minimum *float64
+
+	// The number of metric values that contributed to the aggregate value of this
+	// data point.
+	SampleCount *float64
+
+	// The sum of the metric values for the data point.
+	Sum *float64
+
+	// The time stamp used for the data point.
+	Timestamp *time.Time
+}
+
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
@@ -30,14 +65,14 @@ type CloudwatchData struct {
 	Metric                  *string
 	Namespace               *string
 	Statistics              []string
-	Points                  []*cloudwatch.Datapoint
+	Points                  []*Datapoint
 	GetMetricDataPoint      *float64
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
 	CustomTags              []Tag
 	Tags                    []Tag
-	Dimensions              []*cloudwatch.Dimension
+	Dimensions              []*Dimension
 	Region                  *string
 	AccountID               *string
 	Period                  int64
@@ -61,6 +96,10 @@ type TaggedResource struct {
 // filterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
 func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+	if len(filterTags) == 0 {
+		return true
+	}
+
 	tagMatches := 0
 
 	for _, resourceTag := range r.Tags {
@@ -85,8 +124,13 @@ func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
 func (r TaggedResource) MetricTags(tagsOnMetrics ExportedTagsOnMetrics) []Tag {
-	tags := make([]Tag, 0)
-	for _, tagName := range tagsOnMetrics[r.Namespace] {
+	wantedTags, ok := tagsOnMetrics[r.Namespace]
+	if !ok {
+		return []Tag{}
+	}
+
+	tags := make([]Tag, 0, len(wantedTags))
+	for _, tagName := range wantedTags {
 		tag := Tag{
 			Key: tagName,
 		}
