@@ -102,7 +102,7 @@ func getMetricDataForQueriesForCustomNamespace(
 
 		go func(metric *config.Metric) {
 			defer wg.Done()
-			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, nil)
+			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, customNamespaceJob.RecentlyActiveOnly, nil)
 			if err != nil {
 				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customNamespaceJob.Namespace)
 				return
