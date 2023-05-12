@@ -474,6 +474,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/MediaConvert",
+		Alias:     "mediaconvert",
+		ResourceFilters: []*string{
+			aws.String("mediaconvert"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("^(?P<QueueARN>.*:queue:.*)$"),
+		},
+	},
+	{
 		Namespace: "AWS/MediaLive",
 		Alias:     "medialive",
 		ResourceFilters: []*string{
