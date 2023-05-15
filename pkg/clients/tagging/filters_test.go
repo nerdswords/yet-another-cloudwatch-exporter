@@ -446,6 +446,6 @@ type apiGatewayV2Client struct {
 	getRestApisOutput *apigatewayv2.GetApisOutput
 }
 
-func (apigateway apiGatewayV2Client) GetApisWithContext(_ aws.Context, input *apigatewayv2.GetApisInput, opts ...request.Option) (*apigatewayv2.GetApisOutput, error) {
+func (apigateway apiGatewayV2Client) GetApisWithContext(_ aws.Context, _ *apigatewayv2.GetApisInput, _ ...request.Option) (*apigatewayv2.GetApisOutput, error) {
 	return apigateway.getRestApisOutput, nil
 }
