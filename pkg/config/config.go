@@ -44,6 +44,7 @@ type Job struct {
 	DimensionNameRequirements []string    `yaml:"dimensionNameRequirements"`
 	Metrics                   []*Metric   `yaml:"metrics"`
 	RoundingPeriod            *int64      `yaml:"roundingPeriod"`
+	RecentlyActiveOnly        bool        `yaml:"recentlyActiveOnly"`
 	JobLevelMetricFields      `yaml:",inline"`
 }
 
@@ -61,6 +62,7 @@ type CustomNamespace struct {
 	Regions                   []string    `yaml:"regions"`
 	Name                      string      `yaml:"name"`
 	Namespace                 string      `yaml:"namespace"`
+	RecentlyActiveOnly        bool        `yaml:"recentlyActiveOnly"`
 	Roles                     []Role      `yaml:"roles"`
 	Metrics                   []*Metric   `yaml:"metrics"`
 	CustomTags                []model.Tag `yaml:"customTags"`
