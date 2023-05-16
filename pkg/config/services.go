@@ -107,8 +107,12 @@ var SupportedServices = serviceConfigs{
 			aws.String("apigateway"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)$"),
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			// DimensionRegexps starting with 'restapis' are for APIGateway V1 gateways (REST API gateways)
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)$"),
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			// DimensionRegexps starting 'apis' are for APIGateway V2 gateways (HTTP and Webscoket gateways)
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)$"),
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)/stages/(?P<Stage>[^/]+)$"),
 		},
 	},
 	{
