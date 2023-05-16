@@ -266,16 +266,6 @@ func (c *clientCache) createCloudwatchClient(regionConfig *aws.Config) *cloudwat
 		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
 			options.MaxAttempts = 5
 			options.MaxBackoff = 3 * time.Second
-
-			// existing settings
-			// TODO how to tell the difference between throttle and non-throttle errors now?
-			//	NumMaxRetries: 5
-			//	//MaxThrottleDelay and MinThrottleDelay used for throttle errors
-			//	MaxThrottleDelay: 10 * time.Second
-			//	MinThrottleDelay: 1 * time.Second
-			//	// For other errors
-			//	MaxRetryDelay: 3 * time.Second
-			//	MinRetryDelay: 1 * time.Second
 		})
 	})
 }

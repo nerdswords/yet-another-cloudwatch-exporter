@@ -9,25 +9,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 
+	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
-
-const timeFormat = "2006-01-02T15:04:05.999999-07:00"
-
-// Clock small interface which allows for stubbing the time.Now() function for unit testing
-type Clock interface {
-	Now() time.Time
-}
-
-// TimeClock implementation of Clock interface which delegates to Go's Time package
-type TimeClock struct{}
-
-func (tc TimeClock) Now() time.Time {
-	return time.Now()
-}
 
 func createGetMetricDataInput(logger logging.Logger, getMetricData []*model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64) *cloudwatch.GetMetricDataInput {
 	metricsDataQuery := make([]types.MetricDataQuery, 0, len(getMetricData))
@@ -56,14 +43,14 @@ func createGetMetricDataInput(logger logging.Logger, getMetricData []*model.Clou
 		roundingPeriod = *configuredRoundingPeriod
 	}
 
-	startTime, endTime := determineGetMetricDataWindow(
-		TimeClock{},
+	startTime, endTime := cloudwatch_client.DetermineGetMetricDataWindow(
+		cloudwatch_client.TimeClock{},
 		time.Duration(roundingPeriod)*time.Second,
 		time.Duration(length)*time.Second,
 		time.Duration(delay)*time.Second)
 
 	if logger.IsDebugEnabled() {
-		logger.Debug("GetMetricData Window", "start_time", startTime.Format(timeFormat), "end_time", endTime.Format(timeFormat))
+		logger.Debug("GetMetricData Window", "start_time", startTime.Format(cloudwatch_client.TimeFormat), "end_time", endTime.Format(cloudwatch_client.TimeFormat))
 	}
 
 	return &cloudwatch.GetMetricDataInput{
@@ -83,22 +70,6 @@ func toCloudWatchDimensions(dimensions []*model.Dimension) []types.Dimension {
 		})
 	}
 	return cwDim
-}
-
-// determineGetMetricDataWindow computes the start and end time for the GetMetricData request to AWS
-// Always uses the wall clock time as starting point for calculations to ensure that
-// a variety of exporter configurations will work reliably.
-func determineGetMetricDataWindow(clock Clock, roundingPeriod time.Duration, length time.Duration, delay time.Duration) (time.Time, time.Time) {
-	now := clock.Now()
-	if roundingPeriod > 0 {
-		// Round down the time to a factor of the period - rounding is recommended by AWS:
-		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
-		now = now.Add(-roundingPeriod / 2).Round(roundingPeriod)
-	}
-
-	startTime := now.Add(-(length + delay))
-	endTime := now.Add(-delay)
-	return startTime, endTime
 }
 
 func createGetMetricStatisticsInput(logger logging.Logger, dimensions []*model.Dimension, namespace *string, metric *config.Metric) *cloudwatch.GetMetricStatisticsInput {

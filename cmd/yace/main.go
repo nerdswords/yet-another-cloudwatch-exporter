@@ -247,6 +247,18 @@ func startScraper(c *cli.Context) error {
 
 		logger.Info("Reset clients cache")
 		cache = v1.NewClientCache(cfg, fips, logger)
+		for _, featureFlag := range featureFlags {
+			if featureFlag == config.AwsSdkV2 {
+				logger.Info("Using aws sdk v2")
+				var err error
+				// Can't override cache while also creating err
+				cache, err = v2.NewCache(cfg, fips, logger)
+				if err != nil {
+					logger.Error(err, "Failed to construct aws sdk v2 client cache", "path", configFile)
+					return
+				}
+			}
+		}
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())

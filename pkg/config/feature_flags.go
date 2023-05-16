@@ -15,6 +15,7 @@ const MaxDimensionsAssociator = "max-dimensions-associator"
 // results page by page.
 const ListMetricsCallback = "list-metrics-callback"
 
+// AwsSdkV2 is a feature flag used to enable the use of aws sdk v2 which is expected to come with performance benefits
 const AwsSdkV2 = "aws-sdk-v2"
 
 // FeatureFlags is an interface all objects that can tell wether or not a feature flag is enabled can implement.
