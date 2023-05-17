@@ -457,7 +457,7 @@ func (t testClient) GetAccount(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (t testClient) ListMetrics(_ context.Context, _ string, _ *config.Metric, _ func(page []*model.Metric)) ([]*model.Metric, error) {
+func (t testClient) ListMetrics(_ context.Context, _ string, _ *config.Metric, _ bool, _ func(page []*model.Metric)) ([]*model.Metric, error) {
 	return nil, nil
 }
 

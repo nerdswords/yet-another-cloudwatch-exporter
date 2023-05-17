@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/amp"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -49,6 +50,11 @@ var serviceFilters = map[string]serviceFilter{
 				output.Items = append(output.Items, page.Items...)
 			}
 
+			outputV2, err := client.apiGatewayV2API.GetApis(ctx, &apigatewayv2.GetApisInput{})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apigatewayv2.GetApis, %w", err)
+			}
+
 			var outputResources []*model.TaggedResource
 			for _, resource := range inputResources {
 				for i, gw := range output.Items {
@@ -58,6 +64,15 @@ var serviceFilters = map[string]serviceFilter{
 						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
 						outputResources = append(outputResources, r)
 						output.Items = append(output.Items[:i], output.Items[i+1:]...)
+						break
+					}
+				}
+
+				for i, gw := range outputV2.Items {
+					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
+					if searchString.MatchString(resource.ARN) {
+						outputResources = append(outputResources, resource)
+						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
 						break
 					}
 				}
