@@ -3,25 +3,7 @@ package cloudwatch
 import (
 	"testing"
 	"time"
-
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
-
-func TestDimensionsToCliString(t *testing.T) {
-	// Setup Test
-
-	// Arrange
-	dimensions := []*model.Dimension{}
-	expected := ""
-
-	// Act
-	actual := dimensionsToCliString(dimensions)
-
-	// Assert
-	if actual != expected {
-		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
-	}
-}
 
 // StubClock stub implementation of Clock interface that allows tests
 // to control time.Now()
@@ -103,10 +85,10 @@ func Test_MetricWindow(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			startTime, endTime := determineGetMetricDataWindow(tc.data.clock, tc.data.roundingPeriod, tc.data.length, tc.data.delay)
+			startTime, endTime := DetermineGetMetricDataWindow(tc.data.clock, tc.data.roundingPeriod, tc.data.length, tc.data.delay)
 			if !startTime.Equal(tc.data.expectedStartTime) {
-				t.Errorf("start time incorrect. Expected: %s, Actual: %s", tc.data.expectedStartTime.Format(timeFormat), startTime.Format(timeFormat))
-				t.Errorf("end time incorrect. Expected: %s, Actual: %s", tc.data.expectedEndTime.Format(timeFormat), endTime.Format(timeFormat))
+				t.Errorf("start time incorrect. Expected: %s, Actual: %s", tc.data.expectedStartTime.Format(TimeFormat), startTime.Format(TimeFormat))
+				t.Errorf("end time incorrect. Expected: %s, Actual: %s", tc.data.expectedEndTime.Format(TimeFormat), endTime.Format(TimeFormat))
 			}
 		})
 	}

@@ -19,3 +19,10 @@ Additionally, for some services (e.g. DMS) the default algorithm was reporting m
 
 Enables processing of ListMetrics API results page-by-page. This seems to reduce memory usage for high values of `CloudWatchAPIConcurrency`.
 
+## AWS SDK v2
+
+`-enable-feature=aws-sdk-v2`
+
+Uses the v2 version of the aws sdk for go. The sdk v2 version was released in Jan 2021 and is marketed to come with large performance gains. This version offers a drastically different
+interface and should be compatible with sdk v2. 
+
