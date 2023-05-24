@@ -81,6 +81,7 @@ Only the latest version gets security updates. We won't support older versions.
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
   * mediaconnect (AWS/MediaConnect) - AWS Elemental MediaConnect
+  * mediaconvert (AWS/MediaConvert) - AWS Elemental MediaConvert
   * medialive (AWS/MediaLive) - AWS Elemental MediaLive
   * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service

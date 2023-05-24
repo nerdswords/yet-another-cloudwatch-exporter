@@ -3,8 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -23,7 +21,7 @@ func TestAssociatorLambda(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 
 	type testCase struct {
@@ -39,11 +37,11 @@ func TestAssociatorLambda(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
 				resources:        lambdaResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("Invocations"),
-					Namespace:  aws.String("AWS/Lambda"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("FunctionName"), Value: aws.String("lambdaFunction")},
+				metric: &model.Metric{
+					MetricName: "Invocations",
+					Namespace:  "AWS/Lambda",
+					Dimensions: []*model.Dimension{
+						{Name: "FunctionName", Value: "lambdaFunction"},
 					},
 				},
 			},
@@ -55,11 +53,11 @@ func TestAssociatorLambda(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
 				resources:        lambdaResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("Invocations"),
-					Namespace:  aws.String("AWS/Lambda"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("FunctionName"), Value: aws.String("anotherLambdaFunction")},
+				metric: &model.Metric{
+					MetricName: "Invocations",
+					Namespace:  "AWS/Lambda",
+					Dimensions: []*model.Dimension{
+						{Name: "FunctionName", Value: "anotherLambdaFunction"},
 					},
 				},
 			},
@@ -71,12 +69,12 @@ func TestAssociatorLambda(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
 				resources:        lambdaResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("Invocations"),
-					Namespace:  aws.String("AWS/Lambda"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("FunctionName"), Value: aws.String("lambdaFunction")},
-						{Name: aws.String("Resource"), Value: aws.String("lambdaFunction")},
+				metric: &model.Metric{
+					MetricName: "Invocations",
+					Namespace:  "AWS/Lambda",
+					Dimensions: []*model.Dimension{
+						{Name: "FunctionName", Value: "lambdaFunction"},
+						{Name: "Resource", Value: "lambdaFunction"},
 					},
 				},
 			},
@@ -88,10 +86,10 @@ func TestAssociatorLambda(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
 				resources:        lambdaResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("Invocations"),
-					Namespace:  aws.String("AWS/Lambda"),
-					Dimensions: []*cloudwatch.Dimension{},
+				metric: &model.Metric{
+					MetricName: "Invocations",
+					Namespace:  "AWS/Lambda",
+					Dimensions: []*model.Dimension{},
 				},
 			},
 			expectedSkip:     false,

@@ -3,8 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -26,7 +24,7 @@ func TestAssociatorMQ(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 
 	type testCase struct {
@@ -42,11 +40,11 @@ func TestAssociatorMQ(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
 				resources:        []*model.TaggedResource{rabbitMQBroker},
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProducerCount"),
-					Namespace:  aws.String("AWS/AmazonMQ"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Broker"), Value: aws.String("rabbitmq-broker")},
+				metric: &model.Metric{
+					MetricName: "ProducerCount",
+					Namespace:  "AWS/AmazonMQ",
+					Dimensions: []*model.Dimension{
+						{Name: "Broker", Value: "rabbitmq-broker"},
 					},
 				},
 			},
@@ -61,11 +59,11 @@ func TestAssociatorMQ(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/AmazonMQ").DimensionRegexps,
 				resources:        []*model.TaggedResource{activeMQBroker},
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProducerCount"),
-					Namespace:  aws.String("AWS/AmazonMQ"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Broker"), Value: aws.String("activemq-broker-1")},
+				metric: &model.Metric{
+					MetricName: "ProducerCount",
+					Namespace:  "AWS/AmazonMQ",
+					Dimensions: []*model.Dimension{
+						{Name: "Broker", Value: "activemq-broker-1"},
 					},
 				},
 			},

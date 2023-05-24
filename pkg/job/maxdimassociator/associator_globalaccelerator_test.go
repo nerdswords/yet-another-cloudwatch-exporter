@@ -3,8 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +35,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 
 	type testCase struct {
@@ -53,11 +51,11 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{
+						{Name: "Accelerator", Value: "super-accelerator"},
 					},
 				},
 			},
@@ -69,12 +67,12 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
-						{Name: aws.String("Listener"), Value: aws.String("some_listener")},
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{
+						{Name: "Accelerator", Value: "super-accelerator"},
+						{Name: "Listener", Value: "some_listener"},
 					},
 				},
 			},
@@ -86,13 +84,13 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
-						{Name: aws.String("Listener"), Value: aws.String("some_listener")},
-						{Name: aws.String("EndpointGroup"), Value: aws.String("eg1")},
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{
+						{Name: "Accelerator", Value: "super-accelerator"},
+						{Name: "Listener", Value: "some_listener"},
+						{Name: "EndpointGroup", Value: "eg1"},
 					},
 				},
 			},

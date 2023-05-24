@@ -1,12 +1,12 @@
-package apitagging
+package v1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -15,25 +15,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type TaggingClient interface {
-	GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error)
-}
-
-var _ TaggingClient = (*Client)(nil)
-
-var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
-
-type Client struct {
+type client struct {
 	logger            logging.Logger
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	autoscalingAPI    autoscalingiface.AutoScalingAPI
 	apiGatewayAPI     apigatewayiface.APIGatewayAPI
+	apiGatewayV2API   apigatewayv2iface.ApiGatewayV2API
 	ec2API            ec2iface.EC2API
 	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
@@ -45,16 +39,18 @@ func NewClient(
 	taggingAPI resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI,
 	autoscalingAPI autoscalingiface.AutoScalingAPI,
 	apiGatewayAPI apigatewayiface.APIGatewayAPI,
+	apiGatewayV2API apigatewayv2iface.ApiGatewayV2API,
 	ec2API ec2iface.EC2API,
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
-) *Client {
-	return &Client{
+) tagging.Client {
+	return &client{
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
 		apiGatewayAPI:     apiGatewayAPI,
+		apiGatewayV2API:   apiGatewayV2API,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
@@ -62,7 +58,7 @@ func NewClient(
 	}
 }
 
-func (c Client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false
@@ -128,29 +124,8 @@ func (c Client) GetResources(ctx context.Context, job *config.Job, region string
 	}
 
 	if shouldHaveDiscoveredResources && len(resources) == 0 {
-		return nil, ErrExpectedToFindResources
+		return nil, tagging.ErrExpectedToFindResources
 	}
 
 	return resources, nil
-}
-
-var _ TaggingClient = (*LimitedConcurrencyClient)(nil)
-
-type LimitedConcurrencyClient struct {
-	client *Client
-	sem    chan struct{}
-}
-
-func NewLimitedConcurrencyClient(client *Client, maxConcurrency int) *LimitedConcurrencyClient {
-	return &LimitedConcurrencyClient{
-		client: client,
-		sem:    make(chan struct{}, maxConcurrency),
-	}
-}
-
-func (c LimitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
-	c.sem <- struct{}{}
-	res, err := c.client.GetResources(ctx, job, region)
-	<-c.sem
-	return res, err
 }

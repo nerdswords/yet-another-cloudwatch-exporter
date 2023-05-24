@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -17,14 +16,14 @@ import (
 func Test_getFilteredMetricDatas(t *testing.T) {
 	type args struct {
 		region                    string
-		accountID                 *string
+		accountID                 string
 		namespace                 string
 		customTags                []model.Tag
 		tagsOnMetrics             model.ExportedTagsOnMetrics
 		dimensionRegexps          []*regexp.Regexp
 		dimensionNameRequirements []string
 		resources                 []*model.TaggedResource
-		metricsList               []*cloudwatch.Metric
+		metricsList               []*model.Metric
 		m                         *config.Metric
 	}
 	tests := []struct {
@@ -36,7 +35,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"additional dimension",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "efs",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -59,20 +58,20 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Region:    "us-east-1",
 					},
 				},
-				metricsList: []*cloudwatch.Metric{
+				metricsList: []*model.Metric{
 					{
-						MetricName: aws.String("StorageBytes"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "StorageBytes",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("FileSystemId"),
-								Value: aws.String("fs-abc123"),
+								Name:  "FileSystemId",
+								Value: "fs-abc123",
 							},
 							{
-								Name:  aws.String("StorageClass"),
-								Value: aws.String("Standard"),
+								Name:  "StorageClass",
+								Value: "Standard",
 							},
 						},
-						Namespace: aws.String("AWS/EFS"),
+						Namespace: "AWS/EFS",
 					},
 				},
 				m: &config.Metric{
@@ -91,14 +90,14 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				{
 					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
-					Dimensions: []*cloudwatch.Dimension{
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("FileSystemId"),
-							Value: aws.String("fs-abc123"),
+							Name:  "FileSystemId",
+							Value: "fs-abc123",
 						},
 						{
-							Name:  aws.String("StorageClass"),
-							Value: aws.String("Standard"),
+							Name:  "StorageClass",
+							Value: "Standard",
 						},
 					},
 					ID:        aws.String("arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123"),
@@ -127,7 +126,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"ec2",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "ec2",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -150,16 +149,16 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Region:    "us-east-1",
 					},
 				},
-				metricsList: []*cloudwatch.Metric{
+				metricsList: []*model.Metric{
 					{
-						MetricName: aws.String("CPUUtilization"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "CPUUtilization",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("InstanceId"),
-								Value: aws.String("i-12312312312312312"),
+								Name:  "InstanceId",
+								Value: "i-12312312312312312",
 							},
 						},
-						Namespace: aws.String("AWS/EC2"),
+						Namespace: "AWS/EC2",
 					},
 				},
 				m: &config.Metric{
@@ -178,10 +177,10 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				{
 					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
-					Dimensions: []*cloudwatch.Dimension{
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-12312312312312312"),
+							Name:  "InstanceId",
+							Value: "i-12312312312312312",
 						},
 					},
 					ID:        aws.String("arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312"),
@@ -210,7 +209,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"kafka",
 			args{
 				region:     "us-east-1",
-				accountID:  aws.String("123123123123"),
+				accountID:  "123123123123",
 				namespace:  "kafka",
 				customTags: nil,
 				tagsOnMetrics: map[string][]string{
@@ -233,16 +232,16 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Region:    "us-east-1",
 					},
 				},
-				metricsList: []*cloudwatch.Metric{
+				metricsList: []*model.Metric{
 					{
-						MetricName: aws.String("GlobalTopicCount"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "GlobalTopicCount",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("Cluster Name"),
-								Value: aws.String("demo-cluster-1"),
+								Name:  "Cluster Name",
+								Value: "demo-cluster-1",
 							},
 						},
-						Namespace: aws.String("AWS/Kafka"),
+						Namespace: "AWS/Kafka",
 					},
 				},
 				m: &config.Metric{
@@ -261,10 +260,10 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				{
 					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
-					Dimensions: []*cloudwatch.Dimension{
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("Cluster Name"),
-							Value: aws.String("demo-cluster-1"),
+							Name:  "Cluster Name",
+							Value: "demo-cluster-1",
 						},
 					},
 					ID:        aws.String("arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12"),
@@ -293,7 +292,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			"alb",
 			args{
 				region:                    "us-east-1",
-				accountID:                 aws.String("123123123123"),
+				accountID:                 "123123123123",
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,
@@ -312,62 +311,62 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Region:    "us-east-1",
 					},
 				},
-				metricsList: []*cloudwatch.Metric{
+				metricsList: []*model.Metric{
 					{
-						MetricName: aws.String("RequestCount"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "RequestCount",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("LoadBalancer"),
-								Value: aws.String("app/some-ALB/0123456789012345"),
+								Name:  "LoadBalancer",
+								Value: "app/some-ALB/0123456789012345",
 							},
 							{
-								Name:  aws.String("TargetGroup"),
-								Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+								Name:  "TargetGroup",
+								Value: "targetgroup/some-ALB/9999666677773333",
 							},
 							{
-								Name:  aws.String("AvailabilityZone"),
-								Value: aws.String("us-east-1"),
+								Name:  "AvailabilityZone",
+								Value: "us-east-1",
 							},
 						},
-						Namespace: aws.String("AWS/ApplicationELB"),
+						Namespace: "AWS/ApplicationELB",
 					},
 					{
-						MetricName: aws.String("RequestCount"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "RequestCount",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("LoadBalancer"),
-								Value: aws.String("app/some-ALB/0123456789012345"),
+								Name:  "LoadBalancer",
+								Value: "app/some-ALB/0123456789012345",
 							},
 							{
-								Name:  aws.String("TargetGroup"),
-								Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+								Name:  "TargetGroup",
+								Value: "targetgroup/some-ALB/9999666677773333",
 							},
 						},
-						Namespace: aws.String("AWS/ApplicationELB"),
+						Namespace: "AWS/ApplicationELB",
 					},
 					{
-						MetricName: aws.String("RequestCount"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "RequestCount",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("LoadBalancer"),
-								Value: aws.String("app/some-ALB/0123456789012345"),
+								Name:  "LoadBalancer",
+								Value: "app/some-ALB/0123456789012345",
 							},
 							{
-								Name:  aws.String("AvailabilityZone"),
-								Value: aws.String("us-east-1"),
+								Name:  "AvailabilityZone",
+								Value: "us-east-1",
 							},
 						},
-						Namespace: aws.String("AWS/ApplicationELB"),
+						Namespace: "AWS/ApplicationELB",
 					},
 					{
-						MetricName: aws.String("RequestCount"),
-						Dimensions: []*cloudwatch.Dimension{
+						MetricName: "RequestCount",
+						Dimensions: []*model.Dimension{
 							{
-								Name:  aws.String("LoadBalancer"),
-								Value: aws.String("app/some-ALB/0123456789012345"),
+								Name:  "LoadBalancer",
+								Value: "app/some-ALB/0123456789012345",
 							},
 						},
-						Namespace: aws.String("AWS/ApplicationELB"),
+						Namespace: "AWS/ApplicationELB",
 					},
 				},
 				m: &config.Metric{
@@ -386,14 +385,14 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				{
 					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
-					Dimensions: []*cloudwatch.Dimension{
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("LoadBalancer"),
-							Value: aws.String("app/some-ALB/0123456789012345"),
+							Name:  "LoadBalancer",
+							Value: "app/some-ALB/0123456789012345",
 						},
 						{
-							Name:  aws.String("TargetGroup"),
-							Value: aws.String("targetgroup/some-ALB/9999666677773333"),
+							Name:  "TargetGroup",
+							Value: "targetgroup/some-ALB/9999666677773333",
 						},
 					},
 					ID:        aws.String("arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345"),

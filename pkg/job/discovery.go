@@ -8,70 +8,29 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apitagging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 type resourceAssociator interface {
-	AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool)
+	AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool)
 }
 
 func runDiscoveryJob(
 	ctx context.Context,
 	logger logging.Logger,
-	cache session.SessionCache,
-	metricsPerQuery int,
 	job *config.Job,
 	region string,
-	role config.Role,
-	account *string,
-	exportedTags model.ExportedTagsOnMetrics,
-	taggingAPIConcurrency int,
-	cloudwatchAPIConcurrency int,
-) ([]*model.TaggedResource, []*model.CloudwatchData) {
-	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
-		apicloudwatch.NewClient(
-			logger,
-			cache.GetCloudwatch(&region, role),
-		),
-		cloudwatchAPIConcurrency,
-	)
-
-	clientTag := apitagging.NewLimitedConcurrencyClient(
-		apitagging.NewClient(
-			logger,
-			cache.GetTagging(&region, role),
-			cache.GetASG(&region, role),
-			cache.GetAPIGateway(&region, role),
-			cache.GetEC2(&region, role),
-			cache.GetDMS(&region, role),
-			cache.GetPrometheus(&region, role),
-			cache.GetStorageGateway(&region, role),
-		),
-		taggingAPIConcurrency)
-
-	return scrapeDiscoveryJobUsingMetricData(ctx, job, region, account, exportedTags, clientTag, clientCloudwatch, metricsPerQuery, job.RoundingPeriod, logger)
-}
-
-func scrapeDiscoveryJobUsingMetricData(
-	ctx context.Context,
-	job *config.Job,
-	region string,
-	accountID *string,
+	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientTag apitagging.TaggingClient,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
+	clientTag tagging.Client,
+	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
-	roundingPeriod *int64,
-	logger logging.Logger,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 
@@ -79,7 +38,7 @@ func scrapeDiscoveryJobUsingMetricData(
 
 	resources, err := clientTag.GetResources(ctx, job, region)
 	if err != nil {
-		if errors.Is(err, apitagging.ErrExpectedToFindResources) {
+		if errors.Is(err, tagging.ErrExpectedToFindResources) {
 			logger.Error(err, "No tagged resources made it through filtering")
 		} else {
 			logger.Error(err, "Couldn't describe resources")
@@ -106,7 +65,7 @@ func scrapeDiscoveryJobUsingMetricData(
 	var wg sync.WaitGroup
 	wg.Add(partition)
 
-	getMetricDataOutput := make([]*cloudwatch.GetMetricDataOutput, partition)
+	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, partition)
 	count := 0
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
@@ -117,8 +76,7 @@ func scrapeDiscoveryJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := apicloudwatch.CreateGetMetricDataInput(input, &svc.Namespace, length, job.Delay, roundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
 			if data != nil {
 				getMetricDataOutput[n] = data
 			} else {
@@ -140,16 +98,14 @@ func scrapeDiscoveryJobUsingMetricData(
 		if data == nil {
 			continue
 		}
-		for _, metricDataResult := range data.MetricDataResults {
-			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.Id)
+		for _, metricDataResult := range data {
+			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.ID)
 			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.Id)
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
 				continue
 			}
-			if len(metricDataResult.Values) != 0 {
-				getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Values[0]
-				getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamps[0]
-			}
+			getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Datapoint
+			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
 			getMetricDatas[idx].MetricID = nil // mark as processed
 		}
 	}
@@ -190,9 +146,9 @@ func getMetricDataForQueries(
 	discoveryJob *config.Job,
 	svc *config.ServiceConfig,
 	region string,
-	accountID *string,
+	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
+	clientCloudwatch cloudwatch.Client,
 	resources []*model.TaggedResource,
 ) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
@@ -220,8 +176,8 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, func(page *cloudwatch.ListMetricsOutput) {
-					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
+					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -248,13 +204,13 @@ func getMetricDataForQueries(
 					logger.Debug("associator", assoc)
 				}
 
-				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, nil)
+				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, nil)
 				if err != nil {
 					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
 					return
 				}
 
-				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList.Metrics, discoveryJob.DimensionNameRequirements, metric, assoc)
+				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -270,11 +226,11 @@ func getMetricDataForQueries(
 func getFilteredMetricDatas(
 	logger logging.Logger,
 	region string,
-	accountID *string,
+	accountID string,
 	namespace string,
 	customTags []model.Tag,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
-	metricsList []*cloudwatch.Metric,
+	metricsList []*model.Metric,
 	dimensionNameList []string,
 	m *config.Metric,
 	assoc resourceAssociator,
@@ -317,7 +273,7 @@ func getFilteredMetricDatas(
 				CustomTags:             customTags,
 				Dimensions:             cwMetric.Dimensions,
 				Region:                 &region,
-				AccountID:              accountID,
+				AccountID:              &accountID,
 				Period:                 m.Period,
 			})
 		}
@@ -325,14 +281,14 @@ func getFilteredMetricDatas(
 	return getMetricsData
 }
 
-func metricDimensionsMatchNames(metric *cloudwatch.Metric, dimensionNameRequirements []string) bool {
+func metricDimensionsMatchNames(metric *model.Metric, dimensionNameRequirements []string) bool {
 	if len(dimensionNameRequirements) != len(metric.Dimensions) {
 		return false
 	}
 	for _, dimension := range metric.Dimensions {
 		foundMatch := false
 		for _, dimensionName := range dimensionNameRequirements {
-			if *dimension.Name == dimensionName {
+			if dimension.Name == dimensionName {
 				foundMatch = true
 				break
 			}
