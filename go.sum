@@ -27,8 +27,8 @@ github.com/aws/aws-sdk-go-v2/service/autoscaling v1.28.3 h1:HgCgsoXh73mNC0ISmOK/
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.28.3/go.mod h1:EzFSRtBStdkmtYdhuL0EJZ1UMz+EfIO1BVqQ5vEYixE=
 github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.26.0 h1:sSzrsKQULJmPtmu6By4wR6g0701nGqonssKOy35uOd0=
 github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.26.0/go.mod h1:t5mizLPjCYafXoHCXOHJU7z4OvLbY70Echvb1ciBTV4=
-github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.3 h1:phops5RX3zsJhmXu0MVy7dza0l0OdzdkqRPLsLgajnA=
-github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.3/go.mod h1:FFfDkCxc8ciEOKh3nBVPpvLbwFSd5K4L4gxb3CNbd7c=
+github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.5 h1:FMk/VaYynrPymyXgUTuglVO6rLKjOzcnPUCvvjoHPbY=
+github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.5/go.mod h1:KPA8V9N5HqRnbbIPRc81S46N8mDntsBj7SCrRs5LMAs=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.93.2 h1:c6a19AjfhEXKlEX63cnlWtSQ4nzENihHZOG0I3wH6BE=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.93.2/go.mod h1:VX22JN3HQXDtQ3uS4h4TtM+K11vydq58tpHTlsm8TL8=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.26 h1:uUt4XctZLhl9wBE1L8lobU3bVN8SNUP7T+olb0bWBO4=
