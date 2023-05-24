@@ -37,6 +37,10 @@ func (sc serviceConfigs) GetService(serviceType string) *ServiceConfig {
 
 var SupportedServices = serviceConfigs{
 	{
+		Namespace: "CWAgent",
+		Alias:     "cwagent",
+	},
+	{
 		Namespace: "AWS/Usage",
 		Alias:     "usage",
 	},

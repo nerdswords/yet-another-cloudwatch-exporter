@@ -1,0 +1,13 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: CWAgent
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: mem_used_percent
+          statistics: [Average]
+        - name: disk_used_percent
+          statistics: [Average]
