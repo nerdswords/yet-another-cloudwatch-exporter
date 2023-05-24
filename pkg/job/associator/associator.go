@@ -3,7 +3,6 @@ package associator
 import (
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -45,16 +44,16 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 	return dimensionsFilter
 }
 
-// AssociateMetricToResource finds, for a given cloudwatch.Metrics, the resource that matches the better.
+// AssociateMetricToResource finds, for a given model.Metric, the resource that matches the better.
 // If no match is found, nil is returned. Also, there are some conditions where the metric shouldn't be
 // considered, and that is dictated by the skip return value.
-func (asoc Associator) AssociateMetricToResource(cwMetric *cloudwatch.Metric) (*model.TaggedResource, bool) {
+func (asoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool) {
 	var r *model.TaggedResource
 	skip := false
 	alreadyFound := false
 	for _, dimension := range cwMetric.Dimensions {
-		if dimensionFilterValues, ok := asoc[*dimension.Name]; ok {
-			if d, ok := dimensionFilterValues[*dimension.Value]; !ok {
+		if dimensionFilterValues, ok := asoc[dimension.Name]; ok {
+			if d, ok := dimensionFilterValues[dimension.Value]; !ok {
 				if !alreadyFound {
 					skip = true
 				}

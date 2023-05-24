@@ -3,8 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +35,7 @@ func TestAssociatorECS(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 
 	type testCase struct {
@@ -53,11 +51,11 @@ func TestAssociatorECS(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("MemoryReservation"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+				metric: &model.Metric{
+					MetricName: "MemoryReservation",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
 					},
 				},
 			},
@@ -69,12 +67,12 @@ func TestAssociatorECS(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
-						{Name: aws.String("ServiceName"), Value: aws.String("service1")},
+				metric: &model.Metric{
+					MetricName: "CPUUtilization",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
+						{Name: "ServiceName", Value: "service1"},
 					},
 				},
 			},
@@ -86,12 +84,12 @@ func TestAssociatorECS(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
-						{Name: aws.String("ServiceName"), Value: aws.String("service2")},
+				metric: &model.Metric{
+					MetricName: "CPUUtilization",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
+						{Name: "ServiceName", Value: "service2"},
 					},
 				},
 			},

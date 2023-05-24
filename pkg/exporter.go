@@ -6,11 +6,11 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 // Metrics is a slice of prometheus metrics specific to the scraping process such API call counters
@@ -48,15 +48,7 @@ type options struct {
 	featureFlags             featureFlagsMap
 }
 
-var defaultOptions = options{
-	metricsPerQuery:          DefaultMetricsPerQuery,
-	labelsSnakeCase:          DefaultLabelsSnakeCase,
-	cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
-	taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
-	featureFlags:             make(featureFlagsMap),
-}
-
-// IsFeatureFlag implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
+// IsFeatureEnabled implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
 func (ff featureFlagsMap) IsFeatureEnabled(flag string) bool {
 	_, ok := ff[flag]
 	return ok
@@ -114,6 +106,16 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 	}
 }
 
+func defaultOptions() options {
+	return options{
+		metricsPerQuery:          DefaultMetricsPerQuery,
+		labelsSnakeCase:          DefaultLabelsSnakeCase,
+		cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
+		taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
+		featureFlags:             make(featureFlagsMap),
+	}
+}
+
 // UpdateMetrics is the entrypoint to scrape metrics from AWS on demand.
 //
 // Parameters are:
@@ -121,7 +123,7 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 // - `config`: this is the struct representation of the configuration defined in top-level configuration
 // - `logger`: any implementation of the `Logger` interface
 // - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
-// - `cache`: any implementation of the `SessionCache`
+// - `cache`: any implementation of the `Cache`
 // - `optFuncs`: (optional) any number of options funcs
 //
 // You can pre-register any of the default metrics with the provided `registry` if you want them
@@ -133,10 +135,10 @@ func UpdateMetrics(
 	logger logging.Logger,
 	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
-	cache session.SessionCache,
+	cache clients.Cache,
 	optFuncs ...OptionsFunc,
 ) error {
-	options := defaultOptions
+	options := defaultOptions()
 	for _, f := range optFuncs {
 		if err := f(&options); err != nil {
 			return err

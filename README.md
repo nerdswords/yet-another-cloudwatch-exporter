@@ -81,6 +81,7 @@ Only the latest version gets security updates. We won't support older versions.
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
   * mediaconnect (AWS/MediaConnect) - AWS Elemental MediaConnect
+  * mediaconvert (AWS/MediaConvert) - AWS Elemental MediaConvert
   * medialive (AWS/MediaLive) - AWS Elemental MediaLive
   * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
@@ -119,32 +120,80 @@ Refer to the [installation guide](docs/installation.md).
 
 The exporter will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
 
-As a quick start, the following IAM policy can be used to grant the permissions for all YACE's features to work. If some of the features are not needed, the policy can be adjusted accordingly, as described in [this section](#required-iam-permissions).
-
+As a quick start, the following IAM policy can be used to grant the all permissions required by YACE 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "Stmt1674249227793",
       "Action": [
         "tag:GetResources",
         "cloudwatch:GetMetricData",
         "cloudwatch:GetMetricStatistics",
         "cloudwatch:ListMetrics",
-        "ec2:DescribeTags",
-        "ec2:DescribeInstances",
-        "ec2:DescribeRegions",
-        "ec2:DescribeTransitGateway*",
         "apigateway:GET",
+        "aps:ListWorkspaces",
+        "autoscaling:DescribeAutoScalingGroups",
         "dms:DescribeReplicationInstances",
-        "dms:DescribeReplicationTasks"
+        "dms:DescribeReplicationTasks",
+        "ec2:DescribeTransitGatewayAttachments",
+        "ec2:DescribeSpotFleetRequests",
+        "storagegateway:ListGateways",
+        "storagegateway:ListTagsForResource"
       ],
       "Effect": "Allow",
       "Resource": "*"
     }
   ]
 }
+```
+
+If you would like to remove certain permissions based on your needs the policy can be adjusted based the CloudWatch namespaces you are scraping
+
+These are the bare minimum permissions required to run Static and Discovery Jobs
+```json
+"tag:GetResources",
+"cloudwatch:GetMetricData",
+"cloudwatch:GetMetricStatistics",
+"cloudwatch:ListMetrics"
+```
+
+This permission is required to discover resources for the AWS/ApiGateway namespace
+```json
+"apigateway:GET"
+```
+
+This permission is required to discover resources for the AWS/AutoScaling namespace
+```json
+"autoscaling:DescribeAutoScalingGroups"
+```
+
+These permissions are required to discover resources for the AWS/DMS namespace
+```json
+"dms:DescribeReplicationInstances",
+"dms:DescribeReplicationTasks"
+```
+
+
+This permission is required to discover resources for the AWS/EC2Spot namespace
+```json
+"ec2:DescribeSpotFleetRequests"
+```
+
+This permission is required to discover resources for the AWS/Prometheus namespace
+```json
+"aps:ListWorkspaces"
+```
+
+These permissions are required to discover resources for the AWS/StorageGateway namespace
+```json
+"storagegateway:ListGateways",
+"storagegateway:ListTagsForResource"
+```
+
+This permission is required to discover resources for the AWS/TransitGateway namespace
+```json
+"ec2:DescribeTransitGatewayAttachments"
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
@@ -190,39 +239,6 @@ predict_linear(aws_es_free_storage_space_minimum[2d], 86400 * 7) + on (name) gro
 # 1.000.000 Requests free
 # 0.01 Dollar for 1.000 GetMetricStatistics Api Requests (https://aws.amazon.com/cloudwatch/pricing/)
 ((increase(yace_cloudwatch_requests_total[10m]) * 6 * 24 * 32) - 100000) / 1000 * 0.01
-```
-
-## Required IAM permissions
-
-The following IAM permissions are required for YACE to work.
-
-```json
-"tag:GetResources",
-"cloudwatch:GetMetricData",
-"cloudwatch:GetMetricStatistics",
-"cloudwatch:ListMetrics"
-```
-
-The following IAM permissions are required for the transit gateway attachment (tgwa) metrics to work.
-
-```json
-"ec2:DescribeTags",
-"ec2:DescribeInstances",
-"ec2:DescribeRegions",
-"ec2:DescribeTransitGateway*"
-```
-
-The following IAM permission is required to discover tagged API Gateway REST APIs:
-
-```json
-"apigateway:GET"
-```
-
-The following IAM permissions are required to discover tagged Database Migration Service (DMS) replication instances and tasks:
-
-```json
-"dms:DescribeReplicationInstances",
-"dms:DescribeReplicationTasks"
 ```
 
 ## Override AWS endpoint urls

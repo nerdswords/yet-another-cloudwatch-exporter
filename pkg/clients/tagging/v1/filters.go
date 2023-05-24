@@ -1,4 +1,4 @@
-package apitagging
+package v1
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -21,31 +22,45 @@ import (
 
 type serviceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
-	ResourceFunc func(context.Context, Client, *config.Job, string) ([]*model.TaggedResource, error)
+	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
 
 	// FilterFunc can be used to the input resources or to drop based on some condition
-	FilterFunc func(context.Context, Client, []*model.TaggedResource) ([]*model.TaggedResource, error)
+	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
 }
 
 // serviceFilters maps a service namespace to (optional) serviceFilter
 var serviceFilters = map[string]serviceFilter{
 	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
+		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			promutil.APIGatewayAPICounter.Inc()
-			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
-			input := apigateway.GetRestApisInput{Limit: &limit}
-			output := apigateway.GetRestApisOutput{}
-			var pageNum int
-			var outputResources []*model.TaggedResource
+
+			var (
+				limit           int64 = 500 // max number of results per page. default=25, max=500
+				input                 = apigateway.GetRestApisInput{Limit: &limit}
+				output                = apigateway.GetRestApisOutput{}
+				pageNum         int
+				outputResources []*model.TaggedResource
+			)
+
 			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+				promutil.APIGatewayAPICounter.Inc()
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
 			})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
+			}
+			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			promutil.APIGatewayAPIV2Counter.Inc()
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
+			}
+
 			for _, resource := range inputResources {
 				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.Id))
+					searchString := regexp.MustCompile(fmt.Sprintf(".*restapis/%s$", *gw.Id))
 					if searchString.MatchString(resource.ARN) {
 						r := resource
 						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
@@ -54,15 +69,20 @@ var serviceFilters = map[string]serviceFilter{
 						break
 					}
 				}
-			}
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApis, %w", err)
+				for i, gw := range outputV2.Items {
+					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
+					if searchString.MatchString(resource.ARN) {
+						outputResources = append(outputResources, resource)
+						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
+						break
+					}
+				}
 			}
 			return outputResources, nil
 		},
 	},
 	"AWS/AutoScaling": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -96,7 +116,7 @@ var serviceFilters = map[string]serviceFilter{
 	},
 	"AWS/DMS": {
 		// Append the replication instance identifier to DMS task and instance ARNs
-		FilterFunc: func(ctx context.Context, client Client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
+		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			if len(inputResources) == 0 {
 				return inputResources, nil
 			}
@@ -149,7 +169,7 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/EC2Spot": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
@@ -182,7 +202,7 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/Prometheus": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
@@ -215,7 +235,7 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/StorageGateway": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
@@ -255,7 +275,7 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/TransitGateway": {
-		ResourceFunc: func(ctx context.Context, client Client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},

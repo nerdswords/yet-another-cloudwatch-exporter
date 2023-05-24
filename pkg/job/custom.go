@@ -7,50 +7,19 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/apicloudwatch"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/session"
 )
 
 func runCustomNamespaceJob(
 	ctx context.Context,
 	logger logging.Logger,
-	cache session.SessionCache,
-	metricsPerQuery int,
 	job *config.CustomNamespace,
 	region string,
-	role config.Role,
-	account *string,
-	cloudwatchAPIConcurrency int,
-) []*model.CloudwatchData {
-	clientCloudwatch := apicloudwatch.NewLimitedConcurrencyClient(
-		apicloudwatch.NewClient(
-			logger,
-			cache.GetCloudwatch(&region, role),
-		),
-		cloudwatchAPIConcurrency,
-	)
-
-	return scrapeCustomNamespaceJobUsingMetricData(
-		ctx,
-		job,
-		region,
-		account,
-		clientCloudwatch,
-		logger,
-		metricsPerQuery,
-	)
-}
-
-func scrapeCustomNamespaceJobUsingMetricData(
-	ctx context.Context,
-	job *config.CustomNamespace,
-	region string,
-	accountID *string,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
-	logger logging.Logger,
+	accountID string,
+	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
 ) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
@@ -80,17 +49,15 @@ func scrapeCustomNamespaceJobUsingMetricData(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			filter := apicloudwatch.CreateGetMetricDataInput(input, &job.Namespace, length, job.Delay, job.RoundingPeriod, logger)
-			data := clientCloudwatch.GetMetricData(ctx, filter)
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, job.Namespace, length, job.Delay, job.RoundingPeriod)
+
 			if data != nil {
 				output := make([]*model.CloudwatchData, 0)
-				for _, MetricDataResult := range data.MetricDataResults {
-					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *MetricDataResult.Id)
+				for _, result := range data {
+					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *result.ID)
 					if err == nil {
-						if len(MetricDataResult.Values) != 0 {
-							getMetricData.GetMetricDataPoint = MetricDataResult.Values[0]
-							getMetricData.GetMetricDataTimestamps = MetricDataResult.Timestamps[0]
-						}
+						getMetricData.GetMetricDataPoint = result.Datapoint
+						getMetricData.GetMetricDataTimestamps = result.Timestamp
 						output = append(output, getMetricData)
 					}
 				}
@@ -118,8 +85,8 @@ func getMetricDataForQueriesForCustomNamespace(
 	ctx context.Context,
 	customNamespaceJob *config.CustomNamespace,
 	region string,
-	accountID *string,
-	clientCloudwatch apicloudwatch.CloudWatchClient,
+	accountID string,
+	clientCloudwatch cloudwatch.Client,
 	logger logging.Logger,
 ) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
@@ -135,7 +102,7 @@ func getMetricDataForQueriesForCustomNamespace(
 
 		go func(metric *config.Metric) {
 			defer wg.Done()
-			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, nil)
+			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, customNamespaceJob.RecentlyActiveOnly, nil)
 			if err != nil {
 				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customNamespaceJob.Namespace)
 				return
@@ -143,7 +110,7 @@ func getMetricDataForQueriesForCustomNamespace(
 
 			var data []*model.CloudwatchData
 
-			for _, cwMetric := range metricsList.Metrics {
+			for _, cwMetric := range metricsList {
 				if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
 					continue
 				}
@@ -161,7 +128,7 @@ func getMetricDataForQueriesForCustomNamespace(
 						CustomTags:             customNamespaceJob.CustomTags,
 						Dimensions:             cwMetric.Dimensions,
 						Region:                 &region,
-						AccountID:              accountID,
+						AccountID:              &accountID,
 						Period:                 metric.Period,
 					})
 				}

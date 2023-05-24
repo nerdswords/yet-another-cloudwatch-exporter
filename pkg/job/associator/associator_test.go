@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
@@ -86,7 +84,7 @@ func TestAssociator(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
-		metric           *cloudwatch.Metric
+		metric           *model.Metric
 	}
 	type testCase struct {
 		// Some tests are expected to fail due to https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/821
@@ -105,13 +103,13 @@ func TestAssociator(t *testing.T) {
 				resources: []*model.TaggedResource{
 					someEC2Instance,
 				},
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-bla"),
+							Name:  "InstanceId",
+							Value: "i-bla",
 						},
 					},
 				},
@@ -125,13 +123,13 @@ func TestAssociator(t *testing.T) {
 				resources: []*model.TaggedResource{
 					someEC2Instance,
 				},
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-bla"),
+							Name:  "InstanceId",
+							Value: "i-bla",
 						},
 					},
 				},
@@ -144,13 +142,13 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
 				resources:        generateEC2Resources("us-east-2", "i-1", "i-2", "i-3"),
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-2"),
+							Name:  "InstanceId",
+							Value: "i-2",
 						},
 					},
 				},
@@ -165,13 +163,13 @@ func TestAssociator(t *testing.T) {
 				resources: []*model.TaggedResource{
 					someEC2Instance,
 				},
-				metric: &cloudwatch.Metric{
-					Namespace:  aws.String("AWS/EC2"),
-					MetricName: aws.String("CPUUtilization"),
-					Dimensions: []*cloudwatch.Dimension{
+				metric: &model.Metric{
+					Namespace:  "AWS/EC2",
+					MetricName: "CPUUtilization",
+					Dimensions: []*model.Dimension{
 						{
-							Name:  aws.String("InstanceId"),
-							Value: aws.String("i-not-bla"),
+							Name:  "InstanceId",
+							Value: "i-not-bla",
 						},
 					},
 				},
@@ -186,11 +184,12 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{{
-						Name: aws.String("Accelerator"), Value: aws.String("super-accelerator"),
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{{
+						Name:  "Accelerator",
+						Value: "super-accelerator",
 					}},
 				},
 			},
@@ -203,12 +202,12 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
-						{Name: aws.String("Listener"), Value: aws.String("some_listener")},
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{
+						{Name: "Accelerator", Value: "super-accelerator"},
+						{Name: "Listener", Value: "some_listener"},
 					},
 				},
 			},
@@ -220,13 +219,13 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
 				resources:        globalAcceleratorResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("ProcessedBytesOut"),
-					Namespace:  aws.String("AWS/GlobalAccelerator"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("Accelerator"), Value: aws.String("super-accelerator")},
-						{Name: aws.String("Listener"), Value: aws.String("some_listener")},
-						{Name: aws.String("EndpointGroup"), Value: aws.String("eg1")},
+				metric: &model.Metric{
+					MetricName: "ProcessedBytesOut",
+					Namespace:  "AWS/GlobalAccelerator",
+					Dimensions: []*model.Dimension{
+						{Name: "Accelerator", Value: "super-accelerator"},
+						{Name: "Listener", Value: "some_listener"},
+						{Name: "EndpointGroup", Value: "eg1"},
 					},
 				},
 			},
@@ -239,11 +238,11 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("MemoryReservation"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
+				metric: &model.Metric{
+					MetricName: "MemoryReservation",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
 					},
 				},
 			},
@@ -255,12 +254,12 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
-						{Name: aws.String("ServiceName"), Value: aws.String("service1")},
+				metric: &model.Metric{
+					MetricName: "CPUUtilization",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
+						{Name: "ServiceName", Value: "service1"},
 					},
 				},
 			},
@@ -272,12 +271,12 @@ func TestAssociator(t *testing.T) {
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
 				resources:        ecsResources,
-				metric: &cloudwatch.Metric{
-					MetricName: aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ECS"),
-					Dimensions: []*cloudwatch.Dimension{
-						{Name: aws.String("ClusterName"), Value: aws.String("sampleCluster")},
-						{Name: aws.String("ServiceName"), Value: aws.String("service2")},
+				metric: &model.Metric{
+					MetricName: "CPUUtilization",
+					Namespace:  "AWS/ECS",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "sampleCluster"},
+						{Name: "ServiceName", Value: "service2"},
 					},
 				},
 			},
