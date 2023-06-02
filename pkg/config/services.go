@@ -730,7 +730,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/SageMaker",
 		Alias:     "sagemaker",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:endpoint"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
@@ -740,7 +740,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "/aws/sagemaker/Endpoints",
 		Alias:     "sagemaker-endpoints",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:endpoint"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
@@ -750,35 +750,38 @@ var SupportedServices = serviceConfigs{
 		Namespace: "/aws/sagemaker/TrainingJobs",
 		Alias:     "sagemaker-training",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:training-job"),
 		},
 	},
 	{
 		Namespace: "/aws/sagemaker/ProcessingJobs",
 		Alias:     "sagemaker-processing",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:processing-job"),
 		},
 	},
 	{
 		Namespace: "/aws/sagemaker/TransformJobs",
 		Alias:     "sagemaker-transform",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:transform-job"),
 		},
 	},
 	{
 		Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
 		Alias:     "sagemaker-inf-rec",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:inference-recommendations-job"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":inference-recommendations-job/(?P<JobName>[^/]+)"),
 		},
 	},
 	{
 		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
 		Alias:     "sagemaker-model-building-pipeline",
 		ResourceFilters: []*string{
-			aws.String("sagemaker"),
+			aws.String("sagemaker:pipeline"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
