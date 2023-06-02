@@ -732,12 +732,18 @@ var SupportedServices = serviceConfigs{
 		ResourceFilters: []*string{
 			aws.String("sagemaker"),
 		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
+		},
 	},
 	{
 		Namespace: "/aws/sagemaker/Endpoints",
 		Alias:     "sagemaker-endpoints",
 		ResourceFilters: []*string{
 			aws.String("sagemaker"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
 		},
 	},
 	{
@@ -770,9 +776,12 @@ var SupportedServices = serviceConfigs{
 	},
 	{
 		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
-		Alias:     "sagemaker-model-building",
+		Alias:     "sagemaker-model-building-pipeline",
 		ResourceFilters: []*string{
 			aws.String("sagemaker"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
 		},
 	},
 }
