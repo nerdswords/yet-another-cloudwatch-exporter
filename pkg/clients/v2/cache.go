@@ -59,8 +59,10 @@ type cachedClients struct {
 func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.Cache, error) {
 	var options []func(*aws_config.LoadOptions) error
 	options = append(options, aws_config.WithLogger(aws_logging.LoggerFunc(func(classification aws_logging.Classification, format string, v ...interface{}) {
-		if classification == aws_logging.Debug && logger.IsDebugEnabled() {
-			logger.Debug(fmt.Sprintf(format, v...))
+		if classification == aws_logging.Debug {
+			if logger.IsDebugEnabled() {
+				logger.Debug(fmt.Sprintf(format, v...))
+			}
 		} else if classification == aws_logging.Warn {
 			logger.Warn(fmt.Sprintf(format, v...))
 		} else { // AWS logging only supports debug or warn, log everything else as error
