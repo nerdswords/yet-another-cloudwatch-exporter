@@ -68,6 +68,12 @@ var ecsResources = []*model.TaggedResource{
 	ecsService2,
 }
 
+var memoryDBCluster = &model.TaggedResource{
+	ARN:       "arn:aws:memorydb:us-east-1:123456789012:cluster/mycluster",
+	Namespace: "AWS/MemoryDB",
+	Region:    "us-east-1",
+}
+
 func generateEC2Resources(region string, instanceIDs ...string) []*model.TaggedResource {
 	res := make([]*model.TaggedResource, 0, len(instanceIDs))
 	for _, id := range instanceIDs {
@@ -282,6 +288,25 @@ func TestAssociator(t *testing.T) {
 			},
 			expectedSkip:     false,
 			expectedResource: ecsService2,
+		},
+		{
+			name: "MemoryDB node inside cluster",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				resources: []*model.TaggedResource{
+					memoryDBCluster,
+				},
+				metric: &model.Metric{
+					MetricName: "CPUUtilization",
+					Namespace:  "AWS/MemoryDB",
+					Dimensions: []*model.Dimension{
+						{Name: "ClusterName", Value: "mycluster"},
+						{Name: "NodeName ", Value: "mycluster-0001-001"},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: memoryDBCluster,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
