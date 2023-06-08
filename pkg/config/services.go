@@ -267,6 +267,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/MemoryDB",
+		Alias:     "memorydb",
+		ResourceFilters: []*string{
+			aws.String("memorydb:cluster"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/EC2",
 		Alias:     "ec2",
 		ResourceFilters: []*string{
