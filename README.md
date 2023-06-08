@@ -85,6 +85,7 @@ Only the latest version gets security updates. We won't support older versions.
   * medialive (AWS/MediaLive) - AWS Elemental MediaLive
   * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
   * mq (AWS/AmazonMQ) - Managed Message Broker Service
+  * memorydb (AWS/MemoryDB) - AWS MemoryDB
   * neptune (AWS/Neptune) - Neptune
   * nlb (AWS/NetworkELB) - Network Load Balancer
   * vpc-endpoint (AWS/PrivateLinkEndpoints) - VPC Endpoint
