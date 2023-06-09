@@ -104,6 +104,10 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 	// Mappings are sorted by decreasing number of dimensions names.
 	var regexpMapping *dimensionsRegexpMapping
 	for _, m := range assoc.mappings {
+		// if no dimensions are mapped for a mapping attempt the next mapping
+		if len(m.dimensionsMapping) == 0 {
+			continue
+		}
 		if containsAll(dimensions, m.dimensions) {
 			regexpMapping = m
 			break

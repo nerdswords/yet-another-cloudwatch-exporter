@@ -1,0 +1,28 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/GlobalAccelerator
+      regions:
+        - us-west-2
+      dimensionNameRequirements:
+        - Accelerator
+        - Listener
+        - EndpointGroup
+      metrics:
+        - name: NewFlowCount
+          statistics:
+            - Sum
+        - name: HealthyEndpointCount
+          statistics:
+            - Minimum
+            - Maximum
+        - name: UnhealthyEndpointCount
+          statistics:
+            - Minimum
+            - Maximum
+        - name: ProcessedBytesIn
+          statistics:
+            - Sum
+        - name: ProcessedBytesOut
+          statistics:
+            - Sum
