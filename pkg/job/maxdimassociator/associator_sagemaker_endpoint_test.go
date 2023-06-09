@@ -41,7 +41,7 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "2 dimenions should match",
+			name: "2 dimensions should match",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").DimensionRegexps,
 				resources:        sagemakerHealthResources,
@@ -58,7 +58,7 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 			expectedResource: sagemakerEndpointHealthTwo,
 		},
 		{
-			name: "2 dimenions should not match",
+			name: "2 dimensions should not match",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").DimensionRegexps,
 				resources:        sagemakerHealthResources,
