@@ -126,6 +126,11 @@ statistics:
 # Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)
 [ addCloudwatchTimestamp: <boolean> ]
 
+# Include any metrics in the past if they are present in the CloudWatch metric response. This is useful, for example, if a metric is setup with
+# period 60s and length 300s so all the 5 data points are exposed in the metrics endpoint and not just the last one
+# (General Setting for all metrics in this job)
+[ addHistoricalMetrics: <boolean> ]
+
 # List of metric definitions
 metrics:
   [ - <metric_config> ... ]
@@ -267,6 +272,11 @@ statistics:
 # Export the metric with the original CloudWatch timestamp (General Setting for all metrics in this job)
 [ addCloudwatchTimestamp: <boolean> ]
 
+# Include any metrics in the past if they are present in the CloudWatch metric response. This is useful, for example, if a metric is setup with
+# period 60s and length 300s so all the 5 data points are exposed in the metrics endpoint and not just the last one
+# (General Setting for all metrics in this job)
+[ addHistoricalMetrics: <boolean> ]
+
 # List of metric definitions
 metrics:
   [ - <metric_config> ... ]
@@ -330,6 +340,7 @@ Notes:
 - Available statistics: `Maximum`, `Minimum`, `Sum`, `SampleCount`, `Average`, `pXX` (e.g. `p90`).
 
 - Watch out using `addCloudwatchTimestamp` for sparse metrics, e.g from S3, since Prometheus won't scrape metrics containing timestamps older than 2-3 hours.
+Also the same applies when enabling `addHistoricalMetrics` in any metric
 
 ### `exported_tags_config`
 

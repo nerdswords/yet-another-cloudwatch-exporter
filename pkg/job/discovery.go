@@ -68,6 +68,11 @@ func runDiscoveryJob(
 	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, partition)
 	count := 0
 
+	var addHistoricalMetrics bool
+	if job.AddHistoricalMetrics != nil {
+		addHistoricalMetrics = *job.AddHistoricalMetrics
+	}
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		go func(i, n int) {
 			defer wg.Done()
@@ -76,7 +81,7 @@ func runDiscoveryJob(
 				end = metricDataLength
 			}
 			input := getMetricDatas[i:end]
-			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod, addHistoricalMetrics)
 			if data != nil {
 				getMetricDataOutput[n] = data
 			} else {
@@ -98,15 +103,34 @@ func runDiscoveryJob(
 		if data == nil {
 			continue
 		}
+		previousIdx := -1
+		previousID := ""
 		for _, metricDataResult := range data {
 			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.ID)
+			// TODO: This logic needs to be guarded by a feature flag! Also, remember to add compatibility in the client v2
 			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+				if addHistoricalMetrics {
+					// Use the previousIdx to make a copy
+					if previousIdx != -1 && previousID == *metricDataResult.ID {
+						// Create a new CloudwatchData object
+						newData := *getMetricDatas[previousIdx]
+						newData.GetMetricDataPoint = metricDataResult.Datapoint
+						newData.GetMetricDataTimestamps = metricDataResult.Timestamp
+
+						getMetricDatas = append(getMetricDatas, &newData)
+					} else {
+						logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+					}
+				} else {
+					logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+				}
 				continue
 			}
 			getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Datapoint
 			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
 			getMetricDatas[idx].MetricID = nil // mark as processed
+			previousIdx = idx
+			previousID = *metricDataResult.ID
 		}
 	}
 

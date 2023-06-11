@@ -70,6 +70,7 @@ type CloudwatchData struct {
 	GetMetricDataTimestamps *time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
+	AddHistoricalMetrics    *bool
 	CustomTags              []Tag
 	Tags                    []Tag
 	Dimensions              []*Dimension
