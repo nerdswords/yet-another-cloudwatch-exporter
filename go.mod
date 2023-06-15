@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.5
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.100.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.14.12
-	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.18.12
+	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.18.13
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.1
 	github.com/aws/smithy-go v1.13.5
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
