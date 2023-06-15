@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.25
 	github.com/aws/aws-sdk-go-v2/service/amp v1.16.11
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.16.12
-	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.13.11
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.13.12
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.28.8
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.26.1
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.5
