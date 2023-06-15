@@ -35,7 +35,7 @@ func TestAssociatorSagemakerTransformJob(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "1 dimenion should not match but not skip",
+			name: "1 dimension should not match but not skip",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/TransformJobs").DimensionRegexps,
 				resources:        sagemakerTransformJobResources,

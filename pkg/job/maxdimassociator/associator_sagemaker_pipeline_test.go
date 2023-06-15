@@ -58,7 +58,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 			expectedResource: sagemakerPipelineOne,
 		},
 		{
-			name: "1 dimenion should match",
+			name: "1 dimension should match",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").DimensionRegexps,
 				resources:        sagemakerPipelineResources,

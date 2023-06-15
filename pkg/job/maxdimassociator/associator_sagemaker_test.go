@@ -76,7 +76,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 			expectedResource: sagemakerEndpointInvocationTwo,
 		},
 		{
-			name: "2 dimenions should not match",
+			name: "2 dimensions should not match",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
 				resources:        sagemakerInvocationResources,
