@@ -1,7 +1,6 @@
 package maxdimassociator
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/grafana/regexp"
@@ -123,7 +122,6 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 	// the dimensions of the mapping to build a labels signature.
 	labels := buildLabelsMap(cwMetric, regexpMapping)
 	signature := prom_model.LabelsToSignature(labels)
-	fmt.Println(labels)
 	if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
 		return resource, false
 	}
@@ -149,13 +147,6 @@ func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMappi
 				brokerSuffix := regexp.MustCompile("-[0-9]+$")
 				if brokerSuffix.MatchString(value) {
 					value = brokerSuffix.ReplaceAllString(value, "")
-				}
-			}
-
-			if cwMetric.Namespace == "/aws/sagemaker/TrainingJobs" && name == "Host" {
-				hostSuffix := regexp.MustCompile("/algo-[0-9]+$")
-				if hostSuffix.MatchString(value) {
-					value = hostSuffix.ReplaceAllString(value, "")
 				}
 			}
 
