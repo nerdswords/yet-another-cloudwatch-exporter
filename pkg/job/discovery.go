@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"sync"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
@@ -244,7 +245,11 @@ func getFilteredMetricDatas(
 		matchedResource, skip := assoc.AssociateMetricToResource(cwMetric)
 		if skip {
 			if logger.IsDebugEnabled() {
-				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
+				dimensions := make([]string, 0, len(cwMetric.Dimensions))
+				for _, dim := range cwMetric.Dimensions {
+					dimensions = append(dimensions, fmt.Sprintf("%s=%s", dim.Name, dim.Value))
+				}
+				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", strings.Join(dimensions, ","))
 			}
 			continue
 		}
