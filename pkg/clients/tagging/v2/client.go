@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
@@ -31,6 +32,7 @@ type client struct {
 	dmsAPI            *databasemigrationservice.Client
 	prometheusSvcAPI  *amp.Client
 	storageGatewayAPI *storagegateway.Client
+	shieldAPI         *shield.Client
 }
 
 func NewClient(
@@ -43,6 +45,7 @@ func NewClient(
 	dmsClient *databasemigrationservice.Client,
 	prometheusClient *amp.Client,
 	storageGatewayAPI *storagegateway.Client,
+	shieldAPI *shield.Client,
 ) tagging.Client {
 	return &client{
 		logger:            logger,
@@ -54,6 +57,7 @@ func NewClient(
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
 		storageGatewayAPI: storageGatewayAPI,
+		shieldAPI:         shieldAPI,
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	aws_logging "github.com/aws/smithy-go/logging"
@@ -181,6 +182,7 @@ func (c *clientCache) GetTaggingClient(region string, role config.Role, concurre
 		c.createDMSClient(c.clients[role][region].awsConfig),
 		c.createPrometheusClient(c.clients[role][region].awsConfig),
 		c.createStorageGatewayClient(c.clients[role][region].awsConfig),
+		c.createShieldClient(c.clients[role][region].awsConfig),
 	)
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
@@ -226,6 +228,7 @@ func (c *clientCache) Refresh() {
 				c.createDMSClient(cache.awsConfig),
 				c.createPrometheusClient(cache.awsConfig),
 				c.createStorageGatewayClient(cache.awsConfig),
+				c.createShieldClient(cache.awsConfig),
 			)
 
 			cache.account = account_v2.NewClient(c.logger, c.createStsClient(cache.awsConfig))
@@ -357,6 +360,16 @@ func (c *clientCache) createStsClient(awsConfig *aws.Config) *sts.Client {
 		if c.stsRegion != "" {
 			options.Region = c.stsRegion
 		}
+		options.RetryMaxAttempts = 5
+	})
+}
+
+func (c *clientCache) createShieldClient(awsConfig *aws.Config) *shield.Client {
+	return shield.NewFromConfig(*awsConfig, func(options *shield.Options) {
+		if c.logger.IsDebugEnabled() {
+			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+
 		options.RetryMaxAttempts = 5
 	})
 }
