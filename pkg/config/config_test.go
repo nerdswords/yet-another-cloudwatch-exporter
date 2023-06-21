@@ -5,8 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
 func TestConfLoad(t *testing.T) {
