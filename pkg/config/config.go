@@ -189,6 +189,8 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 				return err
 			}
 		}
+	} else {
+		return fmt.Errorf("No IAM roles configured. If the current IAM role is desired, an empty Role should be configured.")
 	}
 	if len(j.Regions) == 0 {
 		return fmt.Errorf("Discovery job [%s/%d]: Regions should not be empty", j.Type, jobIdx)
@@ -220,6 +222,8 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 				return err
 			}
 		}
+	} else {
+		return fmt.Errorf("No IAM roles configured. If the current IAM role is desired, an empty Role should be configured.")
 	}
 	if j.Regions == nil || len(j.Regions) == 0 {
 		return fmt.Errorf("CustomNamespace job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
@@ -251,6 +255,8 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 				return err
 			}
 		}
+	} else {
+		return fmt.Errorf("No IAM roles configured. If the current IAM role is desired, an empty Role should be configured.")
 	}
 	if len(j.Regions) == 0 {
 		return fmt.Errorf("Static job [%s/%d]: Regions should not be empty", j.Name, jobIdx)

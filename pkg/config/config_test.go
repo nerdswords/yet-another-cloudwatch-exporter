@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfLoad(t *testing.T) {
@@ -71,5 +72,39 @@ func TestBadConfigs(t *testing.T) {
 			t.Log("expected validation error")
 			t.FailNow()
 		}
+	}
+}
+
+func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
+	type testcase struct {
+		config   ScrapeConf
+		errorMsg string
+	}
+	testCases := map[string]testcase{
+		"empty role should be configured when environment role is desired": {
+			config: ScrapeConf{
+				APIVersion: "v1alpha1",
+				StsRegion:  "us-east-2",
+				Discovery: Discovery{
+					Jobs: []*Job{{
+						Regions: []string{"us-east-2"},
+						Type:    "sqs",
+						Metrics: []*Metric{{
+							Name:       "NumberOfMessagesSent",
+							Statistics: []string{"Average"},
+						}},
+					}},
+				},
+			},
+			errorMsg: "No IAM roles configured. If the current IAM role is desired, an empty Role should be configured.",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.config.Validate()
+			require.Error(t, err, "Expected config validation to fail")
+			require.Equal(t, tc.errorMsg, err.Error())
+		})
 	}
 }
