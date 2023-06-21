@@ -97,7 +97,7 @@ func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
 					}},
 				},
 			},
-			errorMsg: "No IAM roles configured. If the current IAM role is desired, an empty Role should be configured.",
+			errorMsg: "no IAM roles configured. If the current IAM role is desired, an empty Role should be configured",
 		},
 	}
 
