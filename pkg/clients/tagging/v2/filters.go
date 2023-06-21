@@ -324,45 +324,44 @@ var serviceFilters = map[string]serviceFilter{
 		},
 	},
 	"AWS/DDoSProtection": {
+		// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
+		// Outside us-east-1 no resources are going to be found. We use the shield.ListProtections API to get the protections +
+		// protected resources to add to the tagged resources. This data is eventually usable for joining with metrics.
 		ResourceFunc: func(ctx context.Context, c client, job *config.Job, region string) ([]*model.TaggedResource, error) {
 			var output []*model.TaggedResource
-			// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
-			// Outside us-east-1 no resources are going to be found, but we would like to discover the ProtectedResources associated
-			// with a Protection and add those as TaggedResources in any other region
-			if region != "us-east-1" {
-				// Default page size is only 20 which can easily lead to throttling
-				request := &shield.ListProtectionsInput{MaxResults: aws.Int32(1000)}
-				paginator := shield.NewListProtectionsPaginator(c.shieldAPI, request, func(options *shield.ListProtectionsPaginatorOptions) {
-					options.StopOnDuplicateToken = true
-				})
-				pageNum := 0
-				for paginator.HasMorePages() && pageNum < 100 {
-					promutil.ShieldAPICounter.Inc()
-					page, err := paginator.NextPage(ctx)
-					pageNum++
-					if err != nil {
-						return nil, fmt.Errorf("error calling shieldAPI.ListProtections, %w", err)
-					}
+			// Default page size is only 20 which can easily lead to throttling
+			request := &shield.ListProtectionsInput{MaxResults: aws.Int32(1000)}
+			paginator := shield.NewListProtectionsPaginator(c.shieldAPI, request, func(options *shield.ListProtectionsPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
+			pageNum := 0
+			for paginator.HasMorePages() && pageNum < 100 {
+				promutil.ShieldAPICounter.Inc()
+				page, err := paginator.NextPage(ctx)
+				pageNum++
+				if err != nil {
+					return nil, fmt.Errorf("error calling shieldAPI.ListProtections, %w", err)
+				}
 
-					for _, protection := range page.Protections {
-						protectedResourceArn := *protection.ResourceArn
-						protectionArn := *protection.ProtectionArn
-						protectedResource, err := arn.Parse(protectedResourceArn)
-						if err != nil {
-							return nil, fmt.Errorf("shieldAPI.ListProtections returned an invalid ProtectedResourceArn %s for Protection %s", protectedResourceArn, protectionArn)
+				for _, protection := range page.Protections {
+					protectedResourceArn := *protection.ResourceArn
+					protectionArn := *protection.ProtectionArn
+					protectedResource, err := arn.Parse(protectedResourceArn)
+					if err != nil {
+						return nil, fmt.Errorf("shieldAPI.ListProtections returned an invalid ProtectedResourceArn %s for Protection %s", protectedResourceArn, protectionArn)
+					}
+					if protectedResource.Region == region {
+						taggedResource := &model.TaggedResource{
+							ARN:       protectedResourceArn,
+							Namespace: job.Type,
+							Region:    region,
+							Tags:      []model.Tag{{Key: "ProtectionArn", Value: protectionArn}},
 						}
-						if protectedResource.Region == region {
-							taggedResource := &model.TaggedResource{
-								ARN:       protectedResourceArn,
-								Namespace: job.Type,
-								Region:    region,
-								Tags:      []model.Tag{{Key: "ProtectionArn", Value: protectionArn}},
-							}
-							output = append(output, taggedResource)
-						}
+						output = append(output, taggedResource)
 					}
 				}
 			}
+
 			return output, nil
 		},
 	},
