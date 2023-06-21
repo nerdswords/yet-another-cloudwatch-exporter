@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -329,7 +330,9 @@ var serviceFilters = map[string]serviceFilter{
 			// Outside us-east-1 no resources are going to be found, but we would like to discover the ProtectedResources associated
 			// with a Protection and add those as TaggedResources in any other region
 			if region != "us-east-1" {
-				paginator := shield.NewListProtectionsPaginator(c.shieldAPI, &shield.ListProtectionsInput{}, func(options *shield.ListProtectionsPaginatorOptions) {
+				// Default page size is only 20 which can easily lead to throttling
+				request := &shield.ListProtectionsInput{MaxResults: aws.Int32(1000)}
+				paginator := shield.NewListProtectionsPaginator(c.shieldAPI, request, func(options *shield.ListProtectionsPaginatorOptions) {
 					options.StopOnDuplicateToken = true
 				})
 				pageNum := 0
