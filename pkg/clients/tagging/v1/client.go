@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	"github.com/aws/aws-sdk-go/service/shield/shieldiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
@@ -32,6 +33,7 @@ type client struct {
 	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI
+	shieldAPI         shieldiface.ShieldAPI
 }
 
 func NewClient(
@@ -44,6 +46,7 @@ func NewClient(
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
 	storageGatewayAPI storagegatewayiface.StorageGatewayAPI,
+	shieldAPI shieldiface.ShieldAPI,
 ) tagging.Client {
 	return &client{
 		logger:            logger,
@@ -55,6 +58,7 @@ func NewClient(
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
 		storageGatewayAPI: storageGatewayAPI,
+		shieldAPI:         shieldAPI,
 	}
 }
 
@@ -102,7 +106,7 @@ func (c client) GetResources(ctx context.Context, job *config.Job, region string
 		c.logger.Debug("GetResourcesPages finished", "total", len(resources))
 	}
 
-	if ext, ok := serviceFilters[svc.Namespace]; ok {
+	if ext, ok := ServiceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
 			shouldHaveDiscoveredResources = true
 			newResources, err := ext.ResourceFunc(ctx, c, job, region)

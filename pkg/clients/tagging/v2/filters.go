@@ -22,7 +22,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type serviceFilter struct {
+type ServiceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
 	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
 
@@ -30,8 +30,8 @@ type serviceFilter struct {
 	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
 }
 
-// serviceFilters maps a service namespace to (optional) serviceFilter
-var serviceFilters = map[string]serviceFilter{
+// ServiceFilters maps a service namespace to (optional) ServiceFilter
+var ServiceFilters = map[string]ServiceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			var limit int32 = 500 // max number of results per page. default=25, max=500

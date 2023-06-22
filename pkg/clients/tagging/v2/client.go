@@ -110,7 +110,7 @@ func (c client) GetResources(ctx context.Context, job *config.Job, region string
 		c.logger.Debug("GetResourcesPages finished", "total", len(resources))
 	}
 
-	if ext, ok := serviceFilters[svc.Namespace]; ok {
+	if ext, ok := ServiceFilters[svc.Namespace]; ok {
 		if ext.ResourceFunc != nil {
 			shouldHaveDiscoveredResources = true
 			newResources, err := ext.ResourceFunc(ctx, c, job, region)
