@@ -95,6 +95,13 @@ Only the latest version gets security updates. We won't support older versions.
   * route53 (AWS/Route53) - Route53 Health Checks
   * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
   * s3 (AWS/S3) - Object Storage
+  * sagemaker - Sagemaker invocations
+  * sagemaker-endpoints - Sagemaker Endpoints
+  * sagemaker-training - Sagemaker Training Jobs
+  * sagemaker-processing - Sagemaker Processing Jobs
+  * sagemaker-transform - Sagemaker Batch Transform Jobs
+  * sagemaker-inf-rec - Sagemaker Inference Recommender Jobs
+  * sagemaker-model-building - Sagemaker Model Building Pipelines
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
