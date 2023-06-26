@@ -447,7 +447,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/KafkaConnect",
 		Alias:     "kafkaconnect",
 		ResourceFilters: []*string{
-			aws.String("kafkaconnect"),
+			aws.String("kafka:cluster"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":connector/(?P<Connector_Name>[^/]+)"),
