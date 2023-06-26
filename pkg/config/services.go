@@ -594,6 +594,16 @@ var SupportedServices = serviceConfigs{
 		Alias:     "amp",
 	},
 	{
+		Namespace: "AWS/QLDB",
+		Alias:     "qldb",
+		ResourceFilters: []*string{
+			aws.String("qldb"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ledger/(?P<LedgerName>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/RDS",
 		Alias:     "rds",
 		ResourceFilters: []*string{
