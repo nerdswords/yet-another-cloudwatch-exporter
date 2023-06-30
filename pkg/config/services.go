@@ -211,6 +211,9 @@ var SupportedServices = serviceConfigs{
 		ResourceFilters: []*string{
 			aws.String("shield:protection"),
 		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("(?P<ResourceArn>.+)"),
+		},
 	},
 	{
 		Namespace: "AWS/DocDB",

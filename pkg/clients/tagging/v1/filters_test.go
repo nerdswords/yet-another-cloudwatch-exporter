@@ -19,7 +19,7 @@ import (
 )
 
 func TestValidServiceNames(t *testing.T) {
-	for svc, filter := range serviceFilters {
+	for svc, filter := range ServiceFilters {
 		if config.SupportedServices.GetService(svc) == nil {
 			t.Errorf("invalid service name '%s'", svc)
 			t.Fail()
@@ -176,7 +176,7 @@ func TestApiGatewayFilterFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			apigateway := serviceFilters["AWS/ApiGateway"]
+			apigateway := ServiceFilters["AWS/ApiGateway"]
 
 			outputResources, err := apigateway.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {
@@ -391,7 +391,7 @@ func TestDMSFilterFunc(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dms := serviceFilters["AWS/DMS"]
+			dms := ServiceFilters["AWS/DMS"]
 
 			outputResources, err := dms.FilterFunc(context.Background(), test.iface, test.inputResources)
 			if err != nil {

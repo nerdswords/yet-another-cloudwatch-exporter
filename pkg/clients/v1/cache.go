@@ -25,6 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go/service/shield"
+	"github.com/aws/aws-sdk-go/service/shield/shieldiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -232,6 +234,7 @@ func createTaggingClient(logger logging.Logger, session *session.Session, region
 		createDMSSession(session, region, role, fips, logger.IsDebugEnabled()),
 		createPrometheusSession(session, region, role, fips, logger.IsDebugEnabled()),
 		createStorageGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
+		createShieldSession(session, region, role, fips, logger.IsDebugEnabled()),
 	)
 }
 
@@ -480,4 +483,20 @@ func createAPIGatewayV2Session(sess *session.Session, region *string, role confi
 	}
 
 	return apigatewayv2.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createShieldSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) shieldiface.ShieldAPI {
+	maxShieldAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxShieldAPIRetries}
+	if fips {
+		// https://docs.aws.amazon.com/general/latest/gr/shield.html
+		endpoint := "https://shield-fips.us-east-1.amazonaws.com"
+		config.Endpoint = aws.String(endpoint)
+	}
+
+	if isDebugEnabled {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
+	return shield.New(sess, setSTSCreds(sess, config, role))
 }

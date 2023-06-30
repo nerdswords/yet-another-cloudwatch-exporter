@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -19,16 +22,16 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type serviceFilter struct {
+type ServiceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
 	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
 
-	// FilterFunc can be used to the input resources or to drop based on some condition
+	// FilterFunc can be used to modify the input resources or to drop based on some condition
 	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
 }
 
-// serviceFilters maps a service namespace to (optional) serviceFilter
-var serviceFilters = map[string]serviceFilter{
+// ServiceFilters maps a service namespace to (optional) ServiceFilter
+var ServiceFilters = map[string]ServiceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			var limit int32 = 500 // max number of results per page. default=25, max=500
@@ -318,6 +321,48 @@ var serviceFilters = map[string]serviceFilter{
 			}
 
 			return resources, nil
+		},
+	},
+	"AWS/DDoSProtection": {
+		// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
+		// Outside us-east-1 no resources are going to be found. We use the shield.ListProtections API to get the protections +
+		// protected resources to add to the tagged resources. This data is eventually usable for joining with metrics.
+		ResourceFunc: func(ctx context.Context, c client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+			var output []*model.TaggedResource
+			// Default page size is only 20 which can easily lead to throttling
+			request := &shield.ListProtectionsInput{MaxResults: aws.Int32(1000)}
+			paginator := shield.NewListProtectionsPaginator(c.shieldAPI, request, func(options *shield.ListProtectionsPaginatorOptions) {
+				options.StopOnDuplicateToken = true
+			})
+			pageNum := 0
+			for paginator.HasMorePages() && pageNum < 100 {
+				promutil.ShieldAPICounter.Inc()
+				page, err := paginator.NextPage(ctx)
+				pageNum++
+				if err != nil {
+					return nil, fmt.Errorf("error calling shieldAPI.ListProtections, %w", err)
+				}
+
+				for _, protection := range page.Protections {
+					protectedResourceArn := *protection.ResourceArn
+					protectionArn := *protection.ProtectionArn
+					protectedResource, err := arn.Parse(protectedResourceArn)
+					if err != nil {
+						return nil, fmt.Errorf("shieldAPI.ListProtections returned an invalid ProtectedResourceArn %s for Protection %s", protectedResourceArn, protectionArn)
+					}
+					if protectedResource.Region == region {
+						taggedResource := &model.TaggedResource{
+							ARN:       protectedResourceArn,
+							Namespace: job.Type,
+							Region:    region,
+							Tags:      []model.Tag{{Key: "ProtectionArn", Value: protectionArn}},
+						}
+						output = append(output, taggedResource)
+					}
+				}
+			}
+
+			return output, nil
 		},
 	},
 }
