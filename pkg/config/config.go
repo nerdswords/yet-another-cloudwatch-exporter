@@ -286,8 +286,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	}
 
 	mPeriod := m.Period
-	if mPeriod == 0 && discovery != nil {
-		if discovery.Period != 0 {
+	if mPeriod == 0 {
+		if discovery != nil && discovery.Period != 0 {
 			mPeriod = discovery.Period
 		} else {
 			mPeriod = model.DefaultPeriodSeconds
@@ -297,8 +297,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 		return fmt.Errorf("Metric [%s/%d] in %v: Period value should be a positive integer", m.Name, metricIdx, parent)
 	}
 	mLength := m.Length
-	if mLength == 0 && discovery != nil {
-		if discovery.Length != 0 {
+	if mLength == 0 {
+		if discovery != nil && discovery.Length != 0 {
 			mLength = discovery.Length
 		} else {
 			mLength = model.DefaultLengthSeconds
@@ -306,8 +306,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	}
 
 	mDelay := m.Delay
-	if mDelay == 0 && discovery != nil {
-		if discovery.Delay != 0 {
+	if mDelay == 0 {
+		if discovery != nil && discovery.Delay != 0 {
 			mDelay = discovery.Delay
 		} else {
 			mDelay = model.DefaultDelaySeconds
@@ -315,8 +315,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	}
 
 	mNilToZero := m.NilToZero
-	if mNilToZero == nil && discovery != nil {
-		if discovery.NilToZero != nil {
+	if mNilToZero == nil {
+		if discovery != nil && discovery.NilToZero != nil {
 			mNilToZero = discovery.NilToZero
 		} else {
 			mNilToZero = aws.Bool(false)
@@ -324,8 +324,8 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	}
 
 	mAddCloudwatchTimestamp := m.AddCloudwatchTimestamp
-	if mAddCloudwatchTimestamp == nil && discovery != nil {
-		if discovery.AddCloudwatchTimestamp != nil {
+	if mAddCloudwatchTimestamp == nil {
+		if discovery != nil && discovery.AddCloudwatchTimestamp != nil {
 			mAddCloudwatchTimestamp = discovery.AddCloudwatchTimestamp
 		} else {
 			mAddCloudwatchTimestamp = aws.Bool(false)
