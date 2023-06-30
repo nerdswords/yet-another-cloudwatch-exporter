@@ -447,7 +447,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/KafkaConnect",
 		Alias:     "kafkaconnect",
 		ResourceFilters: []*string{
-			aws.String("kafkaconnect"),
+			aws.String("kafka:cluster"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":connector/(?P<Connector_Name>[^/]+)"),
@@ -748,6 +748,67 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":collection/(?P<CollectionId>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/SageMaker",
+		Alias:     "sagemaker",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/Endpoints",
+		Alias:     "sagemaker-endpoints",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/TrainingJobs",
+		Alias:     "sagemaker-training",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:training-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/ProcessingJobs",
+		Alias:     "sagemaker-processing",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:processing-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/TransformJobs",
+		Alias:     "sagemaker-transform",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:transform-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+		Alias:     "sagemaker-inf-rec",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:inference-recommendations-job"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":inference-recommendations-job/(?P<JobName>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
+		Alias:     "sagemaker-model-building-pipeline",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:pipeline"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
 		},
 	},
 }
