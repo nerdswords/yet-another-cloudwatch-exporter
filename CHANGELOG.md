@@ -1,3 +1,29 @@
+# v0.53.0
+
+**Bugfixes and features**
+
+Services:
+* Add Auto Discovery Support For Sagemaker by @charleschangdp
+* Add support for AWS/TrustedAdvisor by @cristiangreco
+
+Bugs:
+* fix(kafkaconnect): update resource filter by @cgowthaman
+* Validate should fail when no roles are configured by @thepalbi
+* Fix default value for nilToZero and addCloudwatchTimestamp in static job by @cristiangreco
+* ddos protection: Discover resources outside us-east-1
+
+**Dependencies**
+* Bump github.com/aws/aws-sdk-go from 1.44.284 to 1.44.290
+* Bump github.com/aws/aws-sdk-go-v2/service/amp from 1.16.12 to 1.16.13
+* Bump github.com/aws/aws-sdk-go-v2/service/apigatewayv2 from 1.13.12 to 1.13.13
+* Bump github.com/aws/aws-sdk-go-v2/service/cloudwatch from 1.26.1 to 1.26.2
+* Bump github.com/aws/aws-sdk-go-v2/service/ec2 from 1.100.0 to 1.102.0
+* Bump github.com/prometheus/client_golang from 1.15.1 to 1.16.0
+* Bump github.com/prometheus/common from 0.43.0 to 0.44.0
+* Bump github.com/urfave/cli/v2 from 2.25.6 to 2.25.7
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.52.0...v0.53.0
+
 # v0.52.0
 
 **Important news and breaking changes**
