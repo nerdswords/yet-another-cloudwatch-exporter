@@ -486,8 +486,8 @@ func createAPIGatewayV2Session(sess *session.Session, region *string, role confi
 }
 
 func createShieldSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) shieldiface.ShieldAPI {
-	maxAPIGatewayAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
+	maxShieldAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxShieldAPIRetries}
 	if fips {
 		// https://docs.aws.amazon.com/general/latest/gr/shield.html
 		endpoint := "https://shield-fips.us-east-1.amazonaws.com"
