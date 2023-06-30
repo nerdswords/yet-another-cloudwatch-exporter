@@ -207,8 +207,7 @@ This permission is required to discover resources for the AWS/TransitGateway nam
 
 This permission is required to discover protected resources for the AWS/DDoSProtection namespace
 ```json
-"storagegateway:ListGateways",
-"storagegateway:ListTagsForResource"
+"shield:ListProtections"
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
