@@ -89,7 +89,7 @@ func toModelDimensions(dimensions []*cloudwatch.Dimension) []*model.Dimension {
 	return modelDimensions
 }
 
-func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []*cloudwatch_client.MetricDataResult {
+func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64, addHistoricalMetrics bool) []*cloudwatch_client.MetricDataResult {
 	var resp cloudwatch.GetMetricDataOutput
 	filter := createGetMetricDataInput(getMetricData, &namespace, length, delay, configuredRoundingPeriod, logger)
 	if c.logger.IsDebugEnabled() {
@@ -113,18 +113,21 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 		c.logger.Error(err, "GetMetricData error")
 		return nil
 	}
-	return toMetricDataResult(resp)
+	return toMetricDataResult(resp, addHistoricalMetrics)
 }
 
-func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []*cloudwatch_client.MetricDataResult {
+func toMetricDataResult(resp cloudwatch.GetMetricDataOutput, addHistoricalMetrics bool) []*cloudwatch_client.MetricDataResult {
 	output := make([]*cloudwatch_client.MetricDataResult, 0, len(resp.MetricDataResults))
 	for _, metricDataResult := range resp.MetricDataResults {
-		mappedResult := cloudwatch_client.MetricDataResult{ID: metricDataResult.Id}
-		if len(metricDataResult.Values) > 0 {
-			mappedResult.Datapoint = metricDataResult.Values[0]
-			mappedResult.Timestamp = metricDataResult.Timestamps[0]
+		for i := 0; i < len(metricDataResult.Values); i++ {
+			mappedResult := cloudwatch_client.MetricDataResult{ID: metricDataResult.Id}
+			mappedResult.Datapoint = metricDataResult.Values[i]
+			mappedResult.Timestamp = metricDataResult.Timestamps[i]
+			output = append(output, &mappedResult)
+			if !addHistoricalMetrics {
+				break
+			}
 		}
-		output = append(output, &mappedResult)
 	}
 	return output
 }

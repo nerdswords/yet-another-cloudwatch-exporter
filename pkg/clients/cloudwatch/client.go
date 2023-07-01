@@ -17,7 +17,7 @@ type Client interface {
 
 	// GetMetricData returns the output of the GetMetricData CloudWatch API.
 	// Results pagination is handled automatically.
-	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []*MetricDataResult
+	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64, addHistoricalMetrics bool) []*MetricDataResult
 
 	// GetMetricStatistics returns the output of the GetMetricStatistics CloudWatch API.
 	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint
@@ -48,9 +48,9 @@ func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logge
 	return res
 }
 
-func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []*MetricDataResult {
+func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64, addHistoricalMetrics bool) []*MetricDataResult {
 	c.sem <- struct{}{}
-	res := c.client.GetMetricData(ctx, logger, getMetricData, namespace, length, delay, configuredRoundingPeriod)
+	res := c.client.GetMetricData(ctx, logger, getMetricData, namespace, length, delay, configuredRoundingPeriod, addHistoricalMetrics)
 	<-c.sem
 	return res
 }
