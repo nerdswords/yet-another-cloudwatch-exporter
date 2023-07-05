@@ -7,14 +7,10 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 )
 
-// Cache is an interface to a cache aws clients for all the
-// roles specified by the exporter. For jobs with many duplicate roles, this provides
-// relief to the AWS API and prevents timeouts by excessive credential requesting.
-type Cache interface {
+// Factory is an interface to abstract away all logic required to produce the different
+// YACE specific clients which wrap AWS clients
+type Factory interface {
 	GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client
 	GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client
 	GetAccountClient(region string, role config.Role) account.Client
-
-	Refresh()
-	Clear()
 }

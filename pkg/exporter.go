@@ -121,12 +121,12 @@ func defaultOptions() options {
 // Parameters are:
 // - `ctx`: a context for the request
 // - `config`: this is the struct representation of the configuration defined in top-level configuration
-// - `logger`: any implementation of the `Logger` interface
+// - `logger`: any implementation of the `logging.Logger` interface
 // - `registry`: any prometheus compatible registry where scraped AWS metrics will be written
-// - `cache`: any implementation of the `Cache`
+// - `factory`: any implementation of the `clients.Factory` interface
 // - `optFuncs`: (optional) any number of options funcs
 //
-// You can pre-register any of the default metrics with the provided `registry` if you want them
+// You can pre-register any of the default metrics from `Metrics` with the provided `registry` if you want them
 // included in the AWS scrape results. If you are using multiple instances of `registry` it
 // might make more sense to register these metrics in the application using YACE as a library to better
 // track them over the lifetime of the application.
@@ -135,7 +135,7 @@ func UpdateMetrics(
 	logger logging.Logger,
 	cfg config.ScrapeConf,
 	registry *prometheus.Registry,
-	cache clients.Cache,
+	factory clients.Factory,
 	optFuncs ...OptionsFunc,
 ) error {
 	options := defaultOptions()
@@ -152,7 +152,7 @@ func UpdateMetrics(
 		ctx,
 		logger,
 		cfg,
-		cache,
+		factory,
 		options.metricsPerQuery,
 		options.cloudWatchAPIConcurrency,
 		options.taggingAPIConcurrency,
