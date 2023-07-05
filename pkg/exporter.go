@@ -48,15 +48,7 @@ type options struct {
 	featureFlags             featureFlagsMap
 }
 
-var defaultOptions = options{
-	metricsPerQuery:          DefaultMetricsPerQuery,
-	labelsSnakeCase:          DefaultLabelsSnakeCase,
-	cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
-	taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
-	featureFlags:             make(featureFlagsMap),
-}
-
-// IsFeatureFlag implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
+// IsFeatureEnabled implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
 func (ff featureFlagsMap) IsFeatureEnabled(flag string) bool {
 	_, ok := ff[flag]
 	return ok
@@ -114,6 +106,16 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 	}
 }
 
+func defaultOptions() options {
+	return options{
+		metricsPerQuery:          DefaultMetricsPerQuery,
+		labelsSnakeCase:          DefaultLabelsSnakeCase,
+		cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
+		taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
+		featureFlags:             make(featureFlagsMap),
+	}
+}
+
 // UpdateMetrics is the entrypoint to scrape metrics from AWS on demand.
 //
 // Parameters are:
@@ -136,7 +138,7 @@ func UpdateMetrics(
 	cache clients.Cache,
 	optFuncs ...OptionsFunc,
 ) error {
-	options := defaultOptions
+	options := defaultOptions()
 	for _, f := range optFuncs {
 		if err := f(&options); err != nil {
 			return err

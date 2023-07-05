@@ -1,0 +1,25 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/ElastiCache
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: CPUUtilization
+          statistics: [Average]
+        - name: FreeableMemory
+          statistics: [Average]
+        - name: NetworkBytesIn
+          statistics: [Average]
+        - name: NetworkBytesOut
+          statistics: [Average]
+        - name: NetworkPacketsIn
+          statistics: [Average]
+        - name: NetworkPacketsOut
+          statistics: [Average]
+        - name: SwapUsage
+          statistics: [Average]
+        - name: CPUCreditUsage
+          statistics: [Average]

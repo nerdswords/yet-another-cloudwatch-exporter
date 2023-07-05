@@ -1,3 +1,95 @@
+# v0.53.0
+
+**Bugfixes and features**
+
+Services:
+* Add Auto Discovery Support For Sagemaker by @charleschangdp
+* Add support for AWS/TrustedAdvisor by @cristiangreco
+
+Bugs:
+* fix(kafkaconnect): update resource filter by @cgowthaman
+* Validate should fail when no roles are configured by @thepalbi
+* Fix default value for nilToZero and addCloudwatchTimestamp in static job by @cristiangreco
+* ddos protection: Discover resources outside us-east-1
+
+**Dependencies**
+* Bump github.com/aws/aws-sdk-go from 1.44.284 to 1.44.290
+* Bump github.com/aws/aws-sdk-go-v2/service/amp from 1.16.12 to 1.16.13
+* Bump github.com/aws/aws-sdk-go-v2/service/apigatewayv2 from 1.13.12 to 1.13.13
+* Bump github.com/aws/aws-sdk-go-v2/service/cloudwatch from 1.26.1 to 1.26.2
+* Bump github.com/aws/aws-sdk-go-v2/service/ec2 from 1.100.0 to 1.102.0
+* Bump github.com/prometheus/client_golang from 1.15.1 to 1.16.0
+* Bump github.com/prometheus/common from 0.43.0 to 0.44.0
+* Bump github.com/urfave/cli/v2 from 2.25.6 to 2.25.7
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.52.0...v0.53.0
+
+# v0.52.0
+
+**Important news and breaking changes**
+
+This releases introduces the feature flag `aws-sdk-v2` (by @kgeckhart), which changes YACE networking layer to use the AWS sdk v2 package. Read on for more details and considerations.
+
+  * The main benefit of sdk v2 is deserialization/serialization is done via code generation vs reflection which drastically lowers memory/cpu usage for large scrape jobs
+  * Considerations before enabling sdk v2:
+    1. FIPS is not supported in v2 as v2 delegates all URL resolution to the sdk and AWS does not have FIPS compliant endpoints for AutoScaling API and Tagging API. The v1 implementation worked around this by hard coding FIPS URLs where they existed and using non-FIPS URLs otherwise. This work around was not ported to v2 and is unlikely to be ported.
+    2. sdk v2 uses regional sts endpoints by default vs global sts which is [considered legacy by aws](https://docs.aws.amazon.com/sdkref/latest/guide/feature-sts-regionalized-endpoints.html). The `sts-region` job configuration is still respected when setting the region for sts and will be used if provided. If you still require global sts instead of regional set the `sts-region` to `aws-global`.
+
+**Bugfixes and features**
+
+Features:
+* Discovery jobs support `recentlyActiveOnly` parameter to reduce number of old metrics returned by CloudWatch API by @PerGon
+* Feature flag `aws-sdk-v2`: use the more performant AWS sdk v2 (see above section) by @kgeckhart
+
+Services:
+* Add support for API Gateway V2 by @matej-g
+* Add support for MediaConvert by @theunissenne
+* Add support for CWAgent by @cristiangreco
+* Add support for memorydb by @glebpom
+
+Docs:
+* ALB example: use Average for ConsumedLCUs by @cristiangreco
+* Update configuration.md: deprecated custom namespace jobs by @wimsymons
+* Update permissions examples and docs in readme by @kgeckhart
+* Add example for ElastiCache by @cristiangreco
+* Update mixin readme by @cristiangreco
+
+Bugs:
+* Fix AmazonMQ Broker name dimension match by @cristiangreco
+* Fix invalid GH action file and broken test case by @cristiangreco
+* Fix namespace case in metrics conversion by @cristiangreco
+* Make exporter options a non-global type by @kgeckhart
+* Fix debug logging in discovery jobs by @cristiangreco
+
+Refactoring:
+* Refactor AWS sdk client usage to hide behind new ClientCache by @kgeckhart
+* Introduce model types to replace sdk types in cloudwatch client by @kgeckhart
+
+**Dependencies**
+
+New dependencies:
+* github.com/aws/aws-sdk-go-v2/config 1.18.27
+* github.com/aws/aws-sdk-go-v2/service/amp 1.16.11
+* github.com/aws/aws-sdk-go-v2/service/apigateway 1.13.13
+* github.com/aws/aws-sdk-go-v2/service/autoscaling 1.28.9
+* github.com/aws/aws-sdk-go-v2/service/cloudwatch 1.26.1
+* github.com/aws/aws-sdk-go-v2/service/databasemigrationservice 1.25.7
+* github.com/aws/aws-sdk-go-v2/service/ec2 1.100.0
+* github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi 1.14.14
+* github.com/aws/aws-sdk-go-v2/service/storagegateway 1.18.14
+
+Updates:
+* Bump alpine from 3.17.3 to 3.18.2
+* Bump github.com/aws/aws-sdk-go from 1.44.249 to 1.44.284
+* Bump github.com/prometheus/common from 0.42.0 to 0.43.0
+* Bump github.com/sirupsen/logrus from 1.9.0 to 1.9.3
+* Bump github.com/stretchr/testify from 1.8.2 to 1.8.4
+* Bump github.com/urfave/cli/v2 from 2.25.1 to 2.25.6
+* Bump golang.org/x/sync from 0.1.0 to 0.3.0
+* Bump golangci/golangci-lint-action from 3.4.0 to 3.6.0
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.51.0...v0.52.0
+
 # v0.51.0
 
 **Important breaking changes**
