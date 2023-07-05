@@ -37,6 +37,10 @@ func (sc serviceConfigs) GetService(serviceType string) *ServiceConfig {
 
 var SupportedServices = serviceConfigs{
 	{
+		Namespace: "CWAgent",
+		Alias:     "cwagent",
+	},
+	{
 		Namespace: "AWS/Usage",
 		Alias:     "usage",
 	},
@@ -107,8 +111,12 @@ var SupportedServices = serviceConfigs{
 			aws.String("apigateway"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)$"),
-			regexp.MustCompile("apis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			// DimensionRegexps starting with 'restapis' are for APIGateway V1 gateways (REST API gateways)
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)$"),
+			regexp.MustCompile("restapis/(?P<ApiName>[^/]+)/stages/(?P<Stage>[^/]+)$"),
+			// DimensionRegexps starting 'apis' are for APIGateway V2 gateways (HTTP and Webscoket gateways)
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)$"),
+			regexp.MustCompile("apis/(?P<ApiId>[^/]+)/stages/(?P<Stage>[^/]+)$"),
 		},
 	},
 	{
@@ -203,6 +211,9 @@ var SupportedServices = serviceConfigs{
 		ResourceFilters: []*string{
 			aws.String("shield:protection"),
 		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("(?P<ResourceArn>.+)"),
+		},
 	},
 	{
 		Namespace: "AWS/DocDB",
@@ -256,6 +267,16 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster:(?P<CacheClusterId>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/MemoryDB",
+		Alias:     "memorydb",
+		ResourceFilters: []*string{
+			aws.String("memorydb:cluster"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile("cluster/(?P<ClusterName>[^/]+)"),
 		},
 	},
 	{
@@ -429,7 +450,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/KafkaConnect",
 		Alias:     "kafkaconnect",
 		ResourceFilters: []*string{
-			aws.String("kafkaconnect"),
+			aws.String("kafka:cluster"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":connector/(?P<Connector_Name>[^/]+)"),
@@ -681,6 +702,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/TrustedAdvisor",
+		Alias:     "trustedadvisor",
+		ResourceFilters: []*string{
+			aws.String("trustedadvisor"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":checks/(?P<CategoryCode>[^/]+)/(?P<CheckId>)$"),
+		},
+	},
+	{
 		Namespace: "AWS/VPN",
 		Alias:     "vpn",
 		ResourceFilters: []*string{
@@ -720,6 +751,67 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":collection/(?P<CollectionId>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/SageMaker",
+		Alias:     "sagemaker",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/Endpoints",
+		Alias:     "sagemaker-endpoints",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":endpoint/(?P<EndpointName>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/TrainingJobs",
+		Alias:     "sagemaker-training",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:training-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/ProcessingJobs",
+		Alias:     "sagemaker-processing",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:processing-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/TransformJobs",
+		Alias:     "sagemaker-transform",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:transform-job"),
+		},
+	},
+	{
+		Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+		Alias:     "sagemaker-inf-rec",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:inference-recommendations-job"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":inference-recommendations-job/(?P<JobName>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
+		Alias:     "sagemaker-model-building-pipeline",
+		ResourceFilters: []*string{
+			aws.String("sagemaker:pipeline"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
 		},
 	},
 }

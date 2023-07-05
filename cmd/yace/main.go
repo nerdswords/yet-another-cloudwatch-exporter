@@ -12,7 +12,8 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
+	v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v1"
+	v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v2"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
@@ -191,7 +192,18 @@ func startScraper(c *cli.Context) error {
 	featureFlags := c.StringSlice(enableFeatureFlag)
 
 	s := NewScraper(featureFlags)
-	cache := clients.NewClientCache(cfg, fips, logger)
+	cache := v1.NewClientCache(cfg, fips, logger)
+	for _, featureFlag := range featureFlags {
+		if featureFlag == config.AwsSdkV2 {
+			logger.Info("Using aws sdk v2")
+			var err error
+			// Can't override cache while also creating err
+			cache, err = v2.NewCache(cfg, fips, logger)
+			if err != nil {
+				return fmt.Errorf("failed to construct aws sdk v2 client cache: %w", err)
+			}
+		}
+	}
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, cache)
@@ -234,7 +246,19 @@ func startScraper(c *cli.Context) error {
 		}
 
 		logger.Info("Reset clients cache")
-		cache = clients.NewClientCache(cfg, fips, logger)
+		cache = v1.NewClientCache(cfg, fips, logger)
+		for _, featureFlag := range featureFlags {
+			if featureFlag == config.AwsSdkV2 {
+				logger.Info("Using aws sdk v2")
+				var err error
+				// Can't override cache while also creating err
+				cache, err = v2.NewCache(cfg, fips, logger)
+				if err != nil {
+					logger.Error(err, "Failed to construct aws sdk v2 client cache", "path", configFile)
+					return
+				}
+			}
+		}
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())

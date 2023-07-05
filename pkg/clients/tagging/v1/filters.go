@@ -1,4 +1,4 @@
-package tagging
+package v1
 
 import (
 	"context"
@@ -6,11 +6,14 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
+	"github.com/aws/aws-sdk-go/service/shield"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/grafana/regexp"
 
@@ -19,7 +22,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-type serviceFilter struct {
+type ServiceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
 	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
 
@@ -27,25 +30,39 @@ type serviceFilter struct {
 	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
 }
 
-// serviceFilters maps a service namespace to (optional) serviceFilter
-var serviceFilters = map[string]serviceFilter{
+// ServiceFilters maps a service namespace to (optional) ServiceFilter
+var ServiceFilters = map[string]ServiceFilter{
 	"AWS/ApiGateway": {
 		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
 			promutil.APIGatewayAPICounter.Inc()
-			var limit int64 = 500 // max number of results per page. default=25, max=500
 			const maxPages = 10
-			input := apigateway.GetRestApisInput{Limit: &limit}
-			output := apigateway.GetRestApisOutput{}
-			var pageNum int
-			var outputResources []*model.TaggedResource
+
+			var (
+				limit           int64 = 500 // max number of results per page. default=25, max=500
+				input                 = apigateway.GetRestApisInput{Limit: &limit}
+				output                = apigateway.GetRestApisOutput{}
+				pageNum         int
+				outputResources []*model.TaggedResource
+			)
+
 			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+				promutil.APIGatewayAPICounter.Inc()
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
 				return pageNum <= maxPages
 			})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
+			}
+			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			promutil.APIGatewayAPIV2Counter.Inc()
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
+			}
+
 			for _, resource := range inputResources {
 				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.Id))
+					searchString := regexp.MustCompile(fmt.Sprintf(".*restapis/%s$", *gw.Id))
 					if searchString.MatchString(resource.ARN) {
 						r := resource
 						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
@@ -54,9 +71,14 @@ var serviceFilters = map[string]serviceFilter{
 						break
 					}
 				}
-			}
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApis, %w", err)
+				for i, gw := range outputV2.Items {
+					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
+					if searchString.MatchString(resource.ARN) {
+						outputResources = append(outputResources, resource)
+						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
+						break
+					}
+				}
 			}
 			return outputResources, nil
 		},
@@ -285,6 +307,42 @@ var serviceFilters = map[string]serviceFilter{
 				return nil, fmt.Errorf("error calling ec2API.DescribeTransitGatewayAttachments, %w", err)
 			}
 			return resources, nil
+		},
+	},
+	"AWS/DDoSProtection": {
+		// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
+		// Outside us-east-1 no resources are going to be found. We use the shield.ListProtections API to get the protections +
+		// protected resources to add to the tagged resources. This data is eventually usable for joining with metrics.
+		ResourceFunc: func(ctx context.Context, c client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+			var output []*model.TaggedResource
+			pageNum := 0
+			// Default page size is only 20 which can easily lead to throttling
+			input := &shield.ListProtectionsInput{MaxResults: aws.Int64(1000)}
+			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, b bool) bool {
+				promutil.ShieldAPICounter.Inc()
+				for _, protection := range page.Protections {
+					protectedResourceArn := *protection.ResourceArn
+					protectionArn := *protection.ProtectionArn
+					protectedResource, err := arn.Parse(protectedResourceArn)
+					if err != nil {
+						continue
+					}
+					if protectedResource.Region == region {
+						taggedResource := &model.TaggedResource{
+							ARN:       protectedResourceArn,
+							Namespace: job.Type,
+							Region:    region,
+							Tags:      []model.Tag{{Key: "ProtectionArn", Value: protectionArn}},
+						}
+						output = append(output, taggedResource)
+					}
+				}
+				return pageNum < 100
+			})
+			if err != nil {
+				return nil, fmt.Errorf("error calling shiled.ListProtections, %w", err)
+			}
+			return output, nil
 		},
 	},
 }

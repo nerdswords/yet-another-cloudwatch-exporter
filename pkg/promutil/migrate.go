@@ -20,7 +20,7 @@ var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, d := range tagData {
 		sb := strings.Builder{}
-		promNs := PromString(d.Namespace)
+		promNs := PromString(strings.ToLower(d.Namespace))
 		if !strings.HasPrefix(promNs, "aws") {
 			sb.WriteString("aws_")
 		}
@@ -76,7 +76,7 @@ func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logg
 			}
 
 			sb := strings.Builder{}
-			promNs := PromString(*c.Namespace)
+			promNs := PromString(strings.ToLower(*c.Namespace))
 			if !strings.HasPrefix(promNs, "aws") {
 				sb.WriteString("aws_")
 			}
