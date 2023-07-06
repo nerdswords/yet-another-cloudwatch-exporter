@@ -37,7 +37,7 @@ import (
 
 type awsRegion = string
 
-type clientCache struct {
+type CachingFactory struct {
 	logger    logging.Logger
 	stsRegion string
 	clients   map[config.Role]map[awsRegion]*cachedClients
@@ -57,7 +57,11 @@ type cachedClients struct {
 	account    account.Client
 }
 
-func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.Cache, error) {
+// Ensure the struct properly implements the interface
+var _ clients.Factory = &CachingFactory{}
+
+// NewFactory creates a new client factory to use when fetching data from AWS with sdk v2
+func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*CachingFactory, error) {
 	var options []func(*aws_config.LoadOptions) error
 	options = append(options, aws_config.WithLogger(aws_logging.LoggerFunc(func(classification aws_logging.Classification, format string, v ...interface{}) {
 		if classification == aws_logging.Debug {
@@ -143,14 +147,14 @@ func NewCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) (clients.
 		}
 	}
 
-	return &clientCache{
+	return &CachingFactory{
 		logger:    logger,
 		clients:   cache,
 		stsRegion: cfg.StsRegion,
 	}, nil
 }
 
-func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
+func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -163,7 +167,7 @@ func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concu
 	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
 }
 
-func (c *clientCache) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
+func (c *CachingFactory) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -187,7 +191,7 @@ func (c *clientCache) GetTaggingClient(region string, role config.Role, concurre
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 
-func (c *clientCache) GetAccountClient(region string, role config.Role) account.Client {
+func (c *CachingFactory) GetAccountClient(region string, role config.Role) account.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -200,7 +204,7 @@ func (c *clientCache) GetAccountClient(region string, role config.Role) account.
 	return c.clients[role][region].account
 }
 
-func (c *clientCache) Refresh() {
+func (c *CachingFactory) Refresh() {
 	if c.refreshed {
 		return
 	}
@@ -239,7 +243,7 @@ func (c *clientCache) Refresh() {
 	c.cleared = false
 }
 
-func (c *clientCache) Clear() {
+func (c *CachingFactory) Clear() {
 	if c.cleared {
 		return
 	}
@@ -263,7 +267,7 @@ func (c *clientCache) Clear() {
 	c.cleared = true
 }
 
-func (c *clientCache) createCloudwatchClient(regionConfig *aws.Config) *cloudwatch.Client {
+func (c *CachingFactory) createCloudwatchClient(regionConfig *aws.Config) *cloudwatch.Client {
 	return cloudwatch.NewFromConfig(*regionConfig, func(options *cloudwatch.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -275,7 +279,7 @@ func (c *clientCache) createCloudwatchClient(regionConfig *aws.Config) *cloudwat
 	})
 }
 
-func (c *clientCache) createTaggingClient(regionConfig *aws.Config) *resourcegroupstaggingapi.Client {
+func (c *CachingFactory) createTaggingClient(regionConfig *aws.Config) *resourcegroupstaggingapi.Client {
 	return resourcegroupstaggingapi.NewFromConfig(*regionConfig, func(options *resourcegroupstaggingapi.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -285,7 +289,7 @@ func (c *clientCache) createTaggingClient(regionConfig *aws.Config) *resourcegro
 	})
 }
 
-func (c *clientCache) createAutoScalingClient(assumedConfig *aws.Config) *autoscaling.Client {
+func (c *CachingFactory) createAutoScalingClient(assumedConfig *aws.Config) *autoscaling.Client {
 	return autoscaling.NewFromConfig(*assumedConfig, func(options *autoscaling.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -295,7 +299,7 @@ func (c *clientCache) createAutoScalingClient(assumedConfig *aws.Config) *autosc
 	})
 }
 
-func (c *clientCache) createEC2Client(assumedConfig *aws.Config) *ec2.Client {
+func (c *CachingFactory) createEC2Client(assumedConfig *aws.Config) *ec2.Client {
 	return ec2.NewFromConfig(*assumedConfig, func(options *ec2.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -305,7 +309,7 @@ func (c *clientCache) createEC2Client(assumedConfig *aws.Config) *ec2.Client {
 	})
 }
 
-func (c *clientCache) createDMSClient(assumedConfig *aws.Config) *databasemigrationservice.Client {
+func (c *CachingFactory) createDMSClient(assumedConfig *aws.Config) *databasemigrationservice.Client {
 	return databasemigrationservice.NewFromConfig(*assumedConfig, func(options *databasemigrationservice.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -315,7 +319,7 @@ func (c *clientCache) createDMSClient(assumedConfig *aws.Config) *databasemigrat
 	})
 }
 
-func (c *clientCache) createAPIGatewayClient(assumedConfig *aws.Config) *apigateway.Client {
+func (c *CachingFactory) createAPIGatewayClient(assumedConfig *aws.Config) *apigateway.Client {
 	return apigateway.NewFromConfig(*assumedConfig, func(options *apigateway.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -325,7 +329,7 @@ func (c *clientCache) createAPIGatewayClient(assumedConfig *aws.Config) *apigate
 	})
 }
 
-func (c *clientCache) createAPIGatewayV2Client(assumedConfig *aws.Config) *apigatewayv2.Client {
+func (c *CachingFactory) createAPIGatewayV2Client(assumedConfig *aws.Config) *apigatewayv2.Client {
 	return apigatewayv2.NewFromConfig(*assumedConfig, func(options *apigatewayv2.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -335,7 +339,7 @@ func (c *clientCache) createAPIGatewayV2Client(assumedConfig *aws.Config) *apiga
 	})
 }
 
-func (c *clientCache) createStorageGatewayClient(assumedConfig *aws.Config) *storagegateway.Client {
+func (c *CachingFactory) createStorageGatewayClient(assumedConfig *aws.Config) *storagegateway.Client {
 	return storagegateway.NewFromConfig(*assumedConfig, func(options *storagegateway.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -345,7 +349,7 @@ func (c *clientCache) createStorageGatewayClient(assumedConfig *aws.Config) *sto
 	})
 }
 
-func (c *clientCache) createPrometheusClient(assumedConfig *aws.Config) *amp.Client {
+func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.Client {
 	return amp.NewFromConfig(*assumedConfig, func(options *amp.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
@@ -355,7 +359,7 @@ func (c *clientCache) createPrometheusClient(assumedConfig *aws.Config) *amp.Cli
 	})
 }
 
-func (c *clientCache) createStsClient(awsConfig *aws.Config) *sts.Client {
+func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
 	return sts.NewFromConfig(*awsConfig, func(options *sts.Options) {
 		if c.stsRegion != "" {
 			options.Region = c.stsRegion
@@ -364,7 +368,7 @@ func (c *clientCache) createStsClient(awsConfig *aws.Config) *sts.Client {
 	})
 }
 
-func (c *clientCache) createShieldClient(awsConfig *aws.Config) *shield.Client {
+func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Client {
 	return shield.NewFromConfig(*awsConfig, func(options *shield.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody

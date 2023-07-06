@@ -16,7 +16,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-func cmpCache(t *testing.T, initialCache *clientCache, cache *clientCache) {
+func cmpCache(t *testing.T, initialCache *CachingFactory, cache *CachingFactory) {
 	for role := range initialCache.stscache {
 		if _, ok := cache.stscache[role]; !ok {
 			t.Logf("`role` not in sts cache %s", role.RoleArn)
@@ -62,19 +62,19 @@ func TestNewClientCache(t *testing.T) {
 		descrip string
 		config  config.ScrapeConf
 		fips    bool
-		cache   *clientCache
+		cache   *CachingFactory
 	}{
 		{
 			"an empty config gives an empty cache",
 			config.ScrapeConf{},
 			false,
-			&clientCache{logger: logging.NewNopLogger()},
+			&CachingFactory{logger: logging.NewNopLogger()},
 		},
 		{
 			"if fips is set then the clients has fips",
 			config.ScrapeConf{},
 			true,
-			&clientCache{
+			&CachingFactory{
 				fips:   true,
 				logger: logging.NewNopLogger(),
 			},
@@ -114,7 +114,7 @@ func TestNewClientCache(t *testing.T) {
 				},
 			},
 			false,
-			&clientCache{
+			&CachingFactory{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -197,7 +197,7 @@ func TestNewClientCache(t *testing.T) {
 				},
 			},
 			false,
-			&clientCache{
+			&CachingFactory{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -312,7 +312,7 @@ func TestNewClientCache(t *testing.T) {
 				},
 			},
 			false,
-			&clientCache{
+			&CachingFactory{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -411,7 +411,7 @@ func TestNewClientCache(t *testing.T) {
 				},
 			},
 			false,
-			&clientCache{
+			&CachingFactory{
 				stscache: map[config.Role]stsiface.STSAPI{
 					{RoleArn: "some-arn"}:                      nil,
 					{RoleArn: "some-arn", ExternalID: "thing"}: nil,
@@ -450,7 +450,7 @@ func TestNewClientCache(t *testing.T) {
 		test := l
 		t.Run(test.descrip, func(t *testing.T) {
 			t.Parallel()
-			cache := NewClientCache(test.config, test.fips, logging.NewNopLogger()).(*clientCache)
+			cache := NewFactory(test.config, test.fips, logging.NewNopLogger())
 			t.Logf("the cache is: %v", cache)
 
 			if test.cache.cleared != cache.cleared {
@@ -481,11 +481,11 @@ func TestClear(t *testing.T) {
 
 	tests := []struct {
 		description string
-		cache       *clientCache
+		cache       *CachingFactory
 	}{
 		{
 			"a new clear clears all clients",
-			&clientCache{
+			&CachingFactory{
 				session: mock.Session,
 				cleared: false,
 				mu:      sync.Mutex{},
@@ -507,7 +507,7 @@ func TestClear(t *testing.T) {
 		},
 		{
 			"A second call to clear does nothing",
-			&clientCache{
+			&CachingFactory{
 				cleared: true,
 				mu:      sync.Mutex{},
 				session: mock.Session,
@@ -574,12 +574,12 @@ func TestRefresh(t *testing.T) {
 
 	tests := []struct {
 		descrip    string
-		cache      *clientCache
+		cache      *CachingFactory
 		cloudwatch bool
 	}{
 		{
 			"a new refresh creates clients",
-			&clientCache{
+			&CachingFactory{
 				session:   mock.Session,
 				refreshed: false,
 				mu:        sync.Mutex{},
@@ -601,7 +601,7 @@ func TestRefresh(t *testing.T) {
 		},
 		{
 			"a new refresh with static only creates only cloudwatch",
-			&clientCache{
+			&CachingFactory{
 				session:   mock.Session,
 				refreshed: false,
 				mu:        sync.Mutex{},
@@ -624,7 +624,7 @@ func TestRefresh(t *testing.T) {
 		},
 		{
 			"A second call to refreshed does nothing",
-			&clientCache{
+			&CachingFactory{
 				refreshed: true,
 				mu:        sync.Mutex{},
 				session:   mock.Session,
@@ -695,7 +695,7 @@ func TestRefresh(t *testing.T) {
 func TestClientCacheGetCloudwatchClient(t *testing.T) {
 	testGetAWSClient(
 		t, "Cloudwatch",
-		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+		func(t *testing.T, cache *CachingFactory, region string, role config.Role) {
 			iface := cache.GetCloudwatchClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
@@ -707,7 +707,7 @@ func TestClientCacheGetCloudwatchClient(t *testing.T) {
 func TestClientCacheGetTagging(t *testing.T) {
 	testGetAWSClient(
 		t, "Tagging",
-		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+		func(t *testing.T, cache *CachingFactory, region string, role config.Role) {
 			iface := cache.GetTaggingClient(region, role, 1)
 			if iface == nil {
 				t.Fail()
@@ -719,7 +719,7 @@ func TestClientCacheGetTagging(t *testing.T) {
 func TestClientCacheGetAccount(t *testing.T) {
 	testGetAWSClient(
 		t, "Account",
-		func(t *testing.T, cache *clientCache, region string, role config.Role) {
+		func(t *testing.T, cache *CachingFactory, region string, role config.Role) {
 			iface := cache.GetAccountClient(region, role)
 			if iface == nil {
 				t.Fail()
@@ -731,18 +731,18 @@ func TestClientCacheGetAccount(t *testing.T) {
 func testGetAWSClient(
 	t *testing.T,
 	name string,
-	testClientGet func(*testing.T, *clientCache, string, config.Role),
+	testClientGet func(*testing.T, *CachingFactory, string, config.Role),
 ) {
 	region := "us-east-1"
 	role := config.Role{}
 	tests := []struct {
 		descrip     string
-		cache       *clientCache
+		cache       *CachingFactory
 		parallelRun bool
 	}{
 		{
 			"locks during unrefreshed parallel call",
-			&clientCache{
+			&CachingFactory{
 				refreshed: false,
 				mu:        sync.Mutex{},
 				session:   mock.Session,
@@ -764,7 +764,7 @@ func testGetAWSClient(
 		},
 		{
 			"returns clients if available",
-			&clientCache{
+			&CachingFactory{
 				refreshed: true,
 				session:   mock.Session,
 				mu:        sync.Mutex{},
@@ -786,7 +786,7 @@ func testGetAWSClient(
 		},
 		{
 			"creates a new clients if not available",
-			&clientCache{
+			&CachingFactory{
 				refreshed: true,
 				session:   mock.Session,
 				mu:        sync.Mutex{},
