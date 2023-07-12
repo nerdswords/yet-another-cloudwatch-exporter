@@ -97,6 +97,7 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 			promutil.CloudwatchAPICounter.Inc()
 			promutil.CloudwatchGetMetricDataAPICounter.Inc()
 			resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
+			promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(page.MetricDataResults)))
 			return !lastPage
 		})
 
