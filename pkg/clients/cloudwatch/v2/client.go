@@ -111,6 +111,7 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 			return nil
 		}
 		resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
+		promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(page.MetricDataResults)))
 	}
 
 	if c.logger.IsDebugEnabled() {
