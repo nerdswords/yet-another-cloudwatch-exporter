@@ -75,7 +75,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_cpuutilization_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_cpuutilization_maximum{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -90,7 +90,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_database_connections_sum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_database_connections_sum{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -105,7 +105,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_free_storage_space_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_free_storage_space_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -120,7 +120,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_freeable_memory_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_freeable_memory_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -135,7 +135,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_throughput_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_throughput_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -150,7 +150,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_throughput_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_throughput_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -165,7 +165,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_iops_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_iops_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -180,7 +180,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_iops_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_iops_average{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -195,7 +195,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_latency_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_latency_maximum{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -210,7 +210,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_latency_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_latency_maximum{scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
