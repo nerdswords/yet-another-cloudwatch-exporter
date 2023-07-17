@@ -3,7 +3,7 @@ module github.com/nerdswords/yet-another-cloudwatch-exporter
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go v1.44.295
+	github.com/aws/aws-sdk-go v1.44.298
 	github.com/aws/aws-sdk-go-v2 v1.18.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.27
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.26
@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.13.13
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.28.9
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.26.2
-	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.25.7
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.102.0
+	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.26.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.103.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.14.14
 	github.com/aws/aws-sdk-go-v2/service/shield v1.18.12
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.18.15
