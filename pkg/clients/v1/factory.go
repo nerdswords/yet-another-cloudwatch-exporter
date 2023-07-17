@@ -43,7 +43,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
-type clientCache struct {
+type CachingFactory struct {
 	stsRegion        string
 	session          *session.Session
 	endpointResolver endpoints.ResolverFunc
@@ -66,9 +66,11 @@ type cachedClients struct {
 	account    account.Client
 }
 
-// NewClientCache creates a new clients cache to use when fetching data from
-// AWS.
-func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) clients.Cache {
+// Ensure the struct properly implements the interface
+var _ clients.Factory = &CachingFactory{}
+
+// NewFactory creates a new client factory to use when fetching data from AWS with sdk v2
+func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) *CachingFactory {
 	stscache := map[config.Role]stsiface.STSAPI{}
 	cache := map[config.Role]map[string]*cachedClients{}
 
@@ -140,7 +142,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 		}
 	}
 
-	return &clientCache{
+	return &CachingFactory{
 		stsRegion:        cfg.StsRegion,
 		session:          nil,
 		endpointResolver: endpointResolver,
@@ -155,7 +157,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 
 // Refresh and Clear help to avoid using lock primitives by asserting that
 // there are no ongoing writes to the map.
-func (c *clientCache) Clear() {
+func (c *CachingFactory) Clear() {
 	if c.cleared {
 		return
 	}
@@ -176,7 +178,7 @@ func (c *clientCache) Clear() {
 	c.refreshed = false
 }
 
-func (c *clientCache) Refresh() {
+func (c *CachingFactory) Refresh() {
 	if c.refreshed {
 		return
 	}
@@ -242,7 +244,7 @@ func createAccountClient(logger logging.Logger, sts stsiface.STSAPI) account.Cli
 	return account_v1.NewClient(logger, sts)
 }
 
-func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
+func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -255,7 +257,7 @@ func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concu
 	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
 }
 
-func (c *clientCache) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
+func (c *CachingFactory) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -268,7 +270,7 @@ func (c *clientCache) GetTaggingClient(region string, role config.Role, concurre
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 
-func (c *clientCache) GetAccountClient(region string, role config.Role) account.Client {
+func (c *CachingFactory) GetAccountClient(region string, role config.Role) account.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()

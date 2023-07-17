@@ -705,12 +705,6 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/TrustedAdvisor",
 		Alias:     "trustedadvisor",
-		ResourceFilters: []*string{
-			aws.String("trustedadvisor"),
-		},
-		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile(":checks/(?P<CategoryCode>[^/]+)/(?P<CheckId>)$"),
-		},
 	},
 	{
 		Namespace: "AWS/VPN",

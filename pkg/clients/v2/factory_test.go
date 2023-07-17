@@ -100,20 +100,18 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			output, err := NewCache(test.config, false, logging.NewNopLogger())
+			output, err := NewFactory(test.config, false, logging.NewNopLogger())
 			require.NoError(t, err)
-			cache := output.(*clientCache)
-			require.NotNil(t, cache)
 
-			assert.False(t, cache.refreshed)
-			assert.False(t, cache.cleared)
+			assert.False(t, output.refreshed)
+			assert.False(t, output.cleared)
 
-			assert.Len(t, cache.clients, 3)
-			assert.Contains(t, cache.clients, role1)
-			assert.Contains(t, cache.clients, role2)
-			assert.Contains(t, cache.clients, role3)
+			assert.Len(t, output.clients, 3)
+			assert.Contains(t, output.clients, role1)
+			assert.Contains(t, output.clients, role2)
+			assert.Contains(t, output.clients, role3)
 
-			for role, regionalClients := range cache.clients {
+			for role, regionalClients := range output.clients {
 				assert.Len(t, regionalClients, 3)
 
 				assert.Contains(t, regionalClients, region1)
@@ -143,13 +141,10 @@ func TestNewClientCache_sets_fips(t *testing.T) {
 			},
 		},
 	}
-	output, err := NewCache(config, true, logging.NewNopLogger())
+	output, err := NewFactory(config, true, logging.NewNopLogger())
 	require.NoError(t, err)
 
-	cache := output.(*clientCache)
-	require.NotNil(t, cache)
-
-	clients := cache.clients[defaultRole]["region1"]
+	clients := output.clients[defaultRole]["region1"]
 	assert.NotNil(t, clients)
 
 	foundLoadOptions := false
@@ -180,19 +175,16 @@ func TestNewClientCache_sets_endpoint_override(t *testing.T) {
 	err := os.Setenv("AWS_ENDPOINT_URL", "https://totallynotaws.com")
 	require.NoError(t, err)
 
-	output, err := NewCache(config, false, logging.NewNopLogger())
+	output, err := NewFactory(config, false, logging.NewNopLogger())
 	require.NoError(t, err)
 
-	cache := output.(*clientCache)
-	require.NotNil(t, cache)
-
-	clients := cache.clients[defaultRole]["region1"]
+	clients := output.clients[defaultRole]["region1"]
 	assert.NotNil(t, clients)
 	assert.NotNil(t, clients.awsConfig.EndpointResolverWithOptions)
 }
 
 func TestClientCache_Clear(t *testing.T) {
-	cache := &clientCache{
+	cache := &CachingFactory{
 		logger: logging.NewNopLogger(),
 		clients: map[config.Role]map[awsRegion]*cachedClients{
 			defaultRole: {
@@ -233,17 +225,14 @@ func TestClientCache_Refresh(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
+		output.Refresh()
+		assert.False(t, output.cleared)
+		assert.True(t, output.refreshed)
 
-		cache.Refresh()
-		assert.False(t, cache.cleared)
-		assert.True(t, cache.refreshed)
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		assert.NotNil(t, clients.cloudwatch)
 		assert.NotNil(t, clients.account)
@@ -262,17 +251,14 @@ func TestClientCache_Refresh(t *testing.T) {
 			}},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
+		output.Refresh()
+		assert.False(t, output.cleared)
+		assert.True(t, output.refreshed)
 
-		cache.Refresh()
-		assert.False(t, cache.cleared)
-		assert.True(t, cache.refreshed)
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		assert.NotNil(t, clients.cloudwatch)
 		assert.Nil(t, clients.account)
@@ -294,15 +280,12 @@ func TestClientCache_GetAccountClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
+		output.Refresh()
 
-		cache.Refresh()
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		assert.Equal(t, clients.account, output.GetAccountClient("region1", defaultRole))
 	})
@@ -320,13 +303,10 @@ func TestClientCache_GetAccountClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		require.Nil(t, clients.account)
 
@@ -349,15 +329,12 @@ func TestClientCache_GetCloudwatchClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
+		output.Refresh()
 
-		cache.Refresh()
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		// Can't do equality comparison due to concurrency limiter
 		assert.NotNil(t, output.GetCloudwatchClient("region1", defaultRole, 1))
@@ -376,13 +353,10 @@ func TestClientCache_GetCloudwatchClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		require.Nil(t, clients.cloudwatch)
 
@@ -405,15 +379,12 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
+		output.Refresh()
 
-		cache.Refresh()
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		// Can't do equality comparison due to concurrency limiter
 		assert.NotNil(t, output.GetTaggingClient("region1", defaultRole, 1))
@@ -432,13 +403,10 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 			},
 		}
 
-		output, err := NewCache(config, false, logging.NewNopLogger())
+		output, err := NewFactory(config, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
-		cache := output.(*clientCache)
-		require.NotNil(t, cache)
-
-		clients := cache.clients[defaultRole]["region1"]
+		clients := output.clients[defaultRole]["region1"]
 		require.NotNil(t, clients)
 		require.Nil(t, clients.tagging)
 

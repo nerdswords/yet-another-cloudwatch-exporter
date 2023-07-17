@@ -14,7 +14,7 @@ func ScrapeAwsData(
 	ctx context.Context,
 	logger logging.Logger,
 	cfg config.ScrapeConf,
-	cache clients.Cache,
+	factory clients.Factory,
 	metricsPerQuery int,
 	cloudWatchAPIConcurrency int,
 	taggingAPIConcurrency int,
@@ -24,12 +24,6 @@ func ScrapeAwsData(
 	awsInfoData := make([]*model.TaggedResource, 0)
 	var wg sync.WaitGroup
 
-	// since we have called refresh, we have loaded all the credentials
-	// into the clients and it is now safe to call concurrently. Defer the
-	// clearing, so we always clear credentials before the next scrape
-	cache.Refresh()
-	defer cache.Clear()
-
 	for _, discoveryJob := range cfg.Discovery.Jobs {
 		for _, role := range discoveryJob.Roles {
 			for _, region := range discoveryJob.Regions {
@@ -37,14 +31,14 @@ func ScrapeAwsData(
 				go func(discoveryJob *config.Job, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("job_type", discoveryJob.Type, "region", region, "arn", role.RoleArn)
-					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)
 					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, accountID, cfg.Discovery.ExportedTagsOnMetrics, cache.GetTaggingClient(region, role, taggingAPIConcurrency), cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, accountID, cfg.Discovery.ExportedTagsOnMetrics, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
 					if len(metrics) != 0 {
 						mux.Lock()
 						awsInfoData = append(awsInfoData, resources...)
@@ -63,14 +57,14 @@ func ScrapeAwsData(
 				go func(staticJob *config.Static, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("static_job_name", staticJob.Name, "region", region, "arn", role.RoleArn)
-					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)
 					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runStaticJob(ctx, jobLogger, staticJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency))
+					metrics := runStaticJob(ctx, jobLogger, staticJob, region, accountID, factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency))
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
@@ -89,14 +83,14 @@ func ScrapeAwsData(
 				go func(customNamespaceJob *config.CustomNamespace, region string, role config.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("custom_metric_namespace", customNamespaceJob.Namespace, "region", region, "arn", role.RoleArn)
-					accountID, err := cache.GetAccountClient(region, role).GetAccount(ctx)
+					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)
 					if err != nil {
 						jobLogger.Error(err, "Couldn't get account Id")
 						return
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, region, accountID, cache.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
+					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, region, accountID, factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
 
 					mux.Lock()
 					cwData = append(cwData, metrics...)
