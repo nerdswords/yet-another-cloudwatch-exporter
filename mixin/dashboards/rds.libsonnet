@@ -1,7 +1,7 @@
 local common = import 'common.libsonnet';
 local grafana = import 'grafonnet-7.0/grafana.libsonnet';
 
-local allLabels = 'scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"'
+local allLabels = 'scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"';
 
 grafana.dashboard.new(
   title='AWS RDS',
