@@ -1,6 +1,8 @@
 local common = import 'common.libsonnet';
 local grafana = import 'grafonnet-7.0/grafana.libsonnet';
 
+local allLabels = 'scrape_job=~"$job", region=~"$region", dimension_DBInstanceIdentifier=~"$instance"'
+
 grafana.dashboard.new(
   title='AWS RDS',
   description='Visualize Amazon RDS metrics',
@@ -75,7 +77,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_cpuutilization_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_cpuutilization_maximum{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -90,7 +92,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_database_connections_sum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_database_connections_sum{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -105,7 +107,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_free_storage_space_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_free_storage_space_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -120,7 +122,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_freeable_memory_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_freeable_memory_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -135,7 +137,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_throughput_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_throughput_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -150,7 +152,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_throughput_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_throughput_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -165,7 +167,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_iops_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_iops_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -180,7 +182,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_iops_average{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_iops_average{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -195,7 +197,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_read_latency_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_read_latency_maximum{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
@@ -210,7 +212,7 @@ grafana.dashboard.new(
     .addYaxis()
     .addTarget(
       grafana.target.prometheus.new(
-        expr='aws_rds_write_latency_maximum{region=~"$region", dimension_DBInstanceIdentifier=~"$instance"}',
+        expr='aws_rds_write_latency_maximum{%s}' % [allLabels],
         legendFormat='{{dimension_DBInstanceIdentifier}}',
         datasource='$datasource',
       ),
