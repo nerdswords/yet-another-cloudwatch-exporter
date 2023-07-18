@@ -58,7 +58,7 @@ grafana.dashboard.new(
     name='filter_id',
     label='FilterId',
     datasource='$datasource',
-    query='label_values(aws_s3_all_requests_sum{dimension_BucketName=~"$bucket_name"}, dimension_FilterId)',
+    query='label_values(aws_s3_all_requests_sum{dimension_BucketName=~"$bucket"}, dimension_FilterId)',
     refresh=common.refreshOnTimeRangeChange,
     includeAll=true,
     multi=true,
