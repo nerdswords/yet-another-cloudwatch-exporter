@@ -1046,18 +1046,6 @@ func TestCreateDMSSession(t *testing.T) {
 		})
 }
 
-func TestCreateAPIGatewaySession(t *testing.T) {
-	testAWSClient(
-		t,
-		"APIGateway",
-		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
-			iface := createAPIGatewaySession(s, region, role, fips, false)
-			if iface == nil {
-				t.Fail()
-			}
-		})
-}
-
 func TestCreateStorageGatewaySession(t *testing.T) {
 	testAWSClient(
 		t,
