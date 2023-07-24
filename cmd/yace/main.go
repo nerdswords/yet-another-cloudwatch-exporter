@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -187,15 +188,11 @@ func startScraper(c *cli.Context) error {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
-	logger.Info("Yace startup completed", "version", version)
-
 	featureFlags := c.StringSlice(enableFeatureFlag)
-
 	s := NewScraper(featureFlags)
 	var cache cachingFactory = v1.NewFactory(cfg, fips, logger)
 	for _, featureFlag := range featureFlags {
 		if featureFlag == config.AwsSdkV2 {
-			logger.Info("Using aws sdk v2")
 			var err error
 			// Can't override cache while also creating err
 			cache, err = v2.NewFactory(cfg, fips, logger)
@@ -264,6 +261,8 @@ func startScraper(c *cli.Context) error {
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
 		go s.decoupled(ctx, logger, cache)
 	})
+
+	logger.Info("Yace startup completed", "version", version, "feature_flags", strings.Join(featureFlags, ","))
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	return srv.ListenAndServe()
