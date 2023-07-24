@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -333,9 +332,10 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 	}
 
 	if mLength < mPeriod {
-		log.Warningf(
+		return fmt.Errorf(
 			"Metric [%s/%d] in %v: length(%d) is smaller than period(%d). This can cause that the data requested is not ready and generate data gaps",
-			m.Name, metricIdx, parent, mLength, mPeriod)
+			m.Name, metricIdx, parent, mLength, mPeriod,
+		)
 	}
 	m.Length = mLength
 	m.Period = mPeriod

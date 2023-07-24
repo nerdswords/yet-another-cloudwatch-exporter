@@ -1,3 +1,6 @@
+run:
+  timeout: 5m
+
 output:
   format: line-number
 
@@ -28,5 +31,8 @@ linters:
     - unused
 
 linters-settings:
+  errcheck:
+    exclude-functions:
+      - (github.com/go-kit/log.Logger).Log
   goimports:
     local-prefixes: "github.com/nerdswords/yet-another-cloudwatch-exporter"
