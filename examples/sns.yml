@@ -1,0 +1,19 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/SNS
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: NumberOfMessagesPublished
+          statistics: [Sum]
+        - name: NumberOfNotificationsDelivered
+          statistics: [Sum]
+        - name: NumberOfNotificationsFailed
+          statistics: [Sum]
+        - name: NumberOfNotificationsFilteredOut
+          statistics: [Sum]
+        - name: PublishSize
+          statistics: [Average]

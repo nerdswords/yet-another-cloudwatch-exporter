@@ -1,0 +1,19 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/SES
+      regions:
+        - us-east-1
+      period: 300
+      length: 300
+      metrics:
+        - name: Send
+          statistics: [Sum]
+        - name: Delivery
+          statistics: [Sum]
+        - name: Bounce
+          statistics: [Sum]
+        - name: Reputation.ComplaintRate
+          statistics: [Sum]
+        - name: Reputation.BounceRate
+          statistics: [Sum]
