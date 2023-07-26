@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/semaphore"
 
@@ -41,6 +40,7 @@ var (
 	addr                  string
 	configFile            string
 	debug                 bool
+	logFormat             string
 	fips                  bool
 	cloudwatchConcurrency int
 	tagConcurrency        int
@@ -95,6 +95,21 @@ func NewYACEApp() *cli.App {
 			Destination: &debug,
 			EnvVars:     []string{"debug"},
 		},
+		&cli.StringFlag{
+			Name:        "log.format",
+			Value:       "json",
+			Usage:       "Output format of log messages. One of: [logfmt, json]. Default: [json].",
+			Destination: &logFormat,
+			Action: func(ctx *cli.Context, s string) error {
+				switch s {
+				case "logfmt", "json":
+					break
+				default:
+					return fmt.Errorf("unrecognized log format %q", s)
+				}
+				return nil
+			},
+		},
 		&cli.BoolFlag{
 			Name:        "fips",
 			Value:       false,
@@ -145,18 +160,16 @@ func NewYACEApp() *cli.App {
 		},
 	}
 
-	yace.Before = func(ctx *cli.Context) error {
-		logger = newLogger(debug)
-		return nil
-	}
-
 	yace.Commands = []*cli.Command{
 		{
-			Name: "verify-config", Aliases: []string{"vc"}, Usage: "Loads and attempts to parse config file, then exits. Useful for CI/CD validation",
+			Name:    "verify-config",
+			Aliases: []string{"vc"},
+			Usage:   "Loads and attempts to parse config file, then exits. Useful for CI/CD validation",
 			Flags: []cli.Flag{
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
 			Action: func(c *cli.Context) error {
+				logger = logging.NewLogger(logFormat, debug, "version", version)
 				logger.Info("Parsing config")
 				if err := cfg.Load(configFile, logger); err != nil {
 					logger.Error(err, "Couldn't read config file", "path", configFile)
@@ -168,7 +181,9 @@ func NewYACEApp() *cli.App {
 			},
 		},
 		{
-			Name: "version", Aliases: []string{"v"}, Usage: "prints current yace version.",
+			Name:    "version",
+			Aliases: []string{"v"},
+			Usage:   "prints current yace version.",
 			Action: func(c *cli.Context) error {
 				fmt.Println(version)
 				os.Exit(0)
@@ -183,6 +198,8 @@ func NewYACEApp() *cli.App {
 }
 
 func startScraper(c *cli.Context) error {
+	logger = logging.NewLogger(logFormat, debug, "version", version)
+
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
@@ -266,18 +283,4 @@ func startScraper(c *cli.Context) error {
 
 	srv := &http.Server{Addr: addr, Handler: mux}
 	return srv.ListenAndServe()
-}
-
-func newLogger(debug bool) logging.Logger {
-	l := logrus.New()
-	l.SetFormatter(&logrus.JSONFormatter{})
-	l.SetOutput(os.Stdout)
-
-	if debug {
-		l.SetLevel(logrus.DebugLevel)
-	} else {
-		l.SetLevel(logrus.InfoLevel)
-	}
-
-	return logging.NewLogger(l)
 }
