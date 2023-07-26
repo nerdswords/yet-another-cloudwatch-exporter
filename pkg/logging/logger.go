@@ -1,14 +1,10 @@
 package logging
 
 import (
-	"encoding"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"reflect"
+	"os"
 
-	"github.com/sirupsen/logrus"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 )
 
 type Logger interface {
@@ -20,113 +16,69 @@ type Logger interface {
 	IsDebugEnabled() bool
 }
 
-type logrusLogger struct {
-	entry *logrus.Entry
+type gokitLogger struct {
+	logger       log.Logger
+	debugEnabled bool
 }
 
-func (l logrusLogger) Info(message string, keyvals ...interface{}) {
-	l.entry.WithFields(toFields(keyvals...)).Info(message)
-}
-
-func (l logrusLogger) Debug(message string, keyvals ...interface{}) {
-	l.entry.WithFields(toFields(keyvals...)).Debug(message)
-}
-
-func (l logrusLogger) Error(err error, message string, keyvals ...interface{}) {
-	l.entry.WithFields(toFields(keyvals...)).WithError(err).Error(message)
-}
-
-func (l logrusLogger) Warn(message string, keyvals ...interface{}) {
-	l.entry.WithFields(toFields(keyvals...)).Warn(message)
-}
-
-func (l logrusLogger) With(keyvals ...interface{}) Logger {
-	return logrusLogger{l.entry.WithFields(toFields(keyvals...))}
-}
-
-func (l logrusLogger) IsDebugEnabled() bool {
-	return l.entry.Logger.IsLevelEnabled(logrus.DebugLevel)
-}
-
-func NewLogger(l *logrus.Logger) logrusLogger { //nolint:revive
-	return logrusLogger{logrus.NewEntry(l)}
-}
-
-func NewNopLogger() logrusLogger { //nolint:revive
-	l := logrus.New()
-	l.Out = io.Discard
-	return logrusLogger{logrus.NewEntry(l)}
-}
-
-var ErrMissingValue = errors.New("(MISSING)")
-
-// This code is from https://github.com/go-kit/log/blob/main/json_logger.go#L23-L91 which safely handles odd keyvals
-// lengths, and safely converting interface{} -> string
-func toFields(keyvals ...interface{}) logrus.Fields {
-	n := (len(keyvals) + 1) / 2 // +1 to handle case when len is odd
-	m := make(map[string]interface{}, n)
-	for i := 0; i < len(keyvals); i += 2 {
-		k := keyvals[i]
-		var v interface{} = ErrMissingValue
-		if i+1 < len(keyvals) {
-			v = keyvals[i+1]
-		}
-		merge(m, k, v)
+func NewLogger(format string, debugEnabled bool, keyvals ...interface{}) Logger {
+	var logger log.Logger
+	if format == "json" {
+		logger = log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
+	} else {
+		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	}
 
-	return m
-}
-
-func merge(dst map[string]interface{}, k, v interface{}) {
-	var key string
-	switch x := k.(type) {
-	case string:
-		key = x
-	case fmt.Stringer:
-		key = safeString(x)
-	default:
-		key = fmt.Sprint(x)
+	if debugEnabled {
+		logger = level.NewFilter(logger, level.AllowDebug())
+	} else {
+		logger = level.NewFilter(logger, level.AllowInfo())
 	}
 
-	// We want json.Marshaler and encoding.TextMarshaller to take priority over
-	// err.Error() and v.String(). But json.Marshall (called later) does that by
-	// default so we force a no-op if it's one of those 2 case.
-	switch x := v.(type) {
-	case json.Marshaler:
-	case encoding.TextMarshaler:
-	case error:
-		v = safeError(x)
-	case fmt.Stringer:
-		v = safeString(x)
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.Caller(4))
+	logger = log.With(logger, keyvals...)
+
+	return gokitLogger{
+		logger:       logger,
+		debugEnabled: debugEnabled,
 	}
-
-	dst[key] = v
 }
 
-func safeString(str fmt.Stringer) (s string) { //nolint:nonamedreturns
-	defer func() {
-		if panicVal := recover(); panicVal != nil {
-			if v := reflect.ValueOf(str); v.Kind() == reflect.Ptr && v.IsNil() {
-				s = "NULL"
-			} else {
-				panic(panicVal)
-			}
-		}
-	}()
-	s = str.String()
-	return
+func NewNopLogger() Logger {
+	return gokitLogger{logger: log.NewNopLogger()}
 }
 
-func safeError(err error) (s interface{}) { //nolint:nonamedreturns
-	defer func() {
-		if panicVal := recover(); panicVal != nil {
-			if v := reflect.ValueOf(err); v.Kind() == reflect.Ptr && v.IsNil() {
-				s = nil
-			} else {
-				panic(panicVal)
-			}
-		}
-	}()
-	s = err.Error()
-	return
+func (g gokitLogger) Debug(message string, keyvals ...interface{}) {
+	kv := []interface{}{"msg", message}
+	kv = append(kv, keyvals...)
+	level.Debug(g.logger).Log(kv...)
+}
+
+func (g gokitLogger) Info(message string, keyvals ...interface{}) {
+	kv := []interface{}{"msg", message}
+	kv = append(kv, keyvals...)
+	level.Info(g.logger).Log(kv...)
+}
+
+func (g gokitLogger) Error(err error, message string, keyvals ...interface{}) {
+	kv := []interface{}{"msg", message, "err", err}
+	kv = append(kv, keyvals...)
+	level.Error(g.logger).Log(kv...)
+}
+
+func (g gokitLogger) Warn(message string, keyvals ...interface{}) {
+	kv := []interface{}{"msg", message}
+	kv = append(kv, keyvals...)
+	level.Warn(g.logger).Log(kv...)
+}
+
+func (g gokitLogger) With(keyvals ...interface{}) Logger {
+	return gokitLogger{
+		logger:       log.With(g.logger, keyvals...),
+		debugEnabled: g.debugEnabled,
+	}
+}
+
+func (g gokitLogger) IsDebugEnabled() bool {
+	return g.debugEnabled
 }
