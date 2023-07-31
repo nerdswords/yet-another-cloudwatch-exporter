@@ -1,3 +1,36 @@
+# main
+
+**Bugfixes and features**
+
+Features:
+* Log features enabled at startup by @cristiangreco
+* Use go-kit logger and add `log.format` flag by @cristiangreco
+
+Bugs:
+* Remove tagged resource requirement from TrustedAdvisor by @kgeckhart
+* Fix: RDS dashboard filtering by job value by @andriikushch
+* Review dimensions regexps for APIGateway by @cristiangreco
+* Fix syntax in rds.libsonnet by @andriikushch
+* Fix the `FilterId` label value selection for s3 dashboard by @andriikushch
+
+Docs:
+* Add more config examples (ApiGW, SES, SNS, ECS) by @cristiangreco
+
+Refactoring:
+* Refactor clients.Cache -> clients.Factory by @kgeckhart
+* dependabot: use group updates for aws sdk v2 by @cristiangreco
+* Add debug logging to maxdimassociator by @cristiangreco
+
+**Dependencies**
+
+New dependecies:
+* github.com/go-kit/log v0.2.1
+
+Updates:
+* Bump github.com/aws/aws-sdk-go and aws-sdk-go-v2 to latest versions
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.53.0...v0.54.0
+
 # v0.53.0
 
 **Bugfixes and features**
