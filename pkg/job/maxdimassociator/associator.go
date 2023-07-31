@@ -1,12 +1,14 @@
 package maxdimassociator
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 	"golang.org/x/exp/slices"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -18,6 +20,8 @@ import (
 type Associator struct {
 	// mappings is a slice of dimensions-based mappings, one for each regex of a given namespace
 	mappings []*dimensionsRegexpMapping
+
+	logger logging.Logger
 }
 
 type dimensionsRegexpMapping struct {
@@ -32,8 +36,11 @@ type dimensionsRegexpMapping struct {
 }
 
 // NewAssociator builds all mappings for the given dimensions regexps and list of resources.
-func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
-	assoc := Associator{mappings: []*dimensionsRegexpMapping{}}
+func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
+	assoc := Associator{
+		mappings: []*dimensionsRegexpMapping{},
+		logger:   logger,
+	}
 
 	// Keep track of resources that have already been mapped.
 	// Each resource will be matched against at most one regex.
@@ -81,6 +88,21 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 		return len(a.dimensions) >= len(b.dimensions)
 	})
 
+	if logger.IsDebugEnabled() {
+		for idx, m := range assoc.mappings {
+			sb := strings.Builder{}
+			sb.WriteString("{")
+			for k, v := range m.dimensionsMapping {
+				sb.WriteString(fmt.Sprintf("%d", k))
+				sb.WriteString("=")
+				sb.WriteString(v.ARN)
+				sb.WriteString(",")
+			}
+			sb.WriteString("}")
+			logger.Debug("associator mapping", "idx", idx, "dimensions", strings.Join(m.dimensions, ","), "dimensions_mapping", sb.String())
+		}
+	}
+
 	return assoc
 }
 
@@ -90,6 +112,8 @@ func NewAssociator(dimensionRegexps []*regexp.Regexp, resources []*model.TaggedR
 // ignored or not.
 func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool) {
 	if len(cwMetric.Dimensions) == 0 {
+		assoc.logger.Debug("metric has no dimensions", "metric", cwMetric.MetricName)
+
 		// Do not skip the metric (create a "global" metric)
 		return nil, false
 	}
@@ -99,12 +123,17 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 		dimensions = append(dimensions, dimension.Name)
 	}
 
+	if assoc.logger.IsDebugEnabled() {
+		assoc.logger.Debug("associating metric", "metric_name", cwMetric.MetricName, "dimensions", strings.Join(dimensions, ","))
+	}
+
 	// Find the mapping which contains the most
 	// (but not necessarily all) the metric's dimensions names.
 	// Mappings are sorted by decreasing number of dimensions names.
 	var regexpMapping *dimensionsRegexpMapping
-	for _, m := range assoc.mappings {
+	for idx, m := range assoc.mappings {
 		if containsAll(dimensions, m.dimensions) {
+			assoc.logger.Debug("matched metric with mapping", "mapping_idx", idx)
 			regexpMapping = m
 			break
 		}

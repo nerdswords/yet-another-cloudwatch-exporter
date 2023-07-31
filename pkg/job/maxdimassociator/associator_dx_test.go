@@ -4,29 +4,19 @@ import (
 	"testing"
 
 	"github.com/grafana/regexp"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var protectedResources1 = &model.TaggedResource{
-	ARN:       "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
-	Namespace: "AWS/DDoSProtection",
+var dxVif = &model.TaggedResource{
+	ARN:       "arn:aws:directconnect::012345678901:dxvif/dxvif-abc123",
+	Namespace: "AWS/DX",
 }
 
-var protectedResources2 = &model.TaggedResource{
-	ARN:       "arn:aws:ec2:us-east-1:123456789012:instance/i-def456",
-	Namespace: "AWS/DDoSProtection",
-}
-
-var protectedResources = []*model.TaggedResource{
-	protectedResources1,
-	protectedResources2,
-}
-
-func TestAssociatorDDoSProtection(t *testing.T) {
+func TestAssociatorDX(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
 		resources        []*model.TaggedResource
@@ -42,20 +32,21 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "should match with ResourceArn dimension",
+			name: "should match Virtual Interface with VirtualInterfaceId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/DDoSProtection").DimensionRegexps,
-				resources:        protectedResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/DX").DimensionRegexps,
+				resources:        []*model.TaggedResource{dxVif},
 				metric: &model.Metric{
-					Namespace:  "AWS/DDoSProtection",
-					MetricName: "CPUUtilization",
+					MetricName: "VirtualInterfaceBpsIngress",
+					Namespace:  "AWS/DX",
 					Dimensions: []*model.Dimension{
-						{Name: "ResourceArn", Value: "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123"},
+						{Name: "ConnectionId", Value: "dxlag-abc123"},
+						{Name: "VirtualInterfaceId", Value: "dxvif-abc123"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: protectedResources1,
+			expectedResource: dxVif,
 		},
 	}
 
@@ -63,8 +54,8 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
-			assert.Equal(t, tc.expectedSkip, skip)
-			assert.Equal(t, tc.expectedResource, res)
+			require.Equal(t, tc.expectedSkip, skip)
+			require.Equal(t, tc.expectedResource, res)
 		})
 	}
 }

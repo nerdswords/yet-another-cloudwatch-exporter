@@ -169,12 +169,9 @@ func getMetricDataForQueries(
 
 				var assoc resourceAssociator
 				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
+					assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 				} else {
 					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-				if logger.IsDebugEnabled() {
-					logger.Debug("associator", assoc)
 				}
 
 				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
@@ -197,12 +194,9 @@ func getMetricDataForQueries(
 
 				var assoc resourceAssociator
 				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
+					assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 				} else {
 					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-				if logger.IsDebugEnabled() {
-					logger.Debug("associator", assoc)
 				}
 
 				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, nil)
