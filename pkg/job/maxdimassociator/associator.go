@@ -168,11 +168,11 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 			if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
 				logger.Debug("resource matched", "signature", signature)
 				return resource, false
-			} else {
-				// Otherwise, continue iterating across the rest of regex mappings
-				// to attempt to find another one with fewer dimensions.
-				logger.Debug("resource not matched", "signature", signature)
 			}
+
+			// Otherwise, continue iterating across the rest of regex mappings
+			// to attempt to find another one with fewer dimensions.
+			logger.Debug("resource not matched", "signature", signature)
 		}
 	}
 
