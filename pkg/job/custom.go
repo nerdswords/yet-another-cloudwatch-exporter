@@ -37,6 +37,7 @@ func runCustomNamespaceJob(
 	maxMetricCount := metricsPerQuery
 	length := getMetricDataInputLength(job.Metrics)
 	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	logger.Debug("GetMetricData partitions", "total", partition)
 
 	wg.Add(partition)
 
