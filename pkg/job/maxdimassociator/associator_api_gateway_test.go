@@ -115,7 +115,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 			expectedResource: apiGatewayV1Stage,
 		},
 		{
-			name: "no match",
+			name: "should match API Gateway V1 with ApiName (Stage is not matched)",
 			args: args{
 				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
 				resources:        apiGatewayResources,
@@ -128,7 +128,8 @@ func TestAssociatorAPIGateway(t *testing.T) {
 					},
 				},
 			},
-			expectedSkip: true,
+			expectedSkip:     false,
+			expectedResource: apiGatewayV1,
 		},
 	}
 

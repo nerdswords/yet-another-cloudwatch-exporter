@@ -35,6 +35,23 @@ type dimensionsRegexpMapping struct {
 	dimensionsMapping map[uint64]*model.TaggedResource
 }
 
+func (rm dimensionsRegexpMapping) toString() string {
+	sb := strings.Builder{}
+	sb.WriteString("{dimensions=[")
+	for _, dim := range rm.dimensions {
+		sb.WriteString(dim)
+	}
+	sb.WriteString("], dimensions_mappings={")
+	for sign, res := range rm.dimensionsMapping {
+		sb.WriteString(fmt.Sprintf("%d", sign))
+		sb.WriteString("=")
+		sb.WriteString(res.ARN)
+		sb.WriteString(",")
+	}
+	sb.WriteString("}}")
+	return sb.String()
+}
+
 // NewAssociator builds all mappings for the given dimensions regexps and list of resources.
 func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
 	assoc := Associator{
@@ -78,7 +95,17 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 			mappedResources[idx] = true
 		}
 
-		assoc.mappings = append(assoc.mappings, m)
+		if len(m.dimensionsMapping) > 0 {
+			assoc.mappings = append(assoc.mappings, m)
+		}
+
+		// The mapping might end up as empty in cases e.g. where
+		// one of the regexps defined for the namespace doesn't match
+		// against any of the tagged resources. This might happen for
+		// example when we define multiple regexps (to capture sibling
+		// or sub-resources) and one of them doesn't match any resource.
+		// This behaviour is ok, we just want to debug log to keep track of it.
+		logger.Debug("unable to define a regex mapping", "regex", regex.String())
 	}
 
 	// sort all mappings by decreasing number of dimensions names
@@ -89,17 +116,8 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 	})
 
 	if logger.IsDebugEnabled() {
-		for idx, m := range assoc.mappings {
-			sb := strings.Builder{}
-			sb.WriteString("{")
-			for k, v := range m.dimensionsMapping {
-				sb.WriteString(fmt.Sprintf("%d", k))
-				sb.WriteString("=")
-				sb.WriteString(v.ARN)
-				sb.WriteString(",")
-			}
-			sb.WriteString("}")
-			logger.Debug("associator mapping", "idx", idx, "dimensions", strings.Join(m.dimensions, ","), "dimensions_mapping", sb.String())
+		for idx, regexpMapping := range assoc.mappings {
+			logger.Debug("associator mapping", "mapping_idx", idx, "mapping", regexpMapping.toString())
 		}
 	}
 
@@ -111,8 +129,10 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 // In case a map can't be found, the second return parameter indicates whether the metric should be
 // ignored or not.
 func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*model.TaggedResource, bool) {
+	logger := assoc.logger.With("metric_name", cwMetric.MetricName)
+
 	if len(cwMetric.Dimensions) == 0 {
-		assoc.logger.Debug("metric has no dimensions", "metric", cwMetric.MetricName)
+		logger.Debug("metric has no dimensions, don't skip")
 
 		// Do not skip the metric (create a "global" metric)
 		return nil, false
@@ -123,41 +143,49 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 		dimensions = append(dimensions, dimension.Name)
 	}
 
-	if assoc.logger.IsDebugEnabled() {
-		assoc.logger.Debug("associating metric", "metric_name", cwMetric.MetricName, "dimensions", strings.Join(dimensions, ","))
+	if logger.IsDebugEnabled() {
+		logger.Debug("associate loop start", "dimensions", strings.Join(dimensions, ","))
 	}
 
-	// Find the mapping which contains the most
+	// Attempt to find the regex mapping which contains the most
 	// (but not necessarily all) the metric's dimensions names.
-	// Mappings are sorted by decreasing number of dimensions names.
-	var regexpMapping *dimensionsRegexpMapping
-	for idx, m := range assoc.mappings {
-		if containsAll(dimensions, m.dimensions) {
-			assoc.logger.Debug("matched metric with mapping", "mapping_idx", idx)
-			regexpMapping = m
-			break
+	// Regex mappings are sorted by decreasing number of dimensions names,
+	// which favours find the mapping with most dimensions.
+	mappingFound := false
+	for idx, regexpMapping := range assoc.mappings {
+		if containsAll(dimensions, regexpMapping.dimensions) {
+			logger.Debug("found mapping", "mapping_idx", idx, "mapping", regexpMapping.toString())
+
+			// A regex mapping has been found. The metric has all (and possibly more)
+			// the dimensions computed for the mapping. Now compute a signature
+			// of the labels (names and values) of the dimensions of this mapping.
+			mappingFound = true
+			labels := buildLabelsMap(cwMetric, regexpMapping)
+			signature := prom_model.LabelsToSignature(labels)
+
+			// Check if there's an entry for the labels (names and values) of the metric,
+			// and return the resource in case.
+			if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
+				logger.Debug("resource matched", "signature", signature)
+				return resource, false
+			} else {
+				// Otherwise, continue iterating across the rest of regex mappings
+				// to attempt to find another one with fewer dimensions.
+				logger.Debug("resource not matched", "signature", signature)
+			}
 		}
 	}
 
-	if regexpMapping == nil {
-		// if no mapping is found, it means the ListMetrics API response
-		// did not contain any subset of the metric's dimensions names.
-		// Do not skip the metric though (create a "global" metric).
-		return nil, false
-	}
-
-	// A mapping has been found. The metric has all (and possibly more)
-	// the dimensions computed for the mapping. Pick only exactly
-	// the dimensions of the mapping to build a labels signature.
-	labels := buildLabelsMap(cwMetric, regexpMapping)
-	signature := prom_model.LabelsToSignature(labels)
-
-	if resource, ok := regexpMapping.dimensionsMapping[signature]; ok {
-		return resource, false
-	}
-
-	// if there's no mapping entry for this resource, skip it
-	return nil, true
+	// At this point, we haven't been able to match the metric against
+	// any resource based on the dimensions the associator knows.
+	// If a regex mapping was ever found in the loop above but no entry
+	// (i.e. matching labels names and values) matched the metric dimensions,
+	// skip the metric altogether.
+	// Otherwise, if we didn't find any regex mapping it means we can't
+	// correctly map the dimensions names to a resource arn regex,
+	// but we still want to keep the metric and create a "global" metric.
+	logger.Debug("associate loop end", "skip", mappingFound)
+	return nil, mappingFound
 }
 
 // buildLabelsMap returns a map of labels names and values.
