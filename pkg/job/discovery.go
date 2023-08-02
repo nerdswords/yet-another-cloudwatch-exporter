@@ -71,7 +71,7 @@ func runDiscoveryJob(
 	g.SetLimit(concurrencyLimit)
 
 	mu := sync.Mutex{}
-	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, 0, partitionSize)
+	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	count := 0
 	for i := 0; i < metricDataLength; i += maxMetricCount {
@@ -117,12 +117,12 @@ func runDiscoveryJob(
 			continue
 		}
 		for _, metricDataResult := range data {
-			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.ID)
+			idx := findGetMetricDataByID(getMetricDatas, metricDataResult.ID)
 			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
 				continue
 			}
-			getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Datapoint
+			getMetricDatas[idx].GetMetricDataPoint = &metricDataResult.Datapoint
 			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
 			getMetricDatas[idx].MetricID = nil // mark as processed
 		}

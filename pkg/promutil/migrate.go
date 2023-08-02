@@ -106,7 +106,7 @@ func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logg
 
 func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
 	if cwd.GetMetricDataPoint != nil {
-		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps, nil
+		return cwd.GetMetricDataPoint, cwd.GetMetricDataTimestamps, nil
 	}
 	var averageDataPoints []*model.Datapoint
 

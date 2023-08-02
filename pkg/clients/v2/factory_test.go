@@ -429,7 +429,7 @@ func (t testClient) ListMetrics(_ context.Context, _ string, _ *config.Metric, _
 	return nil, nil
 }
 
-func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []*cloudwatch_client.MetricDataResult {
+func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch_client.MetricDataResult {
 	return nil
 }
 

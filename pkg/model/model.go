@@ -67,7 +67,7 @@ type CloudwatchData struct {
 	Statistics              []string
 	Points                  []*Datapoint
 	GetMetricDataPoint      *float64
-	GetMetricDataTimestamps *time.Time
+	GetMetricDataTimestamps time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
 	CustomTags              []Tag

@@ -90,7 +90,7 @@ func toModelDimensions(dimensions []types.Dimension) []*model.Dimension {
 	return modelDimensions
 }
 
-func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []*cloudwatch_client.MetricDataResult {
+func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch_client.MetricDataResult {
 	filter := createGetMetricDataInput(logger, getMetricData, &namespace, length, delay, configuredRoundingPeriod)
 	var resp cloudwatch.GetMetricDataOutput
 
@@ -120,15 +120,15 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 	return toMetricDataResult(resp)
 }
 
-func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []*cloudwatch_client.MetricDataResult {
-	output := make([]*cloudwatch_client.MetricDataResult, 0, len(resp.MetricDataResults))
+func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []cloudwatch_client.MetricDataResult {
+	output := make([]cloudwatch_client.MetricDataResult, 0, len(resp.MetricDataResults))
 	for _, metricDataResult := range resp.MetricDataResults {
-		mappedResult := cloudwatch_client.MetricDataResult{ID: metricDataResult.Id}
+		mappedResult := cloudwatch_client.MetricDataResult{ID: *metricDataResult.Id}
 		if len(metricDataResult.Values) > 0 {
-			mappedResult.Datapoint = &metricDataResult.Values[0]
-			mappedResult.Timestamp = &metricDataResult.Timestamps[0]
+			mappedResult.Datapoint = metricDataResult.Values[0]
+			mappedResult.Timestamp = metricDataResult.Timestamps[0]
 		}
-		output = append(output, &mappedResult)
+		output = append(output, mappedResult)
 	}
 	return output
 }
