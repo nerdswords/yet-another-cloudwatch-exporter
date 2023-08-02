@@ -12,6 +12,8 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
+var amazonMQBrokerSuffix = regexp.MustCompile("-[0-9]+$")
+
 // Associator implements a "best effort" algorithm to automatically map the output
 // of the ListMetrics API to the list of resources retrieved from the Tagging API.
 // The core logic is based on a manually maintained list of regexes that extract
@@ -206,9 +208,8 @@ func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMappi
 			// the value of the "Broker" dimension contains a number suffix
 			// that is not part of the resource ARN
 			if cwMetric.Namespace == "AWS/AmazonMQ" && name == "Broker" {
-				brokerSuffix := regexp.MustCompile("-[0-9]+$")
-				if brokerSuffix.MatchString(value) {
-					value = brokerSuffix.ReplaceAllString(value, "")
+				if amazonMQBrokerSuffix.MatchString(value) {
+					value = amazonMQBrokerSuffix.ReplaceAllString(value, "")
 				}
 			}
 
