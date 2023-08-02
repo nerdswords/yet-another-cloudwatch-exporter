@@ -107,7 +107,9 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 		// example when we define multiple regexps (to capture sibling
 		// or sub-resources) and one of them doesn't match any resource.
 		// This behaviour is ok, we just want to debug log to keep track of it.
-		logger.Debug("unable to define a regex mapping", "regex", regex.String())
+		if logger.IsDebugEnabled() {
+			logger.Debug("unable to define a regex mapping", "regex", regex.String())
+		}
 	}
 
 	// sort all mappings by decreasing number of dimensions names
@@ -156,7 +158,9 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 	mappingFound := false
 	for idx, regexpMapping := range assoc.mappings {
 		if containsAll(dimensions, regexpMapping.dimensions) {
-			logger.Debug("found mapping", "mapping_idx", idx, "mapping", regexpMapping.toString())
+			if logger.IsDebugEnabled() {
+				logger.Debug("found mapping", "mapping_idx", idx, "mapping", regexpMapping.toString())
+			}
 
 			// A regex mapping has been found. The metric has all (and possibly more)
 			// the dimensions computed for the mapping. Now compute a signature
