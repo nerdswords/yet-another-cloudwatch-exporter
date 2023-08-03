@@ -1,12 +1,15 @@
 package job
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -452,5 +455,79 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func getSampleMetricDatas(id string) model.CloudwatchData {
+	return model.CloudwatchData{
+		AccountID:              aws.String("123123123123"),
+		AddCloudwatchTimestamp: aws.Bool(false),
+		Dimensions: []*model.Dimension{
+			{
+				Name:  "FileSystemId",
+				Value: "fs-abc123",
+			},
+			{
+				Name:  "StorageClass",
+				Value: "Standard",
+			},
+		},
+		ID:        aws.String(id),
+		Metric:    aws.String("StorageBytes"),
+		Namespace: aws.String("efs"),
+		NilToZero: aws.Bool(false),
+		Period:    60,
+		Region:    aws.String("us-east-1"),
+		Statistics: []string{
+			"Average",
+		},
+		Tags: []model.Tag{
+			{
+				Key:   "Value1",
+				Value: "",
+			},
+			{
+				Key:   "Value2",
+				Value: "",
+			},
+		},
+	}
+}
+
+func BenchmarkXxx(b *testing.B) {
+	const metricsPerQuery = 50
+	const testResourcesCount = 100
+	const metricsPerResource = 1000
+
+	var outputs = [][]*cloudwatch.MetricDataResult{}
+
+	var now = time.Now()
+
+	var testResourceIDs = make([]string, 0, testResourcesCount)
+	for i := 0; i < testResourcesCount; i++ {
+		testResourceIDs = append(testResourceIDs, fmt.Sprintf("test-resource-%d", i))
+	}
+
+	for batch := 0; batch < metricsPerQuery; batch++ {
+		newBatchOutputs := make([]*cloudwatch.MetricDataResult, 0, metricsPerResource/metricsPerQuery)
+		for i := 0; i < metricsPerQuery; i++ {
+			id := testResourceIDs[(batch*metricsPerQuery+i)%testResourcesCount]
+			newBatchOutputs = append(newBatchOutputs, &cloudwatch.MetricDataResult{
+				ID:        aws.String(id),
+				Datapoint: aws.Float64(1.4),
+				Timestamp: aws.Time(now),
+			})
+		}
+		outputs = append(outputs, newBatchOutputs)
+	}
+
+	datas := make([]*model.CloudwatchData, 0, testResourcesCount)
+	for i := 0; i < testResourcesCount; i++ {
+		var data = getSampleMetricDatas(testResourceIDs[i])
+		datas = append(datas, &data)
+	}
+
+	for i := 0; i < b.N; i++ {
+		xxx(outputs, datas, logging.NewNopLogger())
 	}
 }

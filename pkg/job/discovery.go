@@ -9,8 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -64,46 +62,35 @@ func runDiscoveryJob(
 
 	maxMetricCount := metricsPerQuery
 	length := getMetricDataInputLength(job.Metrics)
-	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
-	logger.Debug("GetMetricData partitions", "size", partitionSize)
+	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	logger.Debug("GetMetricData partitions", "total", partition)
 
-	g, gCtx := errgroup.WithContext(ctx)
-	g.SetLimit(concurrencyLimit)
+	var wg sync.WaitGroup
+	wg.Add(partition)
 
 	mu := sync.Mutex{}
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	count := 0
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
-		start := i
-		end := i + maxMetricCount
-		if end > metricDataLength {
-			end = metricDataLength
-		}
-		partitionNum := count
-		count++
-
-		g.Go(func() error {
-			logger.Debug("GetMetricData partition", "start", start, "end", end, "partitionNum", partitionNum)
-
-			input := getMetricDatas[start:end]
-			data := clientCloudwatch.GetMetricData(gCtx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
-			if data != nil {
-				mu.Lock()
-				getMetricDataOutput = append(getMetricDataOutput, data)
-				mu.Unlock()
-			} else {
-				logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
+		go func(i, n int) {
+			defer wg.Done()
+			end := i + maxMetricCount
+			if end > metricDataLength {
+				end = metricDataLength
 			}
-
-			return nil
-		})
+			input := getMetricDatas[i:end]
+			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
+			if data != nil {
+				getMetricDataOutput[n] = data
+			} else {
+				logger.Warn("GetMetricData partition empty result", "partition", n, "start", i, "end", end)
+			}
+		}(i, count)
+		count++
 	}
-
-	if err = g.Wait(); err != nil {
-		logger.Error(err, "GetMetricData work group error")
-		return nil, nil
-	}
+	wg.Wait()
 
 	// Update getMetricDatas slice with values and timestamps from API response.
 	// We iterate through the response MetricDataResults and match the result ID
@@ -136,6 +123,31 @@ func runDiscoveryJob(
 		return m.MetricID == nil
 	})
 	return resources, getMetricDatas
+}
+
+func xxx(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
+	// Update getMetricDatas slice with values and timestamps from API response.
+	// We iterate through the response MetricDataResults and match the result ID
+	// with what was sent in the API request.
+	// In the event that the API response contains any ID we don't know about
+	// (shouldn't really happen) we log a warning and move on. On the other hand,
+	// in case the API response does not contain results for all the IDs we've
+	// requested, unprocessed elements will be removed later on.
+	for _, data := range output {
+		if data == nil {
+			continue
+		}
+		for _, metricDataResult := range data {
+			idx := findGetMetricDataByID(datas, *metricDataResult.ID)
+			if idx == -1 {
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+				continue
+			}
+			datas[idx].GetMetricDataPoint = metricDataResult.Datapoint
+			datas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
+			datas[idx].MetricID = nil // mark as processed
+		}
+	}
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
