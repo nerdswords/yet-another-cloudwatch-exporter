@@ -122,7 +122,9 @@ func runDiscoveryJob(
 				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
 				continue
 			}
-			getMetricDatas[idx].GetMetricDataPoint = &metricDataResult.Datapoint
+			// Copy to avoid a loop closure bug
+			dataPoint := metricDataResult.Datapoint
+			getMetricDatas[idx].GetMetricDataPoint = &dataPoint
 			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
 			getMetricDatas[idx].MetricID = nil // mark as processed
 		}
