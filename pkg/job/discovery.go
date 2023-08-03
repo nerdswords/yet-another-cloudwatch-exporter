@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -32,7 +34,7 @@ func runDiscoveryJob(
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
-	_ int,
+	concurrencyLimit int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 
@@ -62,11 +64,14 @@ func runDiscoveryJob(
 
 	maxMetricCount := metricsPerQuery
 	length := getMetricDataInputLength(job.Metrics)
-	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
-	logger.Debug("GetMetricData partitions", "total", partition)
+	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	logger.Debug("GetMetricData partitions", "size", partitionSize)
 
-	var wg sync.WaitGroup
-	wg.Add(partition)
+	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(concurrencyLimit)
+
+	mu := sync.Mutex{}
+	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, 0, partitionSize)
 
 	mu := sync.Mutex{}
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
@@ -74,23 +79,35 @@ func runDiscoveryJob(
 	count := 0
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
-		go func(i, n int) {
-			defer wg.Done()
-			end := i + maxMetricCount
-			if end > metricDataLength {
-				end = metricDataLength
-			}
-			input := getMetricDatas[i:end]
-			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
-			if data != nil {
-				getMetricDataOutput[n] = data
-			} else {
-				logger.Warn("GetMetricData partition empty result", "partition", n, "start", i, "end", end)
-			}
-		}(i, count)
+		start := i
+		end := i + maxMetricCount
+		if end > metricDataLength {
+			end = metricDataLength
+		}
+		partitionNum := count
 		count++
+
+		g.Go(func() error {
+			logger.Debug("GetMetricData partition", "start", start, "end", end, "partitionNum", partitionNum)
+
+			input := getMetricDatas[start:end]
+			data := clientCloudwatch.GetMetricData(gCtx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod)
+			if data != nil {
+				mu.Lock()
+				getMetricDataOutput = append(getMetricDataOutput, data)
+				mu.Unlock()
+			} else {
+				logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
+			}
+
+			return nil
+		})
 	}
-	wg.Wait()
+
+	if err = g.Wait(); err != nil {
+		logger.Error(err, "GetMetricData work group error")
+		return nil, nil
+	}
 
 	mapResultsToMetricDatas(getMetricDataOutput, getMetricDatas, logger)
 
