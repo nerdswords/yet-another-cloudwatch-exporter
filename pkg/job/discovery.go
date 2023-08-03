@@ -32,7 +32,7 @@ func runDiscoveryJob(
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
-	concurrencyLimit int,
+	_ int,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 
@@ -154,18 +154,6 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 		}
 	}
 	return length
-}
-
-func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) int {
-	for i := 0; i < len(getMetricDatas); i++ {
-		if getMetricDatas[i].MetricID == nil {
-			continue // skip elements that have been already marked
-		}
-		if *(getMetricDatas[i].MetricID) == value {
-			return i
-		}
-	}
-	return -1
 }
 
 func getMetricDataForQueries(
