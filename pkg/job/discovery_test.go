@@ -526,17 +526,17 @@ func BenchmarkMapResultsToMetricDatas(b *testing.B) {
 }
 
 func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResource int) {
-	var outputs = [][]*cloudwatch.MetricDataResult{}
+	outputs := [][]*cloudwatch.MetricDataResult{}
+	now := time.Now()
+	testResourceIDs := make([]string, testResourcesCount)
 
-	var now = time.Now()
-
-	var testResourceIDs = make([]string, testResourcesCount)
 	for i := 0; i < testResourcesCount; i++ {
 		testResourceIDs[i] = fmt.Sprintf("test-resource-%d", i)
 	}
 
-	var totalMetricsDatapoints = metricsPerResource * testResourcesCount
-	var batchesCount = totalMetricsDatapoints / metricsPerQuery
+	totalMetricsDatapoints := metricsPerResource * testResourcesCount
+	batchesCount := totalMetricsDatapoints / metricsPerQuery
+
 	if batchesCount == 0 {
 		batchesCount = 1
 	}
