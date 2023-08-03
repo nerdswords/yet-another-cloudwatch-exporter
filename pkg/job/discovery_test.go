@@ -495,11 +495,32 @@ func getSampleMetricDatas(id string) *model.CloudwatchData {
 	}
 }
 
-func BenchmarkXxx(b *testing.B) {
-	const metricsPerQuery = 50
-	const testResourcesCount = 100
-	const metricsPerResource = 1000
+func BenchmarkMapResultsToMetricDatas(b *testing.B) {
+	type testcase struct {
+		metricsPerQuery    int
+		testResourcesCount int
+		metricsPerResource int
+	}
 
+	for name, tc := range map[string]testcase{
+		"small case": {
+			metricsPerQuery:    50,
+			testResourcesCount: 10,
+			metricsPerResource: 100,
+		},
+		"big case": {
+			metricsPerQuery:    50,
+			testResourcesCount: 100,
+			metricsPerResource: 1000,
+		},
+	} {
+		b.Run(name, func(b *testing.B) {
+			doBench(b, tc.metricsPerQuery, tc.testResourcesCount, tc.metricsPerResource)
+		})
+	}
+}
+
+func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResource int) {
 	var outputs = [][]*cloudwatch.MetricDataResult{}
 
 	var now = time.Now()
@@ -509,13 +530,16 @@ func BenchmarkXxx(b *testing.B) {
 		testResourceIDs[i] = fmt.Sprintf("test-resource-%d", i)
 	}
 
-	for batch := 0; batch < metricsPerQuery; batch++ {
-		newBatchOutputs := make([]*cloudwatch.MetricDataResult, 0, metricsPerResource/metricsPerQuery)
+	var totalMetricsDatapoints = metricsPerResource * testResourcesCount
+	var batchesCount = totalMetricsDatapoints / metricsPerQuery
+
+	for batch := 0; batch < batchesCount; batch++ {
+		newBatchOutputs := make([]*cloudwatch.MetricDataResult, 0)
 		for i := 0; i < metricsPerQuery; i++ {
 			id := testResourceIDs[(batch*metricsPerQuery+i)%testResourcesCount]
 			newBatchOutputs = append(newBatchOutputs, &cloudwatch.MetricDataResult{
 				ID:        aws.String(id),
-				Datapoint: aws.Float64(1.4),
+				Datapoint: aws.Float64(1.4 * float64(batch)),
 				Timestamp: aws.Time(now),
 			})
 		}
@@ -523,12 +547,15 @@ func BenchmarkXxx(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
+		// stop timer to not affect benchmark run
+		// this has to do in every run, since mapResultsToMetricDatas mutates the metric datas slice
 		b.StopTimer()
 		datas := []*model.CloudwatchData{}
 		for i := 0; i < testResourcesCount; i++ {
 			datas = append(datas, getSampleMetricDatas(testResourceIDs[i]))
 		}
+		// re-start timer
 		b.StartTimer()
-		mapXXX(outputs, datas, logging.NewNopLogger())
+		mapResultsToMetricDatas(outputs, datas, logging.NewNopLogger())
 	}
 }
