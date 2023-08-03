@@ -49,9 +49,11 @@ func NewNopLogger() Logger {
 }
 
 func (g gokitLogger) Debug(message string, keyvals ...interface{}) {
-	kv := []interface{}{"msg", message}
-	kv = append(kv, keyvals...)
-	level.Debug(g.logger).Log(kv...)
+	if g.debugEnabled {
+		kv := []interface{}{"msg", message}
+		kv = append(kv, keyvals...)
+		level.Debug(g.logger).Log(kv...)
+	}
 }
 
 func (g gokitLogger) Info(message string, keyvals ...interface{}) {
