@@ -537,6 +537,9 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResour
 
 	var totalMetricsDatapoints = metricsPerResource * testResourcesCount
 	var batchesCount = totalMetricsDatapoints / metricsPerQuery
+	if batchesCount == 0 {
+		batchesCount = 1
+	}
 
 	for batch := 0; batch < batchesCount; batch++ {
 		newBatchOutputs := make([]*cloudwatch.MetricDataResult, 0)
