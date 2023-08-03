@@ -123,13 +123,13 @@ func runDiscoveryJob(
 //
 // This has been extracted into a separate function to make benchmarking easier.
 func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
-	// datasIndex is a support structure used easily find via a MetricID, the corresponding
+	// metricIDToData is a support structure used easily find via a MetricID, the corresponding
 	// model.CloudatchData.
-	datasIndex := make(map[string]*model.CloudwatchData, len(datas)
+	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
 
 	// load the index
 	for _, data := range datas {
-		datasIndex[*(data.MetricID)] = data
+		metricIDToData[*(data.MetricID)] = data
 	}
 
 	// Update getMetricDatas slice with values and timestamps from API response.
@@ -145,7 +145,7 @@ func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*m
 		}
 		for _, metricDataResult := range data {
 			// find into index
-			metricData, ok := datasIndex[*metricDataResult.ID]
+			metricData, ok := metricIDToData[*metricDataResult.ID]
 			if !ok {
 				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
 				continue
