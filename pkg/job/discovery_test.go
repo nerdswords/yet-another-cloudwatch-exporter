@@ -458,8 +458,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 }
 
-func getSampleMetricDatas(id string) model.CloudwatchData {
-	return model.CloudwatchData{
+func getSampleMetricDatas(id string) *model.CloudwatchData {
+	return &model.CloudwatchData{
 		AccountID:              aws.String("123123123123"),
 		AddCloudwatchTimestamp: aws.Bool(false),
 		Dimensions: []*model.Dimension{
@@ -473,6 +473,7 @@ func getSampleMetricDatas(id string) model.CloudwatchData {
 			},
 		},
 		ID:        aws.String(id),
+		MetricID:  aws.String(id),
 		Metric:    aws.String("StorageBytes"),
 		Namespace: aws.String("efs"),
 		NilToZero: aws.Bool(false),
@@ -503,9 +504,9 @@ func BenchmarkXxx(b *testing.B) {
 
 	var now = time.Now()
 
-	var testResourceIDs = make([]string, 0, testResourcesCount)
+	var testResourceIDs = make([]string, testResourcesCount)
 	for i := 0; i < testResourcesCount; i++ {
-		testResourceIDs = append(testResourceIDs, fmt.Sprintf("test-resource-%d", i))
+		testResourceIDs[i] = fmt.Sprintf("test-resource-%d", i)
 	}
 
 	for batch := 0; batch < metricsPerQuery; batch++ {
@@ -521,13 +522,13 @@ func BenchmarkXxx(b *testing.B) {
 		outputs = append(outputs, newBatchOutputs)
 	}
 
-	datas := make([]*model.CloudwatchData, 0, testResourcesCount)
-	for i := 0; i < testResourcesCount; i++ {
-		var data = getSampleMetricDatas(testResourceIDs[i])
-		datas = append(datas, &data)
-	}
-
 	for i := 0; i < b.N; i++ {
-		xxx(outputs, datas, logging.NewNopLogger())
+		b.StopTimer()
+		datas := []*model.CloudwatchData{}
+		for i := 0; i < testResourcesCount; i++ {
+			datas = append(datas, getSampleMetricDatas(testResourceIDs[i]))
+		}
+		b.StartTimer()
+		mapXXX(outputs, datas, logging.NewNopLogger())
 	}
 }
