@@ -92,30 +92,7 @@ func runDiscoveryJob(
 	}
 	wg.Wait()
 
-	// Update getMetricDatas slice with values and timestamps from API response.
-	// We iterate through the response MetricDataResults and match the result ID
-	// with what was sent in the API request.
-	// In the event that the API response contains any ID we don't know about
-	// (shouldn't really happen) we log a warning and move on. On the other hand,
-	// in case the API response does not contain results for all the IDs we've
-	// requested, unprocessed elements will be removed later on.
-	for _, data := range getMetricDataOutput {
-		if data == nil {
-			continue
-		}
-		for _, metricDataResult := range data {
-			idx := findGetMetricDataByID(getMetricDatas, metricDataResult.ID)
-			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
-				continue
-			}
-			// Copy to avoid a loop closure bug
-			dataPoint := metricDataResult.Datapoint
-			getMetricDatas[idx].GetMetricDataPoint = &dataPoint
-			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
-			getMetricDatas[idx].MetricID = nil // mark as processed
-		}
-	}
+	mapResultsToMetricDatas(getMetricDataOutput, getMetricDatas, logger)
 
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
@@ -125,7 +102,19 @@ func runDiscoveryJob(
 	return resources, getMetricDatas
 }
 
-func xxx(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
+// mapResultsToMetricDatas walks over all CW GetMetricData results, and map each one with the corresponding model.CloudwatchData.
+//
+// This has been extracted into a separate function to make benchmarking easier.
+func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
+	// datasIndex is a support structure used easily find via a MetricID, the corresponding
+	// model.CloudatchData.
+	datasIndex := make(map[string]*model.CloudwatchData)
+
+	// load the index
+	for _, data := range datas {
+		datasIndex[*(data.MetricID)] = data
+	}
+
 	// Update getMetricDatas slice with values and timestamps from API response.
 	// We iterate through the response MetricDataResults and match the result ID
 	// with what was sent in the API request.
@@ -138,14 +127,21 @@ func xxx(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData,
 			continue
 		}
 		for _, metricDataResult := range data {
-			idx := findGetMetricDataByID(datas, *metricDataResult.ID)
-			if idx == -1 {
+			// find into index
+			metricData, ok := datasIndex[*metricDataResult.ID]
+			if !ok {
 				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
 				continue
 			}
-			datas[idx].GetMetricDataPoint = metricDataResult.Datapoint
-			datas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
-			datas[idx].MetricID = nil // mark as processed
+			// skip elements that have been already marked
+			if metricData.MetricID == nil {
+				continue
+			}
+			// Copy to avoid a loop closure bug
+			dataPoint := metricDataResult.Datapoint
+			metricData.GetMetricDataPoint = &dataPoint
+			metricData.GetMetricDataTimestamps = metricDataResult.Timestamp
+			metricData.MetricID = nil // mark as processed
 		}
 	}
 }
