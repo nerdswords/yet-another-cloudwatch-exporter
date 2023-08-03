@@ -504,14 +504,19 @@ func BenchmarkMapResultsToMetricDatas(b *testing.B) {
 
 	for name, tc := range map[string]testcase{
 		"small case": {
-			metricsPerQuery:    50,
+			metricsPerQuery:    500,
 			testResourcesCount: 10,
-			metricsPerResource: 100,
+			metricsPerResource: 10,
+		},
+		"medium case": {
+			metricsPerQuery:    500,
+			testResourcesCount: 1000,
+			metricsPerResource: 50,
 		},
 		"big case": {
-			metricsPerQuery:    50,
-			testResourcesCount: 100,
-			metricsPerResource: 1000,
+			metricsPerQuery:    500,
+			testResourcesCount: 2000,
+			metricsPerResource: 50,
 		},
 	} {
 		b.Run(name, func(b *testing.B) {

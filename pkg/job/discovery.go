@@ -125,7 +125,7 @@ func runDiscoveryJob(
 func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
 	// datasIndex is a support structure used easily find via a MetricID, the corresponding
 	// model.CloudatchData.
-	datasIndex := make(map[string]*model.CloudwatchData)
+	datasIndex := make(map[string]*model.CloudwatchData, len(datas)
 
 	// load the index
 	for _, data := range datas {
@@ -150,7 +150,7 @@ func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*m
 				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
 				continue
 			}
-			// skip elements that have been already marked
+			// skip elements that have been already mapped but still exist in datasIndex
 			if metricData.MetricID == nil {
 				continue
 			}
