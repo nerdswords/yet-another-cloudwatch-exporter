@@ -71,9 +71,6 @@ func runDiscoveryJob(
 	g.SetLimit(concurrencyLimit)
 
 	mu := sync.Mutex{}
-	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, 0, partitionSize)
-
-	mu := sync.Mutex{}
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	count := 0
@@ -122,7 +119,7 @@ func runDiscoveryJob(
 // mapResultsToMetricDatas walks over all CW GetMetricData results, and map each one with the corresponding model.CloudwatchData.
 //
 // This has been extracted into a separate function to make benchmarking easier.
-func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
+func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
 	// metricIDToData is a support structure used easily find via a MetricID, the corresponding
 	// model.CloudatchData.
 	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
@@ -145,12 +142,12 @@ func mapResultsToMetricDatas(output [][]*cloudwatch.MetricDataResult, datas []*m
 		}
 		for _, metricDataResult := range data {
 			// find into index
-			metricData, ok := metricIDToData[*metricDataResult.ID]
+			metricData, ok := metricIDToData[metricDataResult.ID]
 			if !ok {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
 				continue
 			}
-			// skip elements that have been already mapped but still exist in datasIndex
+			// skip elements that have been already mapped but still exist in metricIDToData
 			if metricData.MetricID == nil {
 				continue
 			}

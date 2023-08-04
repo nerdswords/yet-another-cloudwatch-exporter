@@ -526,7 +526,7 @@ func BenchmarkMapResultsToMetricDatas(b *testing.B) {
 }
 
 func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResource int) {
-	outputs := [][]*cloudwatch.MetricDataResult{}
+	outputs := [][]cloudwatch.MetricDataResult{}
 	now := time.Now()
 	testResourceIDs := make([]string, testResourcesCount)
 
@@ -542,13 +542,13 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResour
 	}
 
 	for batch := 0; batch < batchesCount; batch++ {
-		newBatchOutputs := make([]*cloudwatch.MetricDataResult, 0)
+		newBatchOutputs := make([]cloudwatch.MetricDataResult, 0)
 		for i := 0; i < metricsPerQuery; i++ {
 			id := testResourceIDs[(batch*metricsPerQuery+i)%testResourcesCount]
-			newBatchOutputs = append(newBatchOutputs, &cloudwatch.MetricDataResult{
-				ID:        aws.String(id),
-				Datapoint: aws.Float64(1.4 * float64(batch)),
-				Timestamp: aws.Time(now),
+			newBatchOutputs = append(newBatchOutputs, cloudwatch.MetricDataResult{
+				ID:        id,
+				Datapoint: 1.4 * float64(batch),
+				Timestamp: now,
 			})
 		}
 		outputs = append(outputs, newBatchOutputs)
