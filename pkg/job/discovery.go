@@ -120,7 +120,7 @@ func runDiscoveryJob(
 //
 // This has been extracted into a separate function to make benchmarking easier.
 func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
-	// metricIDToData is a support structure used easily find via a MetricID, the corresponding
+	// metricIDToData is a support structure used to easily find via a MetricID, the corresponding
 	// model.CloudatchData.
 	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
 
