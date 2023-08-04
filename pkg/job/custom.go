@@ -55,9 +55,11 @@ func runCustomNamespaceJob(
 			if data != nil {
 				output := make([]*model.CloudwatchData, 0)
 				for _, result := range data {
-					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, *result.ID)
+					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, result.ID)
 					if err == nil {
-						getMetricData.GetMetricDataPoint = result.Datapoint
+						// Copy to avoid a loop closure bug
+						dataPoint := result.Datapoint
+						getMetricData.GetMetricDataPoint = &dataPoint
 						getMetricData.GetMetricDataTimestamps = result.Timestamp
 						output = append(output, getMetricData)
 					}
