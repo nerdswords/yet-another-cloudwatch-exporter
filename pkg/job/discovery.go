@@ -74,6 +74,7 @@ func runDiscoveryJob(
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	count := 0
+
 	for i := 0; i < metricDataLength; i += maxMetricCount {
 		start := i
 		end := i + maxMetricCount
@@ -105,30 +106,7 @@ func runDiscoveryJob(
 		return nil, nil
 	}
 
-	// Update getMetricDatas slice with values and timestamps from API response.
-	// We iterate through the response MetricDataResults and match the result ID
-	// with what was sent in the API request.
-	// In the event that the API response contains any ID we don't know about
-	// (shouldn't really happen) we log a warning and move on. On the other hand,
-	// in case the API response does not contain results for all the IDs we've
-	// requested, unprocessed elements will be removed later on.
-	for _, data := range getMetricDataOutput {
-		if data == nil {
-			continue
-		}
-		for _, metricDataResult := range data {
-			idx := findGetMetricDataByID(getMetricDatas, metricDataResult.ID)
-			if idx == -1 {
-				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
-				continue
-			}
-			// Copy to avoid a loop closure bug
-			dataPoint := metricDataResult.Datapoint
-			getMetricDatas[idx].GetMetricDataPoint = &dataPoint
-			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
-			getMetricDatas[idx].MetricID = nil // mark as processed
-		}
-	}
+	mapResultsToMetricDatas(getMetricDataOutput, getMetricDatas, logger)
 
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
@@ -136,6 +114,50 @@ func runDiscoveryJob(
 		return m.MetricID == nil
 	})
 	return resources, getMetricDatas
+}
+
+// mapResultsToMetricDatas walks over all CW GetMetricData results, and map each one with the corresponding model.CloudwatchData.
+//
+// This has been extracted into a separate function to make benchmarking easier.
+func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
+	// metricIDToData is a support structure used to easily find via a MetricID, the corresponding
+	// model.CloudatchData.
+	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
+
+	// load the index
+	for _, data := range datas {
+		metricIDToData[*(data.MetricID)] = data
+	}
+
+	// Update getMetricDatas slice with values and timestamps from API response.
+	// We iterate through the response MetricDataResults and match the result ID
+	// with what was sent in the API request.
+	// In the event that the API response contains any ID we don't know about
+	// (shouldn't really happen) we log a warning and move on. On the other hand,
+	// in case the API response does not contain results for all the IDs we've
+	// requested, unprocessed elements will be removed later on.
+	for _, data := range output {
+		if data == nil {
+			continue
+		}
+		for _, metricDataResult := range data {
+			// find into index
+			metricData, ok := metricIDToData[metricDataResult.ID]
+			if !ok {
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
+				continue
+			}
+			// skip elements that have been already mapped but still exist in metricIDToData
+			if metricData.MetricID == nil {
+				continue
+			}
+			// Copy to avoid a loop closure bug
+			dataPoint := metricDataResult.Datapoint
+			metricData.GetMetricDataPoint = &dataPoint
+			metricData.GetMetricDataTimestamps = metricDataResult.Timestamp
+			metricData.MetricID = nil // mark as processed
+		}
+	}
 }
 
 func getMetricDataInputLength(metrics []*config.Metric) int64 {
@@ -146,18 +168,6 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 		}
 	}
 	return length
-}
-
-func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) int {
-	for i := 0; i < len(getMetricDatas); i++ {
-		if getMetricDatas[i].MetricID == nil {
-			continue // skip elements that have been already marked
-		}
-		if *(getMetricDatas[i].MetricID) == value {
-			return i
-		}
-	}
-	return -1
 }
 
 func getMetricDataForQueries(
