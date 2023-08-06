@@ -74,6 +74,7 @@ Only the latest version gets security updates. We won't support older versions.
   * gamelift (AWS/GameLift) - GameLift
   * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
   * glue (Glue) - AWS Glue Jobs
+  * gwlb (AWS/GatewayELB) - Gateway Load Balancer
   * iot (AWS/IoT) - IoT
   * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
