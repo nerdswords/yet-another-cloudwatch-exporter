@@ -404,6 +404,18 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/GatewayELB",
+		Alias:     "gwlb",
+		ResourceFilters: []*string{
+			aws.String("elasticloadbalancing:loadbalancer"),
+			aws.String("elasticloadbalancing:targetgroup"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":loadbalancer/(?P<LoadBalancer>gwy/.+)"),
+			regexp.MustCompile(":(?P<TargetGroup>targetgroup/.+)"),
+		},
+	},
+	{
 		Namespace: "AWS/GlobalAccelerator",
 		Alias:     "ga",
 		ResourceFilters: []*string{
