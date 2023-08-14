@@ -29,7 +29,6 @@ func runDiscoveryJob(
 	logger logging.Logger,
 	job *config.Job,
 	region string,
-	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch.Client,
@@ -55,7 +54,7 @@ func runDiscoveryJob(
 	}
 
 	svc := config.SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources)
+	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, tagsOnMetrics, clientCloudwatch, resources)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Info("No metrics data found")
@@ -175,8 +174,6 @@ func getMetricDataForQueries(
 	logger logging.Logger,
 	discoveryJob *config.Job,
 	svc *config.ServiceConfig,
-	region string,
-	accountID string,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientCloudwatch cloudwatch.Client,
 	resources []*model.TaggedResource,
@@ -204,7 +201,7 @@ func getMetricDataForQueries(
 				}
 
 				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
-					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
+					data := getFilteredMetricDatas(logger, discoveryJob.Type, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 					mux.Lock()
 					getMetricDatas = append(getMetricDatas, data...)
@@ -234,7 +231,7 @@ func getMetricDataForQueries(
 					return
 				}
 
-				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
+				data := getFilteredMetricDatas(logger, discoveryJob.Type, tagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -249,10 +246,7 @@ func getMetricDataForQueries(
 
 func getFilteredMetricDatas(
 	logger logging.Logger,
-	region string,
-	accountID string,
 	namespace string,
-	customTags []model.Tag,
 	tagsOnMetrics model.ExportedTagsOnMetrics,
 	metricsList []*model.Metric,
 	dimensionNameList []string,
@@ -284,8 +278,8 @@ func getFilteredMetricDatas(
 				Namespace: namespace,
 			}
 		}
-		metricTags := resource.MetricTags(tagsOnMetrics)
 
+		metricTags := resource.MetricTags(tagsOnMetrics)
 		for _, stats := range m.Statistics {
 			id := fmt.Sprintf("id_%d", rand.Int())
 
@@ -298,10 +292,7 @@ func getFilteredMetricDatas(
 				NilToZero:              m.NilToZero,
 				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
 				Tags:                   metricTags,
-				CustomTags:             customTags,
 				Dimensions:             cwMetric.Dimensions,
-				Region:                 &region,
-				AccountID:              &accountID,
 				Period:                 m.Period,
 			})
 		}

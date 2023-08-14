@@ -14,19 +14,18 @@ import (
 func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	type testCase struct {
 		name                 string
-		resources            []*model.TaggedResource
+		resources            [][]*model.TaggedResource
 		metrics              []*PrometheusMetric
 		observedMetricLabels map[string]model.LabelSet
 		labelsSnakeCase      bool
 		expectedMetrics      []*PrometheusMetric
 		expectedLabels       map[string]model.LabelSet
 	}
-
 	testCases := []testCase{
 		{
 			name: "metric with tag",
-			resources: []*model.TaggedResource{
-				{
+			resources: [][]*model.TaggedResource{{
+				&model.TaggedResource{
 					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					Namespace: "AWS/ElastiCache",
 					Region:    "us-east-1",
@@ -37,7 +36,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 						},
 					},
 				},
-			},
+			}},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      false,
@@ -60,7 +59,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			resources: []*model.TaggedResource{
+			resources: [][]*model.TaggedResource{{
 				{
 					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					Namespace: "AWS/ElastiCache",
@@ -72,7 +71,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 						},
 					},
 				},
-			},
+			}},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      true,
@@ -95,7 +94,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "with observed metrics and labels",
-			resources: []*model.TaggedResource{
+			resources: [][]*model.TaggedResource{{
 				{
 					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					Namespace: "AWS/ElastiCache",
@@ -107,7 +106,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 						},
 					},
 				},
-			},
+			}},
 			metrics: []*PrometheusMetric{
 				{
 					Name: aws.String("aws_ec2_cpuutilization_maximum"),
@@ -170,7 +169,7 @@ func TestBuildMetrics(t *testing.T) {
 
 	type testCase struct {
 		name            string
-		data            []*model.CloudwatchData
+		data            []model.CloudwatchMetricResult
 		labelsSnakeCase bool
 		expectedMetrics []*PrometheusMetric
 		expectedLabels  map[string]model.LabelSet
@@ -180,25 +179,30 @@ func TestBuildMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with non-nil data point",
-			data: []*model.CloudwatchData{
-				{
-					Metric:     aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ElastiCache"),
-					Statistics: []string{"Average"},
-					Dimensions: []*model.Dimension{
-						{
-							Name:  "CacheClusterId",
-							Value: "redis-cluster",
-						},
-					},
-					NilToZero:               aws.Bool(false),
-					GetMetricDataPoint:      aws.Float64(1),
-					GetMetricDataTimestamps: ts,
-					ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
-					Region:                  aws.String("us-east-1"),
-					AccountID:               aws.String("123456789012"),
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.JobContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
 				},
-			},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
 				{
@@ -225,25 +229,30 @@ func TestBuildMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			data: []*model.CloudwatchData{
-				{
-					Metric:     aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ElastiCache"),
-					Statistics: []string{"Average"},
-					Dimensions: []*model.Dimension{
-						{
-							Name:  "CacheClusterId",
-							Value: "redis-cluster",
-						},
-					},
-					NilToZero:               aws.Bool(false),
-					GetMetricDataPoint:      aws.Float64(1),
-					GetMetricDataTimestamps: ts,
-					ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
-					Region:                  aws.String("us-east-1"),
-					AccountID:               aws.String("123456789012"),
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.JobContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
 				},
-			},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
