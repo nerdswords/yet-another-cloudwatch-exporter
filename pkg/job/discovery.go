@@ -33,7 +33,7 @@ func runDiscoveryJob(
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
-	concurrencyLimit int,
+	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 
@@ -67,7 +67,8 @@ func runDiscoveryJob(
 	logger.Debug("GetMetricData partitions", "size", partitionSize)
 
 	g, gCtx := errgroup.WithContext(ctx)
-	g.SetLimit(concurrencyLimit)
+	// TODO: don't know if this is ok, double check, and should work for either per-api and single cl
+	g.SetLimit(cloudwatchConcurrency.GetMetricData)
 
 	mu := sync.Mutex{}
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
