@@ -81,17 +81,27 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachi
 	// clearing, so we always clear credentials before the next scrape
 	cache.Refresh()
 	defer cache.Clear()
+
+	var options = []exporter.OptionsFunc{
+		exporter.MetricsPerQuery(metricsPerQuery),
+		exporter.LabelsSnakeCase(labelsSnakeCase),
+		exporter.EnableFeatureFlag(s.featureFlags...),
+		exporter.TaggingAPIConcurrency(tagConcurrency),
+	}
+
+	if cloudwatchConcurrency.PerAPIEnabled {
+		options = append(options, exporter.CloudWatchPerAPIConcurrency(cloudwatchConcurrency.ListMetrics, cloudwatchConcurrency.GetMetricData, cloudwatchConcurrency.GetMetricStatistics))
+	} else {
+		options = append(options, exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency.SingleLimit))
+	}
+
 	err := exporter.UpdateMetrics(
 		ctx,
 		logger,
 		cfg,
 		newRegistry,
 		cache,
-		exporter.MetricsPerQuery(metricsPerQuery),
-		exporter.LabelsSnakeCase(labelsSnakeCase),
-		exporter.EnableFeatureFlag(s.featureFlags...),
-		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
-		exporter.TaggingAPIConcurrency(tagConcurrency),
+		options...,
 	)
 	if err != nil {
 		logger.Error(err, "error updating metrics")
