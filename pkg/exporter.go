@@ -36,11 +36,9 @@ const (
 	DefaultTaggingAPIConcurrency = 5
 )
 
-var (
-	DefaultCloudwatchConcurrency = cloudwatch.ConcurrencyConfig{
-		SingleLimit: 5,
-	}
-)
+var DefaultCloudwatchConcurrency = cloudwatch.ConcurrencyConfig{
+	SingleLimit: 5,
+}
 
 // featureFlagsMap is a map that contains the enabled feature flags. If a key is not present, it means the feature flag
 // is disabled.

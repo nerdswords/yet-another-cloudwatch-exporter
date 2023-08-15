@@ -24,9 +24,8 @@ type ConcurrencyConfig struct {
 func (cfg ConcurrencyConfig) NewLimiter() ConcurrencyLimiter {
 	if cfg.PerAPIEnabled {
 		return NewPerAPICallLimiter(cfg.ListMetrics, cfg.GetMetricData, cfg.GetMetricStatistics)
-	} else {
-		return NewSingleLimiter(cfg.SingleLimit)
 	}
+	return NewSingleLimiter(cfg.SingleLimit)
 }
 
 // perAPICallLimiter is a ConcurrencyLimiter that keeps a different concurrency limiter per different API call. This allows

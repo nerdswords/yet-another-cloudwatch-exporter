@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
@@ -697,7 +698,7 @@ func TestClientCacheGetCloudwatchClient(t *testing.T) {
 	testGetAWSClient(
 		t, "Cloudwatch",
 		func(t *testing.T, cache *CachingFactory, region string, role config.Role) {
-			iface := cache.GetCloudwatchClient(region, role, 1)
+			iface := cache.GetCloudwatchClient(region, role, cloudwatch.ConcurrencyConfig{SingleLimit: 1})
 			if iface == nil {
 				t.Fail()
 				return

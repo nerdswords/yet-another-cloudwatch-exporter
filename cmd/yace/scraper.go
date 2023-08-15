@@ -82,7 +82,7 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachi
 	cache.Refresh()
 	defer cache.Clear()
 
-	var options = []exporter.OptionsFunc{
+	options := []exporter.OptionsFunc{
 		exporter.MetricsPerQuery(metricsPerQuery),
 		exporter.LabelsSnakeCase(labelsSnakeCase),
 		exporter.EnableFeatureFlag(s.featureFlags...),
