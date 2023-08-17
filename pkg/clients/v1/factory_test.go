@@ -1096,8 +1096,8 @@ func TestSTSResolvesFIPSEnabledEndpoints(t *testing.T) {
 	} {
 		t.Run(tc.region, func(t *testing.T) {
 			var resolverError error
-			var resolvedEndpoint = endpoints.ResolvedEndpoint{}
-			var called = false
+			resolvedEndpoint := endpoints.ResolvedEndpoint{}
+			called := false
 
 			mockSession := mock.Session
 			mockEndpoint := *mockSession.Config.Endpoint
