@@ -10,7 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/awstesting/mock"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -1070,6 +1072,65 @@ func TestCreateStorageGatewaySession(t *testing.T) {
 				t.Fail()
 			}
 		})
+}
+
+func TestSTSResolvesFIPSEnabledEndpoints(t *testing.T) {
+	type testcase struct {
+		region           string
+		expectedEndpoint string
+	}
+
+	for _, tc := range []testcase{
+		{
+			region:           "us-east-1",
+			expectedEndpoint: "http://sts-fips.us-east-1.amazonaws.com",
+		},
+		{
+			region:           "us-west-1",
+			expectedEndpoint: "http://sts-fips.us-west-1.amazonaws.com",
+		},
+		{
+			region:           "us-gov-east-1",
+			expectedEndpoint: "http://sts.us-gov-east-1.amazonaws.com",
+		},
+	} {
+		t.Run(tc.region, func(t *testing.T) {
+			var resolverError error
+			var resolvedEndpoint = endpoints.ResolvedEndpoint{}
+			var called = false
+
+			mockSession := mock.Session
+			mockEndpoint := *mockSession.Config.Endpoint
+			previousResolver := mock.Session.Config.EndpointResolver
+
+			// restore mock endpoint after
+			t.Cleanup(func() {
+				mockSession.Config.Endpoint = aws.String(mockEndpoint)
+				mockSession.Config.EndpointResolver = previousResolver
+			})
+
+			mockResolverFunc := mock.Session.Config.EndpointResolver.EndpointFor
+			mockSession.Config.EndpointResolver = endpoints.ResolverFunc(func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+				resolvedEndpoint, resolverError = mockResolverFunc(service, region, opts...)
+
+				called = true
+
+				return endpoints.ResolvedEndpoint{URL: mockEndpoint}, resolverError
+			})
+
+			mockSession.Config.Endpoint = nil
+
+			sess := createStsSession(mock.Session, config.Role{}, tc.region, true, false)
+			require.NotNil(t, sess)
+
+			_, err := sess.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+			require.NoError(t, err)
+
+			require.True(t, called, "expected endpoint resolver to be called")
+			require.NoError(t, resolverError, "no error expected when resolving endpoint")
+			require.Equal(t, tc.expectedEndpoint, resolvedEndpoint.URL)
+		})
+	}
 }
 
 func testAWSClient(
