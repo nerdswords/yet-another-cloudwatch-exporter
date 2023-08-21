@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -337,9 +336,7 @@ func createStsSession(sess *session.Session, role config.Role, region string, fi
 	}
 
 	if fips {
-		// https://aws.amazon.com/compliance/fips/
-		endpoint := fmt.Sprintf("https://sts-fips.%s.amazonaws.com", region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -353,9 +350,7 @@ func createCloudwatchSession(sess *session.Session, region *string, role config.
 	config := &aws.Config{Region: region, Retryer: getAwsRetryer()}
 
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
-		endpoint := fmt.Sprintf("https://monitoring-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -396,9 +391,7 @@ func createStorageGatewaySession(sess *session.Session, region *string, role con
 	config := &aws.Config{Region: region, MaxRetries: &maxStorageGatewayAPIRetries}
 
 	if fips {
-		// https://aws.amazon.com/compliance/fips/
-		endpoint := fmt.Sprintf("https://storagegateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -412,9 +405,7 @@ func createEC2Session(sess *session.Session, region *string, role config.Role, f
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/ec2-service.html
-		endpoint := fmt.Sprintf("https://ec2-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -428,8 +419,7 @@ func createPrometheusSession(sess *session.Session, region *string, role config.
 	maxPrometheusAPIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
 	if fips {
-		endpoint := fmt.Sprintf("https://aps-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -443,9 +433,7 @@ func createDMSSession(sess *session.Session, region *string, role config.Role, f
 	maxDMSAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxDMSAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/dms.html
-		endpoint := fmt.Sprintf("https://dms-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -459,9 +447,7 @@ func createAPIGatewaySession(sess *session.Session, region *string, role config.
 	maxAPIGatewayAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
-		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -475,9 +461,7 @@ func createAPIGatewayV2Session(sess *session.Session, region *string, role confi
 	maxAPIGatewayAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
-		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -491,9 +475,7 @@ func createShieldSession(sess *session.Session, region *string, role config.Role
 	maxShieldAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxShieldAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/shield.html
-		endpoint := "https://shield-fips.us-east-1.amazonaws.com"
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
