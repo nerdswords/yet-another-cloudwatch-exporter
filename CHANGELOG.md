@@ -1,5 +1,31 @@
 # main
 
+**Important news and breaking changes**
+
+* ...
+
+**Bugfixes and features**
+
+Features:
+* ...
+
+Bugs:
+* ...
+
+Docs:
+* ...
+
+Refactoring:
+* ...
+
+**Dependencies**
+
+* ...
+
+**Full Changelog**: https://github.com/...
+
+# v0.54.0
+
 **Bugfixes and features**
 
 Features:
@@ -12,6 +38,13 @@ Bugs:
 * Review dimensions regexps for APIGateway by @cristiangreco
 * Fix syntax in rds.libsonnet by @andriikushch
 * Fix the `FilterId` label value selection for s3 dashboard by @andriikushch
+* MaxDimAssociator: loop through all mappings by @cristiangreco
+* MaxDimAssociator: wrap some expensive debug logs by @cristiangreco
+* MaxDimAssociator: compile AmazonMQ broker suffix regex once by @cristiangreco
+* Limit number of goroutines for GetMetricData calls by @cristiangreco
+* Reduce uncessary pointer usage in getmetricdata code path by @kgeckhart
+* Improve perf in discovery jobs metrics to data lookup by @thepalbi
+* Improve FIPS endpoints resolve logic for sdk v1 by @thepalbi
 
 Docs:
 * Add more config examples (ApiGW, SES, SNS, ECS) by @cristiangreco
@@ -27,6 +60,9 @@ New dependecies:
 * github.com/go-kit/log v0.2.1
 
 Updates:
+* Docker image: bump alpine from 3.18.2 to 3.18.3
+* Docker image: bump golang from 1.20 to 1.21
+* Bump github.com/aws/smithy-go from 1.13.5 to 1.14.2
 * Bump github.com/aws/aws-sdk-go and aws-sdk-go-v2 to latest versions
 
 **Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.53.0...v0.54.0
