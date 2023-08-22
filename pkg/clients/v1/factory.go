@@ -225,6 +225,9 @@ func createCloudWatchClient(logger logging.Logger, s *session.Session, region *s
 }
 
 func createTaggingClient(logger logging.Logger, session *session.Session, region *string, role config.Role, fips bool) tagging.Client {
+	// The createSession function for a service which does not support FIPS does not take a fips parameter
+	// This currently applies to createTagSession(Resource Groups Tagging), ASG (EC2 autoscaling), and Prometheus (Amazon Managed Prometheus)
+	// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 	return tagging_v1.NewClient(
 		logger,
 		createTagSession(session, region, role, logger.IsDebugEnabled()),
@@ -233,7 +236,7 @@ func createTaggingClient(logger logging.Logger, session *session.Session, region
 		createAPIGatewayV2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createEC2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createDMSSession(session, region, role, fips, logger.IsDebugEnabled()),
-		createPrometheusSession(session, region, role, fips, logger.IsDebugEnabled()),
+		createPrometheusSession(session, region, role, logger.IsDebugEnabled()),
 		createStorageGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
 		createShieldSession(session, region, role, fips, logger.IsDebugEnabled()),
 	)
@@ -415,12 +418,9 @@ func createEC2Session(sess *session.Session, region *string, role config.Role, f
 	return ec2.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createPrometheusSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
+func createPrometheusSession(sess *session.Session, region *string, role config.Role, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
 	maxPrometheusAPIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
-	if fips {
-		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
-	}
 
 	if isDebugEnabled {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
