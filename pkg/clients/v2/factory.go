@@ -90,6 +90,8 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 		options = append(options, aws_config.WithUseFIPSEndpoint(aws.FIPSEndpointStateEnabled))
 	}
 
+	options = append(options, aws_config.WithRetryMaxAttempts(5))
+
 	c, err := aws_config.LoadDefaultConfig(context.TODO(), options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load default aws config: %w", err)
@@ -272,6 +274,8 @@ func (c *CachingFactory) createCloudwatchClient(regionConfig *aws.Config) *cloud
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+
+		// Setting an explicit retryer will override the default settings on the config
 		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
 			options.MaxAttempts = 5
 			options.MaxBackoff = 3 * time.Second
@@ -284,8 +288,6 @@ func (c *CachingFactory) createTaggingClient(regionConfig *aws.Config) *resource
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -294,8 +296,6 @@ func (c *CachingFactory) createAutoScalingClient(assumedConfig *aws.Config) *aut
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -304,8 +304,6 @@ func (c *CachingFactory) createEC2Client(assumedConfig *aws.Config) *ec2.Client 
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -314,8 +312,6 @@ func (c *CachingFactory) createDMSClient(assumedConfig *aws.Config) *databasemig
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -324,8 +320,6 @@ func (c *CachingFactory) createAPIGatewayClient(assumedConfig *aws.Config) *apig
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -334,8 +328,6 @@ func (c *CachingFactory) createAPIGatewayV2Client(assumedConfig *aws.Config) *ap
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -344,8 +336,6 @@ func (c *CachingFactory) createStorageGatewayClient(assumedConfig *aws.Config) *
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -354,8 +344,6 @@ func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -364,7 +352,6 @@ func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
 		if c.stsRegion != "" {
 			options.Region = c.stsRegion
 		}
-		options.RetryMaxAttempts = 5
 	})
 }
 
@@ -373,8 +360,6 @@ func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Clien
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
-		options.RetryMaxAttempts = 5
 	})
 }
 
