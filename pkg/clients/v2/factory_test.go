@@ -3,10 +3,18 @@ package v2
 import (
 	"context"
 	"os"
+	"reflect"
 	"testing"
+	"unsafe"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	aws_config "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/amp"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +23,17 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
+
+var configWithDefaultRoleAndRegion1 = config.ScrapeConf{
+	Discovery: config.Discovery{
+		Jobs: []*config.Job{
+			{
+				Roles:   []config.Role{{}},
+				Regions: []string{"region1"},
+			},
+		},
+	},
+}
 
 func TestNewClientCache_initializes_clients(t *testing.T) {
 	role1 := config.Role{
@@ -129,53 +148,14 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 	}
 }
 
-func TestNewClientCache_sets_fips(t *testing.T) {
-	config := config.ScrapeConf{
-		Discovery: config.Discovery{
-			ExportedTagsOnMetrics: nil,
-			Jobs: []*config.Job{
-				{
-					Roles:   []config.Role{{}},
-					Regions: []string{"region1"},
-				},
-			},
-		},
-	}
-	output, err := NewFactory(config, true, logging.NewNopLogger())
-	require.NoError(t, err)
-
-	clients := output.clients[defaultRole]["region1"]
-	assert.NotNil(t, clients)
-
-	foundLoadOptions := false
-	for _, sources := range clients.awsConfig.ConfigSources {
-		options, ok := sources.(aws_config.LoadOptions)
-		if !ok {
-			continue
-		}
-		foundLoadOptions = true
-		assert.Equal(t, aws.FIPSEndpointStateEnabled, options.UseFIPSEndpoint)
-	}
-	assert.True(t, foundLoadOptions)
-}
-
 func TestNewClientCache_sets_endpoint_override(t *testing.T) {
-	config := config.ScrapeConf{
-		Discovery: config.Discovery{
-			ExportedTagsOnMetrics: nil,
-			Jobs: []*config.Job{
-				{
-					Roles:   []config.Role{{}},
-					Regions: []string{"region1"},
-				},
-			},
-		},
-	}
-
 	err := os.Setenv("AWS_ENDPOINT_URL", "https://totallynotaws.com")
 	require.NoError(t, err)
 
-	output, err := NewFactory(config, false, logging.NewNopLogger())
+	output, err := NewFactory(configWithDefaultRoleAndRegion1, false, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	err = os.Unsetenv("AWS_ENDPOINT_URL")
 	require.NoError(t, err)
 
 	clients := output.clients[defaultRole]["region1"]
@@ -213,19 +193,7 @@ func TestClientCache_Clear(t *testing.T) {
 
 func TestClientCache_Refresh(t *testing.T) {
 	t.Run("creates all clients when config contains only discovery jobs", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
-		}
-
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(configWithDefaultRoleAndRegion1, false, logging.NewNopLogger())
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -413,6 +381,131 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 		output.GetTaggingClient("region1", defaultRole, 1)
 		assert.NotNil(t, clients.tagging)
 	})
+}
+
+func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createTaggingClient(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[resourcegroupstaggingapi.Client, resourcegroupstaggingapi.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
+}
+
+func TestClientCache_createAutoScalingClient(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createAutoScalingClient(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[autoscaling.Client, autoscaling.Options](client)
+	require.NotNil(t, options)
+
+	t.Run("Does not enable FIPS", func(t *testing.T) {
+		assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
+	})
+
+	t.Run("Can resolve govcloud urls", func(t *testing.T) {
+		endpoint, err := options.EndpointResolver.ResolveEndpoint("us-gov-east-1", options.EndpointOptions)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://autoscaling.us-gov-east-1.amazonaws.com", endpoint.URL)
+
+		endpoint, err = options.EndpointResolver.ResolveEndpoint("us-gov-west-1", options.EndpointOptions)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://autoscaling.us-gov-west-1.amazonaws.com", endpoint.URL)
+	})
+}
+
+func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createEC2Client(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[ec2.Client, ec2.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
+}
+
+func TestClientCache_createDMSClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createDMSClient(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[databasemigrationservice.Client, databasemigrationservice.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
+}
+
+func TestClientCache_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createAPIGatewayClient(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[apigateway.Client, apigateway.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
+}
+
+func TestClientCache_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[apigatewayv2.Client, apigatewayv2.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
+}
+
+func TestClientCache_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[apigatewayv2.Client, apigatewayv2.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
+}
+
+func TestClientCache_createPrometheusClient_DoesNotEnableFIPS(t *testing.T) {
+	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	client := factory.createPrometheusClient(factory.clients[defaultRole]["region1"].awsConfig)
+	require.NotNil(t, client)
+
+	options := getOptions[amp.Client, amp.Options](client)
+	require.NotNil(t, options)
+
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
+}
+
+// getOptions uses reflection to pull the unexported options field off of any AWS Client
+// the options of the client carries around a lot of info about how the client will behave and is helpful for
+// testing lower level sdk configuration
+func getOptions[T any, V any](awsClient *T) V {
+	field := reflect.ValueOf(awsClient).Elem().FieldByName("options")
+	options := reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface().(V)
+	return options
 }
 
 type testClient struct{}
