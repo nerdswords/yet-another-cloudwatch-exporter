@@ -16,11 +16,6 @@ var validQldbInstance = &model.TaggedResource{
 	Namespace: "AWS/QLDB",
 }
 
-var invalidQldbInstance = &model.TaggedResource{
-	ARN:       "arn:aws:qldb:us-east-1:123456789012:/test2",
-	Namespace: "AWS/QLDB",
-}
-
 func TestAssociatorQLDB(t *testing.T) {
 	type args struct {
 		dimensionRegexps []*regexp.Regexp
