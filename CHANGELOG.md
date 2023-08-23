@@ -1,4 +1,4 @@
-# main
+# main (unreleased)
 
 **Important news and breaking changes**
 
@@ -23,6 +23,20 @@ Refactoring:
 * ...
 
 **Full Changelog**: https://github.com/...
+
+# v0.54.1
+
+Bugs:
+* sdk v2: Set RetryMaxAttempts on root config instead client options by @kgeckhart
+* Match FIPS implementation between sdk v1 and sdk v2 by @kgeckhart
+* Fix regex for vpc-endpoint-service by @cristiangreco
+
+**Dependencies**
+
+* Bump golangci/golangci-lint-action from 3.6.0 to 3.7.0
+* Bump github.com/aws/aws-sdk-go from 1.44.327 to 1.44.328
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.0...v0.54.1
 
 # v0.54.0
 
