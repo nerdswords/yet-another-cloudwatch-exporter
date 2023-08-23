@@ -470,6 +470,12 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/KinesisAnalytics",
 		Alias:     "kinesis-analytics",
+		ResourceFilters: []*string{
+			aws.String("kinesisanalytics:application"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":application/(?P<Application>[^/]+)"),
+		},
 	},
 	{
 		Namespace: "AWS/Lambda",
