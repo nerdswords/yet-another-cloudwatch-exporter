@@ -1030,7 +1030,7 @@ func TestCreatePrometheusSession(t *testing.T) {
 		t,
 		"Prometheus",
 		func(t *testing.T, s *session.Session, region *string, role config.Role, fips bool) {
-			iface := createPrometheusSession(s, region, role, fips, false)
+			iface := createPrometheusSession(s, region, role, false)
 			if iface == nil {
 				t.Fail()
 			}
