@@ -38,12 +38,13 @@ import (
 type awsRegion = string
 
 type CachingFactory struct {
-	logger    logging.Logger
-	stsRegion string
-	clients   map[config.Role]map[awsRegion]*cachedClients
-	mu        sync.Mutex
-	refreshed bool
-	cleared   bool
+	logger      logging.Logger
+	stsRegion   string
+	clients     map[config.Role]map[awsRegion]*cachedClients
+	mu          sync.Mutex
+	refreshed   bool
+	cleared     bool
+	fipsEnabled bool
 }
 
 type cachedClients struct {
@@ -84,10 +85,6 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 				URL: endpointURLOverride,
 			}, nil
 		})))
-	}
-
-	if fips {
-		options = append(options, aws_config.WithUseFIPSEndpoint(aws.FIPSEndpointStateEnabled))
 	}
 
 	options = append(options, aws_config.WithRetryMaxAttempts(5))
@@ -150,9 +147,10 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 	}
 
 	return &CachingFactory{
-		logger:    logger,
-		clients:   cache,
-		stsRegion: cfg.StsRegion,
+		logger:      logger,
+		clients:     cache,
+		stsRegion:   cfg.StsRegion,
+		fipsEnabled: fips,
 	}, nil
 }
 
@@ -280,6 +278,10 @@ func (c *CachingFactory) createCloudwatchClient(regionConfig *aws.Config) *cloud
 			options.MaxAttempts = 5
 			options.MaxBackoff = 3 * time.Second
 		})
+
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
@@ -287,6 +289,10 @@ func (c *CachingFactory) createTaggingClient(regionConfig *aws.Config) *resource
 	return resourcegroupstaggingapi.NewFromConfig(*regionConfig, func(options *resourcegroupstaggingapi.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+
+			// The FIPS setting is ignored because FIPS is not available for resource groups tagging apis
+			// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
+			// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 		}
 	})
 }
@@ -295,6 +301,12 @@ func (c *CachingFactory) createAutoScalingClient(assumedConfig *aws.Config) *aut
 	return autoscaling.NewFromConfig(*assumedConfig, func(options *autoscaling.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+
+			// The FIPS setting is ignored because FIPS is not available for EC2 autoscaling apis
+			// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
+			// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
+			// 	EC2 autoscaling has FIPS compliant URLs for govcloud, but they do not use any FIPS prefixing.
+			// 	Tests ensure that this configuration will produce the correct URLs for the govcloud regions
 		}
 	})
 }
@@ -304,6 +316,9 @@ func (c *CachingFactory) createEC2Client(assumedConfig *aws.Config) *ec2.Client 
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
@@ -311,6 +326,9 @@ func (c *CachingFactory) createDMSClient(assumedConfig *aws.Config) *databasemig
 	return databasemigrationservice.NewFromConfig(*assumedConfig, func(options *databasemigrationservice.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
 	})
 }
@@ -320,6 +338,9 @@ func (c *CachingFactory) createAPIGatewayClient(assumedConfig *aws.Config) *apig
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
@@ -327,6 +348,9 @@ func (c *CachingFactory) createAPIGatewayV2Client(assumedConfig *aws.Config) *ap
 	return apigatewayv2.NewFromConfig(*assumedConfig, func(options *apigatewayv2.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
 	})
 }
@@ -336,6 +360,9 @@ func (c *CachingFactory) createStorageGatewayClient(assumedConfig *aws.Config) *
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
@@ -344,6 +371,10 @@ func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+
+		// The FIPS setting is ignored because FIPS is not available for amp apis
+		// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
+		// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 	})
 }
 
@@ -352,6 +383,9 @@ func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
 		if c.stsRegion != "" {
 			options.Region = c.stsRegion
 		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
@@ -359,6 +393,9 @@ func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Clien
 	return shield.NewFromConfig(*awsConfig, func(options *shield.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
 	})
 }
