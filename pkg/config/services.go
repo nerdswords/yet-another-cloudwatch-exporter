@@ -586,7 +586,7 @@ var SupportedServices = serviceConfigs{
 			aws.String("ec2:vpc-endpoint-service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+			regexp.MustCompile(":vpc-endpoint-service/(?P<Service_Id>.+)"),
 		},
 	},
 	{
