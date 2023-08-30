@@ -21,7 +21,7 @@ discovery:
           statistics: [Average]
         - name: ApproximateNumberOfMessagesNotVisible
           statistics: [Sum]
-        - name ApproximateNumberOfMessagesDelayed
+        - name: ApproximateNumberOfMessagesDelayed
           statistics: [Sum]
         - name: ApproximateNumberOfMessagesVisible
           statistics: [Sum]
