@@ -53,14 +53,14 @@ func BenchmarkSlices(b *testing.B) {
 }
 
 func setupInputData(jobs int, resultsPerJob int) [][]*model.CloudwatchData {
-	output := make([][]*model.CloudwatchData, jobs, jobs)
+	output := make([][]*model.CloudwatchData, jobs)
 	var data model.CloudwatchData
 	err := gofakeit.Struct(&data)
 	if err != nil {
 		panic(err)
 	}
 	for i := 0; i < jobs; i++ {
-		output[i] = make([]*model.CloudwatchData, resultsPerJob, resultsPerJob)
+		output[i] = make([]*model.CloudwatchData, resultsPerJob)
 		for j := 0; j < resultsPerJob; j++ {
 			output[i][j] = &data
 		}
@@ -71,8 +71,8 @@ func setupInputData(jobs int, resultsPerJob int) [][]*model.CloudwatchData {
 func doSliceOfSlicesBench(b *testing.B, resultData [][]*model.CloudwatchData) {
 	for i := 0; i < b.N; i++ {
 		results := make([][]*model.CloudwatchData, 0)
-		for _, result := range resultData {
-			results = append(results, result)
+		for _, result := range resultData { //nolint:gosimple
+			results = append(results, result) //nolint:staticcheck
 		}
 	}
 }
@@ -81,7 +81,7 @@ func doSliceConcatBench(b *testing.B, resultData [][]*model.CloudwatchData) {
 	for i := 0; i < b.N; i++ {
 		results := make([]*model.CloudwatchData, 0)
 		for _, result := range resultData {
-			results = append(results, result...)
+			results = append(results, result...) //nolint:staticcheck
 		}
 	}
 }
