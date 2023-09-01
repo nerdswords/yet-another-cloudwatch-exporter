@@ -38,13 +38,14 @@ import (
 type awsRegion = string
 
 type CachingFactory struct {
-	logger      logging.Logger
-	stsRegion   string
-	clients     map[config.Role]map[awsRegion]*cachedClients
-	mu          sync.Mutex
-	refreshed   bool
-	cleared     bool
-	fipsEnabled bool
+	logger              logging.Logger
+	stsRegion           string
+	clients             map[config.Role]map[awsRegion]*cachedClients
+	mu                  sync.Mutex
+	refreshed           bool
+	cleared             bool
+	fipsEnabled         bool
+	endpointURLOverride string
 }
 
 type cachedClients struct {
@@ -79,13 +80,6 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 	options = append(options, aws_config.WithLogConfigurationWarnings(true))
 
 	endpointURLOverride := os.Getenv("AWS_ENDPOINT_URL")
-	if endpointURLOverride != "" {
-		options = append(options, aws_config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				URL: endpointURLOverride,
-			}, nil
-		})))
-	}
 
 	options = append(options, aws_config.WithRetryMaxAttempts(5))
 
@@ -147,10 +141,11 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 	}
 
 	return &CachingFactory{
-		logger:      logger,
-		clients:     cache,
-		stsRegion:   cfg.StsRegion,
-		fipsEnabled: fips,
+		logger:              logger,
+		clients:             cache,
+		stsRegion:           cfg.StsRegion,
+		fipsEnabled:         fips,
+		endpointURLOverride: endpointURLOverride,
 	}, nil
 }
 
@@ -272,6 +267,9 @@ func (c *CachingFactory) createCloudwatchClient(regionConfig *aws.Config) *cloud
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
 
 		// Setting an explicit retryer will override the default settings on the config
 		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
@@ -289,11 +287,13 @@ func (c *CachingFactory) createTaggingClient(regionConfig *aws.Config) *resource
 	return resourcegroupstaggingapi.NewFromConfig(*regionConfig, func(options *resourcegroupstaggingapi.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
-
-			// The FIPS setting is ignored because FIPS is not available for resource groups tagging apis
-			// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
-			// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
+		// The FIPS setting is ignored because FIPS is not available for resource groups tagging apis
+		// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
+		// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 	})
 }
 
@@ -301,13 +301,15 @@ func (c *CachingFactory) createAutoScalingClient(assumedConfig *aws.Config) *aut
 	return autoscaling.NewFromConfig(*assumedConfig, func(options *autoscaling.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
-
-			// The FIPS setting is ignored because FIPS is not available for EC2 autoscaling apis
-			// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
-			// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
-			// 	EC2 autoscaling has FIPS compliant URLs for govcloud, but they do not use any FIPS prefixing.
-			// 	Tests ensure that this configuration will produce the correct URLs for the govcloud regions
 		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
+		// The FIPS setting is ignored because FIPS is not available for EC2 autoscaling apis
+		// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
+		// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
+		// 	EC2 autoscaling has FIPS compliant URLs for govcloud, but they do not use any FIPS prefixing, and should work
+		//	with sdk v2s EndpointResolverV2
 	})
 }
 
@@ -315,6 +317,9 @@ func (c *CachingFactory) createEC2Client(assumedConfig *aws.Config) *ec2.Client 
 	return ec2.NewFromConfig(*assumedConfig, func(options *ec2.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
 		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
@@ -327,6 +332,9 @@ func (c *CachingFactory) createDMSClient(assumedConfig *aws.Config) *databasemig
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
@@ -337,6 +345,9 @@ func (c *CachingFactory) createAPIGatewayClient(assumedConfig *aws.Config) *apig
 	return apigateway.NewFromConfig(*assumedConfig, func(options *apigateway.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
 		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
@@ -349,6 +360,9 @@ func (c *CachingFactory) createAPIGatewayV2Client(assumedConfig *aws.Config) *ap
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
@@ -359,6 +373,9 @@ func (c *CachingFactory) createStorageGatewayClient(assumedConfig *aws.Config) *
 	return storagegateway.NewFromConfig(*assumedConfig, func(options *storagegateway.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
 		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
@@ -371,7 +388,9 @@ func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
 		}
-
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
 		// The FIPS setting is ignored because FIPS is not available for amp apis
 		// If enabled the SDK will try to use non-existent FIPS URLs, https://github.com/aws/aws-sdk-go-v2/issues/2138#issuecomment-1570791988
 		// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
@@ -383,6 +402,12 @@ func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
 		if c.stsRegion != "" {
 			options.Region = c.stsRegion
 		}
+		if c.logger.IsDebugEnabled() {
+			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
 		}
@@ -393,6 +418,9 @@ func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Clien
 	return shield.NewFromConfig(*awsConfig, func(options *shield.Options) {
 		if c.logger.IsDebugEnabled() {
 			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
 		}
 		if c.fipsEnabled {
 			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
