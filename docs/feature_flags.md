@@ -26,3 +26,8 @@ Enables processing of ListMetrics API results page-by-page. This seems to reduce
 Uses the v2 version of the aws sdk for go. The sdk v2 version was released in Jan 2021 and is marketed to come with large performance gains. This version offers a drastically different
 interface and should be compatible with sdk v2. 
 
+## Always return info metrics
+
+`-enable-feature=always-return-info-metrics`
+
+Return info metrics even if there are no CloudWatch metrics for the resource. This is useful if you want to get a complete picture of your estate, for example if you have some resources which have not yet been used.
