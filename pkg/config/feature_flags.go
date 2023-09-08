@@ -18,6 +18,9 @@ const ListMetricsCallback = "list-metrics-callback"
 // AwsSdkV2 is a feature flag used to enable the use of aws sdk v2 which is expected to come with performance benefits
 const AwsSdkV2 = "aws-sdk-v2"
 
+// AlwaysReturnInfoMetrics is a feature flag used to enable the return of info metrics even when there are no corresponding CloudWatch metrics
+const AlwaysReturnInfoMetrics = "always-return-info-metrics"
+
 // FeatureFlags is an interface all objects that can tell wether or not a feature flag is enabled can implement.
 type FeatureFlags interface {
 	// IsFeatureEnabled tells if the feature flag identified by flag is enabled.
