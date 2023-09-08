@@ -723,6 +723,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/ClientVPN",
+		Alias:     "clientvpn",
+		ResourceFilters: []*string{
+			aws.String("ec2:client-vpn-endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":client-vpn-endpoint/(?P<Endpoint>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/WAFV2",
 		Alias:     "wafv2",
 		ResourceFilters: []*string{
