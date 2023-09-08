@@ -1,12 +1,13 @@
 package maxdimassociator
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
-	"golang.org/x/exp/slices"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -115,8 +116,8 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 	// sort all mappings by decreasing number of dimensions names
 	// (this is essential so that during matching we try to find the metric
 	// with the most specific set of dimensions)
-	slices.SortFunc(assoc.mappings, func(a, b *dimensionsRegexpMapping) bool {
-		return len(a.dimensions) >= len(b.dimensions)
+	slices.SortStableFunc(assoc.mappings, func(a, b *dimensionsRegexpMapping) int {
+		return -1 * cmp.Compare(len(a.dimensions), len(b.dimensions))
 	})
 
 	if logger.IsDebugEnabled() {

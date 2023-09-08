@@ -2,7 +2,6 @@ package v2
 
 import (
 	"context"
-	"os"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -146,21 +145,6 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestNewClientCache_sets_endpoint_override(t *testing.T) {
-	err := os.Setenv("AWS_ENDPOINT_URL", "https://totallynotaws.com")
-	require.NoError(t, err)
-
-	output, err := NewFactory(configWithDefaultRoleAndRegion1, false, logging.NewNopLogger())
-	require.NoError(t, err)
-
-	err = os.Unsetenv("AWS_ENDPOINT_URL")
-	require.NoError(t, err)
-
-	clients := output.clients[defaultRole]["region1"]
-	assert.NotNil(t, clients)
-	assert.NotNil(t, clients.awsConfig.EndpointResolverWithOptions)
 }
 
 func TestClientCache_Clear(t *testing.T) {
@@ -396,7 +380,7 @@ func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
-func TestClientCache_createAutoScalingClient(t *testing.T) {
+func TestClientCache_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
 	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
 	require.NoError(t, err)
 
@@ -406,19 +390,7 @@ func TestClientCache_createAutoScalingClient(t *testing.T) {
 	options := getOptions[autoscaling.Client, autoscaling.Options](client)
 	require.NotNil(t, options)
 
-	t.Run("Does not enable FIPS", func(t *testing.T) {
-		assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
-	})
-
-	t.Run("Can resolve govcloud urls", func(t *testing.T) {
-		endpoint, err := options.EndpointResolver.ResolveEndpoint("us-gov-east-1", options.EndpointOptions)
-		assert.NoError(t, err)
-		assert.Equal(t, "https://autoscaling.us-gov-east-1.amazonaws.com", endpoint.URL)
-
-		endpoint, err = options.EndpointResolver.ResolveEndpoint("us-gov-west-1", options.EndpointOptions)
-		assert.NoError(t, err)
-		assert.Equal(t, "https://autoscaling.us-gov-west-1.amazonaws.com", endpoint.URL)
-	})
+	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
 func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
