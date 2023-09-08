@@ -36,6 +36,10 @@ var version = "custom-build"
 
 var sem = semaphore.NewWeighted(1)
 
+const (
+	defaultLogFormat = "json"
+)
+
 var (
 	addr                  string
 	configFile            string
@@ -57,6 +61,10 @@ var (
 func main() {
 	app := NewYACEApp()
 	if err := app.Run(os.Args); err != nil {
+		// if we exit very early we'll not have set up the logger yet
+		if logger == nil {
+			logger = logging.NewLogger(defaultLogFormat, debug, "version", version)
+		}
 		logger.Error(err, "Error running yace")
 		os.Exit(1)
 	}
@@ -97,7 +105,7 @@ func NewYACEApp() *cli.App {
 		},
 		&cli.StringFlag{
 			Name:        "log.format",
-			Value:       "json",
+			Value:       defaultLogFormat,
 			Usage:       "Output format of log messages. One of: [logfmt, json]. Default: [json].",
 			Destination: &logFormat,
 			Action: func(ctx *cli.Context, s string) error {
