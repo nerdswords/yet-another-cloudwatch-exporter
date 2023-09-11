@@ -49,7 +49,7 @@ discovery: <discovery_jobs_list_config>
 static:
   [ - <static_job_config> ... ]
 
-# Configurations for jobs of type "custom namespace" (deprecated)
+# Configurations for jobs of type "custom namespace"
 customNamespace:
   [ - <custom_namespace_job_config> ... ]
 ```
@@ -214,8 +214,6 @@ static:
 ### `custom_namespace_job_config`
 
 The `custom_namespace_job_config` block configures jobs of type "custom namespace".
-
-**These type of configs are [deprecated](https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/888) since [v0.51.0](https://github.com/nerdswords/yet-another-cloudwatch-exporter/blob/v0.51.0/CHANGELOG.md#v0510). Please use [static_job_config](#static_job_config) from now on.**
 
 ```yaml
 # Name of the job (required)

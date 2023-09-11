@@ -95,8 +95,6 @@ func ScrapeAwsData(
 	}
 
 	for _, customNamespaceJob := range cfg.CustomNamespace {
-		logger.Warn("Jobs of type 'customNamespace' are deprecated and will be removed soon", "job", customNamespaceJob.Name)
-
 		for _, role := range customNamespaceJob.Roles {
 			for _, region := range customNamespaceJob.Regions {
 				wg.Add(1)
