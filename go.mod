@@ -3,7 +3,7 @@ module github.com/nerdswords/yet-another-cloudwatch-exporter
 go 1.21.0
 
 require (
-	github.com/aws/aws-sdk-go v1.45.5
+	github.com/aws/aws-sdk-go v1.45.7
 	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.39
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.37
@@ -19,7 +19,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.19.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.21.5
 	github.com/aws/smithy-go v1.14.2
-	github.com/brianvoe/gofakeit/v6 v6.23.1
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
 	github.com/prometheus/client_golang v1.16.0
