@@ -17,8 +17,6 @@ func runCustomNamespaceJob(
 	ctx context.Context,
 	logger logging.Logger,
 	job *config.CustomNamespace,
-	region string,
-	accountID string,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
 ) []*model.CloudwatchData {
@@ -27,7 +25,7 @@ func runCustomNamespaceJob(
 	mux := &sync.Mutex{}
 	var wg sync.WaitGroup
 
-	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, job, region, accountID, clientCloudwatch, logger)
+	getMetricDatas := getMetricDataForQueriesForCustomNamespace(ctx, job, clientCloudwatch, logger)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Debug("No metrics data found")
@@ -87,8 +85,6 @@ func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchD
 func getMetricDataForQueriesForCustomNamespace(
 	ctx context.Context,
 	customNamespaceJob *config.CustomNamespace,
-	region string,
-	accountID string,
 	clientCloudwatch cloudwatch.Client,
 	logger logging.Logger,
 ) []*model.CloudwatchData {
@@ -128,10 +124,7 @@ func getMetricDataForQueriesForCustomNamespace(
 						Statistics:             []string{stats},
 						NilToZero:              metric.NilToZero,
 						AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-						CustomTags:             customNamespaceJob.CustomTags,
 						Dimensions:             cwMetric.Dimensions,
-						Region:                 &region,
-						AccountID:              &accountID,
 						Period:                 metric.Period,
 					})
 				}

@@ -57,6 +57,17 @@ type Datapoint struct {
 	Timestamp *time.Time
 }
 
+type CloudwatchMetricResult struct {
+	Context *JobContext
+	Data    []*CloudwatchData
+}
+
+type JobContext struct {
+	Region     string
+	AccountID  string
+	CustomTags []Tag
+}
+
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
@@ -70,11 +81,8 @@ type CloudwatchData struct {
 	GetMetricDataTimestamps time.Time
 	NilToZero               *bool
 	AddCloudwatchTimestamp  *bool
-	CustomTags              []Tag
 	Tags                    []Tag
 	Dimensions              []*Dimension
-	Region                  *string
-	AccountID               *string
 	Period                  int64
 }
 
