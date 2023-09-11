@@ -91,7 +91,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*model.Dimension{
 						{
@@ -108,7 +107,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Namespace: aws.String("efs"),
 					NilToZero: aws.Bool(false),
 					Period:    60,
-					Region:    aws.String("us-east-1"),
 					Statistics: []string{
 						"Average",
 					},
@@ -178,7 +176,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*model.Dimension{
 						{
@@ -191,7 +188,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Namespace: aws.String("ec2"),
 					NilToZero: aws.Bool(false),
 					Period:    60,
-					Region:    aws.String("us-east-1"),
 					Statistics: []string{
 						"Average",
 					},
@@ -261,7 +257,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*model.Dimension{
 						{
@@ -274,7 +269,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Namespace: aws.String("kafka"),
 					NilToZero: aws.Bool(false),
 					Period:    60,
-					Region:    aws.String("us-east-1"),
 					Statistics: []string{
 						"Average",
 					},
@@ -386,7 +380,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					AccountID:              aws.String("123123123123"),
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*model.Dimension{
 						{
@@ -403,7 +396,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Namespace: aws.String("alb"),
 					NilToZero: aws.Bool(false),
 					Period:    60,
-					Region:    aws.String("us-east-1"),
 					Statistics: []string{
 						"Sum",
 					},
@@ -415,14 +407,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assoc := associator.NewAssociator(tt.args.dimensionRegexps, tt.args.resources)
-			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.region, tt.args.accountID, tt.args.namespace, tt.args.customTags, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m, assoc)
+			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m, assoc)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}
 			for i, got := range metricDatas {
-				if *got.AccountID != *tt.wantGetMetricsData[i].AccountID {
-					t.Errorf("getFilteredMetricDatas().AccountId = %v, want %v", *got.AccountID, *tt.wantGetMetricsData[i].AccountID)
-				}
 				if *got.ID != *tt.wantGetMetricsData[i].ID {
 					t.Errorf("getFilteredMetricDatas().ID = %v, want %v", *got.ID, *tt.wantGetMetricsData[i].ID)
 				}
@@ -447,9 +436,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				if !reflect.DeepEqual(got.Statistics, tt.wantGetMetricsData[i].Statistics) {
 					t.Errorf("getFilteredMetricDatas().Statistics = %+v, want %+v", got.Statistics, tt.wantGetMetricsData[i].Statistics)
 				}
-				if *got.Region != *tt.wantGetMetricsData[i].Region {
-					t.Errorf("getFilteredMetricDatas().Region = %v, want %v", *got.Region, *tt.wantGetMetricsData[i].Region)
-				}
 				if !reflect.DeepEqual(got.Tags, tt.wantGetMetricsData[i].Tags) {
 					t.Errorf("getFilteredMetricDatas().Tags = %+v, want %+v", got.Tags, tt.wantGetMetricsData[i].Tags)
 				}
@@ -460,7 +446,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 
 func getSampleMetricDatas(id string) *model.CloudwatchData {
 	return &model.CloudwatchData{
-		AccountID:              aws.String("123123123123"),
 		AddCloudwatchTimestamp: aws.Bool(false),
 		Dimensions: []*model.Dimension{
 			{
@@ -478,7 +463,6 @@ func getSampleMetricDatas(id string) *model.CloudwatchData {
 		Namespace: aws.String("efs"),
 		NilToZero: aws.Bool(false),
 		Period:    60,
-		Region:    aws.String("us-east-1"),
 		Statistics: []string{
 			"Average",
 		},

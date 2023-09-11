@@ -14,8 +14,6 @@ func runStaticJob(
 	ctx context.Context,
 	logger logging.Logger,
 	resource *config.Static,
-	region string,
-	accountID string,
 	clientCloudwatch cloudwatch.Client,
 ) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
@@ -36,10 +34,7 @@ func runStaticJob(
 				Statistics:             metric.Statistics,
 				NilToZero:              metric.NilToZero,
 				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
-				Region:                 &region,
-				AccountID:              &accountID,
 			}
 
 			data.Points = clientCloudwatch.GetMetricStatistics(ctx, logger, data.Dimensions, resource.Namespace, metric)
