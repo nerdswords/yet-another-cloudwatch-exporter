@@ -24,6 +24,50 @@ Refactoring:
 
 **Full Changelog**: https://github.com/...
 
+# v0.55.0
+
+**Important news and breaking changes**
+
+* jobs of type `customNamespace`, which were deprecated in `v0.51.0`, are now **un-deprecated** due to customers' feedback
+* new feature flag `always-return-info-metrics`: return info metrics even if there are no CloudWatch metrics for the resource. This is useful if you want to get a complete picture of your estate, for example if you have some resources which have not yet been used.
+
+**Bugfixes and features**
+
+Features:
+* Un-deprecate custom namespace jobs by @cristiangreco
+* scrape: Return resources even if there are no metrics by @iainlane
+* kinesisanalytics application: add tags support by @raanand-dig
+* Add support for AWS/ClientVPN by @hc2p
+* Add support for QLDB by @alexandre-alvarengazh
+
+Bugs:
+* main: Initialise logger when exiting if needed by @iainlane
+
+Docs:
+* Create sqs.yml example file by @dverzolla
+
+Refactoring:
+* Update code to go 1.21 by @cristiangreco
+* aws sdk v2 use EndpointResolverV2 by @kgeckhart
+* move duplicated fields from CloudwatchData to a new JobContext by @kgeckhart
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.44.328 to 1.45.7
+* Bump the aws-sdk-v2 group with 2 updates
+* Bump actions/checkout from 3 to 4 by
+
+**New Contributors**
+
+* @raanand-dig
+* @dverzolla
+* @iainlane
+* @hc2p
+* @alexandre-alvarengazh
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.1...v0.55.0
+
+
 # v0.54.1
 
 Bugs:
