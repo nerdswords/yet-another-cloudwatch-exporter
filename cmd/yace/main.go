@@ -134,7 +134,7 @@ func NewYACEApp() *cli.App {
 		&cli.BoolFlag{
 			Name:        "cloudwatch-concurrency.per-api-enabled",
 			Value:       exporter.DefaultCloudwatchConcurrency.PerAPIEnabled,
-			Usage:       "Whether to enable the per API CloudWatch concurrency limiter.",
+			Usage:       "Whether to enable the per API CloudWatch concurrency limiter. When enabled, the concurrency `-cloudwatch-concurrency` flag will be ignored.",
 			Destination: &cloudwatchConcurrency.PerAPIEnabled,
 		},
 		&cli.IntFlag{
@@ -232,6 +232,11 @@ func NewYACEApp() *cli.App {
 
 func startScraper(c *cli.Context) error {
 	logger = logging.NewLogger(logFormat, debug, "version", version)
+
+	// log warning if the two concurrency limiting methods are configured via CLI
+	if c.IsSet("cloudwatch-concurrency") && c.IsSet("cloudwatch-concurrency.per-api-enabled") {
+		logger.Warn("Both `cloudwatch-concurrency` and `cloudwatch-concurrency.per-api-enabled` are set. `cloudwatch-concurrency` will be ignored, and the per-api concurrency limiting strategy will be favoured.")
+	}
 
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {
