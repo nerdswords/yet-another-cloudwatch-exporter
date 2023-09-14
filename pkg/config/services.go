@@ -71,9 +71,6 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/MWAA",
 		Alias:     "mwaa",
-		ResourceFilters: []*string{
-			aws.String("mwaa"),
-		},
 	},
 	{
 		Namespace: "AWS/ApplicationELB",
