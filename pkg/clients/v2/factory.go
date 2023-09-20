@@ -31,8 +31,8 @@ import (
 	cloudwatch_v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch/v2"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	tagging_v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging/v2"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 type awsRegion = string
@@ -40,7 +40,7 @@ type awsRegion = string
 type CachingFactory struct {
 	logger              logging.Logger
 	stsRegion           string
-	clients             map[config.Role]map[awsRegion]*cachedClients
+	clients             map[model.Role]map[awsRegion]*cachedClients
 	mu                  sync.Mutex
 	refreshed           bool
 	cleared             bool
@@ -63,7 +63,7 @@ type cachedClients struct {
 var _ clients.Factory = &CachingFactory{}
 
 // NewFactory creates a new client factory to use when fetching data from AWS with sdk v2
-func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*CachingFactory, error) {
+func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*CachingFactory, error) {
 	var options []func(*aws_config.LoadOptions) error
 	options = append(options, aws_config.WithLogger(aws_logging.LoggerFunc(func(classification aws_logging.Classification, format string, v ...interface{}) {
 		if classification == aws_logging.Debug {
@@ -88,8 +88,8 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 		return nil, fmt.Errorf("failed to load default aws config: %w", err)
 	}
 
-	cache := map[config.Role]map[awsRegion]*cachedClients{}
-	for _, discoveryJob := range cfg.Discovery.Jobs {
+	cache := map[model.Role]map[awsRegion]*cachedClients{}
+	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
 		for _, role := range discoveryJob.Roles {
 			if _, ok := cache[role]; !ok {
 				cache[role] = map[awsRegion]*cachedClients{}
@@ -104,7 +104,7 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 		}
 	}
 
-	for _, staticJob := range cfg.Static {
+	for _, staticJob := range jobsCfg.StaticJobs {
 		for _, role := range staticJob.Roles {
 			if _, ok := cache[role]; !ok {
 				cache[role] = map[awsRegion]*cachedClients{}
@@ -122,7 +122,7 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 		}
 	}
 
-	for _, customNamespaceJob := range cfg.CustomNamespace {
+	for _, customNamespaceJob := range jobsCfg.CustomNamespaceJobs {
 		for _, role := range customNamespaceJob.Roles {
 			if _, ok := cache[role]; !ok {
 				cache[role] = map[awsRegion]*cachedClients{}
@@ -143,13 +143,13 @@ func NewFactory(cfg config.ScrapeConf, fips bool, logger logging.Logger) (*Cachi
 	return &CachingFactory{
 		logger:              logger,
 		clients:             cache,
-		stsRegion:           cfg.StsRegion,
+		stsRegion:           jobsCfg.StsRegion,
 		fipsEnabled:         fips,
 		endpointURLOverride: endpointURLOverride,
 	}, nil
 }
 
-func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, concurrency cloudwatch_client.ConcurrencyConfig) cloudwatch_client.Client {
+func (c *CachingFactory) GetCloudwatchClient(region string, role model.Role, concurrency cloudwatch_client.ConcurrencyConfig) cloudwatch_client.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -162,7 +162,7 @@ func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, co
 	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrency.NewLimiter())
 }
 
-func (c *CachingFactory) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
+func (c *CachingFactory) GetTaggingClient(region string, role model.Role, concurrencyLimit int) tagging.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -186,7 +186,7 @@ func (c *CachingFactory) GetTaggingClient(region string, role config.Role, concu
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 
-func (c *CachingFactory) GetAccountClient(region string, role config.Role) account.Client {
+func (c *CachingFactory) GetAccountClient(region string, role model.Role) account.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -428,9 +428,9 @@ func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Clien
 	})
 }
 
-var defaultRole = config.Role{}
+var defaultRole = model.Role{}
 
-func awsConfigForRegion(r config.Role, c *aws.Config, region awsRegion, role config.Role) *aws.Config {
+func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, role model.Role) *aws.Config {
 	regionalSts := sts.NewFromConfig(*c, func(options *sts.Options) {
 		options.Region = region
 	})

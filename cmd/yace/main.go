@@ -55,8 +55,6 @@ var (
 	profilingEnabled      bool
 
 	logger logging.Logger
-
-	cfg = config.ScrapeConf{}
 )
 
 func main() {
@@ -204,7 +202,8 @@ func NewYACEApp() *cli.App {
 			Action: func(c *cli.Context) error {
 				logger = logging.NewLogger(logFormat, debug, "version", version)
 				logger.Info("Parsing config")
-				if err := cfg.Load(configFile, logger); err != nil {
+				cfg := config.ScrapeConf{}
+				if _, err := cfg.Load(configFile, logger); err != nil {
 					logger.Error(err, "Couldn't read config file", "path", configFile)
 					os.Exit(1)
 				}
@@ -239,18 +238,21 @@ func startScraper(c *cli.Context) error {
 	}
 
 	logger.Info("Parsing config")
-	if err := cfg.Load(configFile, logger); err != nil {
+
+	cfg := config.ScrapeConf{}
+	jobsCfg, err := cfg.Load(configFile, logger)
+	if err != nil {
 		return fmt.Errorf("Couldn't read %s: %w", configFile, err)
 	}
 
 	featureFlags := c.StringSlice(enableFeatureFlag)
 	s := NewScraper(featureFlags)
-	var cache cachingFactory = v1.NewFactory(cfg, fips, logger)
+	var cache cachingFactory = v1.NewFactory(logger, jobsCfg, fips)
 	for _, featureFlag := range featureFlags {
 		if featureFlag == config.AwsSdkV2 {
 			var err error
 			// Can't override cache while also creating err
-			cache, err = v2.NewFactory(cfg, fips, logger)
+			cache, err = v2.NewFactory(logger, jobsCfg, fips)
 			if err != nil {
 				return fmt.Errorf("failed to construct aws sdk v2 client cache: %w", err)
 			}
@@ -258,7 +260,7 @@ func startScraper(c *cli.Context) error {
 	}
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
-	go s.decoupled(ctx, logger, cache)
+	go s.decoupled(ctx, logger, jobsCfg, cache)
 
 	mux := http.NewServeMux()
 
@@ -291,20 +293,23 @@ func startScraper(c *cli.Context) error {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
 		logger.Info("Parsing config")
-		if err := cfg.Load(configFile, logger); err != nil {
+		newCfg := config.ScrapeConf{}
+		newJobsCfg, err := newCfg.Load(configFile, logger)
+		if err != nil {
 			logger.Error(err, "Couldn't read config file", "path", configFile)
 			return
 		}
 
 		logger.Info("Reset clients cache")
-		cache = v1.NewFactory(cfg, fips, logger)
+		cache = v1.NewFactory(logger, newJobsCfg, fips)
 		for _, featureFlag := range featureFlags {
 			if featureFlag == config.AwsSdkV2 {
 				logger.Info("Using aws sdk v2")
 				var err error
 				// Can't override cache while also creating err
-				cache, err = v2.NewFactory(cfg, fips, logger)
+				cache, err = v2.NewFactory(logger, newJobsCfg, fips)
 				if err != nil {
 					logger.Error(err, "Failed to construct aws sdk v2 client cache", "path", configFile)
 					return
@@ -314,7 +319,7 @@ func startScraper(c *cli.Context) error {
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
-		go s.decoupled(ctx, logger, cache)
+		go s.decoupled(ctx, logger, newJobsCfg, cache)
 	})
 
 	logger.Info("Yace startup completed", "version", version, "feature_flags", strings.Join(featureFlags, ","))

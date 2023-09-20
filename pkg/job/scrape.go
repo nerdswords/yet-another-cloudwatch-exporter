@@ -14,7 +14,7 @@ import (
 func ScrapeAwsData(
 	ctx context.Context,
 	logger logging.Logger,
-	cfg config.ScrapeConf,
+	jobsCfg model.JobsConfig,
 	factory clients.Factory,
 	metricsPerQuery int,
 	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
@@ -25,11 +25,11 @@ func ScrapeAwsData(
 	awsInfoData := make([][]*model.TaggedResource, 0)
 	var wg sync.WaitGroup
 
-	for _, discoveryJob := range cfg.Discovery.Jobs {
+	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
 		for _, role := range discoveryJob.Roles {
 			for _, region := range discoveryJob.Regions {
 				wg.Add(1)
-				go func(discoveryJob *config.Job, region string, role config.Role) {
+				go func(discoveryJob model.DiscoveryJob, region string, role model.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("job_type", discoveryJob.Type, "region", region, "arn", role.RoleArn)
 					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)
@@ -39,7 +39,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, cfg.Discovery.ExportedTagsOnMetrics, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery, cloudwatchConcurrency)
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery, cloudwatchConcurrency)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.JobContext{
 							Region:     region,
@@ -64,11 +64,11 @@ func ScrapeAwsData(
 		}
 	}
 
-	for _, staticJob := range cfg.Static {
+	for _, staticJob := range jobsCfg.StaticJobs {
 		for _, role := range staticJob.Roles {
 			for _, region := range staticJob.Regions {
 				wg.Add(1)
-				go func(staticJob *config.Static, region string, role config.Role) {
+				go func(staticJob model.StaticJob, region string, role model.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("static_job_name", staticJob.Name, "region", region, "arn", role.RoleArn)
 					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)
@@ -95,11 +95,11 @@ func ScrapeAwsData(
 		}
 	}
 
-	for _, customNamespaceJob := range cfg.CustomNamespace {
+	for _, customNamespaceJob := range jobsCfg.CustomNamespaceJobs {
 		for _, role := range customNamespaceJob.Roles {
 			for _, region := range customNamespaceJob.Regions {
 				wg.Add(1)
-				go func(customNamespaceJob *config.CustomNamespace, region string, role config.Role) {
+				go func(customNamespaceJob model.CustomNamespaceJob, region string, role model.Role) {
 					defer wg.Done()
 					jobLogger := logger.With("custom_metric_namespace", customNamespaceJob.Namespace, "region", region, "arn", role.RoleArn)
 					accountID, err := factory.GetAccountClient(region, role).GetAccount(ctx)

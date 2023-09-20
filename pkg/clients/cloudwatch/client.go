@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -19,14 +18,14 @@ type Client interface {
 	// ListMetrics returns the list of metrics and dimensions for a given namespace
 	// and metric name. Results pagination is handled automatically: the caller can
 	// optionally pass a non-nil func in order to handle results pages.
-	ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error)
+	ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error)
 
 	// GetMetricData returns the output of the GetMetricData CloudWatch API.
 	// Results pagination is handled automatically.
 	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []MetricDataResult
 
 	// GetMetricStatistics returns the output of the GetMetricStatistics CloudWatch API.
-	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint
+	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint
 }
 
 // ConcurrencyLimiter limits the concurrency when calling AWS CloudWatch APIs. The functions implemented
@@ -61,7 +60,7 @@ func NewLimitedConcurrencyClient(client Client, limiter ConcurrencyLimiter) Clie
 	}
 }
 
-func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint {
+func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
 	c.limiter.Acquire(getMetricStatisticsCall)
 	res := c.client.GetMetricStatistics(ctx, logger, dimensions, namespace, metric)
 	c.limiter.Release(getMetricStatisticsCall)
@@ -75,7 +74,7 @@ func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logg
 	return res
 }
 
-func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
 	c.limiter.Acquire(listMetricsCall)
 	res, err := c.client.ListMetrics(ctx, namespace, metric, recentlyActiveOnly, fn)
 	c.limiter.Release(listMetricsCall)
