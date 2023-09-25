@@ -20,14 +20,14 @@ func (tc TimeClock) Now() time.Time {
 // Always uses the wall clock time as starting point for calculations to ensure that
 // a variety of exporter configurations will work reliably.
 func DetermineGetMetricDataWindow(clock Clock, roundingPeriod time.Duration, length time.Duration, delay time.Duration) (time.Time, time.Time) {
-	now := clock.Now()
+	now := clock.Now().Add(-delay)
 	if roundingPeriod > 0 {
 		// Round down the time to a factor of the period - rounding is recommended by AWS:
 		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html#API_GetMetricData_RequestParameters
 		now = now.Add(-roundingPeriod / 2).Round(roundingPeriod)
 	}
 
-	startTime := now.Add(-(length + delay))
-	endTime := now.Add(-delay)
+	startTime := now.Add(-length)
+	endTime := now
 	return startTime, endTime
 }

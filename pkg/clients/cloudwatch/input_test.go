@@ -81,6 +81,45 @@ func Test_MetricWindow(t *testing.T) {
 				expectedEndTime:   time.Date(2021, 11, 20, 8, 30, 0, 0, time.UTC),
 			},
 		},
+		{
+			testName: "Go back 5 minutes and round to the nearest 5 minutes with 1 minute of delay. Wall clock time is within delay threshold.",
+			data: data{
+				roundingPeriod: 300 * time.Second, // 5 min
+				length:         300 * time.Second, // 5 min
+				delay:          60 * time.Second,  // 1 min
+				clock: StubClock{
+					currentTime: time.Date(2021, 11, 20, 8, 35, 59, 00, time.UTC),
+				},
+				expectedStartTime: time.Date(2021, 11, 20, 8, 25, 0, 0, time.UTC),
+				expectedEndTime:   time.Date(2021, 11, 20, 8, 30, 0, 0, time.UTC),
+			},
+		},
+		{
+			testName: "Go back 5 minutes and round to the nearest 5 minutes with 1 minute of delay. Wall clock time is past delay threshold.",
+			data: data{
+				roundingPeriod: 300 * time.Second, // 5 min
+				length:         300 * time.Second, // 5 min
+				delay:          60 * time.Second,  // 1 min
+				clock: StubClock{
+					currentTime: time.Date(2021, 11, 20, 8, 36, 00, 00, time.UTC),
+				},
+				expectedStartTime: time.Date(2021, 11, 20, 8, 30, 0, 0, time.UTC),
+				expectedEndTime:   time.Date(2021, 11, 20, 8, 35, 0, 0, time.UTC),
+			},
+		},
+		{
+			testName: "Go back 5 minutes and round to the nearest 1 minute with 1 minute of delay. Wall clock time is within delay threshold.",
+			data: data{
+				roundingPeriod: 60 * time.Second,  // 1 min
+				length:         300 * time.Second, // 5 min
+				delay:          60 * time.Second,  // 1 min
+				clock: StubClock{
+					currentTime: time.Date(2021, 11, 20, 8, 35, 59, 00, time.UTC),
+				},
+				expectedStartTime: time.Date(2021, 11, 20, 8, 29, 0, 0, time.UTC),
+				expectedEndTime:   time.Date(2021, 11, 20, 8, 34, 0, 0, time.UTC),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
