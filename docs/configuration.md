@@ -99,7 +99,7 @@ customTags:
 dimensionNameRequirements:
   [ - <string> ... ]
 
-# Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests.
+# Specifies how `current_time - delay` is rounded before calculating start/end times for CloudWatch GetMetricData requests.
 # This rounding is optimize performance of the CloudWatch request.
 # This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes). For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.
 [ roundingPeriod: <int> ]
@@ -238,7 +238,7 @@ customTags:
 dimensionNameRequirements:
   [ - <string> ... ]
 
-# Specifies how the current time is rounded before calculating start/end times for CloudWatch GetMetricData requests.
+# Specifies how `current_time - delay` is rounded before calculating start/end times for CloudWatch GetMetricData requests.
 # This rounding is optimize performance of the CloudWatch request.
 # This setting only makes sense to use if, for example, you specify a very long period (such as 1 day) but want your times rounded to a shorter time (such as 5 minutes). For example, a value of 300 will round the current time to the nearest 5 minutes. If not specified, the roundingPeriod defaults to the same value as shortest period in the job.
 [ roundingPeriod: <int> ]

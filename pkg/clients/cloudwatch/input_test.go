@@ -43,7 +43,7 @@ func Test_MetricWindow(t *testing.T) {
 			},
 		},
 		{
-			testName: "Go back four minutes with two minute delay nad no rounding",
+			testName: "Go back four minutes with two minute delay and no rounding",
 			data: data{
 				roundingPeriod: 0,
 				length:         120 * time.Second,
