@@ -37,7 +37,13 @@ const (
 )
 
 var DefaultCloudwatchConcurrency = cloudwatch.ConcurrencyConfig{
-	SingleLimit: 5,
+	SingleLimit:   5,
+	PerAPIEnabled: false,
+
+	// If PerAPIEnabled is enabled, then use the same limit as the single limit by default.
+	ListMetrics:         5,
+	GetMetricData:       5,
+	GetMetricStatistics: 5,
 }
 
 // featureFlagsMap is a map that contains the enabled feature flags. If a key is not present, it means the feature flag
