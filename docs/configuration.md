@@ -21,6 +21,10 @@ All flags may be prefixed with either one hypen or two (i.e., both `-config.file
 | `-debug` | Log at debug level | `false` |
 | `-fips` | Use FIPS compliant AWS API | `false` |
 | `-cloudwatch-concurrency` | Maximum number of concurrent requests to CloudWatch API | `5` |
+| `-cloudwatch-concurrency.per-api-enabled` | Enables a concurrency limiter, that has a specific limit per CloudWatch API call. | `false` |
+| `-cloudwatch-concurrency.list-metrics-limit` | Maximum number of concurrent requests to CloudWatch `ListMetrics` API. Only applicable if `per-api-enabled` is `true`. | `5` |
+| `-cloudwatch-concurrency.get-metric-data-limit` | Maximum number of concurrent requests to CloudWatch `GetMetricsData` API. Only applicable if `per-api-enabled` is `true`. | `5` |
+| `-cloudwatch-concurrency.get-metric-statistics-limit` | Maximum number of concurrent requests to CloudWatch `GetMetricStatistics` API. Only applicable if `per-api-enabled` is `true`. | `5` |
 | `-tag-concurrency` | Maximum number of concurrent requests to Resource Tagging API | `5` |
 | `-scraping-interval` | Seconds to wait between scraping the AWS metrics | `300` |
 | `-metrics-per-query` | Number of metrics made in a single GetMetricsData request | `500` |

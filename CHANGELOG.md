@@ -7,7 +7,7 @@
 **Bugfixes and features**
 
 Features:
-* ...
+* Add new CloudWatch API concurrency limiter by @thepalbi
 
 Bugs:
 * ...
