@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v1"
 	v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v2"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -46,7 +47,7 @@ var (
 	debug                 bool
 	logFormat             string
 	fips                  bool
-	cloudwatchConcurrency int
+	cloudwatchConcurrency cloudwatch.ConcurrencyConfig
 	tagConcurrency        int
 	scrapingInterval      int
 	metricsPerQuery       int
@@ -126,9 +127,33 @@ func NewYACEApp() *cli.App {
 		},
 		&cli.IntFlag{
 			Name:        "cloudwatch-concurrency",
-			Value:       exporter.DefaultCloudWatchAPIConcurrency,
+			Value:       exporter.DefaultCloudwatchConcurrency.SingleLimit,
 			Usage:       "Maximum number of concurrent requests to CloudWatch API.",
-			Destination: &cloudwatchConcurrency,
+			Destination: &cloudwatchConcurrency.SingleLimit,
+		},
+		&cli.BoolFlag{
+			Name:        "cloudwatch-concurrency.per-api-limit-enabled",
+			Value:       exporter.DefaultCloudwatchConcurrency.PerAPILimitEnabled,
+			Usage:       "Whether to enable the per API CloudWatch concurrency limiter. When enabled, the concurrency `-cloudwatch-concurrency` flag will be ignored.",
+			Destination: &cloudwatchConcurrency.PerAPILimitEnabled,
+		},
+		&cli.IntFlag{
+			Name:        "cloudwatch-concurrency.list-metrics-limit",
+			Value:       exporter.DefaultCloudwatchConcurrency.ListMetrics,
+			Usage:       "Maximum number of concurrent requests to ListMetrics CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
+			Destination: &cloudwatchConcurrency.ListMetrics,
+		},
+		&cli.IntFlag{
+			Name:        "cloudwatch-concurrency.get-metric-data-limit",
+			Value:       exporter.DefaultCloudwatchConcurrency.GetMetricData,
+			Usage:       "Maximum number of concurrent requests to GetMetricData CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
+			Destination: &cloudwatchConcurrency.GetMetricData,
+		},
+		&cli.IntFlag{
+			Name:        "cloudwatch-concurrency.get-metric-statistics-limit",
+			Value:       exporter.DefaultCloudwatchConcurrency.GetMetricStatistics,
+			Usage:       "Maximum number of concurrent requests to GetMetricStatistics CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
+			Destination: &cloudwatchConcurrency.GetMetricStatistics,
 		},
 		&cli.IntFlag{
 			Name:        "tag-concurrency",
@@ -207,6 +232,11 @@ func NewYACEApp() *cli.App {
 
 func startScraper(c *cli.Context) error {
 	logger = logging.NewLogger(logFormat, debug, "version", version)
+
+	// log warning if the two concurrency limiting methods are configured via CLI
+	if c.IsSet("cloudwatch-concurrency") && c.IsSet("cloudwatch-concurrency.per-api-limit-enabled") {
+		logger.Warn("Both `cloudwatch-concurrency` and `cloudwatch-concurrency.per-api-limit-enabled` are set. `cloudwatch-concurrency` will be ignored, and the per-api concurrency limiting strategy will be favoured.")
+	}
 
 	logger.Info("Parsing config")
 	if err := cfg.Load(configFile, logger); err != nil {

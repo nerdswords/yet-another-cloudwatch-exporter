@@ -9,6 +9,12 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
+const (
+	listMetricsCall         = "ListMetrics"
+	getMetricDataCall       = "GetMetricData"
+	getMetricStatisticsCall = "GetMetricStatistics"
+)
+
 type Client interface {
 	// ListMetrics returns the list of metrics and dimensions for a given namespace
 	// and metric name. Results pagination is handled automatically: the caller can
@@ -23,6 +29,20 @@ type Client interface {
 	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint
 }
 
+// ConcurrencyLimiter limits the concurrency when calling AWS CloudWatch APIs. The functions implemented
+// by this interface follow the same as a normal semaphore, but accept and operation identifier. Some
+// implementations might use this to keep a different semaphore, with different reentrance values, per
+// operation.
+type ConcurrencyLimiter interface {
+	// Acquire takes one "ticket" from the concurrency limiter for op. If there's none available, the caller
+	// routine will be blocked until there's room available.
+	Acquire(op string)
+
+	// Release gives back one "ticket" to the concurrency limiter identified by op. If there's one or more
+	// routines waiting for one, one will be woken up.
+	Release(op string)
+}
+
 type MetricDataResult struct {
 	ID        string
 	Datapoint float64
@@ -30,34 +50,34 @@ type MetricDataResult struct {
 }
 
 type limitedConcurrencyClient struct {
-	client Client
-	sem    chan struct{}
+	client  Client
+	limiter ConcurrencyLimiter
 }
 
-func NewLimitedConcurrencyClient(client Client, maxConcurrency int) Client {
+func NewLimitedConcurrencyClient(client Client, limiter ConcurrencyLimiter) Client {
 	return &limitedConcurrencyClient{
-		client: client,
-		sem:    make(chan struct{}, maxConcurrency),
+		client:  client,
+		limiter: limiter,
 	}
 }
 
 func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint {
-	c.sem <- struct{}{}
+	c.limiter.Acquire(getMetricStatisticsCall)
 	res := c.client.GetMetricStatistics(ctx, logger, dimensions, namespace, metric)
-	<-c.sem
+	c.limiter.Release(getMetricStatisticsCall)
 	return res
 }
 
 func (c limitedConcurrencyClient) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []MetricDataResult {
-	c.sem <- struct{}{}
+	c.limiter.Acquire(getMetricDataCall)
 	res := c.client.GetMetricData(ctx, logger, getMetricData, namespace, length, delay, configuredRoundingPeriod)
-	<-c.sem
+	c.limiter.Release(getMetricDataCall)
 	return res
 }
 
 func (c limitedConcurrencyClient) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
-	c.sem <- struct{}{}
+	c.limiter.Acquire(listMetricsCall)
 	res, err := c.client.ListMetrics(ctx, namespace, metric, recentlyActiveOnly, fn)
-	<-c.sem
+	c.limiter.Release(listMetricsCall)
 	return res, err
 }

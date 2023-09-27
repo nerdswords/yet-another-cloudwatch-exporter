@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -16,7 +17,7 @@ func ScrapeAwsData(
 	cfg config.ScrapeConf,
 	factory clients.Factory,
 	metricsPerQuery int,
-	cloudWatchAPIConcurrency int,
+	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
 	taggingAPIConcurrency int,
 ) ([][]*model.TaggedResource, []model.CloudwatchMetricResult) {
 	mux := &sync.Mutex{}
@@ -38,7 +39,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, cfg.Discovery.ExportedTagsOnMetrics, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery, cloudWatchAPIConcurrency)
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, cfg.Discovery.ExportedTagsOnMetrics, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery, cloudwatchConcurrency)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.JobContext{
 							Region:     region,
@@ -77,7 +78,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runStaticJob(ctx, jobLogger, staticJob, factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency))
+					metrics := runStaticJob(ctx, jobLogger, staticJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency))
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.JobContext{
 							Region:     region,
@@ -108,7 +109,7 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, factory.GetCloudwatchClient(region, role, cloudWatchAPIConcurrency), metricsPerQuery)
+					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.JobContext{
 							Region:     region,

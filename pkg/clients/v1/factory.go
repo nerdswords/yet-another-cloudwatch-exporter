@@ -246,17 +246,17 @@ func createAccountClient(logger logging.Logger, sts stsiface.STSAPI) account.Cli
 	return account_v1.NewClient(logger, sts)
 }
 
-func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
+func (c *CachingFactory) GetCloudwatchClient(region string, role config.Role, concurrency cloudwatch_client.ConcurrencyConfig) cloudwatch_client.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
 		defer c.mu.Unlock()
 	}
 	if client := c.clients[role][region].cloudwatch; client != nil {
-		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrencyLimit)
+		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrency.NewLimiter())
 	}
 	c.clients[role][region].cloudwatch = createCloudWatchClient(c.logger, c.session, &region, role, c.fips)
-	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
+	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrency.NewLimiter())
 }
 
 func (c *CachingFactory) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
