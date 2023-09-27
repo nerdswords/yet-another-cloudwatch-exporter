@@ -115,6 +115,7 @@ Only the latest version gets security updates. We won't support older versions.
   * sfn (AWS/States) - Step Functions
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
   * workspaces (AWS/WorkSpaces) - Workspaces
+  * ipam (AWS/IPAM) - IP address manager
 
 ## Feature flags
 
