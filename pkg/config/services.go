@@ -832,4 +832,14 @@ var SupportedServices = serviceConfigs{
 			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
 		},
 	},
+	{
+		Namespace: "AWS/IPAM",
+		Alias:     "ipam",
+		ResourceFilters: []*string{
+			aws.String("ec2:ipam-pool"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ipam-pool/(?P<IpamPoolId>[^/]+)$"),
+		},
+	},
 }
