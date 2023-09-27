@@ -37,10 +37,10 @@ const (
 )
 
 var DefaultCloudwatchConcurrency = cloudwatch.ConcurrencyConfig{
-	SingleLimit:   5,
-	PerAPIEnabled: false,
+	SingleLimit:        5,
+	PerAPILimitEnabled: false,
 
-	// If PerAPIEnabled is enabled, then use the same limit as the single limit by default.
+	// If PerAPILimitEnabled is enabled, then use the same limit as the single limit by default.
 	ListMetrics:         5,
 	GetMetricData:       5,
 	GetMetricStatistics: 5,
@@ -95,7 +95,7 @@ func CloudWatchAPIConcurrency(maxConcurrency int) OptionsFunc {
 	}
 }
 
-func CloudWatchPerAPIConcurrency(listMetrics, getMetricData, getMetricStatistics int) OptionsFunc {
+func CloudWatchPerAPILimitConcurrency(listMetrics, getMetricData, getMetricStatistics int) OptionsFunc {
 	return func(o *options) error {
 		if listMetrics <= 0 {
 			return fmt.Errorf("LitMetrics concurrency limit must be a positive value")
@@ -107,7 +107,7 @@ func CloudWatchPerAPIConcurrency(listMetrics, getMetricData, getMetricStatistics
 			return fmt.Errorf("GetMetricStatistics concurrency limit must be a positive value")
 		}
 
-		o.cloudwatchConcurrency.PerAPIEnabled = true
+		o.cloudwatchConcurrency.PerAPILimitEnabled = true
 		o.cloudwatchConcurrency.ListMetrics = listMetrics
 		o.cloudwatchConcurrency.GetMetricData = getMetricData
 		o.cloudwatchConcurrency.GetMetricStatistics = getMetricStatistics

@@ -132,27 +132,27 @@ func NewYACEApp() *cli.App {
 			Destination: &cloudwatchConcurrency.SingleLimit,
 		},
 		&cli.BoolFlag{
-			Name:        "cloudwatch-concurrency.per-api-enabled",
-			Value:       exporter.DefaultCloudwatchConcurrency.PerAPIEnabled,
+			Name:        "cloudwatch-concurrency.per-api-limit-enabled",
+			Value:       exporter.DefaultCloudwatchConcurrency.PerAPILimitEnabled,
 			Usage:       "Whether to enable the per API CloudWatch concurrency limiter. When enabled, the concurrency `-cloudwatch-concurrency` flag will be ignored.",
-			Destination: &cloudwatchConcurrency.PerAPIEnabled,
+			Destination: &cloudwatchConcurrency.PerAPILimitEnabled,
 		},
 		&cli.IntFlag{
 			Name:        "cloudwatch-concurrency.list-metrics-limit",
 			Value:       exporter.DefaultCloudwatchConcurrency.ListMetrics,
-			Usage:       "Maximum number of concurrent requests to ListMetrics CloudWatch API. Used if the per-api concurrency limiter is enabled.",
+			Usage:       "Maximum number of concurrent requests to ListMetrics CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
 			Destination: &cloudwatchConcurrency.ListMetrics,
 		},
 		&cli.IntFlag{
 			Name:        "cloudwatch-concurrency.get-metric-data-limit",
 			Value:       exporter.DefaultCloudwatchConcurrency.GetMetricData,
-			Usage:       "Maximum number of concurrent requests to GetMetricData CloudWatch API. Used if the per-api concurrency limiter is enabled.",
+			Usage:       "Maximum number of concurrent requests to GetMetricData CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
 			Destination: &cloudwatchConcurrency.GetMetricData,
 		},
 		&cli.IntFlag{
 			Name:        "cloudwatch-concurrency.get-metric-statistics-limit",
 			Value:       exporter.DefaultCloudwatchConcurrency.GetMetricStatistics,
-			Usage:       "Maximum number of concurrent requests to GetMetricStatistics CloudWatch API. Used if the per-api concurrency limiter is enabled.",
+			Usage:       "Maximum number of concurrent requests to GetMetricStatistics CloudWatch API. Used if the -cloudwatch-concurrency.per-api-limit-enabled concurrency limiter is enabled.",
 			Destination: &cloudwatchConcurrency.GetMetricStatistics,
 		},
 		&cli.IntFlag{
@@ -234,8 +234,8 @@ func startScraper(c *cli.Context) error {
 	logger = logging.NewLogger(logFormat, debug, "version", version)
 
 	// log warning if the two concurrency limiting methods are configured via CLI
-	if c.IsSet("cloudwatch-concurrency") && c.IsSet("cloudwatch-concurrency.per-api-enabled") {
-		logger.Warn("Both `cloudwatch-concurrency` and `cloudwatch-concurrency.per-api-enabled` are set. `cloudwatch-concurrency` will be ignored, and the per-api concurrency limiting strategy will be favoured.")
+	if c.IsSet("cloudwatch-concurrency") && c.IsSet("cloudwatch-concurrency.per-api-limit-enabled") {
+		logger.Warn("Both `cloudwatch-concurrency` and `cloudwatch-concurrency.per-api-limit-enabled` are set. `cloudwatch-concurrency` will be ignored, and the per-api concurrency limiting strategy will be favoured.")
 	}
 
 	logger.Info("Parsing config")

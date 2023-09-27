@@ -89,8 +89,8 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachi
 		exporter.TaggingAPIConcurrency(tagConcurrency),
 	}
 
-	if cloudwatchConcurrency.PerAPIEnabled {
-		options = append(options, exporter.CloudWatchPerAPIConcurrency(cloudwatchConcurrency.ListMetrics, cloudwatchConcurrency.GetMetricData, cloudwatchConcurrency.GetMetricStatistics))
+	if cloudwatchConcurrency.PerAPILimitEnabled {
+		options = append(options, exporter.CloudWatchPerAPILimitConcurrency(cloudwatchConcurrency.ListMetrics, cloudwatchConcurrency.GetMetricData, cloudwatchConcurrency.GetMetricStatistics))
 	} else {
 		options = append(options, exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency.SingleLimit))
 	}

@@ -4,8 +4,8 @@ package cloudwatch
 // one to pick between different limiter implementations: a single limit limiter, or one with a different limit per
 // API call.
 type ConcurrencyConfig struct {
-	// PerAPIEnabled configures wether to have a limit per API call.
-	PerAPIEnabled bool
+	// PerAPIEnabled configures whether to have a limit per API call.
+	PerAPILimitEnabled bool
 
 	// SingleLimit configures the concurrency limit when using a single limiter for api calls.
 	SingleLimit int
@@ -38,7 +38,7 @@ func (s semaphore) Release() {
 
 // NewLimiter creates a new ConcurrencyLimiter, according to the ConcurrencyConfig.
 func (cfg ConcurrencyConfig) NewLimiter() ConcurrencyLimiter {
-	if cfg.PerAPIEnabled {
+	if cfg.PerAPILimitEnabled {
 		return NewPerAPICallLimiter(cfg.ListMetrics, cfg.GetMetricData, cfg.GetMetricStatistics)
 	}
 	return NewSingleLimiter(cfg.SingleLimit)
