@@ -17,7 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.15.5
 	github.com/aws/aws-sdk-go-v2/service/shield v1.19.5
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.19.6
-	github.com/aws/aws-sdk-go-v2/service/sts v1.21.5
+	github.com/aws/aws-sdk-go-v2/service/sts v1.23.0
 	github.com/aws/smithy-go v1.14.2
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
