@@ -11,6 +11,7 @@ import (
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 type scraper struct {
@@ -40,9 +41,9 @@ func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache cachingFactory) {
+func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, jobsCfg model.JobsConfig, cache cachingFactory) {
 	logger.Debug("Starting scraping async")
-	s.scrape(ctx, logger, cache)
+	s.scrape(ctx, logger, jobsCfg, cache)
 
 	scrapingDuration := time.Duration(scrapingInterval) * time.Second
 	ticker := time.NewTicker(scrapingDuration)
@@ -54,12 +55,12 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache ca
 			return
 		case <-ticker.C:
 			logger.Debug("Starting scraping async")
-			go s.scrape(ctx, logger, cache)
+			go s.scrape(ctx, logger, jobsCfg, cache)
 		}
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachingFactory) {
+func (s *scraper) scrape(ctx context.Context, logger logging.Logger, jobsCfg model.JobsConfig, cache cachingFactory) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
 		// Let them know by logging a warning.
@@ -98,7 +99,7 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachi
 	err := exporter.UpdateMetrics(
 		ctx,
 		logger,
-		cfg,
+		jobsCfg,
 		newRegistry,
 		cache,
 		options...,

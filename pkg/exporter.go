@@ -11,6 +11,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
@@ -163,7 +164,7 @@ func defaultOptions() options {
 func UpdateMetrics(
 	ctx context.Context,
 	logger logging.Logger,
-	cfg config.ScrapeConf,
+	jobsCfg model.JobsConfig,
 	registry *prometheus.Registry,
 	factory clients.Factory,
 	optFuncs ...OptionsFunc,
@@ -181,7 +182,7 @@ func UpdateMetrics(
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,
 		logger,
-		cfg,
+		jobsCfg,
 		factory,
 		options.metricsPerQuery,
 		options.cloudwatchConcurrency,
