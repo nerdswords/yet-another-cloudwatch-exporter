@@ -372,6 +372,10 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.Delay = discoveryJob.Delay
 		job.NilToZero = discoveryJob.NilToZero
 		job.AddCloudwatchTimestamp = discoveryJob.AddCloudwatchTimestamp
+		job.Roles = toModelRoles(discoveryJob.Roles)
+		job.SearchTags = toModelTags(discoveryJob.SearchTags)
+		job.CustomTags = toModelTags(discoveryJob.CustomTags)
+		job.Metrics = toModelMetricConfig(discoveryJob.Metrics)
 
 		job.ExportedTagsOnMetrics = []string{}
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
@@ -383,39 +387,6 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 			}
 		}
 
-		for _, role := range discoveryJob.Roles {
-			job.Roles = append(job.Roles, model.Role{
-				RoleArn:    role.RoleArn,
-				ExternalID: role.ExternalID,
-			})
-		}
-
-		for _, searchTag := range discoveryJob.SearchTags {
-			job.SearchTags = append(job.SearchTags, model.Tag{
-				Key:   searchTag.Key,
-				Value: searchTag.Value,
-			})
-		}
-
-		for _, customTag := range discoveryJob.CustomTags {
-			job.CustomTags = append(job.CustomTags, model.Tag{
-				Key:   customTag.Key,
-				Value: customTag.Value,
-			})
-		}
-
-		for _, metric := range discoveryJob.Metrics {
-			job.Metrics = append(job.Metrics, &model.MetricConfig{
-				Name:                   metric.Name,
-				Statistics:             metric.Statistics,
-				Period:                 metric.Period,
-				Length:                 metric.Length,
-				Delay:                  metric.Delay,
-				NilToZero:              metric.NilToZero,
-				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-			})
-		}
-
 		jobsCfg.DiscoveryJobs = append(jobsCfg.DiscoveryJobs, job)
 	}
 
@@ -424,46 +395,15 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.Name = staticJob.Name
 		job.Namespace = staticJob.Namespace
 		job.Regions = staticJob.Regions
-
-		for _, role := range staticJob.Roles {
-			job.Roles = append(job.Roles, model.Role{
-				RoleArn:    role.RoleArn,
-				ExternalID: role.ExternalID,
-			})
-		}
-
-		for _, customTag := range staticJob.CustomTags {
-			job.CustomTags = append(job.CustomTags, model.Tag{
-				Key:   customTag.Key,
-				Value: customTag.Value,
-			})
-		}
-
-		for _, dimension := range staticJob.Dimensions {
-			job.Dimensions = append(job.Dimensions, model.Dimension{
-				Name:  dimension.Name,
-				Value: dimension.Value,
-			})
-		}
-
-		for _, metric := range staticJob.Metrics {
-			job.Metrics = append(job.Metrics, &model.MetricConfig{
-				Name:                   metric.Name,
-				Statistics:             metric.Statistics,
-				Period:                 metric.Period,
-				Length:                 metric.Length,
-				Delay:                  metric.Delay,
-				NilToZero:              metric.NilToZero,
-				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-			})
-		}
-
+		job.Roles = toModelRoles(staticJob.Roles)
+		job.CustomTags = toModelTags(staticJob.CustomTags)
+		job.Dimensions = toModelDimensions(staticJob.Dimensions)
+		job.Metrics = toModelMetricConfig(staticJob.Metrics)
 		jobsCfg.StaticJobs = append(jobsCfg.StaticJobs, job)
 	}
 
 	for _, customNamespaceJob := range c.CustomNamespace {
 		job := model.CustomNamespaceJob{}
-
 		job.Regions = customNamespaceJob.Regions
 		job.Name = customNamespaceJob.Name
 		job.Namespace = customNamespaceJob.Namespace
@@ -476,37 +416,62 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.Delay = customNamespaceJob.Delay
 		job.NilToZero = customNamespaceJob.NilToZero
 		job.AddCloudwatchTimestamp = customNamespaceJob.AddCloudwatchTimestamp
-
-		for _, role := range customNamespaceJob.Roles {
-			job.Roles = append(job.Roles, model.Role{
-				RoleArn:    role.RoleArn,
-				ExternalID: role.ExternalID,
-			})
-		}
-
-		for _, customTag := range customNamespaceJob.CustomTags {
-			job.CustomTags = append(job.CustomTags, model.Tag{
-				Key:   customTag.Key,
-				Value: customTag.Value,
-			})
-		}
-
-		for _, metric := range customNamespaceJob.Metrics {
-			job.Metrics = append(job.Metrics, &model.MetricConfig{
-				Name:                   metric.Name,
-				Statistics:             metric.Statistics,
-				Period:                 metric.Period,
-				Length:                 metric.Length,
-				Delay:                  metric.Delay,
-				NilToZero:              metric.NilToZero,
-				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-			})
-		}
-
+		job.Roles = toModelRoles(customNamespaceJob.Roles)
+		job.CustomTags = toModelTags(customNamespaceJob.CustomTags)
+		job.Metrics = toModelMetricConfig(customNamespaceJob.Metrics)
 		jobsCfg.CustomNamespaceJobs = append(jobsCfg.CustomNamespaceJobs, job)
 	}
 
 	return jobsCfg
+}
+
+func toModelTags(tags []Tag) []model.Tag {
+	ret := make([]model.Tag, 0, len(tags))
+	for _, t := range tags {
+		ret = append(ret, model.Tag{
+			Key:   t.Key,
+			Value: t.Value,
+		})
+	}
+	return ret
+}
+
+func toModelRoles(roles []Role) []model.Role {
+	ret := make([]model.Role, 0, len(roles))
+	for _, r := range roles {
+		ret = append(ret, model.Role{
+			RoleArn:    r.RoleArn,
+			ExternalID: r.ExternalID,
+		})
+	}
+	return ret
+}
+
+func toModelDimensions(dimensions []Dimension) []model.Dimension {
+	ret := make([]model.Dimension, 0, len(dimensions))
+	for _, d := range dimensions {
+		ret = append(ret, model.Dimension{
+			Name:  d.Name,
+			Value: d.Value,
+		})
+	}
+	return ret
+}
+
+func toModelMetricConfig(metrics []*Metric) []*model.MetricConfig {
+	ret := make([]*model.MetricConfig, 0, len(metrics))
+	for _, m := range metrics {
+		ret = append(ret, &model.MetricConfig{
+			Name:                   m.Name,
+			Statistics:             m.Statistics,
+			Period:                 m.Period,
+			Length:                 m.Length,
+			Delay:                  m.Delay,
+			NilToZero:              m.NilToZero,
+			AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+		})
+	}
+	return ret
 }
 
 // logConfigErrors logs as warning any config unmarshalling error.
