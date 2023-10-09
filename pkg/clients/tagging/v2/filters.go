@@ -350,7 +350,19 @@ var ServiceFilters = map[string]ServiceFilter{
 					if err != nil {
 						return nil, fmt.Errorf("shieldAPI.ListProtections returned an invalid ProtectedResourceArn %s for Protection %s", protectedResourceArn, protectionArn)
 					}
-					if protectedResource.Region == region {
+
+					// Shield covers regional services,
+					// 		EC2 (arn:aws:ec2:<REGION>:<ACCOUNT_ID>:eip-allocation/*)
+					// 		load balancers (arn:aws:elasticloadbalancing:<REGION>:<ACCOUNT_ID>:loadbalancer:*)
+					// 	where the region of the protectedResource ARN should match the region for the job to prevent
+					// 	duplicating resources across all regions
+					// Shield also covers other global services,
+					// 		global accelerator (arn:aws:globalaccelerator::<ACCOUNT_ID>:accelerator/*)
+					//		route53 (arn:aws:route53:::hostedzone/*)
+					//	where the protectedResource contains no region. Just like other global services the metrics for
+					//	these land in us-east-1 so any protected resource without a region should be added when the job
+					//	is for us-east-1
+					if protectedResource.Region == region || (protectedResource.Region == "" && region == "us-east-1") {
 						taggedResource := &model.TaggedResource{
 							ARN:       protectedResourceArn,
 							Namespace: job.Type,
