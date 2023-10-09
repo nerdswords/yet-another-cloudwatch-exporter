@@ -135,24 +135,19 @@ func (c *ScrapeConf) Load(file string, logger logging.Logger) (model.JobsConfig,
 		}
 	}
 
-	err = c.Validate()
-	if err != nil {
-		return model.JobsConfig{}, err
-	}
-
-	return c.toModelConfig(), nil
+	return c.Validate()
 }
 
-func (c *ScrapeConf) Validate() error {
+func (c *ScrapeConf) Validate() (model.JobsConfig, error) {
 	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomNamespace == nil {
-		return fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
+		return model.JobsConfig{}, fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
 	}
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
 			err := job.validateDiscoveryJob(idx)
 			if err != nil {
-				return err
+				return model.JobsConfig{}, err
 			}
 		}
 	}
@@ -161,7 +156,7 @@ func (c *ScrapeConf) Validate() error {
 		for idx, job := range c.CustomNamespace {
 			err := job.validateCustomNamespaceJob(idx)
 			if err != nil {
-				return err
+				return model.JobsConfig{}, err
 			}
 		}
 	}
@@ -170,15 +165,15 @@ func (c *ScrapeConf) Validate() error {
 		for idx, job := range c.Static {
 			err := job.validateStaticJob(idx)
 			if err != nil {
-				return err
+				return model.JobsConfig{}, err
 			}
 		}
 	}
 	if c.APIVersion != "" && c.APIVersion != "v1alpha1" {
-		return fmt.Errorf("unknown apiVersion value '%s'", c.APIVersion)
+		return model.JobsConfig{}, fmt.Errorf("unknown apiVersion value '%s'", c.APIVersion)
 	}
 
-	return nil
+	return c.toModelConfig(), nil
 }
 
 func (j *Job) validateDiscoveryJob(jobIdx int) error {
