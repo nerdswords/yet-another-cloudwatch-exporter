@@ -96,7 +96,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 				cache[role] = map[awsRegion]*cachedClients{}
 			}
 			for _, region := range discoveryJob.Regions {
-				regionConfig := awsConfigForRegion(role, &c, region, role, stsOptions)
+				regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 				cache[role][region] = &cachedClients{
 					awsConfig:  regionConfig,
 					onlyStatic: false,
@@ -113,7 +113,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 			for _, region := range staticJob.Regions {
 				// Discovery job client definitions have precedence
 				if _, exists := cache[role][region]; !exists {
-					regionConfig := awsConfigForRegion(role, &c, region, role, stsOptions)
+					regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 					cache[role][region] = &cachedClients{
 						awsConfig:  regionConfig,
 						onlyStatic: true,
@@ -131,7 +131,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 			for _, region := range customNamespaceJob.Regions {
 				// Discovery job client definitions have precedence
 				if _, exists := cache[role][region]; !exists {
-					regionConfig := awsConfigForRegion(role, &c, region, role, stsOptions)
+					regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 					cache[role][region] = &cachedClients{
 						awsConfig:  regionConfig,
 						onlyStatic: true,
@@ -435,7 +435,7 @@ func createStsOptions(stsRegion string, isDebugLoggingEnabled bool, endpointURLO
 
 var defaultRole = model.Role{}
 
-func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, role model.Role, stsOptions func(*sts.Options)) *aws.Config {
+func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, stsOptions func(*sts.Options)) *aws.Config {
 	regionalConfig := c.Copy()
 	regionalConfig.Region = region
 
@@ -446,9 +446,9 @@ func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, role mode
 	// based on https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#hdr-Assume_Role
 	// found via https://github.com/aws/aws-sdk-go-v2/issues/1382
 	regionalSts := sts.NewFromConfig(*c, stsOptions)
-	credentials := stscreds.NewAssumeRoleProvider(regionalSts, role.RoleArn, func(options *stscreds.AssumeRoleOptions) {
-		if role.ExternalID != "" {
-			options.ExternalID = aws.String(role.ExternalID)
+	credentials := stscreds.NewAssumeRoleProvider(regionalSts, r.RoleArn, func(options *stscreds.AssumeRoleOptions) {
+		if r.ExternalID != "" {
+			options.ExternalID = aws.String(r.ExternalID)
 		}
 	})
 	regionalConfig.Credentials = aws.NewCredentialsCache(credentials)
