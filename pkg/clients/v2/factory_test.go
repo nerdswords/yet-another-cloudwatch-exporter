@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -31,7 +32,7 @@ var jobsCfgWithDefaultRoleAndRegion1 = model.JobsConfig{
 	},
 }
 
-func TestNewClientCache_initializes_clients(t *testing.T) {
+func TestNewFactory_initializes_clients(t *testing.T) {
 	role1 := model.Role{
 		RoleArn:    "role1",
 		ExternalID: "external1",
@@ -58,7 +59,7 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			jobsCfg: model.JobsConfig{
 				DiscoveryJobs: []model.DiscoveryJob{{
 					Regions: []string{region1, region2, region3},
-					Roles:   []model.Role{role1, role2, role3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
 				}},
 			},
 			onlyStatic: aws.Bool(false),
@@ -68,7 +69,7 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			jobsCfg: model.JobsConfig{
 				StaticJobs: []model.StaticJob{{
 					Regions: []string{region1, region2, region3},
-					Roles:   []model.Role{role1, role2, role3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
 				}},
 			},
 			onlyStatic: aws.Bool(true),
@@ -78,7 +79,7 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			jobsCfg: model.JobsConfig{
 				CustomNamespaceJobs: []model.CustomNamespaceJob{{
 					Regions: []string{region1, region2, region3},
-					Roles:   []model.Role{role1, role2, role3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
 				}},
 			},
 			onlyStatic: aws.Bool(true),
@@ -88,15 +89,15 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			jobsCfg: model.JobsConfig{
 				DiscoveryJobs: []model.DiscoveryJob{{
 					Regions: []string{region1, region2},
-					Roles:   []model.Role{role1, role2},
+					Roles:   []model.Role{defaultRole, role1, role2},
 				}},
 				StaticJobs: []model.StaticJob{{
 					Regions: []string{region2, region3},
-					Roles:   []model.Role{role2, role3},
+					Roles:   []model.Role{defaultRole, role2, role3},
 				}},
 				CustomNamespaceJobs: []model.CustomNamespaceJob{{
 					Regions: []string{region1, region3},
-					Roles:   []model.Role{role1, role3},
+					Roles:   []model.Role{defaultRole, role1, role3},
 				}},
 			},
 			onlyStatic: nil,
@@ -111,13 +112,14 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 			assert.False(t, output.refreshed)
 			assert.False(t, output.cleared)
 
-			assert.Len(t, output.clients, 3)
+			require.Len(t, output.clients, 4)
+			assert.Contains(t, output.clients, defaultRole)
 			assert.Contains(t, output.clients, role1)
 			assert.Contains(t, output.clients, role2)
 			assert.Contains(t, output.clients, role3)
 
 			for role, regionalClients := range output.clients {
-				assert.Len(t, regionalClients, 3)
+				require.Len(t, regionalClients, 3)
 
 				assert.Contains(t, regionalClients, region1)
 				assert.Contains(t, regionalClients, region2)
@@ -128,13 +130,33 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 					if test.onlyStatic != nil {
 						assert.Equal(t, *test.onlyStatic, clients.onlyStatic, "role %s region %s had unexpected onlyStatic value", role, region)
 					}
+
+					assert.Equal(t, region, clients.awsConfig.Region)
 				}
 			}
 		})
 	}
 }
 
-func TestClientCache_Clear(t *testing.T) {
+func TestNewFactory_respects_stsregion(t *testing.T) {
+	stsRegion := "custom-sts-region"
+	cfg := model.JobsConfig{
+		StsRegion: stsRegion,
+		DiscoveryJobs: []model.DiscoveryJob{{
+			Regions: []string{"region1"},
+			Roles:   []model.Role{defaultRole},
+		}},
+	}
+
+	output, err := NewFactory(logging.NewNopLogger(), cfg, false)
+	require.NoError(t, err)
+	require.Len(t, output.clients, 1)
+	stsOptions := sts.Options{}
+	output.stsOptions(&stsOptions)
+	assert.Equal(t, stsRegion, stsOptions.Region)
+}
+
+func TestCachingFactory_Clear(t *testing.T) {
 	cache := &CachingFactory{
 		logger: logging.NewNopLogger(),
 		clients: map[model.Role]map[awsRegion]*cachedClients{
@@ -162,7 +184,7 @@ func TestClientCache_Clear(t *testing.T) {
 	assert.Nil(t, clients.tagging)
 }
 
-func TestClientCache_Refresh(t *testing.T) {
+func TestCachingFactory_Refresh(t *testing.T) {
 	t.Run("creates all clients when config contains only discovery jobs", func(t *testing.T) {
 		output, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, false)
 		require.NoError(t, err)
@@ -205,7 +227,7 @@ func TestClientCache_Refresh(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetAccountClient(t *testing.T) {
+func TestCachingFactory_GetAccountClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
 		jobsCfg := model.JobsConfig{
 			DiscoveryJobs: []model.DiscoveryJob{{
@@ -244,7 +266,7 @@ func TestClientCache_GetAccountClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetCloudwatchClient(t *testing.T) {
+func TestCachingFactory_GetCloudwatchClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
 		jobsCfg := model.JobsConfig{
 			DiscoveryJobs: []model.DiscoveryJob{{
@@ -284,7 +306,7 @@ func TestClientCache_GetCloudwatchClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetTaggingClient(t *testing.T) {
+func TestCachingFactory_GetTaggingClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
 		jobsCfg := model.JobsConfig{
 			DiscoveryJobs: []model.DiscoveryJob{{
@@ -324,7 +346,7 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
+func TestCachingFactory_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -337,7 +359,7 @@ func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
-func TestClientCache_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
+func TestCachingFactory_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -350,7 +372,7 @@ func TestClientCache_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
-func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
+func TestCachingFactory_createEC2Client_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -363,7 +385,7 @@ func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createDMSClient_EnablesFIPS(t *testing.T) {
+func TestCachingFactory_createDMSClient_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -376,7 +398,7 @@ func TestClientCache_createDMSClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
+func TestCachingFactory_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -389,7 +411,7 @@ func TestClientCache_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
+func TestCachingFactory_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -402,7 +424,7 @@ func TestClientCache_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
+func TestCachingFactory_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
@@ -415,7 +437,7 @@ func TestClientCache_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createPrometheusClient_DoesNotEnableFIPS(t *testing.T) {
+func TestCachingFactory_createPrometheusClient_DoesNotEnableFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 

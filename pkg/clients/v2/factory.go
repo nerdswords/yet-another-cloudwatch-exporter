@@ -39,7 +39,7 @@ type awsRegion = string
 
 type CachingFactory struct {
 	logger              logging.Logger
-	stsRegion           string
+	stsOptions          func(*sts.Options)
 	clients             map[model.Role]map[awsRegion]*cachedClients
 	mu                  sync.Mutex
 	refreshed           bool
@@ -88,6 +88,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 		return nil, fmt.Errorf("failed to load default aws config: %w", err)
 	}
 
+	stsOptions := createStsOptions(jobsCfg.StsRegion, logger.IsDebugEnabled(), endpointURLOverride, fips)
 	cache := map[model.Role]map[awsRegion]*cachedClients{}
 	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
 		for _, role := range discoveryJob.Roles {
@@ -95,7 +96,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 				cache[role] = map[awsRegion]*cachedClients{}
 			}
 			for _, region := range discoveryJob.Regions {
-				regionConfig := awsConfigForRegion(role, &c, region, role)
+				regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 				cache[role][region] = &cachedClients{
 					awsConfig:  regionConfig,
 					onlyStatic: false,
@@ -112,7 +113,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 			for _, region := range staticJob.Regions {
 				// Discovery job client definitions have precedence
 				if _, exists := cache[role][region]; !exists {
-					regionConfig := awsConfigForRegion(role, &c, region, role)
+					regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 					cache[role][region] = &cachedClients{
 						awsConfig:  regionConfig,
 						onlyStatic: true,
@@ -130,7 +131,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 			for _, region := range customNamespaceJob.Regions {
 				// Discovery job client definitions have precedence
 				if _, exists := cache[role][region]; !exists {
-					regionConfig := awsConfigForRegion(role, &c, region, role)
+					regionConfig := awsConfigForRegion(role, &c, region, stsOptions)
 					cache[role][region] = &cachedClients{
 						awsConfig:  regionConfig,
 						onlyStatic: true,
@@ -143,8 +144,8 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) (*Ca
 	return &CachingFactory{
 		logger:              logger,
 		clients:             cache,
-		stsRegion:           jobsCfg.StsRegion,
 		fipsEnabled:         fips,
+		stsOptions:          stsOptions,
 		endpointURLOverride: endpointURLOverride,
 	}, nil
 }
@@ -398,20 +399,7 @@ func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.
 }
 
 func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
-	return sts.NewFromConfig(*awsConfig, func(options *sts.Options) {
-		if c.stsRegion != "" {
-			options.Region = c.stsRegion
-		}
-		if c.logger.IsDebugEnabled() {
-			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
-		}
-		if c.endpointURLOverride != "" {
-			options.BaseEndpoint = aws.String(c.endpointURLOverride)
-		}
-		if c.fipsEnabled {
-			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
-		}
-	})
+	return sts.NewFromConfig(*awsConfig, c.stsOptions)
 }
 
 func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Client {
@@ -428,28 +416,42 @@ func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Clien
 	})
 }
 
+func createStsOptions(stsRegion string, isDebugLoggingEnabled bool, endpointURLOverride string, fipsEnabled bool) func(*sts.Options) {
+	return func(options *sts.Options) {
+		if stsRegion != "" {
+			options.Region = stsRegion
+		}
+		if isDebugLoggingEnabled {
+			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(endpointURLOverride)
+		}
+		if fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
+	}
+}
+
 var defaultRole = model.Role{}
 
-func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, role model.Role) *aws.Config {
-	regionalSts := sts.NewFromConfig(*c, func(options *sts.Options) {
-		options.Region = region
-	})
+func awsConfigForRegion(r model.Role, c *aws.Config, region awsRegion, stsOptions func(*sts.Options)) *aws.Config {
+	regionalConfig := c.Copy()
+	regionalConfig.Region = region
+
 	if r == defaultRole {
-		// We are not using delegated access so return the original config and regional sts
-		return c
+		return &regionalConfig
 	}
 
 	// based on https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#hdr-Assume_Role
 	// found via https://github.com/aws/aws-sdk-go-v2/issues/1382
-	credentials := stscreds.NewAssumeRoleProvider(regionalSts, role.RoleArn, func(options *stscreds.AssumeRoleOptions) {
-		if role.ExternalID != "" {
-			options.ExternalID = aws.String(role.ExternalID)
+	regionalSts := sts.NewFromConfig(*c, stsOptions)
+	credentials := stscreds.NewAssumeRoleProvider(regionalSts, r.RoleArn, func(options *stscreds.AssumeRoleOptions) {
+		if r.ExternalID != "" {
+			options.ExternalID = aws.String(r.ExternalID)
 		}
 	})
+	regionalConfig.Credentials = aws.NewCredentialsCache(credentials)
 
-	delegatedConfig := c.Copy()
-	delegatedConfig.Region = region
-	delegatedConfig.Credentials = aws.NewCredentialsCache(credentials)
-
-	return &delegatedConfig
+	return &regionalConfig
 }
