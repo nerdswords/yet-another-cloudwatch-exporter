@@ -25,7 +25,7 @@ func NewClient(logger logging.Logger, cloudwatchAPI *cloudwatch.Client) cloudwat
 	}
 }
 
-func (c client) ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c client) ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) error {
 	filter := &cloudwatch.ListMetricsInput{
 		MetricName: aws.String(metric.Name),
 		Namespace:  aws.String(namespace),
@@ -38,30 +38,28 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *model
 		c.logger.Debug("ListMetrics", "input", filter)
 	}
 
-	var metrics []*model.Metric
 	paginator := cloudwatch.NewListMetricsPaginator(c.cloudwatchAPI, filter, func(options *cloudwatch.ListMetricsPaginatorOptions) {
 		options.StopOnDuplicateToken = true
 	})
+
 	for paginator.HasMorePages() {
 		promutil.CloudwatchAPICounter.Inc()
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			promutil.CloudwatchAPIErrorCounter.Inc()
 			c.logger.Error(err, "ListMetrics error")
-			return nil, err
+			return err
 		}
-		metricPage := toModelMetric(page)
-		if fn != nil {
-			fn(metricPage)
-		} else {
-			metrics = append(metrics, metricPage...)
+
+		metricsPage := toModelMetric(page)
+		if c.logger.IsDebugEnabled() {
+			c.logger.Debug("ListMetrics", "output", metricsPage)
 		}
+
+		fn(metricsPage)
 	}
 
-	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("ListMetrics", "output", metrics)
-	}
-	return metrics, nil
+	return nil
 }
 
 func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
