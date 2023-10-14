@@ -15,8 +15,6 @@ import (
 
 var amazonMQBrokerSuffix = regexp.MustCompile("-[0-9]+$")
 
-var awsSageMakerEndpointUpper = regexp.MustCompile("[[:upper:]]")
-
 // Associator implements a "best effort" algorithm to automatically map the output
 // of the ListMetrics API to the list of resources retrieved from the Tagging API.
 // The core logic is based on a manually maintained list of regexes that extract
@@ -220,9 +218,7 @@ func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMappi
 			// Resource ARN is only in lower case, hence transforming
 			// endpoint name value to be able to match the resource ARN
 			if cwMetric.Namespace == "AWS/SageMaker" && name == "EndpointName" {
-				if awsSageMakerEndpointUpper.MatchString(value) {
-					value = strings.ToLower(value)
-				}
+				value = strings.ToLower(value)
 			}
 
 			if rDimension == mDimension.Name {
