@@ -21,9 +21,15 @@ var sagemakerEndpointInvocationTwo = &model.TaggedResource{
 	Namespace: "AWS/SageMaker",
 }
 
+var sagemakerEndpointInvocationUpper = &model.TaggedResource{
+	ARN:       "arn:aws:sagemaker:us-west-2:123456789012:endpoint/example-endpoint-upper",
+	Namespace: "AWS/SageMaker",
+}
+
 var sagemakerInvocationResources = []*model.TaggedResource{
 	sagemakerEndpointInvocationOne,
 	sagemakerEndpointInvocationTwo,
+	sagemakerEndpointInvocationUpper,
 }
 
 func TestAssociatorSagemaker(t *testing.T) {
@@ -92,6 +98,23 @@ func TestAssociatorSagemaker(t *testing.T) {
 			},
 			expectedSkip:     true,
 			expectedResource: nil,
+		},
+		{
+			name: "2 dimensions should match in Upper case",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
+				resources:        sagemakerInvocationResources,
+				metric: &model.Metric{
+					MetricName: "ModelLatency",
+					Namespace:  "AWS/SageMaker",
+					Dimensions: []*model.Dimension{
+						{Name: "EndpointName", Value: "Example-Endpoint-Upper"},
+						{Name: "VariantName", Value: "example-endpoint-two-variant-one"},
+					},
+				},
+			},
+			expectedSkip:     false,
+			expectedResource: sagemakerEndpointInvocationUpper,
 		},
 	}
 
