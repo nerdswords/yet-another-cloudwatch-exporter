@@ -214,6 +214,13 @@ func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMappi
 				}
 			}
 
+			// AWS Sagemaker endpoint name may have upper case characters
+			// Resource ARN is only in lower case, hence transforming
+			// endpoint name value to be able to match the resource ARN
+			if cwMetric.Namespace == "AWS/SageMaker" && name == "EndpointName" {
+				value = strings.ToLower(value)
+			}
+
 			if rDimension == mDimension.Name {
 				labels[name] = value
 			}
