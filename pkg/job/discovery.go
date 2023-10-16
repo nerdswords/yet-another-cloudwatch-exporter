@@ -186,57 +186,29 @@ func getMetricDataForQueries(
 	// For every metric of the job call the ListMetrics API
 	// to fetch the existing combinations of dimensions and
 	// value of dimensions with data.
+	for _, metric := range discoveryJob.Metrics {
+		go func(metric *model.MetricConfig) {
+			defer wg.Done()
 
-	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.ListMetricsCallback) {
-		for _, metric := range discoveryJob.Metrics {
-			go func(metric *model.MetricConfig) {
-				defer wg.Done()
+			var assoc resourceAssociator
+			if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
+				assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
+			} else {
+				assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
+			}
 
-				var assoc resourceAssociator
-				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
-				} else {
-					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-
-				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
-					data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
-
-					mux.Lock()
-					getMetricDatas = append(getMetricDatas, data...)
-					mux.Unlock()
-				})
-				if err != nil {
-					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-					return
-				}
-			}(metric)
-		}
-	} else {
-		for _, metric := range discoveryJob.Metrics {
-			go func(metric *model.MetricConfig) {
-				defer wg.Done()
-
-				var assoc resourceAssociator
-				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
-				} else {
-					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-
-				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, nil)
-				if err != nil {
-					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-					return
-				}
-
-				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
+			err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
+				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
 				mux.Unlock()
-			}(metric)
-		}
+			})
+			if err != nil {
+				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+				return
+			}
+		}(metric)
 	}
 
 	wg.Wait()

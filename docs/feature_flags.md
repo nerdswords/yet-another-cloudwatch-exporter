@@ -13,18 +13,11 @@ The associator is the component that matches the output of the `ListMetrics` API
 The new algorithm is intended to fix some odd behaviour where metrics are assigned to the wrong resource name (e.g. this has been reported to happen with ECS and GlobalAccelerator).
 Additionally, for some services (e.g. DMS) the default algorithm was reporting metrics where it shouldn't (untagged services appearing just because their ARN would match the auto-discovery regex). This shouldn't happen anymore.
 
-## ListMetrics API result processing
-
-`-enable-feature=list-metrics-callback`
-
-Enables processing of ListMetrics API results page-by-page. This seems to reduce memory usage for high values of `CloudWatchAPIConcurrency`.
-
 ## AWS SDK v2
 
 `-enable-feature=aws-sdk-v2`
 
-Uses the v2 version of the aws sdk for go. The sdk v2 version was released in Jan 2021 and is marketed to come with large performance gains. This version offers a drastically different
-interface and should be compatible with sdk v2. 
+Uses the v2 version of the aws sdk for go. The sdk v2 version was released in Jan 2021 and is marketed to come with large performance gains. This version offers a drastically different interface and should be compatible with sdk v2.
 
 ## Always return info metrics
 

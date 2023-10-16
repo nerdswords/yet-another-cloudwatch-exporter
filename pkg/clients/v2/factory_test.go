@@ -469,8 +469,8 @@ func (t testClient) GetAccount(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (t testClient) ListMetrics(_ context.Context, _ string, _ *model.MetricConfig, _ bool, _ func(page []*model.Metric)) ([]*model.Metric, error) {
-	return nil, nil
+func (t testClient) ListMetrics(_ context.Context, _ string, _ *model.MetricConfig, _ bool, _ func(page []*model.Metric)) error {
+	return nil
 }
 
 func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch_client.MetricDataResult {
