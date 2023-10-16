@@ -12,13 +12,79 @@ const (
 	DefaultDelaySeconds  = int64(300)
 )
 
-type ExportedTagsOnMetrics map[string][]string
+type JobsConfig struct {
+	StsRegion           string
+	DiscoveryJobs       []DiscoveryJob
+	StaticJobs          []StaticJob
+	CustomNamespaceJobs []CustomNamespaceJob
+}
+
+type DiscoveryJob struct {
+	Regions                   []string
+	Type                      string
+	Roles                     []Role
+	SearchTags                []Tag
+	CustomTags                []Tag
+	DimensionNameRequirements []string
+	Metrics                   []*MetricConfig
+	RoundingPeriod            *int64
+	RecentlyActiveOnly        bool
+	ExportedTagsOnMetrics     []string
+	JobLevelMetricFields
+}
+
+type StaticJob struct {
+	Name       string
+	Regions    []string
+	Roles      []Role
+	Namespace  string
+	CustomTags []Tag
+	Dimensions []Dimension
+	Metrics    []*MetricConfig
+}
+
+type CustomNamespaceJob struct {
+	Regions                   []string
+	Name                      string
+	Namespace                 string
+	RecentlyActiveOnly        bool
+	Roles                     []Role
+	Metrics                   []*MetricConfig
+	CustomTags                []Tag
+	DimensionNameRequirements []string
+	RoundingPeriod            *int64
+	JobLevelMetricFields
+}
+
+type JobLevelMetricFields struct {
+	Statistics             []string
+	Period                 int64
+	Length                 int64
+	Delay                  int64
+	NilToZero              *bool
+	AddCloudwatchTimestamp *bool
+}
+
+type Role struct {
+	RoleArn    string
+	ExternalID string
+}
+
+type MetricConfig struct {
+	Name                   string
+	Statistics             []string
+	Period                 int64
+	Length                 int64
+	Delay                  int64
+	NilToZero              *bool
+	AddCloudwatchTimestamp *bool
+}
 
 type LabelSet map[string]struct{}
 
 type Tag struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
+	Key   string
+	Value string
 }
 
 type Dimension struct {
@@ -125,20 +191,18 @@ func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
 }
 
 // MetricTags returns a list of tags built from the tags of
-// TaggedResource, if there's a definition for its namespace
-// in tagsOnMetrics.
+// TaggedResource, if exportedTags is not empty.
 //
-// Returned tags have as key the key from tagsOnMetrics, and
+// Returned tags have as key the key from exportedTags, and
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
-func (r TaggedResource) MetricTags(tagsOnMetrics ExportedTagsOnMetrics) []Tag {
-	wantedTags, ok := tagsOnMetrics[r.Namespace]
-	if !ok {
+func (r TaggedResource) MetricTags(exportedTags []string) []Tag {
+	if len(exportedTags) == 0 {
 		return []Tag{}
 	}
 
-	tags := make([]Tag, 0, len(wantedTags))
-	for _, tagName := range wantedTags {
+	tags := make([]Tag, 0, len(exportedTags))
+	for _, tagName := range exportedTags {
 		tag := Tag{
 			Key: tagName,
 		}

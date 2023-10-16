@@ -14,36 +14,34 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var configWithDefaultRoleAndRegion1 = config.ScrapeConf{
-	Discovery: config.Discovery{
-		Jobs: []*config.Job{
-			{
-				Roles:   []config.Role{{}},
-				Regions: []string{"region1"},
-			},
+var jobsCfgWithDefaultRoleAndRegion1 = model.JobsConfig{
+	DiscoveryJobs: []model.DiscoveryJob{
+		{
+			Roles:   []model.Role{{}},
+			Regions: []string{"region1"},
 		},
 	},
 }
 
-func TestNewClientCache_initializes_clients(t *testing.T) {
-	role1 := config.Role{
+func TestNewFactory_initializes_clients(t *testing.T) {
+	role1 := model.Role{
 		RoleArn:    "role1",
 		ExternalID: "external1",
 	}
-	role2 := config.Role{
+	role2 := model.Role{
 		RoleArn:    "role2",
 		ExternalID: "external2",
 	}
-	role3 := config.Role{
+	role3 := model.Role{
 		RoleArn:    "role3",
 		ExternalID: "external3",
 	}
@@ -53,63 +51,53 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 	region3 := "region3"
 	tests := []struct {
 		name       string
-		config     config.ScrapeConf
+		jobsCfg    model.JobsConfig
 		onlyStatic *bool
 	}{
 		{
 			name: "from discovery config",
-			config: config.ScrapeConf{
-				Discovery: config.Discovery{
-					ExportedTagsOnMetrics: nil,
-					Jobs: []*config.Job{
-						{
-							Regions: []string{region1, region2, region3},
-							Roles:   []config.Role{role1, role2, role3},
-						},
-					},
-				},
+			jobsCfg: model.JobsConfig{
+				DiscoveryJobs: []model.DiscoveryJob{{
+					Regions: []string{region1, region2, region3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
+				}},
 			},
 			onlyStatic: aws.Bool(false),
 		},
 		{
 			name: "from static config",
-			config: config.ScrapeConf{
-				Static: []*config.Static{{
+			jobsCfg: model.JobsConfig{
+				StaticJobs: []model.StaticJob{{
 					Regions: []string{region1, region2, region3},
-					Roles:   []config.Role{role1, role2, role3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
 				}},
 			},
 			onlyStatic: aws.Bool(true),
 		},
 		{
 			name: "from custom config",
-			config: config.ScrapeConf{
-				CustomNamespace: []*config.CustomNamespace{{
+			jobsCfg: model.JobsConfig{
+				CustomNamespaceJobs: []model.CustomNamespaceJob{{
 					Regions: []string{region1, region2, region3},
-					Roles:   []config.Role{role1, role2, role3},
+					Roles:   []model.Role{defaultRole, role1, role2, role3},
 				}},
 			},
 			onlyStatic: aws.Bool(true),
 		},
 		{
 			name: "from all configs",
-			config: config.ScrapeConf{
-				Discovery: config.Discovery{
-					ExportedTagsOnMetrics: nil,
-					Jobs: []*config.Job{
-						{
-							Regions: []string{region1, region2},
-							Roles:   []config.Role{role1, role2},
-						},
-					},
-				},
-				Static: []*config.Static{{
-					Regions: []string{region2, region3},
-					Roles:   []config.Role{role2, role3},
+			jobsCfg: model.JobsConfig{
+				DiscoveryJobs: []model.DiscoveryJob{{
+					Regions: []string{region1, region2},
+					Roles:   []model.Role{defaultRole, role1, role2},
 				}},
-				CustomNamespace: []*config.CustomNamespace{{
+				StaticJobs: []model.StaticJob{{
+					Regions: []string{region2, region3},
+					Roles:   []model.Role{defaultRole, role2, role3},
+				}},
+				CustomNamespaceJobs: []model.CustomNamespaceJob{{
 					Regions: []string{region1, region3},
-					Roles:   []config.Role{role1, role3},
+					Roles:   []model.Role{defaultRole, role1, role3},
 				}},
 			},
 			onlyStatic: nil,
@@ -118,19 +106,20 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			output, err := NewFactory(test.config, false, logging.NewNopLogger())
+			output, err := NewFactory(logging.NewNopLogger(), test.jobsCfg, false)
 			require.NoError(t, err)
 
 			assert.False(t, output.refreshed)
 			assert.False(t, output.cleared)
 
-			assert.Len(t, output.clients, 3)
+			require.Len(t, output.clients, 4)
+			assert.Contains(t, output.clients, defaultRole)
 			assert.Contains(t, output.clients, role1)
 			assert.Contains(t, output.clients, role2)
 			assert.Contains(t, output.clients, role3)
 
 			for role, regionalClients := range output.clients {
-				assert.Len(t, regionalClients, 3)
+				require.Len(t, regionalClients, 3)
 
 				assert.Contains(t, regionalClients, region1)
 				assert.Contains(t, regionalClients, region2)
@@ -141,16 +130,36 @@ func TestNewClientCache_initializes_clients(t *testing.T) {
 					if test.onlyStatic != nil {
 						assert.Equal(t, *test.onlyStatic, clients.onlyStatic, "role %s region %s had unexpected onlyStatic value", role, region)
 					}
+
+					assert.Equal(t, region, clients.awsConfig.Region)
 				}
 			}
 		})
 	}
 }
 
-func TestClientCache_Clear(t *testing.T) {
+func TestNewFactory_respects_stsregion(t *testing.T) {
+	stsRegion := "custom-sts-region"
+	cfg := model.JobsConfig{
+		StsRegion: stsRegion,
+		DiscoveryJobs: []model.DiscoveryJob{{
+			Regions: []string{"region1"},
+			Roles:   []model.Role{defaultRole},
+		}},
+	}
+
+	output, err := NewFactory(logging.NewNopLogger(), cfg, false)
+	require.NoError(t, err)
+	require.Len(t, output.clients, 1)
+	stsOptions := sts.Options{}
+	output.stsOptions(&stsOptions)
+	assert.Equal(t, stsRegion, stsOptions.Region)
+}
+
+func TestCachingFactory_Clear(t *testing.T) {
 	cache := &CachingFactory{
 		logger: logging.NewNopLogger(),
-		clients: map[config.Role]map[awsRegion]*cachedClients{
+		clients: map[model.Role]map[awsRegion]*cachedClients{
 			defaultRole: {
 				"region1": &cachedClients{
 					awsConfig:  nil,
@@ -175,9 +184,9 @@ func TestClientCache_Clear(t *testing.T) {
 	assert.Nil(t, clients.tagging)
 }
 
-func TestClientCache_Refresh(t *testing.T) {
+func TestCachingFactory_Refresh(t *testing.T) {
 	t.Run("creates all clients when config contains only discovery jobs", func(t *testing.T) {
-		output, err := NewFactory(configWithDefaultRoleAndRegion1, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, false)
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -192,18 +201,18 @@ func TestClientCache_Refresh(t *testing.T) {
 	})
 
 	t.Run("creates only cloudwatch when config is only static jobs", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Static: []*config.Static{{
+		jobsCfg := model.JobsConfig{
+			StaticJobs: []model.StaticJob{{
 				Regions: []string{"region1"},
-				Roles:   []config.Role{{}},
+				Roles:   []model.Role{{}},
 			}},
-			CustomNamespace: []*config.CustomNamespace{{
+			CustomNamespaceJobs: []model.CustomNamespaceJob{{
 				Regions: []string{"region1"},
-				Roles:   []config.Role{{}},
+				Roles:   []model.Role{{}},
 			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -218,21 +227,16 @@ func TestClientCache_Refresh(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetAccountClient(t *testing.T) {
+func TestCachingFactory_GetAccountClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -243,19 +247,14 @@ func TestClientCache_GetAccountClient(t *testing.T) {
 	})
 
 	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		clients := output.clients[defaultRole]["region1"]
@@ -267,21 +266,16 @@ func TestClientCache_GetAccountClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetCloudwatchClient(t *testing.T) {
+func TestCachingFactory_GetCloudwatchClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -293,19 +287,14 @@ func TestClientCache_GetCloudwatchClient(t *testing.T) {
 	})
 
 	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		clients := output.clients[defaultRole]["region1"]
@@ -317,21 +306,16 @@ func TestClientCache_GetCloudwatchClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_GetTaggingClient(t *testing.T) {
+func TestCachingFactory_GetTaggingClient(t *testing.T) {
 	t.Run("refreshed cache does not create new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		output.Refresh()
@@ -343,19 +327,14 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 	})
 
 	t.Run("unrefreshed cache creates a new client", func(t *testing.T) {
-		config := config.ScrapeConf{
-			Discovery: config.Discovery{
-				ExportedTagsOnMetrics: nil,
-				Jobs: []*config.Job{
-					{
-						Roles:   []config.Role{{}},
-						Regions: []string{"region1"},
-					},
-				},
-			},
+		jobsCfg := model.JobsConfig{
+			DiscoveryJobs: []model.DiscoveryJob{{
+				Roles:   []model.Role{{}},
+				Regions: []string{"region1"},
+			}},
 		}
 
-		output, err := NewFactory(config, false, logging.NewNopLogger())
+		output, err := NewFactory(logging.NewNopLogger(), jobsCfg, false)
 		require.NoError(t, err)
 
 		clients := output.clients[defaultRole]["region1"]
@@ -367,8 +346,8 @@ func TestClientCache_GetTaggingClient(t *testing.T) {
 	})
 }
 
-func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createTaggingClient(factory.clients[defaultRole]["region1"].awsConfig)
@@ -380,8 +359,8 @@ func TestClientCache_createTaggingClient_DoesNotEnableFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
-func TestClientCache_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createAutoScalingClient(factory.clients[defaultRole]["region1"].awsConfig)
@@ -393,8 +372,8 @@ func TestClientCache_createAutoScalingClient_DoesNotEnableFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateUnset)
 }
 
-func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createEC2Client_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createEC2Client(factory.clients[defaultRole]["region1"].awsConfig)
@@ -406,8 +385,8 @@ func TestClientCache_createEC2Client_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createDMSClient_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createDMSClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createDMSClient(factory.clients[defaultRole]["region1"].awsConfig)
@@ -419,8 +398,8 @@ func TestClientCache_createDMSClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createAPIGatewayClient(factory.clients[defaultRole]["region1"].awsConfig)
@@ -432,8 +411,8 @@ func TestClientCache_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
@@ -445,8 +424,8 @@ func TestClientCache_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
@@ -458,8 +437,8 @@ func TestClientCache_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestClientCache_createPrometheusClient_DoesNotEnableFIPS(t *testing.T) {
-	factory, err := NewFactory(configWithDefaultRoleAndRegion1, true, logging.NewNopLogger())
+func TestCachingFactory_createPrometheusClient_DoesNotEnableFIPS(t *testing.T) {
+	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
 	client := factory.createPrometheusClient(factory.clients[defaultRole]["region1"].awsConfig)
@@ -482,7 +461,7 @@ func getOptions[T any, V any](awsClient *T) V {
 
 type testClient struct{}
 
-func (t testClient) GetResources(_ context.Context, _ *config.Job, _ string) ([]*model.TaggedResource, error) {
+func (t testClient) GetResources(_ context.Context, _ model.DiscoveryJob, _ string) ([]*model.TaggedResource, error) {
 	return nil, nil
 }
 
@@ -490,7 +469,7 @@ func (t testClient) GetAccount(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (t testClient) ListMetrics(_ context.Context, _ string, _ *config.Metric, _ bool, _ func(page []*model.Metric)) ([]*model.Metric, error) {
+func (t testClient) ListMetrics(_ context.Context, _ string, _ *model.MetricConfig, _ bool, _ func(page []*model.Metric)) ([]*model.Metric, error) {
 	return nil, nil
 }
 
@@ -498,6 +477,6 @@ func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*mode
 	return nil
 }
 
-func (t testClient) GetMetricStatistics(_ context.Context, _ logging.Logger, _ []*model.Dimension, _ string, _ *config.Metric) []*model.Datapoint {
+func (t testClient) GetMetricStatistics(_ context.Context, _ logging.Logger, _ []*model.Dimension, _ string, _ *model.MetricConfig) []*model.Datapoint {
 	return nil
 }

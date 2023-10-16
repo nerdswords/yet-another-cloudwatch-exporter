@@ -17,14 +17,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/grafana/regexp"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
 type ServiceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
-	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
+	ResourceFunc func(context.Context, client, model.DiscoveryJob, string) ([]*model.TaggedResource, error)
 
 	// FilterFunc can be used to the input resources or to drop based on some condition
 	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
@@ -84,7 +83,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/AutoScaling": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
@@ -171,7 +170,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/EC2Spot": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
@@ -204,7 +203,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/Prometheus": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
@@ -237,7 +236,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/StorageGateway": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
@@ -277,7 +276,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/TransitGateway": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
@@ -313,7 +312,7 @@ var ServiceFilters = map[string]ServiceFilter{
 		// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
 		// Outside us-east-1 no resources are going to be found. We use the shield.ListProtections API to get the protections +
 		// protected resources to add to the tagged resources. This data is eventually usable for joining with metrics.
-		ResourceFunc: func(ctx context.Context, c client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, c client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			var output []*model.TaggedResource
 			pageNum := 0
 			// Default page size is only 20 which can easily lead to throttling
@@ -327,7 +326,19 @@ var ServiceFilters = map[string]ServiceFilter{
 					if err != nil {
 						continue
 					}
-					if protectedResource.Region == region {
+
+					// Shield covers regional services,
+					// 		EC2 (arn:aws:ec2:<REGION>:<ACCOUNT_ID>:eip-allocation/*)
+					// 		load balancers (arn:aws:elasticloadbalancing:<REGION>:<ACCOUNT_ID>:loadbalancer:*)
+					// 	where the region of the protectedResource ARN should match the region for the job to prevent
+					// 	duplicating resources across all regions
+					// Shield also covers other global services,
+					// 		global accelerator (arn:aws:globalaccelerator::<ACCOUNT_ID>:accelerator/*)
+					//		route53 (arn:aws:route53:::hostedzone/*)
+					//	where the protectedResource contains no region. Just like other global services the metrics for
+					//	these land in us-east-1 so any protected resource without a region should be added when the job
+					//	is for us-east-1
+					if protectedResource.Region == region || (protectedResource.Region == "" && region == "us-east-1") {
 						taggedResource := &model.TaggedResource{
 							ARN:       protectedResourceArn,
 							Namespace: job.Type,
