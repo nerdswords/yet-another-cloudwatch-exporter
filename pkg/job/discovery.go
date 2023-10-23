@@ -14,7 +14,6 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -190,12 +189,7 @@ func getMetricDataForQueries(
 		go func(metric *model.MetricConfig) {
 			defer wg.Done()
 
-			var assoc resourceAssociator
-			if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-				assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
-			} else {
-				assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-			}
+			assoc := maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 
 			err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
 				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
