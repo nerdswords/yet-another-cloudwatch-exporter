@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.27.9
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.31.2
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.125.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.126.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.16.2
 	github.com/aws/aws-sdk-go-v2/service/shield v1.20.2
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.21.2
