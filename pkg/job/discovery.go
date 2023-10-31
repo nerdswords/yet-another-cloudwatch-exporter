@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/grafana/regexp"
+
 	"golang.org/x/sync/errgroup"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
@@ -192,7 +194,7 @@ func getMetricDataForQueries(
 			assoc := maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 
 			err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
-				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
+				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, discoveryJob.DimensionValueFilter, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
@@ -215,12 +217,16 @@ func getFilteredMetricDatas(
 	tagsOnMetrics []string,
 	metricsList []*model.Metric,
 	dimensionNameList []string,
+	dimensionValueFilterList []*model.DimensionFilter,
 	m *model.MetricConfig,
 	assoc resourceAssociator,
 ) []*model.CloudwatchData {
 	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
 	for _, cwMetric := range metricsList {
 		if len(dimensionNameList) > 0 && !metricDimensionsMatchNames(cwMetric, dimensionNameList) {
+			continue
+		}
+		if len(dimensionValueFilterList) > 0 && metricDimensionsFilterValue(cwMetric, dimensionValueFilterList) {
 			continue
 		}
 
@@ -282,4 +288,26 @@ func metricDimensionsMatchNames(metric *model.Metric, dimensionNameRequirements 
 		}
 	}
 	return true
+}
+
+// Modify this to look at values
+func metricDimensionsFilterValue(metric *model.Metric, dimensionValueFilter []*model.DimensionFilter) bool {
+	for _, dimension := range metric.Dimensions {
+		for _, dimensionValueRegexp := range dimensionValueFilter {
+			if dimension.Name == dimensionValueRegexp.Name && regexpValue(dimension.Value, dimensionValueRegexp.Value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// regex checker
+func regexpValue(metricValue string, valueRegexp *regexp.Regexp) bool {
+	match := valueRegexp.FindStringSubmatch(metricValue)
+	if match == nil {
+		return false
+	} else {
+		return true
+	}
 }

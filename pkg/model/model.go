@@ -26,6 +26,7 @@ type DiscoveryJob struct {
 	SearchTags                []Tag
 	CustomTags                []Tag
 	DimensionNameRequirements []string
+	DimensionValueFilter      []*DimensionFilter
 	Metrics                   []*MetricConfig
 	RoundingPeriod            *int64
 	RecentlyActiveOnly        bool
@@ -91,7 +92,10 @@ type Dimension struct {
 	Name  string
 	Value string
 }
-
+type DimensionFilter struct {
+	Name  string
+	Value *regexp.Regexp
+}
 type Metric struct {
 	// The dimensions for the metric.
 	Dimensions []*Dimension

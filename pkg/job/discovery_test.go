@@ -25,6 +25,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		tagsOnMetrics             []string
 		dimensionRegexps          []*regexp.Regexp
 		dimensionNameRequirements []string
+		dimensionValueFilter      []*model.DimensionFilter
 		resources                 []*model.TaggedResource
 		metricsList               []*model.Metric
 		m                         *model.MetricConfig
@@ -397,11 +398,118 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 			},
 		},
+		{
+			"filter query dimension values for amq",
+			args{
+				region:     "us-east-1",
+				accountID:  "123123123123",
+				namespace:  "mq",
+				customTags: nil,
+				tagsOnMetrics: []string{
+					"Value1",
+					"Value2",
+				},
+				dimensionRegexps: config.SupportedServices.GetService("mq").DimensionRegexps,
+				dimensionValueFilter: []*model.DimensionFilter{
+					{
+						Name:  "FileSystemId",
+						Value: regexp.MustCompile("^fs-...456"),
+					},
+				},
+				resources: []*model.TaggedResource{
+					{
+						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:broker:test",
+						Tags: []model.Tag{
+							{
+								Key:   "Tag",
+								Value: "some-Tag",
+							},
+						},
+						Namespace: "mq",
+						Region:    "us-east-1",
+					},
+				},
+				metricsList: []*model.Metric{
+					{
+						MetricName: "StorageBytes",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "FileSystemId",
+								Value: "fs-abc123",
+							},
+							{
+								Name:  "StorageClass",
+								Value: "Standard",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "StorageBytes",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "FileSystemId",
+								Value: "fs-abc456",
+							},
+							{
+								Name:  "StorageClass",
+								Value: "Standard",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+				},
+				m: &model.MetricConfig{
+					Name: "StorageBytes",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]model.CloudwatchData{
+				{
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*model.Dimension{
+						{
+							Name:  "FileSystemId",
+							Value: "fs-abc123",
+						},
+						{
+							Name:  "StorageClass",
+							Value: "Standard",
+						},
+					},
+					ID:        aws.String("global"),
+					Metric:    aws.String("StorageBytes"),
+					Namespace: aws.String("mq"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []model.Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assoc := maxdimassociator.NewAssociator(logging.NewNopLogger(), tt.args.dimensionRegexps, tt.args.resources)
-			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m, assoc)
+			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.dimensionValueFilter, tt.args.m, assoc)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}

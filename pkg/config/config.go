@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/grafana/regexp"
 	"gopkg.in/yaml.v2"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -42,15 +43,16 @@ type JobLevelMetricFields struct {
 }
 
 type Job struct {
-	Regions                   []string  `yaml:"regions"`
-	Type                      string    `yaml:"type"`
-	Roles                     []Role    `yaml:"roles"`
-	SearchTags                []Tag     `yaml:"searchTags"`
-	CustomTags                []Tag     `yaml:"customTags"`
-	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
-	Metrics                   []*Metric `yaml:"metrics"`
-	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
-	RecentlyActiveOnly        bool      `yaml:"recentlyActiveOnly"`
+	Regions                   []string     `yaml:"regions"`
+	Type                      string       `yaml:"type"`
+	Roles                     []Role       `yaml:"roles"`
+	SearchTags                []Tag        `yaml:"searchTags"`
+	CustomTags                []Tag        `yaml:"customTags"`
+	DimensionNameRequirements []string     `yaml:"dimensionNameRequirements"`
+	DimensionValueFilter      []*Dimension `yaml:"dimensionValueFilter"`
+	Metrics                   []*Metric    `yaml:"metrics"`
+	RoundingPeriod            *int64       `yaml:"roundingPeriod"`
+	RecentlyActiveOnly        bool         `yaml:"recentlyActiveOnly"`
 	JobLevelMetricFields      `yaml:",inline"`
 }
 
@@ -202,6 +204,12 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 	}
 	for metricIdx, metric := range j.Metrics {
 		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
+		if err != nil {
+			return err
+		}
+	}
+	for dimensionIdx, dimension := range j.DimensionValueFilter {
+		err := dimension.validateDimensionValueRegexps(dimensionIdx, parent)
 		if err != nil {
 			return err
 		}
@@ -371,6 +379,7 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.SearchTags = toModelTags(discoveryJob.SearchTags)
 		job.CustomTags = toModelTags(discoveryJob.CustomTags)
 		job.Metrics = toModelMetricConfig(discoveryJob.Metrics)
+		job.DimensionValueFilter = toModelDimensionValueFilterConfig(discoveryJob.DimensionValueFilter)
 
 		job.ExportedTagsOnMetrics = []string{}
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
@@ -492,4 +501,24 @@ func logConfigErrors(cfg []byte, logger logging.Logger) {
 		}
 		logger.Warn(`Config file error(s) detected: Yace might not work as expected. Future versions of Yace might fail to run with an invalid config file.`)
 	}
+}
+
+// converts string to regexp for model
+func toModelDimensionValueFilterConfig(dimensionValueFilter []*Dimension) []*model.DimensionFilter {
+	ret := make([]*model.DimensionFilter, 0, len(dimensionValueFilter))
+	for _, d := range dimensionValueFilter {
+		ret = append(ret, &model.DimensionFilter{
+			Name:  d.Name,
+			Value: regexp.MustCompile(d.Value),
+		})
+	}
+	return ret
+}
+
+func (d *Dimension) validateDimensionValueRegexps(dimensionIdx int, parent string) error {
+	_, err := regexp.Compile(d.Value)
+	if err != nil {
+		return fmt.Errorf("Dimension Value filter regexp %d, %q in %v: Name should not be empty", dimensionIdx, d.Value, parent)
+	}
+	return nil
 }
