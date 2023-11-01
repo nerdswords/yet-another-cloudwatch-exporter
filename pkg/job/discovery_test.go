@@ -418,7 +418,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 				resources: []*model.TaggedResource{
 					{
-						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:broker:test",
+						ARN: "arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333",
 						Tags: []model.Tag{
 							{
 								Key:   "Tag",
@@ -438,8 +438,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 								Value: "fs-abc123",
 							},
 							{
-								Name:  "StorageClass",
-								Value: "Standard",
+								Name:  "Broker",
+								Value: "activemq-broker-1",
 							},
 						},
 						Namespace: "AWS/AmazonMQ",
@@ -452,8 +452,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 								Value: "fs-abc456",
 							},
 							{
-								Name:  "StorageClass",
-								Value: "Standard",
+								Name:  "Broker",
+								Value: "activemq-broker-1",
 							},
 						},
 						Namespace: "AWS/AmazonMQ",
@@ -480,11 +480,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "fs-abc123",
 						},
 						{
-							Name:  "StorageClass",
-							Value: "Standard",
+							Name:  "Broker",
+							Value: "activemq-broker-1",
 						},
 					},
-					ID:        aws.String("global"),
+					ID:        aws.String("arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333"),
 					Metric:    aws.String("StorageBytes"),
 					Namespace: aws.String("mq"),
 					NilToZero: aws.Bool(false),
