@@ -412,8 +412,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				dimensionRegexps: config.SupportedServices.GetService("mq").DimensionRegexps,
 				dimensionValueFilter: []*model.DimensionFilter{
 					{
-						Name:  "FileSystemId",
-						Value: regexp.MustCompile("^fs-...456"),
+						Name:  "Queue",
+						Value: regexp.MustCompile("^ActiveMQ\\.Statistics\\.Destination\\..+"),
 					},
 				},
 				resources: []*model.TaggedResource{
@@ -431,11 +431,11 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 				metricsList: []*model.Metric{
 					{
-						MetricName: "StorageBytes",
+						MetricName: "QueueSize",
 						Dimensions: []*model.Dimension{
 							{
-								Name:  "FileSystemId",
-								Value: "fs-abc123",
+								Name:  "Queue",
+								Value: "Fufillment",
 							},
 							{
 								Name:  "Broker",
@@ -448,8 +448,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						MetricName: "StorageBytes",
 						Dimensions: []*model.Dimension{
 							{
-								Name:  "FileSystemId",
-								Value: "fs-abc456",
+								Name:  "Queue",
+								Value: "ActiveMQ.Statistics.Destination.test",
 							},
 							{
 								Name:  "Broker",
@@ -460,7 +460,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 				},
 				m: &model.MetricConfig{
-					Name: "StorageBytes",
+					Name: "QueueSize",
 					Statistics: []string{
 						"Average",
 					},
@@ -476,8 +476,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					AddCloudwatchTimestamp: aws.Bool(false),
 					Dimensions: []*model.Dimension{
 						{
-							Name:  "FileSystemId",
-							Value: "fs-abc123",
+							Name:  "Queue",
+							Value: "Fufillment",
 						},
 						{
 							Name:  "Broker",
@@ -485,7 +485,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						},
 					},
 					ID:        aws.String("arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333"),
-					Metric:    aws.String("StorageBytes"),
+					Metric:    aws.String("QueueSize"),
 					Namespace: aws.String("mq"),
 					NilToZero: aws.Bool(false),
 					Period:    60,
