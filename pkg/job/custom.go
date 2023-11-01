@@ -107,6 +107,9 @@ func getMetricDataForQueriesForCustomNamespace(
 					if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
 						continue
 					}
+					if len(customNamespaceJob.DimensionValueFilter) > 0 && metricDimensionsFilterValue(cwMetric, customNamespaceJob.DimensionValueFilter) {
+						continue
+					}
 
 					for _, stats := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())

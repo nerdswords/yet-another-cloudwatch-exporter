@@ -53,6 +53,7 @@ type CustomNamespaceJob struct {
 	Metrics                   []*MetricConfig
 	CustomTags                []Tag
 	DimensionNameRequirements []string
+	DimensionValueFilter      []*DimensionFilter
 	RoundingPeriod            *int64
 	JobLevelMetricFields
 }

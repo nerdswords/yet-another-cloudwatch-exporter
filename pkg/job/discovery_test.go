@@ -415,6 +415,18 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Name:  "Queue",
 						Value: regexp.MustCompile("^ActiveMQ\\.Statistics\\.Destination\\..+"),
 					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^.+\\.stats"),
+					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^Loadtesting.+"),
+					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^TEST.+"),
+					},
 				},
 				resources: []*model.TaggedResource{
 					{
@@ -445,11 +457,53 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: "AWS/AmazonMQ",
 					},
 					{
-						MetricName: "StorageBytes",
+						MetricName: "QueueSize",
 						Dimensions: []*model.Dimension{
 							{
 								Name:  "Queue",
 								Value: "ActiveMQ.Statistics.Destination.test",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "test.stats",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "Loadtesting.wow",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "TEST.hmmm123",
 							},
 							{
 								Name:  "Broker",

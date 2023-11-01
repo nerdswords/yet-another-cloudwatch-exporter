@@ -67,15 +67,16 @@ type Static struct {
 }
 
 type CustomNamespace struct {
-	Regions                   []string  `yaml:"regions"`
-	Name                      string    `yaml:"name"`
-	Namespace                 string    `yaml:"namespace"`
-	RecentlyActiveOnly        bool      `yaml:"recentlyActiveOnly"`
-	Roles                     []Role    `yaml:"roles"`
-	Metrics                   []*Metric `yaml:"metrics"`
-	CustomTags                []Tag     `yaml:"customTags"`
-	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
-	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
+	Regions                   []string     `yaml:"regions"`
+	Name                      string       `yaml:"name"`
+	Namespace                 string       `yaml:"namespace"`
+	RecentlyActiveOnly        bool         `yaml:"recentlyActiveOnly"`
+	Roles                     []Role       `yaml:"roles"`
+	Metrics                   []*Metric    `yaml:"metrics"`
+	CustomTags                []Tag        `yaml:"customTags"`
+	DimensionNameRequirements []string     `yaml:"dimensionNameRequirements"`
+	DimensionValueFilter      []*Dimension `yaml:"dimensionValueFilter"`
+	RoundingPeriod            *int64       `yaml:"roundingPeriod"`
 	JobLevelMetricFields      `yaml:",inline"`
 }
 
@@ -247,7 +248,12 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 			return err
 		}
 	}
-
+	for dimensionIdx, dimension := range j.DimensionValueFilter {
+		err := dimension.validateDimensionValueRegexps(dimensionIdx, parent)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -423,6 +429,7 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.Roles = toModelRoles(customNamespaceJob.Roles)
 		job.CustomTags = toModelTags(customNamespaceJob.CustomTags)
 		job.Metrics = toModelMetricConfig(customNamespaceJob.Metrics)
+		job.DimensionValueFilter = toModelDimensionValueFilterConfig(customNamespaceJob.DimensionValueFilter)
 		jobsCfg.CustomNamespaceJobs = append(jobsCfg.CustomNamespaceJobs, job)
 	}
 
