@@ -4,7 +4,7 @@ go 1.21.0
 
 require (
 	github.com/aws/aws-sdk-go v1.46.2
-	github.com/aws/aws-sdk-go-v2 v1.21.2
+	github.com/aws/aws-sdk-go-v2 v1.22.1
 	github.com/aws/aws-sdk-go-v2/config v1.19.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43
 	github.com/aws/aws-sdk-go-v2/service/amp v1.17.7
@@ -14,11 +14,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.27.9
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.31.2
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.126.0
-	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.16.2
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.18.0
 	github.com/aws/aws-sdk-go-v2/service/shield v1.20.2
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.21.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.23.2
-	github.com/aws/smithy-go v1.15.0
+	github.com/aws/smithy-go v1.16.0
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
 	github.com/prometheus/client_golang v1.17.0
@@ -31,8 +31,8 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.43 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.37 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.45 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.37 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.15.2 // indirect
