@@ -193,6 +193,18 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/DataSync",
+		Alias:     "datasync",
+		ResourceFilters: []*string{
+			aws.String("datasync:task"),
+			aws.String("datasync:agent"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":task:(?P<TaskId>[^/]+)"),
+			regexp.MustCompile(":agent:(?P<AgentId>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/DMS",
 		Alias:     "dms",
 		ResourceFilters: []*string{
