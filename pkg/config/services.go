@@ -200,8 +200,8 @@ var SupportedServices = serviceConfigs{
 			aws.String("datasync:agent"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile(":task:(?P<TaskId>[^/]+)"),
-			regexp.MustCompile(":agent:(?P<AgentId>[^/]+)"),
+			regexp.MustCompile(":task/(?P<TaskId>[^/]+)"),
+			regexp.MustCompile(":agent/(?P<AgentId>[^/]+)"),
 		},
 	},
 	{
