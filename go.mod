@@ -5,18 +5,18 @@ go 1.21.0
 require (
 	github.com/aws/aws-sdk-go v1.48.0
 	github.com/aws/aws-sdk-go-v2 v1.23.0
-	github.com/aws/aws-sdk-go-v2/config v1.24.0
+	github.com/aws/aws-sdk-go-v2/config v1.25.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.2
-	github.com/aws/aws-sdk-go-v2/service/amp v1.19.1
-	github.com/aws/aws-sdk-go-v2/service/apigateway v1.20.1
-	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.17.1
-	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.34.1
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.30.1
-	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.34.0
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.133.0
-	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.18.1
-	github.com/aws/aws-sdk-go-v2/service/shield v1.22.1
-	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.23.1
+	github.com/aws/aws-sdk-go-v2/service/amp v1.19.2
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.20.2
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.17.2
+	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.35.1
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.30.2
+	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.34.1
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.136.0
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.18.2
+	github.com/aws/aws-sdk-go-v2/service/shield v1.22.2
+	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.23.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.25.3
 	github.com/aws/smithy-go v1.17.0
 	github.com/go-kit/log v0.2.1
@@ -33,7 +33,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.2 // indirect
