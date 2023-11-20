@@ -844,4 +844,8 @@ var SupportedServices = serviceConfigs{
 			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
 		},
 	},
+	{
+		Namespace: "AWS/Bedrock",
+		Alias:     "bedrock",
+	},
 }
