@@ -848,4 +848,14 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/Bedrock",
 		Alias:     "bedrock",
 	},
+	{
+		Namespace: "AWS/Events",
+		Alias:     "event-rule",
+		ResourceFilters: []*string{
+			aws.String("events"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":rule/(?P<EventBusName>[^/]+)/(?P<RuleName>[^/]+)$"),
+		},
+	},
 }
