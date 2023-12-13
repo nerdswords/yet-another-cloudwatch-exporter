@@ -24,21 +24,23 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with tag",
-			resources: []model.ScrapeResult[model.TaggedResource]{{
-				Context: nil,
-				Data: []*model.TaggedResource{
-					{
-						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						Namespace: "AWS/ElastiCache",
-						Region:    "us-east-1",
-						Tags: []model.Tag{
-							{
-								Key:   "CustomTag",
-								Value: "tag_Value",
+			resources: []model.ScrapeResult[model.TaggedResource]{
+				{
+					Context: nil,
+					Data: []*model.TaggedResource{
+						{
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
 							},
 						},
 					},
-				}},
+				},
 			},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
@@ -62,21 +64,23 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			resources: []model.ScrapeResult[model.TaggedResource]{{
-				Context: nil,
-				Data: []*model.TaggedResource{
-					{
-						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						Namespace: "AWS/ElastiCache",
-						Region:    "us-east-1",
-						Tags: []model.Tag{
-							{
-								Key:   "CustomTag",
-								Value: "tag_Value",
+			resources: []model.ScrapeResult[model.TaggedResource]{
+				{
+					Context: nil,
+					Data: []*model.TaggedResource{
+						{
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
 							},
 						},
 					},
-				}},
+				},
 			},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
@@ -100,20 +104,23 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "with observed metrics and labels",
-			resources: []model.ScrapeResult[model.TaggedResource]{{
-				Context: nil,
-				Data: []*model.TaggedResource{{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
+			resources: []model.ScrapeResult[model.TaggedResource]{
+				{
+					Context: nil,
+					Data: []*model.TaggedResource{
 						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
+							},
 						},
 					},
 				},
-				}},
 			},
 			metrics: []*PrometheusMetric{
 				{
@@ -163,28 +170,30 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "context on info metrics",
-			resources: []model.ScrapeResult[model.TaggedResource]{{
-				Context: &model.ScrapeContext{
-					Region:    "us-east-2",
-					AccountID: "12345",
-					CustomTags: []model.Tag{{
-						Key:   "billable-to",
-						Value: "api",
-					}},
-				},
-				Data: []*model.TaggedResource{
-					{
-						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						Namespace: "AWS/ElastiCache",
-						Region:    "us-east-1",
-						Tags: []model.Tag{
-							{
-								Key:   "cache_name",
-								Value: "cache_instance_1",
+			resources: []model.ScrapeResult[model.TaggedResource]{
+				{
+					Context: &model.ScrapeContext{
+						Region:    "us-east-2",
+						AccountID: "12345",
+						CustomTags: []model.Tag{{
+							Key:   "billable-to",
+							Value: "api",
+						}},
+					},
+					Data: []*model.TaggedResource{
+						{
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "cache_name",
+									Value: "cache_instance_1",
+								},
 							},
 						},
 					},
-				}},
+				},
 			},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
