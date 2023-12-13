@@ -19,10 +19,10 @@ func ScrapeAwsData(
 	metricsPerQuery int,
 	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
 	taggingAPIConcurrency int,
-) ([][]*model.TaggedResource, []model.CloudwatchMetricResult) {
+) ([]model.ScrapeResult[model.TaggedResource], []model.ScrapeResult[model.CloudwatchData]) {
 	mux := &sync.Mutex{}
-	cwData := make([]model.CloudwatchMetricResult, 0)
-	awsInfoData := make([][]*model.TaggedResource, 0)
+	cwData := make([]model.ScrapeResult[model.CloudwatchData], 0)
+	awsInfoData := make([]model.ScrapeResult[model.TaggedResource], 0)
 	var wg sync.WaitGroup
 
 	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
@@ -40,22 +40,29 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery, cloudwatchConcurrency)
-					metricResult := model.CloudwatchMetricResult{
-						Context: &model.JobContext{
-							Region:     region,
-							AccountID:  accountID,
-							CustomTags: discoveryJob.CustomTags,
-						},
-						Data: metrics,
-					}
-
 					addDataToOutput := len(metrics) != 0
 					if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.AlwaysReturnInfoMetrics) {
 						addDataToOutput = addDataToOutput || len(resources) != 0
 					}
 					if addDataToOutput {
+						sc := &model.ScrapeContext{
+							Region:     region,
+							AccountID:  accountID,
+							CustomTags: discoveryJob.CustomTags,
+						}
+						metricResult := model.ScrapeResult[model.CloudwatchData]{
+							Context: sc,
+							Data:    metrics,
+						}
+						resourceResult := model.ScrapeResult[model.TaggedResource]{
+							Data: resources,
+						}
+						if discoveryJob.IncludeContextOnInfoMetrics {
+							resourceResult.Context = sc
+						}
+
 						mux.Lock()
-						awsInfoData = append(awsInfoData, resources)
+						awsInfoData = append(awsInfoData, resourceResult)
 						cwData = append(cwData, metricResult)
 						mux.Unlock()
 					}
@@ -79,8 +86,8 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					metrics := runStaticJob(ctx, jobLogger, staticJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency))
-					metricResult := model.CloudwatchMetricResult{
-						Context: &model.JobContext{
+					metricResult := model.ScrapeResult[model.CloudwatchData]{
+						Context: &model.ScrapeContext{
 							Region:     region,
 							AccountID:  accountID,
 							CustomTags: staticJob.CustomTags,
@@ -110,8 +117,8 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery)
-					metricResult := model.CloudwatchMetricResult{
-						Context: &model.JobContext{
+					metricResult := model.ScrapeResult[model.CloudwatchData]{
+						Context: &model.ScrapeContext{
 							Region:     region,
 							AccountID:  accountID,
 							CustomTags: customNamespaceJob.CustomTags,

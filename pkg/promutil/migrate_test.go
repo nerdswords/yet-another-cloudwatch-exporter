@@ -14,7 +14,7 @@ import (
 func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	type testCase struct {
 		name                 string
-		resources            [][]*model.TaggedResource
+		resources            []model.ScrapeResult[model.TaggedResource]
 		metrics              []*PrometheusMetric
 		observedMetricLabels map[string]model.LabelSet
 		labelsSnakeCase      bool
@@ -24,19 +24,22 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with tag",
-			resources: [][]*model.TaggedResource{{
-				&model.TaggedResource{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
-						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+			resources: []model.ScrapeResult[model.TaggedResource]{{
+				Context: nil,
+				Data: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						Namespace: "AWS/ElastiCache",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{
+								Key:   "CustomTag",
+								Value: "tag_Value",
+							},
 						},
 					},
-				},
-			}},
+				}},
+			},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      false,
@@ -59,19 +62,22 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			resources: [][]*model.TaggedResource{{
-				{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
-						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+			resources: []model.ScrapeResult[model.TaggedResource]{{
+				Context: nil,
+				Data: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						Namespace: "AWS/ElastiCache",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{
+								Key:   "CustomTag",
+								Value: "tag_Value",
+							},
 						},
 					},
-				},
-			}},
+				}},
+			},
 			metrics:              []*PrometheusMetric{},
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      true,
@@ -94,8 +100,9 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "with observed metrics and labels",
-			resources: [][]*model.TaggedResource{{
-				{
+			resources: []model.ScrapeResult[model.TaggedResource]{{
+				Context: nil,
+				Data: []*model.TaggedResource{{
 					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					Namespace: "AWS/ElastiCache",
 					Region:    "us-east-1",
@@ -106,7 +113,8 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 						},
 					},
 				},
-			}},
+				}},
+			},
 			metrics: []*PrometheusMetric{
 				{
 					Name: aws.String("aws_ec2_cpuutilization_maximum"),
@@ -153,6 +161,57 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "context on info metrics",
+			resources: []model.ScrapeResult[model.TaggedResource]{{
+				Context: &model.ScrapeContext{
+					Region:    "us-east-2",
+					AccountID: "12345",
+					CustomTags: []model.Tag{{
+						Key:   "billable-to",
+						Value: "api",
+					}},
+				},
+				Data: []*model.TaggedResource{
+					{
+						ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						Namespace: "AWS/ElastiCache",
+						Region:    "us-east-1",
+						Tags: []model.Tag{
+							{
+								Key:   "cache_name",
+								Value: "cache_instance_1",
+							},
+						},
+					},
+				}},
+			},
+			metrics:              []*PrometheusMetric{},
+			observedMetricLabels: map[string]model.LabelSet{},
+			labelsSnakeCase:      true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name: aws.String("aws_elasticache_info"),
+					Labels: map[string]string{
+						"name":                   "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"tag_cache_name":         "cache_instance_1",
+						"account_id":             "12345",
+						"region":                 "us-east-2",
+						"custom_tag_billable_to": "api",
+					},
+					Value: aws.Float64(0),
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_info": map[string]struct{}{
+					"name":                   {},
+					"tag_cache_name":         {},
+					"account_id":             {},
+					"region":                 {},
+					"custom_tag_billable_to": {},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -169,7 +228,7 @@ func TestBuildMetrics(t *testing.T) {
 
 	type testCase struct {
 		name            string
-		data            []model.CloudwatchMetricResult
+		data            []model.ScrapeResult[model.CloudwatchData]
 		labelsSnakeCase bool
 		expectedMetrics []*PrometheusMetric
 		expectedLabels  map[string]model.LabelSet
@@ -179,8 +238,8 @@ func TestBuildMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with non-nil data point",
-			data: []model.CloudwatchMetricResult{{
-				Context: &model.JobContext{
+			data: []model.ScrapeResult[model.CloudwatchData]{{
+				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
 					AccountID:  "123456789012",
 					CustomTags: nil,
@@ -229,8 +288,8 @@ func TestBuildMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			data: []model.CloudwatchMetricResult{{
-				Context: &model.JobContext{
+			data: []model.ScrapeResult[model.CloudwatchData]{{
+				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
 					AccountID:  "123456789012",
 					CustomTags: nil,
@@ -273,6 +332,61 @@ func TestBuildMetrics(t *testing.T) {
 					"name":                       {},
 					"region":                     {},
 					"dimension_cache_cluster_id": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "custom tag",
+			data: []model.ScrapeResult[model.CloudwatchData]{{
+				Context: &model.ScrapeContext{
+					Region:    "us-east-1",
+					AccountID: "123456789012",
+					CustomTags: []model.Tag{{
+						Key:   "billable-to",
+						Value: "api",
+					}},
+				},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Value:     aws.Float64(1),
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":                 "123456789012",
+						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                     "us-east-1",
+						"dimension_cache_cluster_id": "redis-cluster",
+						"custom_tag_billable_to":     "api",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_cpuutilization_average": {
+					"account_id":                 {},
+					"name":                       {},
+					"region":                     {},
+					"dimension_cache_cluster_id": {},
+					"custom_tag_billable_to":     {},
 				},
 			},
 			expectedErr: nil,
