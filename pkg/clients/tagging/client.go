@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 type Client interface {
-	GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error)
+	GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error)
 }
 
 var ErrExpectedToFindResources = errors.New("expected to discover resources but none were found")
@@ -26,7 +25,7 @@ func NewLimitedConcurrencyClient(client Client, maxConcurrency int) Client {
 	}
 }
 
-func (c limitedConcurrencyClient) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c limitedConcurrencyClient) GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 	c.sem <- struct{}{}
 	res, err := c.client.GetResources(ctx, job, region)
 	<-c.sem

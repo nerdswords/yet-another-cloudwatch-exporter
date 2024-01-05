@@ -61,7 +61,7 @@ func NewClient(
 	}
 }
 
-func (c client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false

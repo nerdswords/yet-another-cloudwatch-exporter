@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -71,7 +70,7 @@ func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimensi
 	return cwDim
 }
 
-func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
+func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay

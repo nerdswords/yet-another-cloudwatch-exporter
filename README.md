@@ -55,6 +55,7 @@ Only the latest version gets security updates. We won't support older versions.
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
   * cognito-idp (AWS/Cognito) - Cognito
+  * datasync (AWS/DataSync) - DataSync
   * dms (AWS/DMS) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dx (AWS/DX) - Direct Connect
