@@ -23,7 +23,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -64,7 +64,7 @@ func TestBadConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
@@ -103,7 +103,7 @@ func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			err := tc.config.Validate()
+			_, err := tc.config.Validate()
 			require.Error(t, err, "Expected config validation to fail")
 			require.Equal(t, tc.errorMsg, err.Error())
 		})

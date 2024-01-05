@@ -175,7 +175,7 @@ func Test_MetricTags(t *testing.T) {
 	testCases := []struct {
 		testName     string
 		resourceTags []Tag
-		exportedTags ExportedTagsOnMetrics
+		exportedTags []string
 		result       []Tag
 	}{
 		{
@@ -186,7 +186,7 @@ func Test_MetricTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			exportedTags: ExportedTagsOnMetrics{},
+			exportedTags: []string{},
 			result:       []Tag{},
 		},
 		{
@@ -197,9 +197,7 @@ func Test_MetricTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			exportedTags: ExportedTagsOnMetrics{
-				"AWS/Service": []string{"k1"},
-			},
+			exportedTags: []string{"k1"},
 			result: []Tag{
 				{
 					Key:   "k1",
@@ -215,9 +213,7 @@ func Test_MetricTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			exportedTags: ExportedTagsOnMetrics{
-				"AWS/Service": []string{"k1", "k2"},
-			},
+			exportedTags: []string{"k1", "k2"},
 			result: []Tag{
 				{
 					Key:   "k1",
@@ -232,41 +228,13 @@ func Test_MetricTags(t *testing.T) {
 		{
 			testName:     "resource without tags",
 			resourceTags: []Tag{},
-			exportedTags: ExportedTagsOnMetrics{
-				"AWS/Service": []string{"k1"},
-			},
+			exportedTags: []string{"k1"},
 			result: []Tag{
 				{
 					Key:   "k1",
 					Value: "",
 				},
 			},
-		},
-		{
-			testName: "empty exported tags for service",
-			resourceTags: []Tag{
-				{
-					Key:   "k1",
-					Value: "v1",
-				},
-			},
-			exportedTags: ExportedTagsOnMetrics{
-				"AWS/Service": []string{},
-			},
-			result: []Tag{},
-		},
-		{
-			testName: "unmatching service",
-			resourceTags: []Tag{
-				{
-					Key:   "k1",
-					Value: "v1",
-				},
-			},
-			exportedTags: ExportedTagsOnMetrics{
-				"AWS/Service_unknown": []string{"k1"},
-			},
-			result: []Tag{},
 		},
 	}
 

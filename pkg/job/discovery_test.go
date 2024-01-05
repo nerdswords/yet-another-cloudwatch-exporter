@@ -11,7 +11,7 @@ import (
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -22,12 +22,12 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		accountID                 string
 		namespace                 string
 		customTags                []model.Tag
-		tagsOnMetrics             model.ExportedTagsOnMetrics
+		tagsOnMetrics             []string
 		dimensionRegexps          []*regexp.Regexp
 		dimensionNameRequirements []string
 		resources                 []*model.TaggedResource
 		metricsList               []*model.Metric
-		m                         *config.Metric
+		m                         *model.MetricConfig
 	}
 	tests := []struct {
 		name               string
@@ -41,11 +41,9 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				accountID:  "123123123123",
 				namespace:  "efs",
 				customTags: nil,
-				tagsOnMetrics: map[string][]string{
-					"efs": {
-						"Value1",
-						"Value2",
-					},
+				tagsOnMetrics: []string{
+					"Value1",
+					"Value2",
 				},
 				dimensionRegexps: config.SupportedServices.GetService("efs").DimensionRegexps,
 				resources: []*model.TaggedResource{
@@ -77,7 +75,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: "AWS/EFS",
 					},
 				},
-				m: &config.Metric{
+				m: &model.MetricConfig{
 					Name: "StorageBytes",
 					Statistics: []string{
 						"Average",
@@ -130,11 +128,9 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				accountID:  "123123123123",
 				namespace:  "ec2",
 				customTags: nil,
-				tagsOnMetrics: map[string][]string{
-					"ec2": {
-						"Value1",
-						"Value2",
-					},
+				tagsOnMetrics: []string{
+					"Value1",
+					"Value2",
 				},
 				dimensionRegexps: config.SupportedServices.GetService("ec2").DimensionRegexps,
 				resources: []*model.TaggedResource{
@@ -162,7 +158,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: "AWS/EC2",
 					},
 				},
-				m: &config.Metric{
+				m: &model.MetricConfig{
 					Name: "CPUUtilization",
 					Statistics: []string{
 						"Average",
@@ -211,11 +207,9 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				accountID:  "123123123123",
 				namespace:  "kafka",
 				customTags: nil,
-				tagsOnMetrics: map[string][]string{
-					"kafka": {
-						"Value1",
-						"Value2",
-					},
+				tagsOnMetrics: []string{
+					"Value1",
+					"Value2",
 				},
 				dimensionRegexps: config.SupportedServices.GetService("kafka").DimensionRegexps,
 				resources: []*model.TaggedResource{
@@ -243,7 +237,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: "AWS/Kafka",
 					},
 				},
-				m: &config.Metric{
+				m: &model.MetricConfig{
 					Name: "GlobalTopicCount",
 					Statistics: []string{
 						"Average",
@@ -366,7 +360,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Namespace: "AWS/ApplicationELB",
 					},
 				},
-				m: &config.Metric{
+				m: &model.MetricConfig{
 					Name: "RequestCount",
 					Statistics: []string{
 						"Sum",
@@ -406,7 +400,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assoc := associator.NewAssociator(tt.args.dimensionRegexps, tt.args.resources)
+			assoc := maxdimassociator.NewAssociator(logging.NewNopLogger(), tt.args.dimensionRegexps, tt.args.resources)
 			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m, assoc)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))

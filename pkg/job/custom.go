@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -16,7 +15,7 @@ import (
 func runCustomNamespaceJob(
 	ctx context.Context,
 	logger logging.Logger,
-	job *config.CustomNamespace,
+	job model.CustomNamespaceJob,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
 ) []*model.CloudwatchData {
@@ -84,7 +83,7 @@ func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchD
 
 func getMetricDataForQueriesForCustomNamespace(
 	ctx context.Context,
-	customNamespaceJob *config.CustomNamespace,
+	customNamespaceJob model.CustomNamespaceJob,
 	clientCloudwatch cloudwatch.Client,
 	logger logging.Logger,
 ) []*model.CloudwatchData {
@@ -99,40 +98,40 @@ func getMetricDataForQueriesForCustomNamespace(
 		// This includes, for this metric the possible combinations
 		// of dimensions and value of dimensions with data.
 
-		go func(metric *config.Metric) {
+		go func(metric *model.MetricConfig) {
 			defer wg.Done()
-			metricsList, err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, customNamespaceJob.RecentlyActiveOnly, nil)
+			err := clientCloudwatch.ListMetrics(ctx, customNamespaceJob.Namespace, metric, customNamespaceJob.RecentlyActiveOnly, func(page []*model.Metric) {
+				var data []*model.CloudwatchData
+
+				for _, cwMetric := range page {
+					if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
+						continue
+					}
+
+					for _, stats := range metric.Statistics {
+						id := fmt.Sprintf("id_%d", rand.Int())
+						data = append(data, &model.CloudwatchData{
+							ID:                     &customNamespaceJob.Name,
+							MetricID:               &id,
+							Metric:                 &metric.Name,
+							Namespace:              &customNamespaceJob.Namespace,
+							Statistics:             []string{stats},
+							NilToZero:              metric.NilToZero,
+							AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
+							Dimensions:             cwMetric.Dimensions,
+							Period:                 metric.Period,
+						})
+					}
+				}
+
+				mux.Lock()
+				getMetricDatas = append(getMetricDatas, data...)
+				mux.Unlock()
+			})
 			if err != nil {
 				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", customNamespaceJob.Namespace)
 				return
 			}
-
-			var data []*model.CloudwatchData
-
-			for _, cwMetric := range metricsList {
-				if len(customNamespaceJob.DimensionNameRequirements) > 0 && !metricDimensionsMatchNames(cwMetric, customNamespaceJob.DimensionNameRequirements) {
-					continue
-				}
-
-				for _, stats := range metric.Statistics {
-					id := fmt.Sprintf("id_%d", rand.Int())
-					data = append(data, &model.CloudwatchData{
-						ID:                     &customNamespaceJob.Name,
-						MetricID:               &id,
-						Metric:                 &metric.Name,
-						Namespace:              &customNamespaceJob.Namespace,
-						Statistics:             []string{stats},
-						NilToZero:              metric.NilToZero,
-						AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-						Dimensions:             cwMetric.Dimensions,
-						Period:                 metric.Period,
-					})
-				}
-			}
-
-			mux.Lock()
-			getMetricDatas = append(getMetricDatas, data...)
-			mux.Unlock()
 		}(metric)
 	}
 
