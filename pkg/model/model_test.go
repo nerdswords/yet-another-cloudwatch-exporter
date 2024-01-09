@@ -3,6 +3,7 @@ package model
 import (
 	"testing"
 
+	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -165,8 +166,16 @@ func Test_FilterThroughTags(t *testing.T) {
 				Region:    "us-east-1",
 				Tags:      tc.resourceTags,
 			}
-
-			require.Equal(t, tc.result, res.FilterThroughTags(tc.filterTags))
+			searchTags := make([]SearchTag, 0, len(tc.filterTags))
+			for _, t := range tc.filterTags {
+				// regex is validated earlier
+				r, _ := regexp.Compile(t.Value)
+				searchTags = append(searchTags, SearchTag{
+					Key:   t.Key,
+					Value: r,
+				})
+			}
+			require.Equal(t, tc.result, res.FilterThroughTags(searchTags))
 		})
 	}
 }

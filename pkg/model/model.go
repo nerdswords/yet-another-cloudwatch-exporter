@@ -23,7 +23,7 @@ type DiscoveryJob struct {
 	Regions                   []string
 	Type                      string
 	Roles                     []Role
-	SearchTags                []Tag
+	SearchTags                []SearchTag
 	CustomTags                []Tag
 	DimensionNameRequirements []string
 	Metrics                   []*MetricConfig
@@ -85,6 +85,11 @@ type LabelSet map[string]struct{}
 type Tag struct {
 	Key   string
 	Value string
+}
+
+type SearchTag struct {
+	Key   string
+	Value *regexp.Regexp
 }
 
 type Dimension struct {
@@ -169,7 +174,7 @@ type TaggedResource struct {
 
 // filterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
-func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 	if len(filterTags) == 0 {
 		return true
 	}
