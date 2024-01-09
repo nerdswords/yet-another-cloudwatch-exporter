@@ -849,13 +849,14 @@ var SupportedServices = serviceConfigs{
 		Alias:     "ipam",
 		ResourceFilters: []*string{
 			aws.String("ec2:ipam-pool"),
-    },
-    DimensionRegexps: []*regexp.Regexp{
-    regexp.MustCompile(":ipam-pool/(?P<IpamPoolId>[^/]+)$"),
-  },
-  {
-    Namespace: "AWS/Bedrock",
-    Alias:     "bedrock",
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ipam-pool/(?P<IpamPoolId>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "AWS/Bedrock",
+		Alias:     "bedrock",
 	},
 	{
 		Namespace: "AWS/Events",
