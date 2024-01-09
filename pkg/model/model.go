@@ -184,10 +184,10 @@ func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 	for _, resourceTag := range r.Tags {
 		for _, filterTag := range filterTags {
 			if resourceTag.Key == filterTag.Key {
-				r, _ := regexp.Compile(filterTag.Value)
-				if r.MatchString(resourceTag.Value) {
-					tagMatches++
+				if !filterTag.Value.MatchString(resourceTag.Value) {
+					return false
 				}
+				tagMatches++
 			}
 		}
 	}
