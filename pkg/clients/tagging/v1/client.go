@@ -69,9 +69,18 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 
 	if len(svc.ResourceFilters) > 0 {
 		shouldHaveDiscoveredResources = true
+
+		var tagFilters []*resourcegroupstaggingapi.TagFilter = nil
+		if len(job.SearchTags) > 0 {
+			for _, st := range job.SearchTags {
+				tagFilters = append(tagFilters, &resourcegroupstaggingapi.TagFilter{Key: &st.Key})
+			}
+		}
+
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
+			TagFilters:          tagFilters,
 		}
 		pageNum := 0
 

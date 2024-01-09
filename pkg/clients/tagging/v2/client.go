@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 
@@ -72,9 +73,16 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 		for _, filter := range svc.ResourceFilters {
 			filters = append(filters, *filter)
 		}
+		var tagFilters []types.TagFilter = nil
+		if len(job.SearchTags) > 0 {
+			for _, st := range job.SearchTags {
+				tagFilters = append(tagFilters, types.TagFilter{Key: &st.Key})
+			}
+		}
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: filters,
 			ResourcesPerPage:    aws.Int32(int32(100)), // max allowed value according to API docs
+			TagFilters:          tagFilters,
 		}
 
 		paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(c.taggingAPI, inputparams, func(options *resourcegroupstaggingapi.GetResourcesPaginatorOptions) {
