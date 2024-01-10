@@ -70,9 +70,14 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 	if len(svc.ResourceFilters) > 0 {
 		shouldHaveDiscoveredResources = true
 
-		var tagFilters []*resourcegroupstaggingapi.TagFilter = nil
+		var tagFilters []*resourcegroupstaggingapi.TagFilter
 		if len(job.SearchTags) > 0 {
 			for _, st := range job.SearchTags {
+				// AWS's GetResources has a TagFilter option which matches the semantics of our SearchTags where all filters must match
+				// Their value matching implementation is different though so instead of mapping the Key and Value we only map the Keys.
+				// Their API docs say, "If you don't specify a value for a key, the response returns all resources that are tagged with that key, with any or no value."
+				// which makes this a safe way to reduce the amount of data we need to filter out.
+				// https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html#resourcegrouptagging-GetResources-request-TagFilters
 				tagFilters = append(tagFilters, &resourcegroupstaggingapi.TagFilter{Key: &st.Key})
 			}
 		}

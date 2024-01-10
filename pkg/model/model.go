@@ -179,7 +179,7 @@ func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 		return true
 	}
 
-	tagMatches := 0
+	tagFilterMatches := 0
 
 	for _, resourceTag := range r.Tags {
 		for _, filterTag := range filterTags {
@@ -187,12 +187,14 @@ func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 				if !filterTag.Value.MatchString(resourceTag.Value) {
 					return false
 				}
-				tagMatches++
+				// A resource needs to match all SearchTags to be returned, so we track the number of tag filter
+				// matches to ensure it matches the number of tag filters at the end
+				tagFilterMatches++
 			}
 		}
 	}
 
-	return tagMatches == len(filterTags)
+	return tagFilterMatches == len(filterTags)
 }
 
 // MetricTags returns a list of tags built from the tags of
