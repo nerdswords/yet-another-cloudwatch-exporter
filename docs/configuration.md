@@ -91,7 +91,9 @@ type: <string>
 roles:
   [ - <role_config> ... ]
 
-# List of Key/Value pairs to use for tag filtering (all must match). Value can be a regex.
+# List of Key/Value pairs to use for tag filtering (all must match). 
+# The key is the AWS Tag key and is case-sensitive  
+# The value will be treated as a regex
 searchTags:
   [ - <search_tags_config> ... ]
 
