@@ -72,7 +72,11 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 
 		var tagFilters []*resourcegroupstaggingapi.TagFilter
 		if len(job.SearchTags) > 0 {
-			for _, st := range job.SearchTags {
+			for i := range job.SearchTags {
+				// Because everything with the AWS APIs is pointers we need a pointer to the `Key` field from the SearchTag.
+				// We can't take a pointer to any fields from loop variable or the pointer will always be the same and this logic will be broken.
+				st := job.SearchTags[i]
+
 				// AWS's GetResources has a TagFilter option which matches the semantics of our SearchTags where all filters must match
 				// Their value matching implementation is different though so instead of mapping the Key and Value we only map the Keys.
 				// Their API docs say, "If you don't specify a value for a key, the response returns all resources that are tagged with that key, with any or no value."
