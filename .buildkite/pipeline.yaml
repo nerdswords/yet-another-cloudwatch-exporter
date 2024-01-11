@@ -1,0 +1,12 @@
+steps:
+- label: ":go: Build & Test"
+  key: "test"
+  command:
+  - "echo -e 'Lint'"
+  - "docker compose --file docker-compose.buildkite.yml up lint"
+  - "echo -e 'Test'"
+  - "docker compose --file docker-compose.buildkite.yml up test"
+  - "echo -e 'Clean'"
+  - "docker compose --file docker-compose.buildkite.yml down -v --remove-orphans"
+  agents:
+  - "queue=default"

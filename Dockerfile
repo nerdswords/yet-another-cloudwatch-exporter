@@ -1,4 +1,4 @@
-FROM golang:1.21 as builder
+FROM public.ecr.aws/gridx/base-images:golang-dev-1.21.latest as builder
 
 WORKDIR /opt/
 
