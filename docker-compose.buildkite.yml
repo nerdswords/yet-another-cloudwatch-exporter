@@ -1,0 +1,19 @@
+services:
+  lint:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        VERSION: "0.55.0"
+    command: make lint
+
+  test:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        VERSION: "0.55.0"
+    command: make test
+
