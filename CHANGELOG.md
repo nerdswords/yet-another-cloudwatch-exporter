@@ -7,7 +7,7 @@
 **Bugfixes and features**
 
 Features:
-* Add new CloudWatch API concurrency limiter by @thepalbi
+* ...
 
 Bugs:
 * ...
@@ -22,7 +22,64 @@ Refactoring:
 
 * ...
 
+**New contributors**
+
+* ...
+
 **Full Changelog**: https://github.com/...
+
+
+# v0.56.0
+
+**Important news and breaking changes**
+
+* Release v0.55.0 didn't include binaries artifact due to an issue with the release pipeline.
+* The `list-metrics-callback` and `max-dimensions-associator` feature flags have been removed: their behaviour is now the new default.
+
+**Bugfixes and features**
+
+Features:
+* Add new CloudWatch API concurrency limiter by @thepalbi
+* Remove feature flag `list-metrics-callback` by @cristiangreco
+* Remove feature flag `max-dimensions-associator` by @cristiangreco
+* Add support for AWS/Bedrock metrics by @thepalbi
+* Add support for AWS/Events by @raanand-dig
+* Add support for AWS/DataSync by @wkneewalden
+* Add support for AWS/IPAM by @pkubicsek-sb
+
+Bugs:
+* Remove unsupported MWAA resource filter by @matej-g
+* DDoSProtection: Include regionless protectedResources in us-east-1 by @kgeckhart
+* aws sdk v2: ensure region is respected for all aws clients by @kgeckhart
+* SageMaker: Associator buildLabelsMap to lower case EndpointName to match ARN by @GGonzalezGomez
+* Update goreleaser action by @cristiangreco
+
+Refactoring:
+* Decouple config models from internal models by @cristiangreco
+* Change config Validate() signature to include model conversion by @cristiangreco
+
+**Dependencies**
+
+* Bump actions/setup-go from 4 to 5
+* Bump alpine from 3.18.3 to 3.19.0
+* Bump docker/setup-buildx-action from 2 to 3
+* Bump docker/setup-qemu-action from 2 to 3
+* Bump github.com/aws/aws-sdk-go from 1.45.24 to 1.49.19
+* Bump github.com/aws/smithy-go from 1.17.0 to 1.19.0
+* Bump github.com/prometheus/client_golang from 1.16.0 to 1.18.0
+* Bump github.com/prometheus/common from 0.44.0 to 0.45.0
+* Bump github.com/urfave/cli/v2 from 2.25.7 to 2.27.1
+* Bump golang.org/x/sync from 0.3.0 to 0.6.0
+* Bump goreleaser/goreleaser-action from 4 to 5
+* Bump the aws-sdk-v2 group dependencies
+
+**New contributors**
+
+* @GGonzalezGomez
+* @wkneewalden
+* @pkubicsek-sb
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.55.0...v0.56.0
 
 # v0.55.0
 
