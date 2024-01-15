@@ -25,6 +25,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		tagsOnMetrics             []string
 		dimensionRegexps          []*regexp.Regexp
 		dimensionNameRequirements []string
+		dimensionValueFilter      []*model.DimensionFilter
 		resources                 []*model.TaggedResource
 		metricsList               []*model.Metric
 		m                         *model.MetricConfig
@@ -397,11 +398,172 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				},
 			},
 		},
+		{
+			"filter query dimension values for amq",
+			args{
+				region:     "us-east-1",
+				accountID:  "123123123123",
+				namespace:  "mq",
+				customTags: nil,
+				tagsOnMetrics: []string{
+					"Value1",
+					"Value2",
+				},
+				dimensionRegexps: config.SupportedServices.GetService("mq").DimensionRegexps,
+				dimensionValueFilter: []*model.DimensionFilter{
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^ActiveMQ\\.Statistics\\.Destination\\..+"),
+					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^.+\\.stats"),
+					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^Loadtesting.+"),
+					},
+					{
+						Name:  "Queue",
+						Value: regexp.MustCompile("^TEST.+"),
+					},
+				},
+				resources: []*model.TaggedResource{
+					{
+						ARN: "arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333",
+						Tags: []model.Tag{
+							{
+								Key:   "Tag",
+								Value: "some-Tag",
+							},
+						},
+						Namespace: "mq",
+						Region:    "us-east-1",
+					},
+				},
+				metricsList: []*model.Metric{
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "Fufillment",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "ActiveMQ.Statistics.Destination.test",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "test.stats",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "Loadtesting.wow",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+					{
+						MetricName: "QueueSize",
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "Queue",
+								Value: "TEST.hmmm123",
+							},
+							{
+								Name:  "Broker",
+								Value: "activemq-broker-1",
+							},
+						},
+						Namespace: "AWS/AmazonMQ",
+					},
+				},
+				m: &model.MetricConfig{
+					Name: "QueueSize",
+					Statistics: []string{
+						"Average",
+					},
+					Period:                 60,
+					Length:                 600,
+					Delay:                  120,
+					NilToZero:              aws.Bool(false),
+					AddCloudwatchTimestamp: aws.Bool(false),
+				},
+			},
+			[]model.CloudwatchData{
+				{
+					AddCloudwatchTimestamp: aws.Bool(false),
+					Dimensions: []*model.Dimension{
+						{
+							Name:  "Queue",
+							Value: "Fufillment",
+						},
+						{
+							Name:  "Broker",
+							Value: "activemq-broker-1",
+						},
+					},
+					ID:        aws.String("arn:aws:mq:us-east-2:123456789012:broker:activemq-broker:b-000-111-222-333"),
+					Metric:    aws.String("QueueSize"),
+					Namespace: aws.String("mq"),
+					NilToZero: aws.Bool(false),
+					Period:    60,
+					Statistics: []string{
+						"Average",
+					},
+					Tags: []model.Tag{
+						{
+							Key:   "Value1",
+							Value: "",
+						},
+						{
+							Key:   "Value2",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assoc := maxdimassociator.NewAssociator(logging.NewNopLogger(), tt.args.dimensionRegexps, tt.args.resources)
-			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.m, assoc)
+			metricDatas := getFilteredMetricDatas(logging.NewNopLogger(), tt.args.namespace, tt.args.tagsOnMetrics, tt.args.metricsList, tt.args.dimensionNameRequirements, tt.args.dimensionValueFilter, tt.args.m, assoc)
 			if len(metricDatas) != len(tt.wantGetMetricsData) {
 				t.Errorf("len(getFilteredMetricDatas()) = %v, want %v", len(metricDatas), len(tt.wantGetMetricsData))
 			}
