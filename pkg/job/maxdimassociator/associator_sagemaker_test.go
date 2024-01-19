@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -34,7 +33,7 @@ var sagemakerInvocationResources = []*model.TaggedResource{
 
 func TestAssociatorSagemaker(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -50,7 +49,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 		{
 			name: "3 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").ToModelDimensionsRegexp(),
 				resources:        sagemakerInvocationResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -68,7 +67,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 		{
 			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").ToModelDimensionsRegexp(),
 				resources:        sagemakerInvocationResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -85,7 +84,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 		{
 			name: "2 dimensions should not match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").ToModelDimensionsRegexp(),
 				resources:        sagemakerInvocationResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -102,7 +101,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 		{
 			name: "2 dimensions should match in Upper case",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker").ToModelDimensionsRegexp(),
 				resources:        sagemakerInvocationResources,
 				metric: &model.Metric{
 					MetricName: "ModelLatency",

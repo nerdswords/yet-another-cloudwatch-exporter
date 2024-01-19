@@ -356,6 +356,8 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 	jobsCfg.StsRegion = c.StsRegion
 
 	for _, discoveryJob := range c.Discovery.Jobs {
+		svc := SupportedServices.GetService(discoveryJob.Type)
+
 		job := model.DiscoveryJob{}
 		job.Regions = discoveryJob.Regions
 		job.Type = discoveryJob.Type
@@ -373,10 +375,10 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.CustomTags = toModelTags(discoveryJob.CustomTags)
 		job.Metrics = toModelMetricConfig(discoveryJob.Metrics)
 		job.IncludeContextOnInfoMetrics = discoveryJob.IncludeContextOnInfoMetrics
+		job.DimensionsRegexps = svc.ToModelDimensionsRegexp()
 
 		job.ExportedTagsOnMetrics = []string{}
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
-			svc := SupportedServices.GetService(job.Type)
 			if exportedTags, ok := c.Discovery.ExportedTagsOnMetrics[svc.Namespace]; ok {
 				job.ExportedTagsOnMetrics = exportedTags
 			} else if exportedTags, ok := c.Discovery.ExportedTagsOnMetrics[svc.Alias]; ok {

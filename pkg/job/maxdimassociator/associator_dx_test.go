@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -18,7 +17,7 @@ var dxVif = &model.TaggedResource{
 
 func TestAssociatorDX(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -34,7 +33,7 @@ func TestAssociatorDX(t *testing.T) {
 		{
 			name: "should match Virtual Interface with VirtualInterfaceId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/DX").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/DX").ToModelDimensionsRegexp(),
 				resources:        []*model.TaggedResource{dxVif},
 				metric: &model.Metric{
 					MetricName: "VirtualInterfaceBpsIngress",
