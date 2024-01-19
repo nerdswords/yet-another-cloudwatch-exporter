@@ -124,9 +124,14 @@ type Datapoint struct {
 	Timestamp *time.Time
 }
 
-type ScrapeResult[T CloudwatchData | TaggedResource] struct {
+type CloudwatchMetricResult struct {
 	Context *ScrapeContext
-	Data    []*T
+	Data    []*CloudwatchData
+}
+
+type TaggedResourceResult struct {
+	Context *ScrapeContext
+	Data    []*TaggedResource
 }
 
 type ScrapeContext struct {

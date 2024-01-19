@@ -19,10 +19,10 @@ func ScrapeAwsData(
 	metricsPerQuery int,
 	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
 	taggingAPIConcurrency int,
-) ([]model.ScrapeResult[model.TaggedResource], []model.ScrapeResult[model.CloudwatchData]) {
+) ([]model.TaggedResourceResult, []model.CloudwatchMetricResult) {
 	mux := &sync.Mutex{}
-	cwData := make([]model.ScrapeResult[model.CloudwatchData], 0)
-	awsInfoData := make([]model.ScrapeResult[model.TaggedResource], 0)
+	cwData := make([]model.CloudwatchMetricResult, 0)
+	awsInfoData := make([]model.TaggedResourceResult, 0)
 	var wg sync.WaitGroup
 
 	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
@@ -50,11 +50,11 @@ func ScrapeAwsData(
 							AccountID:  accountID,
 							CustomTags: discoveryJob.CustomTags,
 						}
-						metricResult := model.ScrapeResult[model.CloudwatchData]{
+						metricResult := model.CloudwatchMetricResult{
 							Context: sc,
 							Data:    metrics,
 						}
-						resourceResult := model.ScrapeResult[model.TaggedResource]{
+						resourceResult := model.TaggedResourceResult{
 							Data: resources,
 						}
 						if discoveryJob.IncludeContextOnInfoMetrics {
@@ -86,7 +86,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					metrics := runStaticJob(ctx, jobLogger, staticJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency))
-					metricResult := model.ScrapeResult[model.CloudwatchData]{
+					metricResult := model.CloudwatchMetricResult{
 						Context: &model.ScrapeContext{
 							Region:     region,
 							AccountID:  accountID,
@@ -117,7 +117,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery)
-					metricResult := model.ScrapeResult[model.CloudwatchData]{
+					metricResult := model.CloudwatchMetricResult{
 						Context: &model.ScrapeContext{
 							Region:     region,
 							AccountID:  accountID,

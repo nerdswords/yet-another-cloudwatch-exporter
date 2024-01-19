@@ -18,7 +18,7 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildNamespaceInfoMetrics(tagData []model.ScrapeResult[model.TaggedResource], metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
+func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
@@ -57,7 +57,7 @@ func BuildNamespaceInfoMetrics(tagData []model.ScrapeResult[model.TaggedResource
 	return metrics, observedMetricLabels
 }
 
-func BuildMetrics(results []model.ScrapeResult[model.CloudwatchData], labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 	observedMetricLabels := make(map[string]model.LabelSet)
 

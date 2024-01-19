@@ -14,7 +14,7 @@ import (
 func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	type testCase struct {
 		name                 string
-		resources            []model.ScrapeResult[model.TaggedResource]
+		resources            []model.TaggedResourceResult
 		metrics              []*PrometheusMetric
 		observedMetricLabels map[string]model.LabelSet
 		labelsSnakeCase      bool
@@ -24,7 +24,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with tag",
-			resources: []model.ScrapeResult[model.TaggedResource]{
+			resources: []model.TaggedResourceResult{
 				{
 					Context: nil,
 					Data: []*model.TaggedResource{
@@ -64,7 +64,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			resources: []model.ScrapeResult[model.TaggedResource]{
+			resources: []model.TaggedResourceResult{
 				{
 					Context: nil,
 					Data: []*model.TaggedResource{
@@ -104,7 +104,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "with observed metrics and labels",
-			resources: []model.ScrapeResult[model.TaggedResource]{
+			resources: []model.TaggedResourceResult{
 				{
 					Context: nil,
 					Data: []*model.TaggedResource{
@@ -170,7 +170,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "context on info metrics",
-			resources: []model.ScrapeResult[model.TaggedResource]{
+			resources: []model.TaggedResourceResult{
 				{
 					Context: &model.ScrapeContext{
 						Region:    "us-east-2",
@@ -237,7 +237,7 @@ func TestBuildMetrics(t *testing.T) {
 
 	type testCase struct {
 		name            string
-		data            []model.ScrapeResult[model.CloudwatchData]
+		data            []model.CloudwatchMetricResult
 		labelsSnakeCase bool
 		expectedMetrics []*PrometheusMetric
 		expectedLabels  map[string]model.LabelSet
@@ -247,7 +247,7 @@ func TestBuildMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with non-nil data point",
-			data: []model.ScrapeResult[model.CloudwatchData]{{
+			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
 					AccountID:  "123456789012",
@@ -297,7 +297,7 @@ func TestBuildMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			data: []model.ScrapeResult[model.CloudwatchData]{{
+			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
 					AccountID:  "123456789012",
@@ -347,7 +347,7 @@ func TestBuildMetrics(t *testing.T) {
 		},
 		{
 			name: "custom tag",
-			data: []model.ScrapeResult[model.CloudwatchData]{{
+			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
 					Region:    "us-east-1",
 					AccountID: "123456789012",
