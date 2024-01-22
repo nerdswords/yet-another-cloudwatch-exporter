@@ -20,16 +20,17 @@ type JobsConfig struct {
 }
 
 type DiscoveryJob struct {
-	Regions                   []string
-	Type                      string
-	Roles                     []Role
-	SearchTags                []Tag
-	CustomTags                []Tag
-	DimensionNameRequirements []string
-	Metrics                   []*MetricConfig
-	RoundingPeriod            *int64
-	RecentlyActiveOnly        bool
-	ExportedTagsOnMetrics     []string
+	Regions                     []string
+	Type                        string
+	Roles                       []Role
+	SearchTags                  []Tag
+	CustomTags                  []Tag
+	DimensionNameRequirements   []string
+	Metrics                     []*MetricConfig
+	RoundingPeriod              *int64
+	RecentlyActiveOnly          bool
+	ExportedTagsOnMetrics       []string
+	IncludeContextOnInfoMetrics bool
 	JobLevelMetricFields
 }
 
@@ -124,11 +125,16 @@ type Datapoint struct {
 }
 
 type CloudwatchMetricResult struct {
-	Context *JobContext
+	Context *ScrapeContext
 	Data    []*CloudwatchData
 }
 
-type JobContext struct {
+type TaggedResourceResult struct {
+	Context *ScrapeContext
+	Data    []*TaggedResource
+}
+
+type ScrapeContext struct {
 	Region     string
 	AccountID  string
 	CustomTags []Tag

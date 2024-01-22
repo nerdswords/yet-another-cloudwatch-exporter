@@ -42,16 +42,17 @@ type JobLevelMetricFields struct {
 }
 
 type Job struct {
-	Regions                   []string  `yaml:"regions"`
-	Type                      string    `yaml:"type"`
-	Roles                     []Role    `yaml:"roles"`
-	SearchTags                []Tag     `yaml:"searchTags"`
-	CustomTags                []Tag     `yaml:"customTags"`
-	DimensionNameRequirements []string  `yaml:"dimensionNameRequirements"`
-	Metrics                   []*Metric `yaml:"metrics"`
-	RoundingPeriod            *int64    `yaml:"roundingPeriod"`
-	RecentlyActiveOnly        bool      `yaml:"recentlyActiveOnly"`
-	JobLevelMetricFields      `yaml:",inline"`
+	Regions                     []string  `yaml:"regions"`
+	Type                        string    `yaml:"type"`
+	Roles                       []Role    `yaml:"roles"`
+	SearchTags                  []Tag     `yaml:"searchTags"`
+	CustomTags                  []Tag     `yaml:"customTags"`
+	DimensionNameRequirements   []string  `yaml:"dimensionNameRequirements"`
+	Metrics                     []*Metric `yaml:"metrics"`
+	RoundingPeriod              *int64    `yaml:"roundingPeriod"`
+	RecentlyActiveOnly          bool      `yaml:"recentlyActiveOnly"`
+	IncludeContextOnInfoMetrics bool      `yaml:"includeContextOnInfoMetrics"`
+	JobLevelMetricFields        `yaml:",inline"`
 }
 
 type Static struct {
@@ -371,6 +372,7 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.SearchTags = toModelTags(discoveryJob.SearchTags)
 		job.CustomTags = toModelTags(discoveryJob.CustomTags)
 		job.Metrics = toModelMetricConfig(discoveryJob.Metrics)
+		job.IncludeContextOnInfoMetrics = discoveryJob.IncludeContextOnInfoMetrics
 
 		job.ExportedTagsOnMetrics = []string{}
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
