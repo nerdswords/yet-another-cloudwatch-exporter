@@ -184,7 +184,7 @@ func getMetricDataForQueries(
 		assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 	} else {
 		// If we don't have dimension regex's and resources there's nothing to associate but metrics shouldn't be skipped
-		assoc = nothingToAssociateAssociator{}
+		assoc = nopAssociator{}
 	}
 
 	var wg sync.WaitGroup
@@ -215,9 +215,9 @@ func getMetricDataForQueries(
 	return getMetricDatas
 }
 
-type nothingToAssociateAssociator struct{}
+type nopAssociator struct{}
 
-func (ns nothingToAssociateAssociator) AssociateMetricToResource(_ *model.Metric) (*model.TaggedResource, bool) {
+func (ns nopAssociator) AssociateMetricToResource(_ *model.Metric) (*model.TaggedResource, bool) {
 	return nil, false
 }
 
