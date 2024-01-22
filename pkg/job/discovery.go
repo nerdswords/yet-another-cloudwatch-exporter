@@ -179,6 +179,14 @@ func getMetricDataForQueries(
 	mux := &sync.Mutex{}
 	var getMetricDatas []*model.CloudwatchData
 
+	var assoc resourceAssociator
+	if len(svc.DimensionRegexps) > 0 && len(resources) > 0 {
+		assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
+	} else {
+		// If we don't have dimension regex's and resources there's nothing to associate but metrics shouldn't be skipped
+		assoc = nopAssociator{}
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(discoveryJob.Metrics))
 
@@ -188,8 +196,6 @@ func getMetricDataForQueries(
 	for _, metric := range discoveryJob.Metrics {
 		go func(metric *model.MetricConfig) {
 			defer wg.Done()
-
-			assoc := maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
 
 			err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
 				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
@@ -207,6 +213,12 @@ func getMetricDataForQueries(
 
 	wg.Wait()
 	return getMetricDatas
+}
+
+type nopAssociator struct{}
+
+func (ns nopAssociator) AssociateMetricToResource(_ *model.Metric) (*model.TaggedResource, bool) {
+	return nil, false
 }
 
 func getFilteredMetricDatas(
