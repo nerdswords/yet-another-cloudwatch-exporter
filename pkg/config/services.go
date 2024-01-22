@@ -193,6 +193,18 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/DataSync",
+		Alias:     "datasync",
+		ResourceFilters: []*string{
+			aws.String("datasync:task"),
+			aws.String("datasync:agent"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":task/(?P<TaskId>[^/]+)"),
+			regexp.MustCompile(":agent/(?P<AgentId>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/DMS",
 		Alias:     "dms",
 		ResourceFilters: []*string{
@@ -830,6 +842,16 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/IPAM",
+		Alias:     "ipam",
+		ResourceFilters: []*string{
+			aws.String("ec2:ipam-pool"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ipam-pool/(?P<IpamPoolId>[^/]+)$"),
 		},
 	},
 	{
