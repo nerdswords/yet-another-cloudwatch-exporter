@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -22,7 +21,7 @@ var eventRuleResources = []*model.TaggedResource{
 
 func TestAssociatorEventRule(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -38,7 +37,7 @@ func TestAssociatorEventRule(t *testing.T) {
 		{
 			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Events").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Events").ToModelDimensionsRegexp(),
 				resources:        eventRuleResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",

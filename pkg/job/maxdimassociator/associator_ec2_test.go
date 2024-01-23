@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -28,7 +27,7 @@ var ec2Resources = []*model.TaggedResource{
 
 func TestAssociatorEC2(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -44,7 +43,7 @@ func TestAssociatorEC2(t *testing.T) {
 		{
 			name: "should match with InstanceId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").ToModelDimensionsRegexp(),
 				resources:        ec2Resources,
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
@@ -60,7 +59,7 @@ func TestAssociatorEC2(t *testing.T) {
 		{
 			name: "should match another instance with InstanceId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").ToModelDimensionsRegexp(),
 				resources:        ec2Resources,
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
@@ -76,7 +75,7 @@ func TestAssociatorEC2(t *testing.T) {
 		{
 			name: "should skip with unmatched InstanceId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").ToModelDimensionsRegexp(),
 				resources:        ec2Resources,
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
@@ -92,7 +91,7 @@ func TestAssociatorEC2(t *testing.T) {
 		{
 			name: "should not skip when unmatching because of non-ARN dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").ToModelDimensionsRegexp(),
 				resources:        ec2Resources,
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
