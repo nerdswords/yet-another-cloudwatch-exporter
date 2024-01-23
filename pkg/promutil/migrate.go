@@ -2,6 +2,7 @@ package promutil
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"sort"
 	"strings"
@@ -17,9 +18,10 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildNamespaceInfoMetrics(tagData [][]*model.TaggedResource, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
+func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
-		for _, d := range tagResult {
+		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
+		for _, d := range tagResult.Data {
 			sb := strings.Builder{}
 			promNs := PromString(strings.ToLower(d.Namespace))
 			if !strings.HasPrefix(promNs, "aws") {
@@ -29,9 +31,9 @@ func BuildNamespaceInfoMetrics(tagData [][]*model.TaggedResource, metrics []*Pro
 			sb.WriteString("_info")
 			metricName := sb.String()
 
-			promLabels := make(map[string]string, len(d.Tags))
+			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
+			maps.Copy(promLabels, contextLabels)
 			promLabels["name"] = d.ARN
-
 			for _, tag := range d.Tags {
 				ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 				if !ok {
@@ -60,7 +62,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	observedMetricLabels := make(map[string]model.LabelSet)
 
 	for _, result := range results {
-		context := result.Context
+		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
 			for _, statistic := range metric.Statistics {
 				var includeTimestamp bool
@@ -92,7 +94,8 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				name := sb.String()
 
 				if exportedDatapoint != nil {
-					promLabels := createPrometheusLabels(context, metric, labelsSnakeCase, logger)
+					promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
+					maps.Copy(promLabels, contextLabels)
 					observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 					output = append(output, &PrometheusMetric{
 						Name:             &name,
@@ -172,11 +175,9 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	return datapoints
 }
 
-func createPrometheusLabels(context *model.JobContext, cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
+func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
 	labels := make(map[string]string)
 	labels["name"] = *cwd.ID
-	labels["region"] = context.Region
-	labels["account_id"] = context.AccountID
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
@@ -188,15 +189,6 @@ func createPrometheusLabels(context *model.JobContext, cwd *model.CloudwatchData
 		labels["dimension_"+promTag] = dimension.Value
 	}
 
-	for _, label := range context.CustomTags {
-		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)
-		if !ok {
-			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
-			continue
-		}
-		labels["custom_tag_"+promTag] = label.Value
-	}
-
 	for _, tag := range cwd.Tags {
 		ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 		if !ok {
@@ -204,6 +196,26 @@ func createPrometheusLabels(context *model.JobContext, cwd *model.CloudwatchData
 			continue
 		}
 		labels["tag_"+promTag] = tag.Value
+	}
+
+	return labels
+}
+
+func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) map[string]string {
+	labels := make(map[string]string)
+	if context == nil {
+		return labels
+	}
+	labels["region"] = context.Region
+	labels["account_id"] = context.AccountID
+
+	for _, label := range context.CustomTags {
+		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
+			continue
+		}
+		labels["custom_tag_"+promTag] = label.Value
 	}
 
 	return labels
