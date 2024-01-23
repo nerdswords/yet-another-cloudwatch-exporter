@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -23,7 +22,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 		namespace                 string
 		customTags                []model.Tag
 		tagsOnMetrics             []string
-		dimensionRegexps          []*regexp.Regexp
+		dimensionRegexps          []model.DimensionsRegexp
 		dimensionNameRequirements []string
 		resources                 []*model.TaggedResource
 		metricsList               []*model.Metric
@@ -45,7 +44,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					"Value1",
 					"Value2",
 				},
-				dimensionRegexps: config.SupportedServices.GetService("efs").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EFS").ToModelDimensionsRegexp(),
 				resources: []*model.TaggedResource{
 					{
 						ARN: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
@@ -132,7 +131,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					"Value1",
 					"Value2",
 				},
-				dimensionRegexps: config.SupportedServices.GetService("ec2").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/EC2").ToModelDimensionsRegexp(),
 				resources: []*model.TaggedResource{
 					{
 						ARN: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
@@ -211,7 +210,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					"Value1",
 					"Value2",
 				},
-				dimensionRegexps: config.SupportedServices.GetService("kafka").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Kafka").ToModelDimensionsRegexp(),
 				resources: []*model.TaggedResource{
 					{
 						ARN: "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
@@ -287,7 +286,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				namespace:                 "alb",
 				customTags:                nil,
 				tagsOnMetrics:             nil,
-				dimensionRegexps:          config.SupportedServices.GetService("alb").DimensionRegexps,
+				dimensionRegexps:          config.SupportedServices.GetService("AWS/ApplicationELB").ToModelDimensionsRegexp(),
 				dimensionNameRequirements: []string{"LoadBalancer", "TargetGroup"},
 				resources: []*model.TaggedResource{
 					{

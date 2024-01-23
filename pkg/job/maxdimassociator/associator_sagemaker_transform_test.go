@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -22,7 +21,7 @@ var sagemakerTransformJobResources = []*model.TaggedResource{
 
 func TestAssociatorSagemakerTransformJob(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -38,7 +37,7 @@ func TestAssociatorSagemakerTransformJob(t *testing.T) {
 		{
 			name: "1 dimension should not match but not skip",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/TransformJobs").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/TransformJobs").ToModelDimensionsRegexp(),
 				resources:        sagemakerTransformJobResources,
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
