@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -28,7 +27,7 @@ var memoryDBClusters = []*model.TaggedResource{
 
 func TestAssociatorMemoryDB(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -44,7 +43,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should match with ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
@@ -60,7 +59,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should match another instance with ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
@@ -76,7 +75,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should skip with unmatched ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
@@ -92,7 +91,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should not skip when unmatching because of non-ARN dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",

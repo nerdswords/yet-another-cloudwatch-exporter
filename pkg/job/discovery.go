@@ -181,7 +181,7 @@ func getMetricDataForQueries(
 
 	var assoc resourceAssociator
 	if len(svc.DimensionRegexps) > 0 && len(resources) > 0 {
-		assoc = maxdimassociator.NewAssociator(logger, svc.DimensionRegexps, resources)
+		assoc = maxdimassociator.NewAssociator(logger, discoveryJob.DimensionsRegexps, resources)
 	} else {
 		// If we don't have dimension regex's and resources there's nothing to associate but metrics shouldn't be skipped
 		assoc = nopAssociator{}

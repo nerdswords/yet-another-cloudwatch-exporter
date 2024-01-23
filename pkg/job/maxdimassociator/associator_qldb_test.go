@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -18,7 +17,7 @@ var validQldbInstance = &model.TaggedResource{
 
 func TestAssociatorQLDB(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -34,7 +33,7 @@ func TestAssociatorQLDB(t *testing.T) {
 		{
 			name: "should match with ledger name dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").ToModelDimensionsRegexp(),
 				resources:        []*model.TaggedResource{validQldbInstance},
 				metric: &model.Metric{
 					Namespace:  "AWS/QLDB",
@@ -50,7 +49,7 @@ func TestAssociatorQLDB(t *testing.T) {
 		{
 			name: "should not match with ledger name dimension when QLDB arn is not valid",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").ToModelDimensionsRegexp(),
 				resources:        []*model.TaggedResource{validQldbInstance},
 				metric: &model.Metric{
 					Namespace:  "AWS/QLDB",

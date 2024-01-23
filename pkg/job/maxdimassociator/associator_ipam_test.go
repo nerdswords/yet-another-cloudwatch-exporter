@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -22,7 +21,7 @@ var ipamResources = []*model.TaggedResource{
 
 func TestAssociatorIpam(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -38,7 +37,7 @@ func TestAssociatorIpam(t *testing.T) {
 		{
 			name: "should match with IpamPoolId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
 				resources:        ipamResources,
 				metric: &model.Metric{
 					MetricName: "VpcIPUsage",
@@ -54,7 +53,7 @@ func TestAssociatorIpam(t *testing.T) {
 		{
 			name: "should skip with unmatched IpamPoolId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
 				resources:        ipamResources,
 				metric: &model.Metric{
 					MetricName: "VpcIPUsage",
