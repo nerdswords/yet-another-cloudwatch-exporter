@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -433,6 +434,209 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					t.Errorf("getFilteredMetricDatas().Tags = %+v, want %+v", got.Tags, tt.wantGetMetricsData[i].Tags)
 				}
 			}
+		})
+	}
+}
+
+func Test_mapResultsToMetricDatas(t *testing.T) {
+	type args struct {
+		metricDataResults [][]cloudwatch.MetricDataResult
+		cloudwatchDatas   []*model.CloudwatchData
+	}
+	tests := []struct {
+		name                string
+		args                args
+		wantCloudwatchDatas []*model.CloudwatchData
+	}{
+		{
+			"all datapoints present",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-3", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+					},
+					{
+						{ID: "metric-4", Datapoint: 20, Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC)},
+					},
+					{
+						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-2"), Metric: aws.String("MetricTwo"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-3"), Metric: aws.String("MetricThree"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-4"), Metric: aws.String("MetricFour"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+				{
+					Metric:                  aws.String("MetricTwo"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(12),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
+				},
+				{
+					Metric:                  aws.String("MetricThree"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(15),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC),
+				},
+				{
+					Metric:                  aws.String("MetricFour"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(20),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC),
+				},
+			},
+		},
+		{
+			"duplicate results",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+			},
+		},
+		{
+			"unexpected result ID",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+			},
+		},
+		{
+			"nil metric data result",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+					},
+					nil,
+					{
+						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-2"), Metric: aws.String("MetricTwo"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+				{
+					Metric:                  aws.String("MetricTwo"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(12),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
+				},
+			},
+		},
+		{
+			"missing metric data result",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-2"), Metric: aws.String("MetricTwo"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+				{
+					MetricID:                aws.String("metric-2"),
+					Metric:                  aws.String("MetricTwo"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      nil,
+					GetMetricDataTimestamps: time.Time{},
+				},
+			},
+		},
+		{
+			"nil metric datapoint",
+			args{
+				metricDataResults: [][]cloudwatch.MetricDataResult{
+					{
+						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-2"},
+					},
+				},
+				cloudwatchDatas: []*model.CloudwatchData{
+					{MetricID: aws.String("metric-1"), Metric: aws.String("MetricOne"), Namespace: aws.String("svc")},
+					{MetricID: aws.String("metric-2"), Metric: aws.String("MetricTwo"), Namespace: aws.String("svc")},
+				},
+			},
+			[]*model.CloudwatchData{
+				{
+					Metric:                  aws.String("MetricOne"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      aws.Float64(5),
+					GetMetricDataTimestamps: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+				},
+				{
+					Metric:                  aws.String("MetricTwo"),
+					Namespace:               aws.String("svc"),
+					GetMetricDataPoint:      nil,
+					GetMetricDataTimestamps: time.Time{},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mapResultsToMetricDatas(tt.args.metricDataResults, tt.args.cloudwatchDatas, logging.NewNopLogger())
+			// mapResultsToMetricDatas() modifies its []*model.CloudwatchData parameter in-place, assert that it was updated
+			require.Equal(t, tt.wantCloudwatchDatas, tt.args.cloudwatchDatas)
 		})
 	}
 }
