@@ -453,14 +453,14 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-3", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC)},
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-3", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 					{
-						{ID: "metric-4", Datapoint: 20, Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC)},
+						{ID: "metric-4", Datapoint: aws.Float64(20), Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC)},
 					},
 					{
-						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(12), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
@@ -502,8 +502,8 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
-						{ID: "metric-1", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
@@ -524,8 +524,8 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
-						{ID: "metric-2", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
@@ -546,11 +546,11 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 					nil,
 					{
-						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(12), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
@@ -578,7 +578,7 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
@@ -607,7 +607,7 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 						{ID: "metric-2"},
 					},
 				},
@@ -728,7 +728,7 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResour
 			id := testResourceIDs[(batch*metricsPerQuery+i)%testResourcesCount]
 			newBatchOutputs = append(newBatchOutputs, cloudwatch.MetricDataResult{
 				ID:        id,
-				Datapoint: 1.4 * float64(batch),
+				Datapoint: aws.Float64(1.4 * float64(batch)),
 				Timestamp: now,
 			})
 		}
