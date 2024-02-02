@@ -109,7 +109,7 @@ func runDiscoveryJob(
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
 	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
-		return m.GetMetricDataResult.MappedToAQueryResult == true
+		return m.GetMetricDataResult.MappedToAQueryResult
 	})
 	return resources, getMetricDatas
 }
