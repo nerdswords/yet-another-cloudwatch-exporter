@@ -114,6 +114,10 @@ dimensionNameRequirements:
 # This is useful for reducing the number of metrics returned by CloudWatch, which can be very large for some services. See AWS Cloudwatch API docs for [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html) for more details.
 [ recentlyActiveOnly: <boolean> ]
 
+# Can be used to include contextual information (account_id, region, and customTags) on info metrics and cloudwatch metrics. This can be particularly 
+# useful when cloudwatch metrics might not be present or when using info metrics to understand where your resources exist
+[ includeContextOnInfoMetrics: <boolean> ]
+
 # List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)
 statistics:
   [ - <string> ... ]

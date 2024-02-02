@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -15,7 +16,7 @@ import (
 )
 
 type scraper struct {
-	registry     *prometheus.Registry
+	registry     atomic.Pointer[prometheus.Registry]
 	featureFlags []string
 }
 
@@ -26,15 +27,17 @@ type cachingFactory interface {
 }
 
 func NewScraper(featureFlags []string) *scraper { //nolint:revive
-	return &scraper{
-		registry:     prometheus.NewRegistry(),
+	s := &scraper{
+		registry:     atomic.Pointer[prometheus.Registry]{},
 		featureFlags: featureFlags,
 	}
+	s.registry.Store(prometheus.NewRegistry())
+	return s
 }
 
 func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
+		handler := promhttp.HandlerFor(s.registry.Load(), promhttp.HandlerOpts{
 			DisableCompression: false,
 		})
 		handler.ServeHTTP(w, r)
@@ -108,7 +111,6 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, jobsCfg mod
 		logger.Error(err, "error updating metrics")
 	}
 
-	// this might have a data race to access registry
-	s.registry = newRegistry
+	s.registry.Store(newRegistry)
 	logger.Debug("Metrics scraped")
 }

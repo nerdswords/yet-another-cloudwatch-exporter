@@ -10,16 +10,16 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var eventRule0 = &model.TaggedResource{
-	ARN:       "arn:aws:events:eu-central-1:112246171613:rule/event-bus-name/rule-name",
-	Namespace: "AWS/Events",
+var ec2IpamPool = &model.TaggedResource{
+	ARN:       "arn:aws:ec2::123456789012:ipam-pool/ipam-pool-1ff5e4e9ad2c28b7b",
+	Namespace: "AWS/IPAM",
 }
 
-var eventRuleResources = []*model.TaggedResource{
-	eventRule0,
+var ipamResources = []*model.TaggedResource{
+	ec2IpamPool,
 }
 
-func TestAssociatorEventRule(t *testing.T) {
+func TestAssociatorIpam(t *testing.T) {
 	type args struct {
 		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
@@ -35,21 +35,36 @@ func TestAssociatorEventRule(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "2 dimensions should match",
+			name: "should match with IpamPoolId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Events").ToModelDimensionsRegexp(),
-				resources:        eventRuleResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
+				resources:        ipamResources,
 				metric: &model.Metric{
-					MetricName: "Invocations",
-					Namespace:  "AWS/Events",
+					MetricName: "VpcIPUsage",
+					Namespace:  "AWS/IPAM",
 					Dimensions: []*model.Dimension{
-						{Name: "EventBusName", Value: "event-bus-name"},
-						{Name: "RuleName", Value: "rule-name"},
+						{Name: "IpamPoolId", Value: "ipam-pool-1ff5e4e9ad2c28b7b"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: eventRule0,
+			expectedResource: ec2IpamPool,
+		},
+		{
+			name: "should skip with unmatched IpamPoolId dimension",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
+				resources:        ipamResources,
+				metric: &model.Metric{
+					MetricName: "VpcIPUsage",
+					Namespace:  "AWS/IPAM",
+					Dimensions: []*model.Dimension{
+						{Name: "IpamPoolId", Value: "ipam-pool-blahblah"},
+					},
+				},
+			},
+			expectedSkip:     true,
+			expectedResource: nil,
 		},
 	}
 
