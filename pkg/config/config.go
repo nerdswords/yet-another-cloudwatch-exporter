@@ -445,8 +445,8 @@ func toModelTags(tags []Tag) []model.Tag {
 func toModelSearchTags(tags []Tag) []model.SearchTag {
 	ret := make([]model.SearchTag, 0, len(tags))
 	for _, t := range tags {
-		// regex is validated earlier
-		r, _ := regexp.Compile(t.Value)
+		// This should never panic as long as regex validation continues to happen before model mapping
+		r := regexp.MustCompile(t.Value)
 		ret = append(ret, model.SearchTag{
 			Key:   t.Key,
 			Value: r,
