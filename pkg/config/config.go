@@ -211,7 +211,7 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 
 	for _, st := range j.SearchTags {
 		if _, err := regexp.Compile(st.Value); err != nil {
-			return fmt.Errorf("Discovery job [%s/%d]: search tag value for %s has invalid regex value %s: %w ", j.Type, jobIdx, st.Key, st.Value, err)
+			return fmt.Errorf("Discovery job [%s/%d]: search tag value for %s has invalid regex value %s: %w", j.Type, jobIdx, st.Key, st.Value, err)
 		}
 	}
 
