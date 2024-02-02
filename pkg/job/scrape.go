@@ -7,6 +7,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/discovery"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -39,7 +40,9 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery, cloudwatchConcurrency)
+					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
+					gmdProcessor := discovery.NewPartitioningGetMetricDataProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency)
+					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), cloudwatchClient, gmdProcessor)
 					addDataToOutput := len(metrics) != 0
 					if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.AlwaysReturnInfoMetrics) {
 						addDataToOutput = addDataToOutput || len(resources) != 0
@@ -116,7 +119,9 @@ func ScrapeAwsData(
 					}
 					jobLogger = jobLogger.With("account", accountID)
 
-					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, factory.GetCloudwatchClient(region, role, cloudwatchConcurrency), metricsPerQuery)
+					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
+					gmdProcessor := discovery.NewPartitioningGetMetricDataProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency)
+					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, cloudwatchClient, gmdProcessor)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.ScrapeContext{
 							Region:     region,
