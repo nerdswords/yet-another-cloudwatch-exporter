@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 
@@ -49,7 +48,7 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 			metrics = append(metrics, &PrometheusMetric{
 				Name:   &metricName,
 				Labels: promLabels,
-				Value:  aws.Float64(0),
+				Value:  0,
 			})
 		}
 	}
@@ -64,47 +63,63 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	for _, result := range results {
 		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
-			for _, statistic := range metric.Statistics {
-				var includeTimestamp bool
-				if metric.AddCloudwatchTimestamp != nil {
-					includeTimestamp = *metric.AddCloudwatchTimestamp
-				}
-				exportedDatapoint, timestamp, err := getDatapoint(metric, statistic)
-				if err != nil {
-					return nil, nil, err
-				}
-				if exportedDatapoint == nil && (metric.AddCloudwatchTimestamp == nil || !*metric.AddCloudwatchTimestamp) {
-					exportedDatapoint = aws.Float64(math.NaN())
-					includeTimestamp = false
-					if *metric.NilToZero {
-						exportedDatapoint = aws.Float64(0)
+			var statisticsRepresentedInMetric []string
+			includeTimestamp := false
+			if metric.MetricConfig.AddCloudwatchTimestamp != nil {
+				includeTimestamp = *metric.MetricConfig.AddCloudwatchTimestamp
+			}
+			// A result from GetMetricData is for a single statistic noted on the result while a
+			// result from GetMetricStatistics is for all statistics configured for the metric
+			if metric.GetMetricDataResult != nil {
+				statisticsRepresentedInMetric = []string{metric.GetMetricDataResult.Statistic}
+			} else {
+				statisticsRepresentedInMetric = metric.MetricConfig.Statistics
+			}
+			for _, statistic := range statisticsRepresentedInMetric {
+				var exportedDatapoint float64
+				var timestamp time.Time
+				if metric.GetMetricDataResult != nil {
+					exportedDatapoint = metric.GetMetricDataResult.Datapoint
+					timestamp = metric.GetMetricDataResult.Timestamp
+				} else {
+					dataPoint, ts, err := getDatapoint(metric.MetricConfig.Name, metric.GetMetricStatisticResult, statistic)
+					if err != nil {
+						return nil, nil, err
 					}
+					timestamp = ts
+					if dataPoint == nil {
+						exportedDatapoint = math.NaN()
+						// If there was no datapoint then timestamp is a default value
+						includeTimestamp = false
+					}
+				}
+				if *metric.MetricConfig.NilToZero && math.IsNaN(exportedDatapoint) {
+					exportedDatapoint = 0
 				}
 
 				sb := strings.Builder{}
-				promNs := PromString(strings.ToLower(*metric.Namespace))
+				promNs := PromString(strings.ToLower(metric.Namespace))
 				if !strings.HasPrefix(promNs, "aws") {
 					sb.WriteString("aws_")
 				}
 				sb.WriteString(promNs)
 				sb.WriteString("_")
-				sb.WriteString(PromString(*metric.Metric))
+				sb.WriteString(PromString(metric.MetricConfig.Name))
 				sb.WriteString("_")
 				sb.WriteString(PromString(statistic))
 				name := sb.String()
 
-				if exportedDatapoint != nil {
-					promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
-					maps.Copy(promLabels, contextLabels)
-					observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
-					output = append(output, &PrometheusMetric{
-						Name:             &name,
-						Labels:           promLabels,
-						Value:            exportedDatapoint,
-						Timestamp:        timestamp,
-						IncludeTimestamp: includeTimestamp,
-					})
-				}
+				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
+				maps.Copy(promLabels, contextLabels)
+				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
+				output = append(output, &PrometheusMetric{
+					Name:             &name,
+					Labels:           promLabels,
+					Value:            exportedDatapoint,
+					Timestamp:        timestamp,
+					IncludeTimestamp: includeTimestamp,
+				})
+
 			}
 		}
 	}
@@ -112,15 +127,12 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	return output, observedMetricLabels, nil
 }
 
-func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
-	if cwd.GetMetricDataPoint != nil {
-		return cwd.GetMetricDataPoint, cwd.GetMetricDataTimestamps, nil
-	}
+func getDatapoint(metricName string, result *model.GetMetricStatisticResult, statistic string) (*float64, time.Time, error) {
 	var averageDataPoints []*model.Datapoint
 
 	// sorting by timestamps so we can consistently export the most updated datapoint
 	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
-	for _, datapoint := range sortByTimestamp(cwd.Points) {
+	for _, datapoint := range sortByTimestamp(result.Datapoints) {
 		switch {
 		case statistic == "Maximum":
 			if datapoint.Maximum != nil {
@@ -147,7 +159,7 @@ func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.T
 				return data, *datapoint.Timestamp, nil
 			}
 		default:
-			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", *cwd.Metric, statistic)
+			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", metricName, statistic)
 		}
 	}
 
@@ -177,7 +189,7 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 
 func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
 	labels := make(map[string]string)
-	labels["name"] = *cwd.ID
+	labels["name"] = cwd.ID
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {

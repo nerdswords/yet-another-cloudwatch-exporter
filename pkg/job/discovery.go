@@ -109,7 +109,7 @@ func runDiscoveryJob(
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
 	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
-		return m.MetricID == nil
+		return m.GetMetricDataResult.ID == nil
 	})
 	return resources, getMetricDatas
 }
@@ -124,7 +124,7 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 
 	// load the index
 	for _, data := range datas {
-		metricIDToData[*(data.MetricID)] = data
+		metricIDToData[*(data.GetMetricDataResult.ID)] = data
 	}
 
 	// Update getMetricDatas slice with values and timestamps from API response.
@@ -146,12 +146,12 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 				continue
 			}
 			// skip elements that have been already mapped but still exist in metricIDToData
-			if metricData.MetricID == nil {
+			if metricData.GetMetricDataResult.ID == nil {
 				continue
 			}
-			metricData.GetMetricDataPoint = metricDataResult.Datapoint
-			metricData.GetMetricDataTimestamps = metricDataResult.Timestamp
-			metricData.MetricID = nil // mark as processed
+			metricData.GetMetricDataResult.Datapoint = metricDataResult.Datapoint
+			metricData.GetMetricDataResult.Timestamp = metricDataResult.Timestamp
+			metricData.GetMetricDataResult.ID = nil // mark as processed
 		}
 	}
 }
@@ -255,20 +255,19 @@ func getFilteredMetricDatas(
 		}
 
 		metricTags := resource.MetricTags(tagsOnMetrics)
-		for _, stats := range m.Statistics {
+		for _, stat := range m.Statistics {
 			id := fmt.Sprintf("id_%d", rand.Int())
 
 			getMetricsData = append(getMetricsData, &model.CloudwatchData{
-				ID:                     &resource.ARN,
-				MetricID:               &id,
-				Metric:                 &m.Name,
-				Namespace:              &namespace,
-				Statistics:             []string{stats},
-				NilToZero:              m.NilToZero,
-				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
-				Tags:                   metricTags,
-				Dimensions:             cwMetric.Dimensions,
-				Period:                 m.Period,
+				ID:         resource.ARN,
+				Namespace:  namespace,
+				Tags:       metricTags,
+				Dimensions: cwMetric.Dimensions,
+				GetMetricDataResult: &model.GetMetricDataResult{
+					ID:        &id,
+					Statistic: stat,
+				},
+				MetricConfig: m,
 			})
 		}
 	}

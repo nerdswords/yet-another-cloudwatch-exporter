@@ -55,8 +55,8 @@ func Test_toMetricDataResult(t *testing.T) {
 				},
 			},
 			expectedMetricDataResults: []cloudwatch_client.MetricDataResult{
-				{ID: "metric-1", Datapoint: aws.Float64(1.0), Timestamp: ts.Add(10 * time.Minute)},
-				{ID: "metric-2", Datapoint: aws.Float64(2.0), Timestamp: ts},
+				{ID: "metric-1", Datapoint: 1.0, Timestamp: ts.Add(10 * time.Minute)},
+				{ID: "metric-2", Datapoint: 2.0, Timestamp: ts},
 			},
 		},
 		{
@@ -76,8 +76,8 @@ func Test_toMetricDataResult(t *testing.T) {
 				},
 			},
 			expectedMetricDataResults: []cloudwatch_client.MetricDataResult{
-				{ID: "metric-1", Datapoint: aws.Float64(1.0), Timestamp: ts.Add(10 * time.Minute)},
-				{ID: "metric-2", Datapoint: nil, Timestamp: time.Time{}},
+				{ID: "metric-1", Datapoint: 1.0, Timestamp: ts.Add(10 * time.Minute)},
+				{ID: "metric-2", Datapoint: 0, Timestamp: time.Time{}},
 			},
 		},
 	}

@@ -54,8 +54,8 @@ func runCustomNamespaceJob(
 				for _, result := range data {
 					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, result.ID)
 					if err == nil {
-						getMetricData.GetMetricDataPoint = result.Datapoint
-						getMetricData.GetMetricDataTimestamps = result.Timestamp
+						getMetricData.GetMetricDataResult.Datapoint = result.Datapoint
+						getMetricData.GetMetricDataResult.Timestamp = result.Timestamp
 						output = append(output, getMetricData)
 					}
 				}
@@ -72,7 +72,7 @@ func runCustomNamespaceJob(
 
 func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
 	for _, getMetricData := range getMetricDatas {
-		if *getMetricData.MetricID == value {
+		if *getMetricData.GetMetricDataResult.ID == value {
 			return getMetricData, nil
 		}
 	}
@@ -106,18 +106,17 @@ func getMetricDataForQueriesForCustomNamespace(
 						continue
 					}
 
-					for _, stats := range metric.Statistics {
+					for _, stat := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
 						data = append(data, &model.CloudwatchData{
-							ID:                     &customNamespaceJob.Name,
-							MetricID:               &id,
-							Metric:                 &metric.Name,
-							Namespace:              &customNamespaceJob.Namespace,
-							Statistics:             []string{stats},
-							NilToZero:              metric.NilToZero,
-							AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-							Dimensions:             cwMetric.Dimensions,
-							Period:                 metric.Period,
+							ID:           customNamespaceJob.Name,
+							Namespace:    customNamespaceJob.Namespace,
+							Dimensions:   cwMetric.Dimensions,
+							MetricConfig: metric,
+							GetMetricDataResult: &model.GetMetricDataResult{
+								ID:        &id,
+								Statistic: stat,
+							},
 						})
 					}
 				}

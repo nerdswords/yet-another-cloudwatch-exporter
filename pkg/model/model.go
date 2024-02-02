@@ -154,19 +154,24 @@ type ScrapeContext struct {
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
-	ID                      *string
-	MetricID                *string
-	Metric                  *string
-	Namespace               *string
-	Statistics              []string
-	Points                  []*Datapoint
-	GetMetricDataPoint      *float64
-	GetMetricDataTimestamps time.Time
-	NilToZero               *bool
-	AddCloudwatchTimestamp  *bool
-	Tags                    []Tag
-	Dimensions              []*Dimension
-	Period                  int64
+	ID                       string
+	Namespace                string
+	Tags                     []Tag
+	Dimensions               []*Dimension
+	MetricConfig             *MetricConfig
+	GetMetricDataResult      *GetMetricDataResult
+	GetMetricStatisticResult *GetMetricStatisticResult
+}
+
+type GetMetricStatisticResult struct {
+	Datapoints []*Datapoint
+}
+
+type GetMetricDataResult struct {
+	ID        *string
+	Statistic string
+	Datapoint float64
+	Timestamp time.Time
 }
 
 // TaggedResource is an AWS resource with tags
@@ -184,7 +189,7 @@ type TaggedResource struct {
 	Tags []Tag
 }
 
-// filterThroughTags returns true if all filterTags match
+// FilterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
 func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 	if len(filterTags) == 0 {
