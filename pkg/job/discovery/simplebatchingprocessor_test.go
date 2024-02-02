@@ -1,11 +1,15 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
+	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
@@ -257,6 +261,142 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			require.ElementsMatch(t, tt.wantCloudwatchDatas, tt.args.cloudwatchDatas)
 		})
 	}
+}
+
+func TestSimpleBatchingProcessor_Run(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name                  string
+		requests              []*model.GetMetricDataProcessingParams
+		getMetricDataResponse []cloudwatch.MetricDataResult
+		want                  []*model.GetMetricDataResult
+	}{
+		{
+			name: "successfully maps input to output when GetMetricData returns data",
+			requests: []*model.GetMetricDataProcessingParams{{
+				QueryID:   "1234",
+				Statistic: "Average",
+			}},
+			getMetricDataResponse: []cloudwatch.MetricDataResult{{ID: "1234", Datapoint: aws.Float64(1000), Timestamp: now}},
+			want: []*model.GetMetricDataResult{{
+				Statistic: "Average",
+				Datapoint: aws.Float64(1000),
+				Timestamp: now,
+			}},
+		},
+		{
+			name: "does not return a request when QueryID is not in MetricDataResult",
+			requests: []*model.GetMetricDataProcessingParams{{
+				QueryID:   "1234",
+				Statistic: "Average",
+			}, {
+				QueryID:   "make-me-disappear",
+				Statistic: "Average",
+			}},
+			getMetricDataResponse: []cloudwatch.MetricDataResult{{ID: "1234", Datapoint: aws.Float64(1000), Timestamp: now}},
+			want: []*model.GetMetricDataResult{{
+				Statistic: "Average",
+				Datapoint: aws.Float64(1000),
+				Timestamp: now,
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := SimpleBatchingProcessor{
+				metricsPerQuery:          500,
+				cloudwatchClient:         testClient{GetMetricDataResponse: tt.getMetricDataResponse},
+				getMetricDataConcurrency: 1,
+			}
+			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 1, 1, aws.Int64(1), getMetricDataProcessingParamsToCloudwatchData(tt.requests))
+			require.NoError(t, err)
+			require.Len(t, cloudwatchData, len(tt.want))
+			got := make([]*model.GetMetricDataResult, 0, len(cloudwatchData))
+			for _, data := range cloudwatchData {
+				assert.Nil(t, data.GetMetricStatisticsResult)
+				assert.Nil(t, data.GetMetricDataProcessingParams)
+				assert.NotNil(t, data.GetMetricDataResult)
+				got = append(got, data.GetMetricDataResult)
+			}
+
+			assert.ElementsMatch(t, tt.want, got)
+		})
+	}
+}
+
+func TestSimpleBatchingProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name                                 string
+		metricsPerQuery                      int
+		numberOfRequests                     int
+		expectedNumberOfCallsToGetMetricData int32
+	}{
+		{name: "1 per batch", metricsPerQuery: 1, numberOfRequests: 10, expectedNumberOfCallsToGetMetricData: 10},
+		{name: "divisible batches and requests", metricsPerQuery: 5, numberOfRequests: 100, expectedNumberOfCallsToGetMetricData: 20},
+		{name: "indivisible batches and requests", metricsPerQuery: 5, numberOfRequests: 94, expectedNumberOfCallsToGetMetricData: 19},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var callCounter atomic.Int32
+			getMetricDataFunc := func(ctx context.Context, logger logging.Logger, requests []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult {
+				callCounter.Add(1)
+				response := make([]cloudwatch.MetricDataResult, 0, len(requests))
+				for _, gmd := range requests {
+					response = append(response, cloudwatch.MetricDataResult{
+						ID:        gmd.GetMetricDataProcessingParams.QueryID,
+						Datapoint: aws.Float64(1000),
+						Timestamp: now,
+					})
+				}
+				return response
+			}
+
+			requests := make([]*model.CloudwatchData, 0, tt.numberOfRequests)
+			for i := 0; i < tt.numberOfRequests; i++ {
+				requests = append(requests, getSampleMetricDatas(strconv.Itoa(i)))
+			}
+			r := SimpleBatchingProcessor{
+				metricsPerQuery:          tt.metricsPerQuery,
+				cloudwatchClient:         testClient{GetMetricDataFunc: getMetricDataFunc},
+				getMetricDataConcurrency: 1,
+			}
+			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 1, 1, aws.Int64(1), requests)
+			require.NoError(t, err)
+			assert.Len(t, cloudwatchData, tt.numberOfRequests)
+			assert.Equal(t, tt.expectedNumberOfCallsToGetMetricData, callCounter.Load())
+		})
+	}
+}
+
+func getMetricDataProcessingParamsToCloudwatchData(params []*model.GetMetricDataProcessingParams) []*model.CloudwatchData {
+	output := make([]*model.CloudwatchData, 0, len(params))
+	for _, param := range params {
+		cloudwatchData := &model.CloudwatchData{
+			MetricName:                    "test-metric",
+			ResourceName:                  "test",
+			Namespace:                     "test",
+			Tags:                          []model.Tag{{Key: "tag", Value: "value"}},
+			Dimensions:                    []model.Dimension{{Name: "dimension", Value: "value"}},
+			GetMetricDataProcessingParams: param,
+			GetMetricDataResult:           nil,
+			GetMetricStatisticsResult:     nil,
+		}
+		output = append(output, cloudwatchData)
+	}
+	return output
+}
+
+type testClient struct {
+	GetMetricDataFunc     func(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
+	GetMetricDataResponse []cloudwatch.MetricDataResult
+}
+
+func (t testClient) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult {
+	if t.GetMetricDataResponse != nil {
+		return t.GetMetricDataResponse
+	}
+	return t.GetMetricDataFunc(ctx, logger, getMetricData, namespace, length, delay, configuredRoundingPeriod)
 }
 
 func getSampleMetricDatas(id string) *model.CloudwatchData {

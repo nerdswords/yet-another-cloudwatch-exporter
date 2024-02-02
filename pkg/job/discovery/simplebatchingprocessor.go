@@ -13,33 +13,37 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-type PartitioningGetMetricDataProcessor struct {
-	metricsPerQuery       int
-	cloudwatchClient      cloudwatch.Client
-	cloudwatchConcurrency cloudwatch.ConcurrencyConfig
+type GetMetricDataClient interface {
+	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
 }
 
-func NewPartitioningGetMetricDataProcessor(cloudwatchClient cloudwatch.Client, metricsPerQuery int, cloudwatchConcurrency cloudwatch.ConcurrencyConfig) PartitioningGetMetricDataProcessor {
-	return PartitioningGetMetricDataProcessor{
-		metricsPerQuery:       metricsPerQuery,
-		cloudwatchClient:      cloudwatchClient,
-		cloudwatchConcurrency: cloudwatchConcurrency,
+type SimpleBatchingProcessor struct {
+	metricsPerQuery          int
+	cloudwatchClient         GetMetricDataClient
+	getMetricDataConcurrency int
+}
+
+func NewSimpleBatchingProcessor(cloudwatchClient GetMetricDataClient, metricsPerQuery int, getMetricDataConcurrency int) SimpleBatchingProcessor {
+	return SimpleBatchingProcessor{
+		metricsPerQuery:          metricsPerQuery,
+		cloudwatchClient:         cloudwatchClient,
+		getMetricDataConcurrency: getMetricDataConcurrency,
 	}
 }
 
-func (r PartitioningGetMetricDataProcessor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
+func (s SimpleBatchingProcessor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
 	metricDataLength := len(requests)
-	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(r.metricsPerQuery)))
+	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(s.metricsPerQuery)))
 	logger.Debug("GetMetricData partitions", "size", partitionSize)
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	g, gCtx := errgroup.WithContext(ctx)
-	g.SetLimit(r.cloudwatchConcurrency.GetMetricData)
+	g.SetLimit(s.getMetricDataConcurrency)
 	mu := sync.Mutex{}
 	count := 0
-	for i := 0; i < metricDataLength; i += r.metricsPerQuery {
+	for i := 0; i < metricDataLength; i += s.metricsPerQuery {
 		start := i
-		end := i + r.metricsPerQuery
+		end := i + s.metricsPerQuery
 		if end > metricDataLength {
 			end = metricDataLength
 		}
@@ -48,7 +52,7 @@ func (r PartitioningGetMetricDataProcessor) Run(ctx context.Context, logger logg
 
 		g.Go(func() error {
 			input := requests[start:end]
-			data := r.cloudwatchClient.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
+			data := s.cloudwatchClient.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
 			if data != nil {
 				mu.Lock()
 				getMetricDataOutput = append(getMetricDataOutput, data)
@@ -70,7 +74,7 @@ func (r PartitioningGetMetricDataProcessor) Run(ctx context.Context, logger logg
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
 	requests = compact(requests, func(m *model.CloudwatchData) bool {
-		return m.GetMetricDataResult == nil
+		return m.GetMetricDataResult != nil
 	})
 
 	return requests, nil
