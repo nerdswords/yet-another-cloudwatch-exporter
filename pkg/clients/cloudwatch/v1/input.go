@@ -31,7 +31,7 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 			Stat:   &data.GetMetricDataResult.Statistic,
 		}
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
-			Id:         data.GetMetricDataResult.ID,
+			Id:         &data.GetMetricDataResult.ID,
 			MetricStat: metricStat,
 			ReturnData: aws.Bool(true),
 		})

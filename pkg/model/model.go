@@ -168,10 +168,14 @@ type GetMetricStatisticResult struct {
 }
 
 type GetMetricDataResult struct {
-	ID        *string
-	Statistic string
-	Datapoint float64
-	Timestamp time.Time
+	// GetMetricData Query ID used for results mapping
+	ID string
+	// Indicates if this result was successfully mapped to a query result, only used during metric gathering
+	// and does not need to be respected afterward
+	MappedToAQueryResult bool
+	Statistic            string
+	Datapoint            float64
+	Timestamp            time.Time
 }
 
 // TaggedResource is an AWS resource with tags

@@ -109,7 +109,7 @@ func runDiscoveryJob(
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
 	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
-		return m.GetMetricDataResult.ID == nil
+		return m.GetMetricDataResult.MappedToAQueryResult == true
 	})
 	return resources, getMetricDatas
 }
@@ -124,7 +124,7 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 
 	// load the index
 	for _, data := range datas {
-		metricIDToData[*(data.GetMetricDataResult.ID)] = data
+		metricIDToData[data.GetMetricDataResult.ID] = data
 	}
 
 	// Update getMetricDatas slice with values and timestamps from API response.
@@ -146,12 +146,12 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 				continue
 			}
 			// skip elements that have been already mapped but still exist in metricIDToData
-			if metricData.GetMetricDataResult.ID == nil {
+			if metricData.GetMetricDataResult.MappedToAQueryResult {
 				continue
 			}
 			metricData.GetMetricDataResult.Datapoint = metricDataResult.Datapoint
 			metricData.GetMetricDataResult.Timestamp = metricDataResult.Timestamp
-			metricData.GetMetricDataResult.ID = nil // mark as processed
+			metricData.GetMetricDataResult.MappedToAQueryResult = true
 		}
 	}
 }
@@ -264,7 +264,7 @@ func getFilteredMetricDatas(
 				Tags:       metricTags,
 				Dimensions: cwMetric.Dimensions,
 				GetMetricDataResult: &model.GetMetricDataResult{
-					ID:        &id,
+					ID:        id,
 					Statistic: stat,
 				},
 				MetricConfig: m,

@@ -72,7 +72,7 @@ func runCustomNamespaceJob(
 
 func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
 	for _, getMetricData := range getMetricDatas {
-		if *getMetricData.GetMetricDataResult.ID == value {
+		if getMetricData.GetMetricDataResult.ID == value {
 			return getMetricData, nil
 		}
 	}
@@ -114,7 +114,7 @@ func getMetricDataForQueriesForCustomNamespace(
 							Dimensions:   cwMetric.Dimensions,
 							MetricConfig: metric,
 							GetMetricDataResult: &model.GetMetricDataResult{
-								ID:        &id,
+								ID:        id,
 								Statistic: stat,
 							},
 						})

@@ -721,7 +721,7 @@ func getSampleMetricDatas(id string) *model.CloudwatchData {
 			},
 		},
 		GetMetricDataResult: &model.GetMetricDataResult{
-			ID: aws.String(id),
+			ID: id,
 		},
 	}
 }
