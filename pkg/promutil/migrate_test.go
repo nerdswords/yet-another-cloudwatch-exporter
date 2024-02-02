@@ -272,7 +272,7 @@ func TestBuildMetrics(t *testing.T) {
 								Value: "redis-cluster",
 							},
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -291,7 +291,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 2,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -311,7 +311,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 3,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -331,7 +331,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 4,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 				},
 			}},
@@ -437,7 +437,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 0,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -457,7 +457,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 0,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -477,7 +477,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 0,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
 						MetricConfig: &model.MetricConfig{
@@ -497,7 +497,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 0,
 							Timestamp: ts,
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 				},
 			}},
@@ -581,7 +581,7 @@ func TestBuildMetrics(t *testing.T) {
 								Value: "redis-cluster",
 							},
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						MetricConfig: &model.MetricConfig{
 							NilToZero: aws.Bool(false),
 							Name:      "CPUUtilization",
@@ -638,7 +638,7 @@ func TestBuildMetrics(t *testing.T) {
 								Value: "redis-cluster",
 							},
 						},
-						ID: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						MetricConfig: &model.MetricConfig{
 							NilToZero: aws.Bool(false),
 							Name:      "CPUUtilization",

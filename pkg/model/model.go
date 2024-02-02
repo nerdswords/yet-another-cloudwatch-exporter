@@ -154,13 +154,19 @@ type ScrapeContext struct {
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
-	ID                       string
-	Namespace                string
-	Tags                     []Tag
-	Dimensions               []*Dimension
-	MetricConfig             *MetricConfig
-	GetMetricDataResult      *GetMetricDataResult
-	GetMetricStatisticResult *GetMetricStatisticResult
+	// ResourceName will have different values depending on the job type
+	// DiscoveryJob = Resource ARN associated with the metric or global when it could not be associated but shouldn't be dropped
+	// StaticJob = Resource Name from static job config
+	// CustomNamespace = Custom Namespace job name
+	ResourceName string
+	Namespace    string
+	Tags         []Tag
+	Dimensions   []*Dimension
+	MetricConfig *MetricConfig
+	// GetMetricsDataResult is an optional field and will be non-nil when metric data was populated from the GetMetricsData API (Discovery and CustomNamespace jobs)
+	GetMetricDataResult *GetMetricDataResult
+	// GetMetricStatisticsResult is an optional field and will be non-nil when metric data was populated from the GetMetricStatistics API (static jobs)
+	GetMetricStatisticsResult *GetMetricStatisticResult
 }
 
 type GetMetricStatisticResult struct {

@@ -26,17 +26,17 @@ func runStaticJob(
 			defer wg.Done()
 
 			data := model.CloudwatchData{
-				ID:           resource.Name,
+				ResourceName: resource.Name,
 				Namespace:    resource.Namespace,
 				Dimensions:   createStaticDimensions(resource.Dimensions),
 				MetricConfig: metric,
 			}
 
-			data.GetMetricStatisticResult = &model.GetMetricStatisticResult{
+			data.GetMetricStatisticsResult = &model.GetMetricStatisticResult{
 				Datapoints: clientCloudwatch.GetMetricStatistics(ctx, logger, data.Dimensions, resource.Namespace, metric),
 			}
 
-			if data.GetMetricStatisticResult.Datapoints != nil {
+			if data.GetMetricStatisticsResult.Datapoints != nil {
 				mux.Lock()
 				cw = append(cw, &data)
 				mux.Unlock()

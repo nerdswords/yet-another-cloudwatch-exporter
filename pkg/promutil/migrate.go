@@ -82,7 +82,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 					exportedDatapoint = metric.GetMetricDataResult.Datapoint
 					timestamp = metric.GetMetricDataResult.Timestamp
 				} else {
-					dataPoint, ts, err := getDatapoint(metric.MetricConfig.Name, metric.GetMetricStatisticResult, statistic)
+					dataPoint, ts, err := getDatapoint(metric.MetricConfig.Name, metric.GetMetricStatisticsResult, statistic)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -93,6 +93,9 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 						includeTimestamp = false
 					}
 				}
+				// It's unclear if this use case is possible with GetMetricDataResults since NaN would need to be returned
+				// as the value directly. GetMetricStatisticsResults can include a statistic with no matching datapoint which
+				// we will turn in to a NaN above. Doing this here ensures we will always respect NilToZero for any possible NaN
 				if *metric.MetricConfig.NilToZero && math.IsNaN(exportedDatapoint) {
 					exportedDatapoint = 0
 				}
@@ -189,7 +192,7 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 
 func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
 	labels := make(map[string]string)
-	labels["name"] = cwd.ID
+	labels["name"] = cwd.ResourceName
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {

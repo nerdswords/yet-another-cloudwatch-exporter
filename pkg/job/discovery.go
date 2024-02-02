@@ -259,10 +259,10 @@ func getFilteredMetricDatas(
 			id := fmt.Sprintf("id_%d", rand.Int())
 
 			getMetricsData = append(getMetricsData, &model.CloudwatchData{
-				ID:         resource.ARN,
-				Namespace:  namespace,
-				Tags:       metricTags,
-				Dimensions: cwMetric.Dimensions,
+				ResourceName: resource.ARN,
+				Namespace:    namespace,
+				Tags:         metricTags,
+				Dimensions:   cwMetric.Dimensions,
 				GetMetricDataResult: &model.GetMetricDataResult{
 					ID:        id,
 					Statistic: stat,

@@ -109,7 +109,7 @@ func getMetricDataForQueriesForCustomNamespace(
 					for _, stat := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
 						data = append(data, &model.CloudwatchData{
-							ID:           customNamespaceJob.Name,
+							ResourceName: customNamespaceJob.Name,
 							Namespace:    customNamespaceJob.Namespace,
 							Dimensions:   cwMetric.Dimensions,
 							MetricConfig: metric,
