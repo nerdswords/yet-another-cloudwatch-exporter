@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -83,8 +82,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Period:                 60,
 					Length:                 600,
 					Delay:                  120,
-					NilToZero:              aws.Bool(false),
-					AddCloudwatchTimestamp: aws.Bool(false),
+					NilToZero:              false,
+					AddCloudwatchTimestamp: false,
 				},
 			},
 			[]model.CloudwatchData{
@@ -120,8 +119,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Period:                 60,
 						Length:                 600,
 						Delay:                  120,
-						NilToZero:              aws.Bool(false),
-						AddCloudwatchTimestamp: aws.Bool(false),
+						NilToZero:              false,
+						AddCloudwatchTimestamp: false,
 					},
 				},
 			},
@@ -171,8 +170,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Period:                 60,
 					Length:                 600,
 					Delay:                  120,
-					NilToZero:              aws.Bool(false),
-					AddCloudwatchTimestamp: aws.Bool(false),
+					NilToZero:              false,
+					AddCloudwatchTimestamp: false,
 				},
 			},
 			[]model.CloudwatchData{
@@ -204,8 +203,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Period:                 60,
 						Length:                 600,
 						Delay:                  120,
-						NilToZero:              aws.Bool(false),
-						AddCloudwatchTimestamp: aws.Bool(false),
+						NilToZero:              false,
+						AddCloudwatchTimestamp: false,
 					},
 				},
 			},
@@ -255,8 +254,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Period:                 60,
 					Length:                 600,
 					Delay:                  120,
-					NilToZero:              aws.Bool(false),
-					AddCloudwatchTimestamp: aws.Bool(false),
+					NilToZero:              false,
+					AddCloudwatchTimestamp: false,
 				},
 			},
 			[]model.CloudwatchData{
@@ -288,8 +287,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Period:                 60,
 						Length:                 600,
 						Delay:                  120,
-						NilToZero:              aws.Bool(false),
-						AddCloudwatchTimestamp: aws.Bool(false),
+						NilToZero:              false,
+						AddCloudwatchTimestamp: false,
 					},
 				},
 			},
@@ -383,8 +382,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					Period:                 60,
 					Length:                 600,
 					Delay:                  120,
-					NilToZero:              aws.Bool(false),
-					AddCloudwatchTimestamp: aws.Bool(false),
+					NilToZero:              false,
+					AddCloudwatchTimestamp: false,
 				},
 			},
 			[]model.CloudwatchData{
@@ -411,8 +410,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						Period:                 60,
 						Length:                 600,
 						Delay:                  120,
-						NilToZero:              aws.Bool(false),
-						AddCloudwatchTimestamp: aws.Bool(false),
+						NilToZero:              false,
+						AddCloudwatchTimestamp: false,
 					},
 				},
 			},
@@ -432,7 +431,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				assert.ElementsMatch(t, want.Dimensions, got.Dimensions)
 				assert.Equal(t, want.GetMetricDataResult.Statistic, got.GetMetricDataResult.Statistic)
 				assert.ElementsMatch(t, want.Tags, got.Tags)
-				assert.Equal(t, *want.MetricConfig, *got.MetricConfig)
+				assert.Equal(t, want.MetricConfig, got.MetricConfig)
 			}
 		})
 	}
@@ -726,7 +725,7 @@ func getSampleMetricDatas(id string) *model.CloudwatchData {
 		},
 		MetricConfig: &model.MetricConfig{
 			Name:      "StorageBytes",
-			NilToZero: aws.Bool(false),
+			NilToZero: false,
 			Period:    60,
 			Statistics: []string{
 				"Average",

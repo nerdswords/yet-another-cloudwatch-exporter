@@ -78,8 +78,8 @@ type MetricConfig struct {
 	Period                 int64
 	Length                 int64
 	Delay                  int64
-	NilToZero              *bool
-	AddCloudwatchTimestamp *bool
+	NilToZero              bool
+	AddCloudwatchTimestamp bool
 }
 
 type DimensionsRegexp struct {

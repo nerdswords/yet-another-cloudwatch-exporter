@@ -258,7 +258,7 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:      "CPUUtilization",
-							NilToZero: aws.Bool(true),
+							NilToZero: true,
 						},
 						Namespace: "AWS/ElastiCache",
 						GetMetricDataResult: &model.GetMetricDataResult{
@@ -277,7 +277,7 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:      "FreeableMemory",
-							NilToZero: aws.Bool(false),
+							NilToZero: false,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -296,8 +296,8 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:                   "NetworkBytesIn",
-							NilToZero:              aws.Bool(true),
-							AddCloudwatchTimestamp: aws.Bool(false),
+							NilToZero:              true,
+							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -316,8 +316,8 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:                   "NetworkBytesOut",
-							NilToZero:              aws.Bool(true),
-							AddCloudwatchTimestamp: aws.Bool(true),
+							NilToZero:              true,
+							AddCloudwatchTimestamp: true,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -423,7 +423,7 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:      "CPUUtilization",
-							NilToZero: aws.Bool(true),
+							NilToZero: true,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -442,7 +442,7 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:      "FreeableMemory",
-							NilToZero: aws.Bool(false),
+							NilToZero: false,
 						},
 						Namespace: "AWS/ElastiCache",
 
@@ -462,8 +462,8 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:                   "NetworkBytesIn",
-							NilToZero:              aws.Bool(true),
-							AddCloudwatchTimestamp: aws.Bool(false),
+							NilToZero:              true,
+							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -482,8 +482,8 @@ func TestBuildMetrics(t *testing.T) {
 					{
 						MetricConfig: &model.MetricConfig{
 							Name:                   "NetworkBytesOut",
-							NilToZero:              aws.Bool(true),
-							AddCloudwatchTimestamp: aws.Bool(true),
+							NilToZero:              true,
+							AddCloudwatchTimestamp: true,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []*model.Dimension{
@@ -583,7 +583,7 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						MetricConfig: &model.MetricConfig{
-							NilToZero: aws.Bool(false),
+							NilToZero: false,
 							Name:      "CPUUtilization",
 						},
 					},
@@ -640,7 +640,7 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						MetricConfig: &model.MetricConfig{
-							NilToZero: aws.Bool(false),
+							NilToZero: false,
 							Name:      "CPUUtilization",
 						},
 					},

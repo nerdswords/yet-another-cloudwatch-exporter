@@ -64,10 +64,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
 			var statisticsRepresentedInMetric []string
-			includeTimestamp := false
-			if metric.MetricConfig.AddCloudwatchTimestamp != nil {
-				includeTimestamp = *metric.MetricConfig.AddCloudwatchTimestamp
-			}
+			includeTimestamp := metric.MetricConfig.AddCloudwatchTimestamp
 			// A result from GetMetricData is for a single statistic noted on the result while a
 			// result from GetMetricStatistics is for all statistics configured for the metric
 			if metric.GetMetricDataResult != nil {
@@ -96,7 +93,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				// It's unclear if this use case is possible with GetMetricDataResults since NaN would need to be returned
 				// as the value directly. GetMetricStatisticsResults can include a statistic with no matching datapoint which
 				// we will turn in to a NaN above. Doing this here ensures we will always respect NilToZero for any possible NaN
-				if *metric.MetricConfig.NilToZero && math.IsNaN(exportedDatapoint) {
+				if metric.MetricConfig.NilToZero && math.IsNaN(exportedDatapoint) {
 					exportedDatapoint = 0
 				}
 
