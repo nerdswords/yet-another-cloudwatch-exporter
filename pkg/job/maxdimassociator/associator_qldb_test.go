@@ -38,7 +38,7 @@ func TestAssociatorQLDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/QLDB",
 					MetricName: "JournalStorage",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "LedgerName", Value: "test2"},
 					},
 				},
@@ -54,7 +54,7 @@ func TestAssociatorQLDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/QLDB",
 					MetricName: "JournalStorage",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "LedgerName", Value: "test1"},
 					},
 				},

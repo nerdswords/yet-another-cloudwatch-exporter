@@ -42,7 +42,7 @@ func TestAssociatorIpam(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "VpcIPUsage",
 					Namespace:  "AWS/IPAM",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "IpamPoolId", Value: "ipam-pool-1ff5e4e9ad2c28b7b"},
 					},
 				},
@@ -58,7 +58,7 @@ func TestAssociatorIpam(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "VpcIPUsage",
 					Namespace:  "AWS/IPAM",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "IpamPoolId", Value: "ipam-pool-blahblah"},
 					},
 				},

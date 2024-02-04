@@ -75,10 +75,10 @@ func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
 	return modelMetrics
 }
 
-func toModelDimensions(dimensions []types.Dimension) []*model.Dimension {
-	modelDimensions := make([]*model.Dimension, 0, len(dimensions))
+func toModelDimensions(dimensions []types.Dimension) []model.Dimension {
+	modelDimensions := make([]model.Dimension, 0, len(dimensions))
 	for _, dimension := range dimensions {
-		modelDimension := &model.Dimension{
+		modelDimension := model.Dimension{
 			Name:  *dimension.Name,
 			Value: *dimension.Value,
 		}
@@ -131,7 +131,7 @@ func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []cloudwatch_client
 	return output
 }
 
-func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
+func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
 	filter := createGetMetricStatisticsInput(logger, dimensions, &namespace, metric)
 	if c.logger.IsDebugEnabled() {
 		c.logger.Debug("GetMetricStatistics", "input", filter)

@@ -266,7 +266,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 1,
 							Timestamp: ts,
 						},
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -280,7 +280,7 @@ func TestBuildMetrics(t *testing.T) {
 							NilToZero: false,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -300,7 +300,7 @@ func TestBuildMetrics(t *testing.T) {
 							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -320,7 +320,7 @@ func TestBuildMetrics(t *testing.T) {
 							AddCloudwatchTimestamp: true,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -426,7 +426,7 @@ func TestBuildMetrics(t *testing.T) {
 							NilToZero: true,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -446,7 +446,7 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						Namespace: "AWS/ElastiCache",
 
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -466,7 +466,7 @@ func TestBuildMetrics(t *testing.T) {
 							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -486,7 +486,7 @@ func TestBuildMetrics(t *testing.T) {
 							AddCloudwatchTimestamp: true,
 						},
 						Namespace: "AWS/ElastiCache",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -575,7 +575,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 1,
 							Timestamp: ts,
 						},
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",
@@ -632,7 +632,7 @@ func TestBuildMetrics(t *testing.T) {
 							Datapoint: 1,
 							Timestamp: ts,
 						},
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
 								Value: "redis-cluster",

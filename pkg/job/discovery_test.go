@@ -61,7 +61,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				metricsList: []*model.Metric{
 					{
 						MetricName: "StorageBytes",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "FileSystemId",
 								Value: "fs-abc123",
@@ -88,7 +88,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{
 							Name:  "FileSystemId",
 							Value: "fs-abc123",
@@ -153,7 +153,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				metricsList: []*model.Metric{
 					{
 						MetricName: "CPUUtilization",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "InstanceId",
 								Value: "i-12312312312312312",
@@ -176,7 +176,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{
 							Name:  "InstanceId",
 							Value: "i-12312312312312312",
@@ -237,7 +237,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				metricsList: []*model.Metric{
 					{
 						MetricName: "GlobalTopicCount",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "Cluster Name",
 								Value: "demo-cluster-1",
@@ -260,7 +260,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{
 							Name:  "Cluster Name",
 							Value: "demo-cluster-1",
@@ -319,7 +319,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				metricsList: []*model.Metric{
 					{
 						MetricName: "RequestCount",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "LoadBalancer",
 								Value: "app/some-ALB/0123456789012345",
@@ -337,7 +337,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 					{
 						MetricName: "RequestCount",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "LoadBalancer",
 								Value: "app/some-ALB/0123456789012345",
@@ -351,7 +351,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 					{
 						MetricName: "RequestCount",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "LoadBalancer",
 								Value: "app/some-ALB/0123456789012345",
@@ -365,7 +365,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 					},
 					{
 						MetricName: "RequestCount",
-						Dimensions: []*model.Dimension{
+						Dimensions: []model.Dimension{
 							{
 								Name:  "LoadBalancer",
 								Value: "app/some-ALB/0123456789012345",
@@ -388,7 +388,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{
 							Name:  "LoadBalancer",
 							Value: "app/some-ALB/0123456789012345",
@@ -701,7 +701,7 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 
 func getSampleMetricDatas(id string) *model.CloudwatchData {
 	return &model.CloudwatchData{
-		Dimensions: []*model.Dimension{
+		Dimensions: []model.Dimension{
 			{
 				Name:  "FileSystemId",
 				Value: "fs-abc123",

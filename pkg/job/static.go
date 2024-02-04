@@ -47,11 +47,11 @@ func runStaticJob(
 	return cw
 }
 
-func createStaticDimensions(dimensions []model.Dimension) []*model.Dimension {
-	out := make([]*model.Dimension, 0, len(dimensions))
+func createStaticDimensions(dimensions []model.Dimension) []model.Dimension {
+	out := make([]model.Dimension, 0, len(dimensions))
 	for _, d := range dimensions {
 		d := d
-		out = append(out, &model.Dimension{
+		out = append(out, model.Dimension{
 			Name:  d.Name,
 			Value: d.Value,
 		})

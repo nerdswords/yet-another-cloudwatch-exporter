@@ -59,7 +59,7 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 	}
 }
 
-func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimension {
+func toCloudWatchDimensions(dimensions []model.Dimension) []*cloudwatch.Dimension {
 	cwDim := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, dim := range dimensions {
 		cwDim = append(cwDim, &cloudwatch.Dimension{
@@ -70,7 +70,7 @@ func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimensi
 	return cwDim
 }
 
-func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
+func createGetMetricStatisticsInput(dimensions []model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -113,7 +113,7 @@ func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *st
 	return output
 }
 
-func dimensionsToCliString(dimensions []*model.Dimension) string {
+func dimensionsToCliString(dimensions []model.Dimension) string {
 	out := strings.Builder{}
 	for _, dim := range dimensions {
 		out.WriteString("Name=")

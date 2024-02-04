@@ -48,7 +48,7 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "MemoryUtilization",
 					Namespace:  "/aws/sagemaker/Endpoints",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-two"},
 						{Name: "VariantName", Value: "example-endpoint-two-variant-one"},
 					},
@@ -65,7 +65,7 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "MemoryUtilization",
 					Namespace:  "/aws/sagemaker/Endpoints",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-three"},
 						{Name: "VariantName", Value: "example-endpoint-three-variant-one"},
 					},

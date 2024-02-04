@@ -40,7 +40,7 @@ func TestAssociatorLambda(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/Lambda",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "FunctionName", Value: "lambdaFunction"},
 					},
 				},
@@ -56,7 +56,7 @@ func TestAssociatorLambda(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/Lambda",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "FunctionName", Value: "anotherLambdaFunction"},
 					},
 				},
@@ -72,7 +72,7 @@ func TestAssociatorLambda(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/Lambda",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "FunctionName", Value: "lambdaFunction"},
 						{Name: "Resource", Value: "lambdaFunction"},
 					},
@@ -89,7 +89,7 @@ func TestAssociatorLambda(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/Lambda",
-					Dimensions: []*model.Dimension{},
+					Dimensions: []model.Dimension{},
 				},
 			},
 			expectedSkip:     false,

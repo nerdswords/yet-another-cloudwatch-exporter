@@ -106,7 +106,7 @@ type Dimension struct {
 
 type Metric struct {
 	// The dimensions for the metric.
-	Dimensions []*Dimension
+	Dimensions []Dimension
 	MetricName string
 	Namespace  string
 }
@@ -161,7 +161,7 @@ type CloudwatchData struct {
 	ResourceName string
 	Namespace    string
 	Tags         []Tag
-	Dimensions   []*Dimension
+	Dimensions   []Dimension
 	MetricConfig *MetricConfig
 	// GetMetricsDataResult is an optional field and will be non-nil when metric data was populated from the GetMetricsData API (Discovery and CustomNamespace jobs)
 	GetMetricDataResult *GetMetricDataResult

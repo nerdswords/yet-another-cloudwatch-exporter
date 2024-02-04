@@ -48,7 +48,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-queue"},
 					},
 				},
@@ -64,7 +64,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-second-queue"},
 					},
 				},
@@ -80,7 +80,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-non-existing-queue"},
 					},
 				},
