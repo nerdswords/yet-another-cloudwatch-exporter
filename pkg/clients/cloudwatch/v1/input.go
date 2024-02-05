@@ -62,9 +62,11 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 func toCloudWatchDimensions(dimensions []model.Dimension) []*cloudwatch.Dimension {
 	cwDim := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, dim := range dimensions {
+		// Don't take pointers directly to loop variables
+		cDim := dim
 		cwDim = append(cwDim, &cloudwatch.Dimension{
-			Name:  &dim.Name,
-			Value: &dim.Value,
+			Name:  &cDim.Name,
+			Value: &cDim.Value,
 		})
 	}
 	return cwDim

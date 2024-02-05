@@ -63,9 +63,11 @@ func createGetMetricDataInput(logger logging.Logger, getMetricData []*model.Clou
 func toCloudWatchDimensions(dimensions []model.Dimension) []types.Dimension {
 	cwDim := make([]types.Dimension, 0, len(dimensions))
 	for _, dim := range dimensions {
+		// Don't take pointers directly to loop variables
+		cDim := dim
 		cwDim = append(cwDim, types.Dimension{
-			Name:  &dim.Name,
-			Value: &dim.Value,
+			Name:  &cDim.Name,
+			Value: &cDim.Value,
 		})
 	}
 	return cwDim
