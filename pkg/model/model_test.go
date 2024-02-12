@@ -3,6 +3,7 @@ package model
 import (
 	"testing"
 
+	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -10,7 +11,7 @@ func Test_FilterThroughTags(t *testing.T) {
 	testCases := []struct {
 		testName     string
 		resourceTags []Tag
-		filterTags   []Tag
+		filterTags   []SearchTag
 		result       bool
 	}{
 		{
@@ -21,10 +22,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v1",
+					Value: regexp.MustCompile("v1"),
 				},
 			},
 			result: true,
@@ -37,10 +38,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k2",
-					Value: "v2",
+					Value: regexp.MustCompile("v2"),
 				},
 			},
 			result: false,
@@ -57,10 +58,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v2",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v1",
+					Value: regexp.MustCompile("v1"),
 				},
 			},
 			result: true,
@@ -73,14 +74,14 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v1",
+					Value: regexp.MustCompile("v1"),
 				},
 				{
 					Key:   "k2",
-					Value: "v2",
+					Value: regexp.MustCompile("v2"),
 				},
 			},
 			result: false,
@@ -93,10 +94,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k2",
-					Value: "v1",
+					Value: regexp.MustCompile("v1"),
 				},
 			},
 			result: false,
@@ -109,10 +110,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v2",
+					Value: regexp.MustCompile("v2"),
 				},
 			},
 			result: false,
@@ -120,10 +121,10 @@ func Test_FilterThroughTags(t *testing.T) {
 		{
 			testName:     "resource without tags",
 			resourceTags: []Tag{},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v2",
+					Value: regexp.MustCompile("v2"),
 				},
 			},
 			result: false,
@@ -136,7 +137,7 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{},
+			filterTags: []SearchTag{},
 			result:     true,
 		},
 		{
@@ -147,10 +148,10 @@ func Test_FilterThroughTags(t *testing.T) {
 					Value: "v1",
 				},
 			},
-			filterTags: []Tag{
+			filterTags: []SearchTag{
 				{
 					Key:   "k1",
-					Value: "v.*",
+					Value: regexp.MustCompile("v.*"),
 				},
 			},
 			result: true,
@@ -165,7 +166,6 @@ func Test_FilterThroughTags(t *testing.T) {
 				Region:    "us-east-1",
 				Tags:      tc.resourceTags,
 			}
-
 			require.Equal(t, tc.result, res.FilterThroughTags(tc.filterTags))
 		})
 	}

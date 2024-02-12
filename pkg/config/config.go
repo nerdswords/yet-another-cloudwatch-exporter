@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/grafana/regexp"
 	"gopkg.in/yaml.v2"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -208,6 +209,12 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 		}
 	}
 
+	for _, st := range j.SearchTags {
+		if _, err := regexp.Compile(st.Value); err != nil {
+			return fmt.Errorf("Discovery job [%s/%d]: search tag value for %s has invalid regex value %s: %w", j.Type, jobIdx, st.Key, st.Value, err)
+		}
+	}
+
 	return nil
 }
 
@@ -371,7 +378,7 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.NilToZero = discoveryJob.NilToZero
 		job.AddCloudwatchTimestamp = discoveryJob.AddCloudwatchTimestamp
 		job.Roles = toModelRoles(discoveryJob.Roles)
-		job.SearchTags = toModelTags(discoveryJob.SearchTags)
+		job.SearchTags = toModelSearchTags(discoveryJob.SearchTags)
 		job.CustomTags = toModelTags(discoveryJob.CustomTags)
 		job.Metrics = toModelMetricConfig(discoveryJob.Metrics)
 		job.IncludeContextOnInfoMetrics = discoveryJob.IncludeContextOnInfoMetrics
@@ -430,6 +437,19 @@ func toModelTags(tags []Tag) []model.Tag {
 		ret = append(ret, model.Tag{
 			Key:   t.Key,
 			Value: t.Value,
+		})
+	}
+	return ret
+}
+
+func toModelSearchTags(tags []Tag) []model.SearchTag {
+	ret := make([]model.SearchTag, 0, len(tags))
+	for _, t := range tags {
+		// This should never panic as long as regex validation continues to happen before model mapping
+		r := regexp.MustCompile(t.Value)
+		ret = append(ret, model.SearchTag{
+			Key:   t.Key,
+			Value: r,
 		})
 	}
 	return ret
