@@ -107,7 +107,7 @@ func NewYACEApp() *cli.App {
 			Value:       defaultLogFormat,
 			Usage:       "Output format of log messages. One of: [logfmt, json]. Default: [json].",
 			Destination: &logFormat,
-			Action: func(ctx *cli.Context, s string) error {
+			Action: func(_ *cli.Context, s string) error {
 				switch s {
 				case "logfmt", "json":
 					break
@@ -199,7 +199,7 @@ func NewYACEApp() *cli.App {
 			Flags: []cli.Flag{
 				&cli.StringFlag{Name: "config.file", Value: "config.yml", Usage: "Path to configuration file.", Destination: &configFile},
 			},
-			Action: func(c *cli.Context) error {
+			Action: func(_ *cli.Context) error {
 				logger = logging.NewLogger(logFormat, debug, "version", version)
 				logger.Info("Parsing config")
 				cfg := config.ScrapeConf{}
@@ -216,7 +216,7 @@ func NewYACEApp() *cli.App {
 			Name:    "version",
 			Aliases: []string{"v"},
 			Usage:   "prints current yace version.",
-			Action: func(c *cli.Context) error {
+			Action: func(_ *cli.Context) error {
 				fmt.Println(version)
 				os.Exit(0)
 				return nil
@@ -274,7 +274,7 @@ func startScraper(c *cli.Context) error {
 
 	mux.HandleFunc("/metrics", s.makeHandler())
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		pprofLink := ""
 		if profilingEnabled {
 			pprofLink = htmlPprof
@@ -283,7 +283,7 @@ func startScraper(c *cli.Context) error {
 		_, _ = w.Write([]byte(fmt.Sprintf(htmlVersion, version, pprofLink)))
 	})
 
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
