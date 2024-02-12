@@ -44,7 +44,7 @@ var ServiceFilters = map[string]ServiceFilter{
 				outputResources []*model.TaggedResource
 			)
 
-			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
+			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, _ bool) bool {
 				promutil.APIGatewayAPICounter.Inc()
 				pageNum++
 				output.Items = append(output.Items, page.Items...)
@@ -87,7 +87,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
-				func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
+				func(page *autoscaling.DescribeAutoScalingGroupsOutput, _ bool) bool {
 					pageNum++
 					promutil.AutoScalingAPICounter.Inc()
 
@@ -125,7 +125,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			replicationInstanceIdentifiers := make(map[string]string)
 			pageNum := 0
 			if err := client.dmsAPI.DescribeReplicationInstancesPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -140,7 +140,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			}
 			pageNum = 0
 			if err := client.dmsAPI.DescribeReplicationTasksPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationTasksOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationTasksOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -174,7 +174,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
-				func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
+				func(page *ec2.DescribeSpotFleetRequestsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -207,7 +207,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
-				func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
+				func(page *prometheusservice.ListWorkspacesOutput, _ bool) bool {
 					pageNum++
 					promutil.ManagedPrometheusAPICounter.Inc()
 
@@ -240,7 +240,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
-				func(page *storagegateway.ListGatewaysOutput, more bool) bool {
+				func(page *storagegateway.ListGatewaysOutput, _ bool) bool {
 					pageNum++
 					promutil.StoragegatewayAPICounter.Inc()
 
@@ -280,7 +280,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
-				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -317,7 +317,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			// Default page size is only 20 which can easily lead to throttling
 			input := &shield.ListProtectionsInput{MaxResults: aws.Int64(1000)}
-			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, b bool) bool {
+			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, _ bool) bool {
 				promutil.ShieldAPICounter.Inc()
 				for _, protection := range page.Protections {
 					protectedResourceArn := *protection.ResourceArn
