@@ -1026,7 +1026,7 @@ func TestCreatePrometheusSession(t *testing.T) {
 	testAWSClient(
 		t,
 		"Prometheus",
-		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
+		func(t *testing.T, s *session.Session, region *string, role model.Role, _ bool) {
 			iface := createPrometheusSession(s, region, role, false)
 			if iface == nil {
 				t.Fail()

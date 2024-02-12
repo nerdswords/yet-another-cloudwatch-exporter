@@ -134,7 +134,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *Cac
 	endpointURLOverride := os.Getenv("AWS_ENDPOINT_URL")
 	if endpointURLOverride != "" {
 		// allow override of all endpoints for local testing
-		endpointResolver = func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		endpointResolver = func(_ string, _ string, _ ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 			return endpoints.ResolvedEndpoint{
 				URL: endpointURLOverride,
 			}, nil
