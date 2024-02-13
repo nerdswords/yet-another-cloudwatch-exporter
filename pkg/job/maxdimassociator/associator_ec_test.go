@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -28,7 +27,7 @@ var ecResources = []*model.TaggedResource{
 
 func TestAssociatorEC(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -44,7 +43,7 @@ func TestAssociatorEC(t *testing.T) {
 		{
 			name: "should match with clusterId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").ToModelDimensionsRegexp(),
 				resources:        ecResources,
 				metric: &model.Metric{
 					MetricName: "TotalCmdsCount",
@@ -60,7 +59,7 @@ func TestAssociatorEC(t *testing.T) {
 		{
 			name: "should match with CacheClusterId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").ToModelDimensionsRegexp(),
 				resources:        ecResources,
 				metric: &model.Metric{
 					MetricName: "EngineCPUUtilization",
@@ -76,7 +75,7 @@ func TestAssociatorEC(t *testing.T) {
 		{
 			name: "should skip with unmatched CacheClusterId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").ToModelDimensionsRegexp(),
 				resources:        ecResources,
 				metric: &model.Metric{
 					MetricName: "EngineCPUUtilization",
@@ -92,7 +91,7 @@ func TestAssociatorEC(t *testing.T) {
 		{
 			name: "should skip with unmatched clusterId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ElastiCache").ToModelDimensionsRegexp(),
 				resources:        ecResources,
 				metric: &model.Metric{
 					MetricName: "TotalCmdsCount",
