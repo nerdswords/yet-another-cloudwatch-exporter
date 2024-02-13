@@ -1,8 +1,12 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 // ServiceConfig defines a namespace supported by discovery jobs.
@@ -22,6 +26,28 @@ type ServiceConfig struct {
 	// In cases where the dimension name has a space, it should be
 	// replaced with an underscore (`_`).
 	DimensionRegexps []*regexp.Regexp
+}
+
+func (sc ServiceConfig) ToModelDimensionsRegexp() []model.DimensionsRegexp {
+	dr := []model.DimensionsRegexp{}
+
+	for _, regexp := range sc.DimensionRegexps {
+		names := regexp.SubexpNames()
+		dimensionNames := make([]string, 0, len(names)-1)
+
+		// skip first name, it's always an empty string
+		for i := 1; i < len(names); i++ {
+			// in the regex names we use underscores where AWS dimensions have spaces
+			dimensionNames = append(dimensionNames, strings.ReplaceAll(names[i], "_", " "))
+		}
+
+		dr = append(dr, model.DimensionsRegexp{
+			Regexp:          regexp,
+			DimensionsNames: dimensionNames,
+		})
+	}
+
+	return dr
 }
 
 type serviceConfigs []ServiceConfig

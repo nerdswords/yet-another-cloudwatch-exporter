@@ -91,7 +91,9 @@ type: <string>
 roles:
   [ - <role_config> ... ]
 
-# List of Key/Value pairs to use for tag filtering (all must match). Value can be a regex.
+# List of Key/Value pairs to use for tag filtering (all must match). 
+# The key is the AWS Tag key and is case-sensitive  
+# The value will be treated as a regex
 searchTags:
   [ - <search_tags_config> ... ]
 
@@ -111,6 +113,10 @@ dimensionNameRequirements:
 # Passes down the flag `--recently-active PT3H` to the CloudWatch API. This will only return metrics that have been active in the last 3 hours.
 # This is useful for reducing the number of metrics returned by CloudWatch, which can be very large for some services. See AWS Cloudwatch API docs for [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html) for more details.
 [ recentlyActiveOnly: <boolean> ]
+
+# Can be used to include contextual information (account_id, region, and customTags) on info metrics and cloudwatch metrics. This can be particularly 
+# useful when cloudwatch metrics might not be present or when using info metrics to understand where your resources exist
+[ includeContextOnInfoMetrics: <boolean> ]
 
 # List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)
 statistics:

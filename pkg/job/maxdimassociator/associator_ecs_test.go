@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -34,7 +33,7 @@ var ecsResources = []*model.TaggedResource{
 
 func TestAssociatorECS(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -50,7 +49,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "cluster metric should be assigned cluster resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "MemoryReservation",
@@ -66,7 +65,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "service metric should be assigned service1 resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
@@ -83,7 +82,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "service metric should be assigned service2 resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",

@@ -20,16 +20,18 @@ type JobsConfig struct {
 }
 
 type DiscoveryJob struct {
-	Regions                   []string
-	Type                      string
-	Roles                     []Role
-	SearchTags                []Tag
-	CustomTags                []Tag
-	DimensionNameRequirements []string
-	Metrics                   []*MetricConfig
-	RoundingPeriod            *int64
-	RecentlyActiveOnly        bool
-	ExportedTagsOnMetrics     []string
+	Regions                     []string
+	Type                        string
+	Roles                       []Role
+	SearchTags                  []SearchTag
+	CustomTags                  []Tag
+	DimensionNameRequirements   []string
+	Metrics                     []*MetricConfig
+	RoundingPeriod              *int64
+	RecentlyActiveOnly          bool
+	ExportedTagsOnMetrics       []string
+	IncludeContextOnInfoMetrics bool
+	DimensionsRegexps           []DimensionsRegexp
 	JobLevelMetricFields
 }
 
@@ -80,11 +82,21 @@ type MetricConfig struct {
 	AddCloudwatchTimestamp *bool
 }
 
+type DimensionsRegexp struct {
+	Regexp          *regexp.Regexp
+	DimensionsNames []string
+}
+
 type LabelSet map[string]struct{}
 
 type Tag struct {
 	Key   string
 	Value string
+}
+
+type SearchTag struct {
+	Key   string
+	Value *regexp.Regexp
 }
 
 type Dimension struct {
@@ -124,11 +136,16 @@ type Datapoint struct {
 }
 
 type CloudwatchMetricResult struct {
-	Context *JobContext
+	Context *ScrapeContext
 	Data    []*CloudwatchData
 }
 
-type JobContext struct {
+type TaggedResourceResult struct {
+	Context *ScrapeContext
+	Data    []*TaggedResource
+}
+
+type ScrapeContext struct {
 	Region     string
 	AccountID  string
 	CustomTags []Tag
@@ -169,25 +186,27 @@ type TaggedResource struct {
 
 // filterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
-func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 	if len(filterTags) == 0 {
 		return true
 	}
 
-	tagMatches := 0
+	tagFilterMatches := 0
 
 	for _, resourceTag := range r.Tags {
 		for _, filterTag := range filterTags {
 			if resourceTag.Key == filterTag.Key {
-				r, _ := regexp.Compile(filterTag.Value)
-				if r.MatchString(resourceTag.Value) {
-					tagMatches++
+				if !filterTag.Value.MatchString(resourceTag.Value) {
+					return false
 				}
+				// A resource needs to match all SearchTags to be returned, so we track the number of tag filter
+				// matches to ensure it matches the number of tag filters at the end
+				tagFilterMatches++
 			}
 		}
 	}
 
-	return tagMatches == len(filterTags)
+	return tagFilterMatches == len(filterTags)
 }
 
 // MetricTags returns a list of tags built from the tags of

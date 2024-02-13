@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -18,7 +17,7 @@ var clientVpn = &model.TaggedResource{
 
 func TestAssociatorClientVPN(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -34,7 +33,7 @@ func TestAssociatorClientVPN(t *testing.T) {
 		{
 			name: "should match ClientVPN with Endpoint dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ClientVPN").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ClientVPN").ToModelDimensionsRegexp(),
 				resources:        []*model.TaggedResource{clientVpn},
 				metric: &model.Metric{
 					MetricName: "CrlDaysToExpiry",
