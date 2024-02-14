@@ -142,7 +142,6 @@ As a quick start, the following IAM policy can be used to grant the all permissi
         "cloudwatch:GetMetricData",
         "cloudwatch:GetMetricStatistics",
         "cloudwatch:ListMetrics",
-        "apigateway:GET",
         "aps:ListWorkspaces",
         "autoscaling:DescribeAutoScalingGroups",
         "dms:DescribeReplicationInstances",
@@ -168,11 +167,6 @@ These are the bare minimum permissions required to run Static and Discovery Jobs
 "cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
-```
-
-This permission is required to discover resources for the AWS/ApiGateway namespace
-```json
-"apigateway:GET"
 ```
 
 This permission is required to discover resources for the AWS/AutoScaling namespace

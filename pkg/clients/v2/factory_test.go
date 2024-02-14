@@ -8,12 +8,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -398,40 +397,14 @@ func TestCachingFactory_createDMSClient_EnablesFIPS(t *testing.T) {
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
 }
 
-func TestCachingFactory_createAPIGatewayClient_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
-	require.NoError(t, err)
-
-	client := factory.createAPIGatewayClient(factory.clients[defaultRole]["region1"].awsConfig)
-	require.NotNil(t, client)
-
-	options := getOptions[apigateway.Client, apigateway.Options](client)
-	require.NotNil(t, options)
-
-	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
-}
-
-func TestCachingFactory_createAPIGatewayV2Client_EnablesFIPS(t *testing.T) {
-	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
-	require.NoError(t, err)
-
-	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
-	require.NotNil(t, client)
-
-	options := getOptions[apigatewayv2.Client, apigatewayv2.Options](client)
-	require.NotNil(t, options)
-
-	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
-}
-
 func TestCachingFactory_createStorageGatewayClient_EnablesFIPS(t *testing.T) {
 	factory, err := NewFactory(logging.NewNopLogger(), jobsCfgWithDefaultRoleAndRegion1, true)
 	require.NoError(t, err)
 
-	client := factory.createAPIGatewayV2Client(factory.clients[defaultRole]["region1"].awsConfig)
+	client := factory.createStorageGatewayClient(factory.clients[defaultRole]["region1"].awsConfig)
 	require.NotNil(t, client)
 
-	options := getOptions[apigatewayv2.Client, apigatewayv2.Options](client)
+	options := getOptions[storagegateway.Client, storagegateway.Options](client)
 	require.NotNil(t, options)
 
 	assert.Equal(t, options.EndpointOptions.UseFIPSEndpoint, aws.FIPSEndpointStateEnabled)
