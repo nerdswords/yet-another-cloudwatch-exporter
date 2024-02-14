@@ -10,16 +10,16 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var sagemakerInfRecJobOne = &model.TaggedResource{
-	ARN:       "arn:aws:sagemaker:us-west-2:123456789012:inference-recommendations-job/example-inf-rec-job-one",
-	Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+var eventRule0 = &model.TaggedResource{
+	ARN:       "arn:aws:events:eu-central-1:112246171613:rule/event-bus-name/rule-name",
+	Namespace: "AWS/Events",
 }
 
-var sagemakerInfRecJobResources = []*model.TaggedResource{
-	sagemakerInfRecJobOne,
+var eventRuleResources = []*model.TaggedResource{
+	eventRule0,
 }
 
-func TestAssociatorSagemakerInfRecJob(t *testing.T) {
+func TestAssociatorEventRule(t *testing.T) {
 	type args struct {
 		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
@@ -35,20 +35,21 @@ func TestAssociatorSagemakerInfRecJob(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "1 dimension should not match but not skip",
+			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/InferenceRecommendationsJobs").ToModelDimensionsRegexp(),
-				resources:        sagemakerInfRecJobResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Events").ToModelDimensionsRegexp(),
+				resources:        eventRuleResources,
 				metric: &model.Metric{
-					MetricName: "ClientInvocations",
-					Namespace:  "/aws/sagemaker/InferenceRecommendationsJobs",
+					MetricName: "Invocations",
+					Namespace:  "AWS/Events",
 					Dimensions: []*model.Dimension{
-						{Name: "JobName", Value: "example-inf-rec-job-one"},
+						{Name: "EventBusName", Value: "event-bus-name"},
+						{Name: "RuleName", Value: "rule-name"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: sagemakerInfRecJobOne,
+			expectedResource: eventRule0,
 		},
 	}
 

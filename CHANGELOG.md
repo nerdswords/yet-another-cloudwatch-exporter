@@ -1,4 +1,145 @@
-# main
+# main (unreleased)
+
+**Important news and breaking changes**
+
+* ...
+
+**Bugfixes and features**
+
+Features:
+* ...
+
+Bugs:
+* ...
+
+Docs:
+* ...
+
+Refactoring:
+* ...
+
+**Dependencies**
+
+* ...
+
+**New contributors**
+
+* ...
+
+**Full Changelog**: https://github.com/...
+
+
+# v0.56.0
+
+**Important news and breaking changes**
+
+* Release v0.55.0 didn't include binaries artifact due to an issue with the release pipeline.
+* The `list-metrics-callback` and `max-dimensions-associator` feature flags have been removed: their behaviour is now the new default.
+
+**Bugfixes and features**
+
+Features:
+* Add new CloudWatch API concurrency limiter by @thepalbi
+* Remove feature flag `list-metrics-callback` by @cristiangreco
+* Remove feature flag `max-dimensions-associator` by @cristiangreco
+* Add support for AWS/Bedrock metrics by @thepalbi
+* Add support for AWS/Events by @raanand-dig
+* Add support for AWS/DataSync by @wkneewalden
+* Add support for AWS/IPAM by @pkubicsek-sb
+
+Bugs:
+* Remove unsupported MWAA resource filter by @matej-g
+* DDoSProtection: Include regionless protectedResources in us-east-1 by @kgeckhart
+* aws sdk v2: ensure region is respected for all aws clients by @kgeckhart
+* SageMaker: Associator buildLabelsMap to lower case EndpointName to match ARN by @GGonzalezGomez
+* Update goreleaser action by @cristiangreco
+
+Refactoring:
+* Decouple config models from internal models by @cristiangreco
+* Change config Validate() signature to include model conversion by @cristiangreco
+
+**Dependencies**
+
+* Bump actions/setup-go from 4 to 5
+* Bump alpine from 3.18.3 to 3.19.0
+* Bump docker/setup-buildx-action from 2 to 3
+* Bump docker/setup-qemu-action from 2 to 3
+* Bump github.com/aws/aws-sdk-go from 1.45.24 to 1.49.19
+* Bump github.com/aws/smithy-go from 1.17.0 to 1.19.0
+* Bump github.com/prometheus/client_golang from 1.16.0 to 1.18.0
+* Bump github.com/prometheus/common from 0.44.0 to 0.45.0
+* Bump github.com/urfave/cli/v2 from 2.25.7 to 2.27.1
+* Bump golang.org/x/sync from 0.3.0 to 0.6.0
+* Bump goreleaser/goreleaser-action from 4 to 5
+* Bump the aws-sdk-v2 group dependencies
+
+**New contributors**
+
+* @GGonzalezGomez
+* @wkneewalden
+* @pkubicsek-sb
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.55.0...v0.56.0
+
+# v0.55.0
+
+**Important news and breaking changes**
+
+* jobs of type `customNamespace`, which were deprecated in `v0.51.0`, are now **un-deprecated** due to customers' feedback
+* new feature flag `always-return-info-metrics`: return info metrics even if there are no CloudWatch metrics for the resource. This is useful if you want to get a complete picture of your estate, for example if you have some resources which have not yet been used.
+
+**Bugfixes and features**
+
+Features:
+* Un-deprecate custom namespace jobs by @cristiangreco
+* scrape: Return resources even if there are no metrics by @iainlane
+* kinesisanalytics application: add tags support by @raanand-dig
+* Add support for AWS/ClientVPN by @hc2p
+* Add support for QLDB by @alexandre-alvarengazh
+
+Bugs:
+* main: Initialise logger when exiting if needed by @iainlane
+
+Docs:
+* Create sqs.yml example file by @dverzolla
+
+Refactoring:
+* Update code to go 1.21 by @cristiangreco
+* aws sdk v2 use EndpointResolverV2 by @kgeckhart
+* move duplicated fields from CloudwatchData to a new JobContext by @kgeckhart
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.44.328 to 1.45.7
+* Bump the aws-sdk-v2 group with 2 updates
+* Bump actions/checkout from 3 to 4 by
+
+**New Contributors**
+
+* @raanand-dig
+* @dverzolla
+* @iainlane
+* @hc2p
+* @alexandre-alvarengazh
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.1...v0.55.0
+
+
+# v0.54.1
+
+Bugs:
+* sdk v2: Set RetryMaxAttempts on root config instead client options by @kgeckhart
+* Match FIPS implementation between sdk v1 and sdk v2 by @kgeckhart
+* Fix regex for vpc-endpoint-service by @cristiangreco
+
+**Dependencies**
+
+* Bump golangci/golangci-lint-action from 3.6.0 to 3.7.0
+* Bump github.com/aws/aws-sdk-go from 1.44.327 to 1.44.328
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.0...v0.54.1
+
+# v0.54.0
 
 **Bugfixes and features**
 
@@ -12,6 +153,13 @@ Bugs:
 * Review dimensions regexps for APIGateway by @cristiangreco
 * Fix syntax in rds.libsonnet by @andriikushch
 * Fix the `FilterId` label value selection for s3 dashboard by @andriikushch
+* MaxDimAssociator: loop through all mappings by @cristiangreco
+* MaxDimAssociator: wrap some expensive debug logs by @cristiangreco
+* MaxDimAssociator: compile AmazonMQ broker suffix regex once by @cristiangreco
+* Limit number of goroutines for GetMetricData calls by @cristiangreco
+* Reduce uncessary pointer usage in getmetricdata code path by @kgeckhart
+* Improve perf in discovery jobs metrics to data lookup by @thepalbi
+* Improve FIPS endpoints resolve logic for sdk v1 by @thepalbi
 
 Docs:
 * Add more config examples (ApiGW, SES, SNS, ECS) by @cristiangreco
@@ -27,6 +175,9 @@ New dependecies:
 * github.com/go-kit/log v0.2.1
 
 Updates:
+* Docker image: bump alpine from 3.18.2 to 3.18.3
+* Docker image: bump golang from 1.20 to 1.21
+* Bump github.com/aws/smithy-go from 1.13.5 to 1.14.2
 * Bump github.com/aws/aws-sdk-go and aws-sdk-go-v2 to latest versions
 
 **Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.53.0...v0.54.0

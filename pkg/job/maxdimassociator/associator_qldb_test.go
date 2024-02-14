@@ -10,16 +10,12 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var sagemakerInfRecJobOne = &model.TaggedResource{
-	ARN:       "arn:aws:sagemaker:us-west-2:123456789012:inference-recommendations-job/example-inf-rec-job-one",
-	Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+var validQldbInstance = &model.TaggedResource{
+	ARN:       "arn:aws:qldb:us-east-1:123456789012:ledger/test1",
+	Namespace: "AWS/QLDB",
 }
 
-var sagemakerInfRecJobResources = []*model.TaggedResource{
-	sagemakerInfRecJobOne,
-}
-
-func TestAssociatorSagemakerInfRecJob(t *testing.T) {
+func TestAssociatorQLDB(t *testing.T) {
 	type args struct {
 		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
@@ -35,20 +31,36 @@ func TestAssociatorSagemakerInfRecJob(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "1 dimension should not match but not skip",
+			name: "should match with ledger name dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/InferenceRecommendationsJobs").ToModelDimensionsRegexp(),
-				resources:        sagemakerInfRecJobResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").ToModelDimensionsRegexp(),
+				resources:        []*model.TaggedResource{validQldbInstance},
 				metric: &model.Metric{
-					MetricName: "ClientInvocations",
-					Namespace:  "/aws/sagemaker/InferenceRecommendationsJobs",
+					Namespace:  "AWS/QLDB",
+					MetricName: "JournalStorage",
 					Dimensions: []*model.Dimension{
-						{Name: "JobName", Value: "example-inf-rec-job-one"},
+						{Name: "LedgerName", Value: "test2"},
+					},
+				},
+			},
+			expectedSkip:     true,
+			expectedResource: nil,
+		},
+		{
+			name: "should not match with ledger name dimension when QLDB arn is not valid",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/QLDB").ToModelDimensionsRegexp(),
+				resources:        []*model.TaggedResource{validQldbInstance},
+				metric: &model.Metric{
+					Namespace:  "AWS/QLDB",
+					MetricName: "JournalStorage",
+					Dimensions: []*model.Dimension{
+						{Name: "LedgerName", Value: "test1"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: sagemakerInfRecJobOne,
+			expectedResource: validQldbInstance,
 		},
 	}
 

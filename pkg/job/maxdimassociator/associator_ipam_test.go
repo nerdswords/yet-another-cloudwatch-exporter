@@ -10,16 +10,16 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var sagemakerInfRecJobOne = &model.TaggedResource{
-	ARN:       "arn:aws:sagemaker:us-west-2:123456789012:inference-recommendations-job/example-inf-rec-job-one",
-	Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+var ec2IpamPool = &model.TaggedResource{
+	ARN:       "arn:aws:ec2::123456789012:ipam-pool/ipam-pool-1ff5e4e9ad2c28b7b",
+	Namespace: "AWS/IPAM",
 }
 
-var sagemakerInfRecJobResources = []*model.TaggedResource{
-	sagemakerInfRecJobOne,
+var ipamResources = []*model.TaggedResource{
+	ec2IpamPool,
 }
 
-func TestAssociatorSagemakerInfRecJob(t *testing.T) {
+func TestAssociatorIpam(t *testing.T) {
 	type args struct {
 		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
@@ -35,20 +35,36 @@ func TestAssociatorSagemakerInfRecJob(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "1 dimension should not match but not skip",
+			name: "should match with IpamPoolId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/InferenceRecommendationsJobs").ToModelDimensionsRegexp(),
-				resources:        sagemakerInfRecJobResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
+				resources:        ipamResources,
 				metric: &model.Metric{
-					MetricName: "ClientInvocations",
-					Namespace:  "/aws/sagemaker/InferenceRecommendationsJobs",
+					MetricName: "VpcIPUsage",
+					Namespace:  "AWS/IPAM",
 					Dimensions: []*model.Dimension{
-						{Name: "JobName", Value: "example-inf-rec-job-one"},
+						{Name: "IpamPoolId", Value: "ipam-pool-1ff5e4e9ad2c28b7b"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: sagemakerInfRecJobOne,
+			expectedResource: ec2IpamPool,
+		},
+		{
+			name: "should skip with unmatched IpamPoolId dimension",
+			args: args{
+				dimensionRegexps: config.SupportedServices.GetService("AWS/IPAM").ToModelDimensionsRegexp(),
+				resources:        ipamResources,
+				metric: &model.Metric{
+					MetricName: "VpcIPUsage",
+					Namespace:  "AWS/IPAM",
+					Dimensions: []*model.Dimension{
+						{Name: "IpamPoolId", Value: "ipam-pool-blahblah"},
+					},
+				},
+			},
+			expectedSkip:     true,
+			expectedResource: nil,
 		},
 	}
 

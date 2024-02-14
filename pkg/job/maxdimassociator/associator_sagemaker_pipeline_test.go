@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -28,7 +27,7 @@ var sagemakerPipelineResources = []*model.TaggedResource{
 
 func TestAssociatorSagemakerPipeline(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -44,7 +43,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
@@ -61,7 +60,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "1 dimension should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
@@ -77,7 +76,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "2 dimensions should not match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",

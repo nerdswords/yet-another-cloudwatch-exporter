@@ -10,16 +10,12 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-var sagemakerInfRecJobOne = &model.TaggedResource{
-	ARN:       "arn:aws:sagemaker:us-west-2:123456789012:inference-recommendations-job/example-inf-rec-job-one",
-	Namespace: "/aws/sagemaker/InferenceRecommendationsJobs",
+var clientVpn = &model.TaggedResource{
+	ARN:       "arn:aws:ec2:eu-central-1:075055617227:client-vpn-endpoint/cvpn-endpoint-0c9e5bd20be71e296",
+	Namespace: "AWS/ClientVPN",
 }
 
-var sagemakerInfRecJobResources = []*model.TaggedResource{
-	sagemakerInfRecJobOne,
-}
-
-func TestAssociatorSagemakerInfRecJob(t *testing.T) {
+func TestAssociatorClientVPN(t *testing.T) {
 	type args struct {
 		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
@@ -35,20 +31,20 @@ func TestAssociatorSagemakerInfRecJob(t *testing.T) {
 
 	testcases := []testCase{
 		{
-			name: "1 dimension should not match but not skip",
+			name: "should match ClientVPN with Endpoint dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/InferenceRecommendationsJobs").ToModelDimensionsRegexp(),
-				resources:        sagemakerInfRecJobResources,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ClientVPN").ToModelDimensionsRegexp(),
+				resources:        []*model.TaggedResource{clientVpn},
 				metric: &model.Metric{
-					MetricName: "ClientInvocations",
-					Namespace:  "/aws/sagemaker/InferenceRecommendationsJobs",
+					MetricName: "CrlDaysToExpiry",
+					Namespace:  "AWS/ClientVPN",
 					Dimensions: []*model.Dimension{
-						{Name: "JobName", Value: "example-inf-rec-job-one"},
+						{Name: "Endpoint", Value: "cvpn-endpoint-0c9e5bd20be71e296"},
 					},
 				},
 			},
 			expectedSkip:     false,
-			expectedResource: sagemakerInfRecJobOne,
+			expectedResource: clientVpn,
 		},
 	}
 

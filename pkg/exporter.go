@@ -7,9 +7,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
@@ -30,22 +32,31 @@ var Metrics = []prometheus.Collector{
 }
 
 const (
-	DefaultMetricsPerQuery          = 500
-	DefaultLabelsSnakeCase          = false
-	DefaultCloudWatchAPIConcurrency = 5
-	DefaultTaggingAPIConcurrency    = 5
+	DefaultMetricsPerQuery       = 500
+	DefaultLabelsSnakeCase       = false
+	DefaultTaggingAPIConcurrency = 5
 )
+
+var DefaultCloudwatchConcurrency = cloudwatch.ConcurrencyConfig{
+	SingleLimit:        5,
+	PerAPILimitEnabled: false,
+
+	// If PerAPILimitEnabled is enabled, then use the same limit as the single limit by default.
+	ListMetrics:         5,
+	GetMetricData:       5,
+	GetMetricStatistics: 5,
+}
 
 // featureFlagsMap is a map that contains the enabled feature flags. If a key is not present, it means the feature flag
 // is disabled.
 type featureFlagsMap map[string]struct{}
 
 type options struct {
-	metricsPerQuery          int
-	labelsSnakeCase          bool
-	cloudWatchAPIConcurrency int
-	taggingAPIConcurrency    int
-	featureFlags             featureFlagsMap
+	metricsPerQuery       int
+	labelsSnakeCase       bool
+	taggingAPIConcurrency int
+	featureFlags          featureFlagsMap
+	cloudwatchConcurrency cloudwatch.ConcurrencyConfig
 }
 
 // IsFeatureEnabled implements the FeatureFlags interface, allowing us to inject the options-configure feature flags in the rest of the code.
@@ -80,7 +91,27 @@ func CloudWatchAPIConcurrency(maxConcurrency int) OptionsFunc {
 			return fmt.Errorf("CloudWatchAPIConcurrency must be a positive value")
 		}
 
-		o.cloudWatchAPIConcurrency = maxConcurrency
+		o.cloudwatchConcurrency.SingleLimit = maxConcurrency
+		return nil
+	}
+}
+
+func CloudWatchPerAPILimitConcurrency(listMetrics, getMetricData, getMetricStatistics int) OptionsFunc {
+	return func(o *options) error {
+		if listMetrics <= 0 {
+			return fmt.Errorf("LitMetrics concurrency limit must be a positive value")
+		}
+		if getMetricData <= 0 {
+			return fmt.Errorf("GetMetricData concurrency limit must be a positive value")
+		}
+		if getMetricStatistics <= 0 {
+			return fmt.Errorf("GetMetricStatistics concurrency limit must be a positive value")
+		}
+
+		o.cloudwatchConcurrency.PerAPILimitEnabled = true
+		o.cloudwatchConcurrency.ListMetrics = listMetrics
+		o.cloudwatchConcurrency.GetMetricData = getMetricData
+		o.cloudwatchConcurrency.GetMetricStatistics = getMetricStatistics
 		return nil
 	}
 }
@@ -108,11 +139,11 @@ func EnableFeatureFlag(flags ...string) OptionsFunc {
 
 func defaultOptions() options {
 	return options{
-		metricsPerQuery:          DefaultMetricsPerQuery,
-		labelsSnakeCase:          DefaultLabelsSnakeCase,
-		cloudWatchAPIConcurrency: DefaultCloudWatchAPIConcurrency,
-		taggingAPIConcurrency:    DefaultTaggingAPIConcurrency,
-		featureFlags:             make(featureFlagsMap),
+		metricsPerQuery:       DefaultMetricsPerQuery,
+		labelsSnakeCase:       DefaultLabelsSnakeCase,
+		taggingAPIConcurrency: DefaultTaggingAPIConcurrency,
+		featureFlags:          make(featureFlagsMap),
+		cloudwatchConcurrency: DefaultCloudwatchConcurrency,
 	}
 }
 
@@ -133,7 +164,7 @@ func defaultOptions() options {
 func UpdateMetrics(
 	ctx context.Context,
 	logger logging.Logger,
-	cfg config.ScrapeConf,
+	jobsCfg model.JobsConfig,
 	registry *prometheus.Registry,
 	factory clients.Factory,
 	optFuncs ...OptionsFunc,
@@ -151,10 +182,10 @@ func UpdateMetrics(
 	tagsData, cloudwatchData := job.ScrapeAwsData(
 		ctx,
 		logger,
-		cfg,
+		jobsCfg,
 		factory,
 		options.metricsPerQuery,
-		options.cloudWatchAPIConcurrency,
+		options.cloudwatchConcurrency,
 		options.taggingAPIConcurrency,
 	)
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,10 +12,11 @@ import (
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 type scraper struct {
-	registry     *prometheus.Registry
+	registry     atomic.Pointer[prometheus.Registry]
 	featureFlags []string
 }
 
@@ -25,24 +27,26 @@ type cachingFactory interface {
 }
 
 func NewScraper(featureFlags []string) *scraper { //nolint:revive
-	return &scraper{
-		registry:     prometheus.NewRegistry(),
+	s := &scraper{
+		registry:     atomic.Pointer[prometheus.Registry]{},
 		featureFlags: featureFlags,
 	}
+	s.registry.Store(prometheus.NewRegistry())
+	return s
 }
 
 func (s *scraper) makeHandler() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handler := promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{
+		handler := promhttp.HandlerFor(s.registry.Load(), promhttp.HandlerOpts{
 			DisableCompression: false,
 		})
 		handler.ServeHTTP(w, r)
 	}
 }
 
-func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache cachingFactory) {
+func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, jobsCfg model.JobsConfig, cache cachingFactory) {
 	logger.Debug("Starting scraping async")
-	s.scrape(ctx, logger, cache)
+	s.scrape(ctx, logger, jobsCfg, cache)
 
 	scrapingDuration := time.Duration(scrapingInterval) * time.Second
 	ticker := time.NewTicker(scrapingDuration)
@@ -54,12 +58,12 @@ func (s *scraper) decoupled(ctx context.Context, logger logging.Logger, cache ca
 			return
 		case <-ticker.C:
 			logger.Debug("Starting scraping async")
-			go s.scrape(ctx, logger, cache)
+			go s.scrape(ctx, logger, jobsCfg, cache)
 		}
 	}
 }
 
-func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachingFactory) {
+func (s *scraper) scrape(ctx context.Context, logger logging.Logger, jobsCfg model.JobsConfig, cache cachingFactory) {
 	if !sem.TryAcquire(1) {
 		// This shouldn't happen under normal use, users should adjust their configuration when this occurs.
 		// Let them know by logging a warning.
@@ -81,23 +85,32 @@ func (s *scraper) scrape(ctx context.Context, logger logging.Logger, cache cachi
 	// clearing, so we always clear credentials before the next scrape
 	cache.Refresh()
 	defer cache.Clear()
-	err := exporter.UpdateMetrics(
-		ctx,
-		logger,
-		cfg,
-		newRegistry,
-		cache,
+
+	options := []exporter.OptionsFunc{
 		exporter.MetricsPerQuery(metricsPerQuery),
 		exporter.LabelsSnakeCase(labelsSnakeCase),
 		exporter.EnableFeatureFlag(s.featureFlags...),
-		exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency),
 		exporter.TaggingAPIConcurrency(tagConcurrency),
+	}
+
+	if cloudwatchConcurrency.PerAPILimitEnabled {
+		options = append(options, exporter.CloudWatchPerAPILimitConcurrency(cloudwatchConcurrency.ListMetrics, cloudwatchConcurrency.GetMetricData, cloudwatchConcurrency.GetMetricStatistics))
+	} else {
+		options = append(options, exporter.CloudWatchAPIConcurrency(cloudwatchConcurrency.SingleLimit))
+	}
+
+	err := exporter.UpdateMetrics(
+		ctx,
+		logger,
+		jobsCfg,
+		newRegistry,
+		cache,
+		options...,
 	)
 	if err != nil {
 		logger.Error(err, "error updating metrics")
 	}
 
-	// this might have a data race to access registry
-	s.registry = newRegistry
+	s.registry.Store(newRegistry)
 	logger.Debug("Metrics scraped")
 }

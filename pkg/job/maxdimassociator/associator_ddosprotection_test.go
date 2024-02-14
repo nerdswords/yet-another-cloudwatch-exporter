@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -28,7 +27,7 @@ var protectedResources = []*model.TaggedResource{
 
 func TestAssociatorDDoSProtection(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -44,7 +43,7 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 		{
 			name: "should match with ResourceArn dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/DDoSProtection").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/DDoSProtection").ToModelDimensionsRegexp(),
 				resources:        protectedResources,
 				metric: &model.Metric{
 					Namespace:  "AWS/DDoSProtection",

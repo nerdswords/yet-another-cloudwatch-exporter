@@ -1,12 +1,13 @@
 package maxdimassociator
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
-	"golang.org/x/exp/slices"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -55,7 +56,7 @@ func (rm dimensionsRegexpMapping) toString() string {
 }
 
 // NewAssociator builds all mappings for the given dimensions regexps and list of resources.
-func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, resources []*model.TaggedResource) Associator {
+func NewAssociator(logger logging.Logger, dimensionsRegexps []model.DimensionsRegexp, resources []*model.TaggedResource) Associator {
 	assoc := Associator{
 		mappings: []*dimensionsRegexpMapping{},
 		logger:   logger,
@@ -66,31 +67,25 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 	// TODO(cristian): use a more memory-efficient data structure
 	mappedResources := make([]bool, len(resources))
 
-	for _, regex := range dimensionRegexps {
-		m := &dimensionsRegexpMapping{dimensionsMapping: map[uint64]*model.TaggedResource{}}
-
-		names := regex.SubexpNames()
-		dimensionNames := make([]string, 0, len(names)-1)
-		for i := 1; i < len(names); i++ { // skip first name, it's always empty string
-			// in the regex names we use underscores where AWS dimensions have spaces
-			names[i] = strings.ReplaceAll(names[i], "_", " ")
-			dimensionNames = append(dimensionNames, names[i])
+	for _, dr := range dimensionsRegexps {
+		m := &dimensionsRegexpMapping{
+			dimensions:        dr.DimensionsNames,
+			dimensionsMapping: map[uint64]*model.TaggedResource{},
 		}
-		m.dimensions = dimensionNames
 
 		for idx, r := range resources {
 			if mappedResources[idx] {
 				continue
 			}
 
-			match := regex.FindStringSubmatch(r.ARN)
+			match := dr.Regexp.FindStringSubmatch(r.ARN)
 			if match == nil {
 				continue
 			}
 
 			labels := make(map[string]string, len(match))
 			for i := 1; i < len(match); i++ {
-				labels[names[i]] = match[i]
+				labels[dr.DimensionsNames[i-1]] = match[i]
 			}
 			signature := prom_model.LabelsToSignature(labels)
 			m.dimensionsMapping[signature] = r
@@ -108,15 +103,15 @@ func NewAssociator(logger logging.Logger, dimensionRegexps []*regexp.Regexp, res
 		// or sub-resources) and one of them doesn't match any resource.
 		// This behaviour is ok, we just want to debug log to keep track of it.
 		if logger.IsDebugEnabled() {
-			logger.Debug("unable to define a regex mapping", "regex", regex.String())
+			logger.Debug("unable to define a regex mapping", "regex", dr.Regexp.String())
 		}
 	}
 
 	// sort all mappings by decreasing number of dimensions names
 	// (this is essential so that during matching we try to find the metric
 	// with the most specific set of dimensions)
-	slices.SortFunc(assoc.mappings, func(a, b *dimensionsRegexpMapping) bool {
-		return len(a.dimensions) >= len(b.dimensions)
+	slices.SortStableFunc(assoc.mappings, func(a, b *dimensionsRegexpMapping) int {
+		return -1 * cmp.Compare(len(a.dimensions), len(b.dimensions))
 	})
 
 	if logger.IsDebugEnabled() {
@@ -211,6 +206,13 @@ func buildLabelsMap(cwMetric *model.Metric, regexpMapping *dimensionsRegexpMappi
 				if amazonMQBrokerSuffix.MatchString(value) {
 					value = amazonMQBrokerSuffix.ReplaceAllString(value, "")
 				}
+			}
+
+			// AWS Sagemaker endpoint name may have upper case characters
+			// Resource ARN is only in lower case, hence transforming
+			// endpoint name value to be able to match the resource ARN
+			if cwMetric.Namespace == "AWS/SageMaker" && name == "EndpointName" {
+				value = strings.ToLower(value)
 			}
 
 			if rDimension == mDimension.Name {

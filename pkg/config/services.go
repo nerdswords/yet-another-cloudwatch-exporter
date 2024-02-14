@@ -1,8 +1,12 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
+
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
 // ServiceConfig defines a namespace supported by discovery jobs.
@@ -22,6 +26,28 @@ type ServiceConfig struct {
 	// In cases where the dimension name has a space, it should be
 	// replaced with an underscore (`_`).
 	DimensionRegexps []*regexp.Regexp
+}
+
+func (sc ServiceConfig) ToModelDimensionsRegexp() []model.DimensionsRegexp {
+	dr := []model.DimensionsRegexp{}
+
+	for _, regexp := range sc.DimensionRegexps {
+		names := regexp.SubexpNames()
+		dimensionNames := make([]string, 0, len(names)-1)
+
+		// skip first name, it's always an empty string
+		for i := 1; i < len(names); i++ {
+			// in the regex names we use underscores where AWS dimensions have spaces
+			dimensionNames = append(dimensionNames, strings.ReplaceAll(names[i], "_", " "))
+		}
+
+		dr = append(dr, model.DimensionsRegexp{
+			Regexp:          regexp,
+			DimensionsNames: dimensionNames,
+		})
+	}
+
+	return dr
 }
 
 type serviceConfigs []ServiceConfig
@@ -71,9 +97,6 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/MWAA",
 		Alias:     "mwaa",
-		ResourceFilters: []*string{
-			aws.String("mwaa"),
-		},
 	},
 	{
 		Namespace: "AWS/ApplicationELB",
@@ -196,6 +219,18 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/DataSync",
+		Alias:     "datasync",
+		ResourceFilters: []*string{
+			aws.String("datasync:task"),
+			aws.String("datasync:agent"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":task/(?P<TaskId>[^/]+)"),
+			regexp.MustCompile(":agent/(?P<AgentId>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/DMS",
 		Alias:     "dms",
 		ResourceFilters: []*string{
@@ -265,9 +300,11 @@ var SupportedServices = serviceConfigs{
 		Alias:     "ec",
 		ResourceFilters: []*string{
 			aws.String("elasticache:cluster"),
+			aws.String("elasticache:serverlesscache"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster:(?P<CacheClusterId>[^/]+)"),
+			regexp.MustCompile("serverlesscache:(?P<clusterId>[^/]+)"),
 		},
 	},
 	{
@@ -482,6 +519,12 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/KinesisAnalytics",
 		Alias:     "kinesis-analytics",
+		ResourceFilters: []*string{
+			aws.String("kinesisanalytics:application"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":application/(?P<Application>[^/]+)"),
+		},
 	},
 	{
 		Namespace: "AWS/Lambda",
@@ -598,12 +641,22 @@ var SupportedServices = serviceConfigs{
 			aws.String("ec2:vpc-endpoint-service"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
-			regexp.MustCompile(":vpc-endpoint-service:(?P<Service_Id>.+)"),
+			regexp.MustCompile(":vpc-endpoint-service/(?P<Service_Id>.+)"),
 		},
 	},
 	{
 		Namespace: "AWS/Prometheus",
 		Alias:     "amp",
+	},
+	{
+		Namespace: "AWS/QLDB",
+		Alias:     "qldb",
+		ResourceFilters: []*string{
+			aws.String("qldb"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ledger/(?P<LedgerName>[^/]+)"),
+		},
 	},
 	{
 		Namespace: "AWS/RDS",
@@ -729,6 +782,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/ClientVPN",
+		Alias:     "clientvpn",
+		ResourceFilters: []*string{
+			aws.String("ec2:client-vpn-endpoint"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":client-vpn-endpoint/(?P<Endpoint>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/WAFV2",
 		Alias:     "wafv2",
 		ResourceFilters: []*string{
@@ -819,6 +882,30 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":pipeline/(?P<PipelineName>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/IPAM",
+		Alias:     "ipam",
+		ResourceFilters: []*string{
+			aws.String("ec2:ipam-pool"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":ipam-pool/(?P<IpamPoolId>[^/]+)$"),
+		},
+	},
+	{
+		Namespace: "AWS/Bedrock",
+		Alias:     "bedrock",
+	},
+	{
+		Namespace: "AWS/Events",
+		Alias:     "event-rule",
+		ResourceFilters: []*string{
+			aws.String("events"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":rule/(?P<EventBusName>[^/]+)/(?P<RuleName>[^/]+)$"),
 		},
 	},
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 
 	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -26,7 +25,7 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c client) ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) error {
 	filter := &cloudwatch.ListMetricsInput{
 		MetricName: aws.String(metric.Name),
 		Namespace:  aws.String(namespace),
@@ -39,29 +38,25 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *confi
 		c.logger.Debug("ListMetrics", "input", filter)
 	}
 
-	var metrics []*model.Metric
-	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter,
-		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-			promutil.CloudwatchAPICounter.Inc()
-			metricsPage := toModelMetric(page)
-			if fn != nil {
-				fn(metricsPage)
-			} else {
-				metrics = append(metrics, metricsPage...)
-			}
-			return !lastPage
-		})
+	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter, func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
+		promutil.CloudwatchAPICounter.Inc()
+
+		metricsPage := toModelMetric(page)
+
+		if c.logger.IsDebugEnabled() {
+			c.logger.Debug("ListMetrics", "output", metricsPage, "last_page", lastPage)
+		}
+
+		fn(metricsPage)
+		return !lastPage
+	})
 	if err != nil {
 		promutil.CloudwatchAPIErrorCounter.Inc()
 		c.logger.Error(err, "ListMetrics error")
-		return nil, err
+		return err
 	}
 
-	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("ListMetrics", "output", metrics)
-	}
-
-	return metrics, nil
+	return nil
 }
 
 func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
@@ -121,7 +116,7 @@ func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []cloudwatch_client
 	for _, metricDataResult := range resp.MetricDataResults {
 		mappedResult := cloudwatch_client.MetricDataResult{ID: *metricDataResult.Id}
 		if len(metricDataResult.Values) > 0 {
-			mappedResult.Datapoint = *metricDataResult.Values[0]
+			mappedResult.Datapoint = metricDataResult.Values[0]
 			mappedResult.Timestamp = *metricDataResult.Timestamps[0]
 		}
 		output = append(output, mappedResult)
@@ -129,7 +124,7 @@ func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []cloudwatch_client
 	return output
 }
 
-func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint {
+func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
 	filter := createGetMetricStatisticsInput(dimensions, &namespace, metric, logger)
 
 	if c.logger.IsDebugEnabled() {
