@@ -300,9 +300,11 @@ var SupportedServices = serviceConfigs{
 		Alias:     "ec",
 		ResourceFilters: []*string{
 			aws.String("elasticache:cluster"),
+			aws.String("elasticache:serverlesscache"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster:(?P<CacheClusterId>[^/]+)"),
+			regexp.MustCompile("serverlesscache:(?P<clusterId>[^/]+)"),
 		},
 	},
 	{
