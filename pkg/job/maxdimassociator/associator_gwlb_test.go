@@ -3,7 +3,6 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
@@ -34,7 +33,7 @@ var gatewayLoadBalancerResources = []*model.TaggedResource{
 
 func TestAssociatorGwlb(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -50,7 +49,7 @@ func TestAssociatorGwlb(t *testing.T) {
 		{
 			name: "should match with gateway loadbalancer one dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").ToModelDimensionsRegexp(),
 				resources:        gatewayLoadBalancerResources,
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
@@ -66,7 +65,7 @@ func TestAssociatorGwlb(t *testing.T) {
 		{
 			name: "should match with gateway loadbalancer target group two dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").ToModelDimensionsRegexp(),
 				resources:        gatewayLoadBalancerResources,
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
@@ -83,7 +82,7 @@ func TestAssociatorGwlb(t *testing.T) {
 		{
 			name: "should not match with any gateway loadbalancer",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GatewayELB").ToModelDimensionsRegexp(),
 				resources:        gatewayLoadBalancerResources,
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
