@@ -44,7 +44,7 @@ type ConcurrencyLimiter interface {
 
 type MetricDataResult struct {
 	ID        string
-	Datapoint float64
+	Datapoint *float64
 	Timestamp time.Time
 }
 
