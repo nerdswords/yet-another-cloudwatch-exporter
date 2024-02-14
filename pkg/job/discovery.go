@@ -149,9 +149,7 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 			if metricData.MetricID == nil {
 				continue
 			}
-			// Copy to avoid a loop closure bug
-			dataPoint := metricDataResult.Datapoint
-			metricData.GetMetricDataPoint = &dataPoint
+			metricData.GetMetricDataPoint = metricDataResult.Datapoint
 			metricData.GetMetricDataTimestamps = metricDataResult.Timestamp
 			metricData.MetricID = nil // mark as processed
 		}
