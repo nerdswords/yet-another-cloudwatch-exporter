@@ -10,10 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -134,7 +130,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *Cac
 	endpointURLOverride := os.Getenv("AWS_ENDPOINT_URL")
 	if endpointURLOverride != "" {
 		// allow override of all endpoints for local testing
-		endpointResolver = func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		endpointResolver = func(_ string, _ string, _ ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 			return endpoints.ResolvedEndpoint{
 				URL: endpointURLOverride,
 			}, nil
@@ -232,8 +228,6 @@ func createTaggingClient(logger logging.Logger, session *session.Session, region
 		logger,
 		createTagSession(session, region, role, logger.IsDebugEnabled()),
 		createASGSession(session, region, role, logger.IsDebugEnabled()),
-		createAPIGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
-		createAPIGatewayV2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createEC2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createDMSSession(session, region, role, fips, logger.IsDebugEnabled()),
 		createPrometheusSession(session, region, role, logger.IsDebugEnabled()),
@@ -441,34 +435,6 @@ func createDMSSession(sess *session.Session, region *string, role model.Role, fi
 	}
 
 	return databasemigrationservice.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createAPIGatewaySession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) apigatewayiface.APIGatewayAPI {
-	maxAPIGatewayAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
-	if fips {
-		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
-	}
-
-	if isDebugEnabled {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
-
-	return apigateway.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createAPIGatewayV2Session(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) apigatewayv2iface.ApiGatewayV2API {
-	maxAPIGatewayAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
-	if fips {
-		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
-	}
-
-	if isDebugEnabled {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
-
-	return apigatewayv2.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createShieldSession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) shieldiface.ShieldAPI {

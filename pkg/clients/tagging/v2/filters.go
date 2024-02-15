@@ -3,19 +3,15 @@ package v2
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -31,58 +27,6 @@ type ServiceFilter struct {
 
 // ServiceFilters maps a service namespace to (optional) ServiceFilter
 var ServiceFilters = map[string]ServiceFilter{
-	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
-			var limit int32 = 500 // max number of results per page. default=25, max=500
-			const maxPages = 10
-			input := apigateway.GetRestApisInput{Limit: &limit}
-			output := apigateway.GetRestApisOutput{}
-			var pageNum int
-
-			paginator := apigateway.NewGetRestApisPaginator(client.apiGatewayAPI, &input, func(options *apigateway.GetRestApisPaginatorOptions) {
-				options.StopOnDuplicateToken = true
-			})
-			for paginator.HasMorePages() && pageNum <= maxPages {
-				page, err := paginator.NextPage(ctx)
-				promutil.APIGatewayAPICounter.Inc()
-				if err != nil {
-					return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApis, %w", err)
-				}
-				pageNum++
-				output.Items = append(output.Items, page.Items...)
-			}
-
-			outputV2, err := client.apiGatewayV2API.GetApis(ctx, &apigatewayv2.GetApisInput{})
-			if err != nil {
-				return nil, fmt.Errorf("error calling apigatewayv2.GetApis, %w", err)
-			}
-
-			var outputResources []*model.TaggedResource
-			for _, resource := range inputResources {
-				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.Id))
-					if searchString.MatchString(resource.ARN) {
-						r := resource
-						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
-						outputResources = append(outputResources, r)
-						output.Items = append(output.Items[:i], output.Items[i+1:]...)
-						break
-					}
-				}
-
-				for i, gw := range outputV2.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
-					if searchString.MatchString(resource.ARN) {
-						outputResources = append(outputResources, resource)
-						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
-						break
-					}
-				}
-			}
-
-			return outputResources, nil
-		},
-	},
 	"AWS/AutoScaling": {
 		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0

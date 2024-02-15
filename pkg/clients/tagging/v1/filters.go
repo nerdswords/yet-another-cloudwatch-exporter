@@ -3,19 +3,15 @@ package v1
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/shield"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
-	"github.com/grafana/regexp"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -31,63 +27,12 @@ type ServiceFilter struct {
 
 // ServiceFilters maps a service namespace to (optional) ServiceFilter
 var ServiceFilters = map[string]ServiceFilter{
-	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
-			promutil.APIGatewayAPICounter.Inc()
-			const maxPages = 10
-
-			var (
-				limit           int64 = 500 // max number of results per page. default=25, max=500
-				input                 = apigateway.GetRestApisInput{Limit: &limit}
-				output                = apigateway.GetRestApisOutput{}
-				pageNum         int
-				outputResources []*model.TaggedResource
-			)
-
-			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
-				promutil.APIGatewayAPICounter.Inc()
-				pageNum++
-				output.Items = append(output.Items, page.Items...)
-				return pageNum <= maxPages
-			})
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
-			}
-			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
-			promutil.APIGatewayAPIV2Counter.Inc()
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
-			}
-
-			for _, resource := range inputResources {
-				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*restapis/%s$", *gw.Id))
-					if searchString.MatchString(resource.ARN) {
-						r := resource
-						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
-						outputResources = append(outputResources, r)
-						output.Items = append(output.Items[:i], output.Items[i+1:]...)
-						break
-					}
-				}
-				for i, gw := range outputV2.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
-					if searchString.MatchString(resource.ARN) {
-						outputResources = append(outputResources, resource)
-						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
-						break
-					}
-				}
-			}
-			return outputResources, nil
-		},
-	},
 	"AWS/AutoScaling": {
 		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
-				func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
+				func(page *autoscaling.DescribeAutoScalingGroupsOutput, _ bool) bool {
 					pageNum++
 					promutil.AutoScalingAPICounter.Inc()
 
@@ -125,7 +70,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			replicationInstanceIdentifiers := make(map[string]string)
 			pageNum := 0
 			if err := client.dmsAPI.DescribeReplicationInstancesPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -140,7 +85,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			}
 			pageNum = 0
 			if err := client.dmsAPI.DescribeReplicationTasksPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationTasksOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationTasksOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -174,7 +119,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
-				func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
+				func(page *ec2.DescribeSpotFleetRequestsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -207,7 +152,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
-				func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
+				func(page *prometheusservice.ListWorkspacesOutput, _ bool) bool {
 					pageNum++
 					promutil.ManagedPrometheusAPICounter.Inc()
 
@@ -240,7 +185,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
-				func(page *storagegateway.ListGatewaysOutput, more bool) bool {
+				func(page *storagegateway.ListGatewaysOutput, _ bool) bool {
 					pageNum++
 					promutil.StoragegatewayAPICounter.Inc()
 
@@ -280,7 +225,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
-				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -317,7 +262,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			pageNum := 0
 			// Default page size is only 20 which can easily lead to throttling
 			input := &shield.ListProtectionsInput{MaxResults: aws.Int64(1000)}
-			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, b bool) bool {
+			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, _ bool) bool {
 				promutil.ShieldAPICounter.Inc()
 				for _, protection := range page.Protections {
 					protectedResourceArn := *protection.ResourceArn

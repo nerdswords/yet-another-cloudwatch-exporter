@@ -300,9 +300,11 @@ var SupportedServices = serviceConfigs{
 		Alias:     "ec",
 		ResourceFilters: []*string{
 			aws.String("elasticache:cluster"),
+			aws.String("elasticache:serverlesscache"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("cluster:(?P<CacheClusterId>[^/]+)"),
+			regexp.MustCompile("serverlesscache:(?P<clusterId>[^/]+)"),
 		},
 	},
 	{
@@ -436,6 +438,18 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":fleet/(?P<FleetId>[^/]+)"),
+		},
+	},
+	{
+		Namespace: "AWS/GatewayELB",
+		Alias:     "gwlb",
+		ResourceFilters: []*string{
+			aws.String("elasticloadbalancing:loadbalancer/gwy"),
+			aws.String("elasticloadbalancing:targetgroup"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":(?P<TargetGroup>targetgroup/.+)"),
+			regexp.MustCompile(":loadbalancer/(?P<LoadBalancer>.+)$"),
 		},
 	},
 	{

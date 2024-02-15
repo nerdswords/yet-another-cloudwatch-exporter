@@ -1026,7 +1026,7 @@ func TestCreatePrometheusSession(t *testing.T) {
 	testAWSClient(
 		t,
 		"Prometheus",
-		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
+		func(t *testing.T, s *session.Session, region *string, role model.Role, _ bool) {
 			iface := createPrometheusSession(s, region, role, false)
 			if iface == nil {
 				t.Fail()
@@ -1040,18 +1040,6 @@ func TestCreateDMSSession(t *testing.T) {
 		"DMS",
 		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
 			iface := createDMSSession(s, region, role, fips, false)
-			if iface == nil {
-				t.Fail()
-			}
-		})
-}
-
-func TestCreateAPIGatewaySession(t *testing.T) {
-	testAWSClient(
-		t,
-		"APIGateway",
-		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
-			iface := createAPIGatewaySession(s, region, role, fips, false)
 			if iface == nil {
 				t.Fail()
 			}

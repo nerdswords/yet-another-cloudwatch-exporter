@@ -1,32 +1,17 @@
-package v1
+package v2
 
 import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+
 	"github.com/stretchr/testify/require"
 
 	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
-
-func TestDimensionsToCliString(t *testing.T) {
-	// Setup Test
-
-	// Arrange
-	dimensions := []*model.Dimension{}
-	expected := ""
-
-	// Act
-	actual := dimensionsToCliString(dimensions)
-
-	// Assert
-	if actual != expected {
-		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
-	}
-}
 
 func Test_toMetricDataResult(t *testing.T) {
 	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -41,16 +26,16 @@ func Test_toMetricDataResult(t *testing.T) {
 		{
 			name: "all metrics present",
 			getMetricDataOutput: cloudwatch.GetMetricDataOutput{
-				MetricDataResults: []*cloudwatch.MetricDataResult{
+				MetricDataResults: []types.MetricDataResult{
 					{
 						Id:         aws.String("metric-1"),
-						Values:     []*float64{aws.Float64(1.0), aws.Float64(2.0), aws.Float64(3.0)},
-						Timestamps: []*time.Time{aws.Time(ts.Add(10 * time.Minute)), aws.Time(ts.Add(5 * time.Minute)), aws.Time(ts)},
+						Values:     []float64{1.0, 2.0, 3.0},
+						Timestamps: []time.Time{ts.Add(10 * time.Minute), ts.Add(5 * time.Minute), ts},
 					},
 					{
 						Id:         aws.String("metric-2"),
-						Values:     []*float64{aws.Float64(2.0)},
-						Timestamps: []*time.Time{aws.Time(ts)},
+						Values:     []float64{2.0},
+						Timestamps: []time.Time{ts},
 					},
 				},
 			},
@@ -62,16 +47,16 @@ func Test_toMetricDataResult(t *testing.T) {
 		{
 			name: "metric with no values",
 			getMetricDataOutput: cloudwatch.GetMetricDataOutput{
-				MetricDataResults: []*cloudwatch.MetricDataResult{
+				MetricDataResults: []types.MetricDataResult{
 					{
 						Id:         aws.String("metric-1"),
-						Values:     []*float64{aws.Float64(1.0), aws.Float64(2.0), aws.Float64(3.0)},
-						Timestamps: []*time.Time{aws.Time(ts.Add(10 * time.Minute)), aws.Time(ts.Add(5 * time.Minute)), aws.Time(ts)},
+						Values:     []float64{1.0, 2.0, 3.0},
+						Timestamps: []time.Time{ts.Add(10 * time.Minute), ts.Add(5 * time.Minute), ts},
 					},
 					{
 						Id:         aws.String("metric-2"),
-						Values:     []*float64{},
-						Timestamps: []*time.Time{},
+						Values:     []float64{},
+						Timestamps: []time.Time{},
 					},
 				},
 			},

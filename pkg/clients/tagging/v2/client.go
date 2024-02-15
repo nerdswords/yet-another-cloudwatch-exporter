@@ -6,8 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -27,8 +25,6 @@ type client struct {
 	logger            logging.Logger
 	taggingAPI        *resourcegroupstaggingapi.Client
 	autoscalingAPI    *autoscaling.Client
-	apiGatewayAPI     *apigateway.Client
-	apiGatewayV2API   *apigatewayv2.Client
 	ec2API            *ec2.Client
 	dmsAPI            *databasemigrationservice.Client
 	prometheusSvcAPI  *amp.Client
@@ -40,8 +36,6 @@ func NewClient(
 	logger logging.Logger,
 	taggingAPI *resourcegroupstaggingapi.Client,
 	autoscalingAPI *autoscaling.Client,
-	apiGatewayAPI *apigateway.Client,
-	apiGatewayV2API *apigatewayv2.Client,
 	ec2API *ec2.Client,
 	dmsClient *databasemigrationservice.Client,
 	prometheusClient *amp.Client,
@@ -52,8 +46,6 @@ func NewClient(
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
-		apiGatewayAPI:     apiGatewayAPI,
-		apiGatewayV2API:   apiGatewayV2API,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
