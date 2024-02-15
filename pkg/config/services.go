@@ -527,6 +527,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/KMS",
+		Alias:     "kms",
+		ResourceFilters: []*string{
+			aws.String("kms:key"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":key/(?P<KeyId>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/Lambda",
 		Alias:     "lambda",
 		ResourceFilters: []*string{

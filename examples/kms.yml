@@ -1,0 +1,10 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/KMS
+      regions:
+        - us-east-1
+      period: 300
+      metrics:
+        - name: SecondsUntilKeyMaterialExpiration
+          statistics: [Maximum, Minimum]
