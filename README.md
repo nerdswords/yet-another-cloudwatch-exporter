@@ -78,6 +78,7 @@ Only the latest version gets security updates. We won't support older versions.
   * iot (AWS/IoT) - IoT
   * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
+  * kms (AWS/KMS) - Key Management Service
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
