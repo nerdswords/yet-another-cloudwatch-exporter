@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -34,7 +34,7 @@ var apiGatewayResources = []*model.TaggedResource{apiGatewayV1, apiGatewayV1Stag
 
 func TestAssociatorAPIGateway(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -50,7 +50,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 		{
 			name: "should match API Gateway V2 with ApiId dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").ToModelDimensionsRegexp(),
 				resources:        apiGatewayResources,
 				metric: &model.Metric{
 					MetricName: "5xx",
@@ -66,7 +66,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 		{
 			name: "should match API Gateway V2 with ApiId and Stage dimensions",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").ToModelDimensionsRegexp(),
 				resources:        apiGatewayResources,
 				metric: &model.Metric{
 					MetricName: "5xx",
@@ -83,7 +83,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 		{
 			name: "should match API Gateway V1 with ApiName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").ToModelDimensionsRegexp(),
 				resources:        apiGatewayResources,
 				metric: &model.Metric{
 					MetricName: "5xx",
@@ -99,7 +99,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 		{
 			name: "should match API Gateway V1 with ApiName and Stage dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").ToModelDimensionsRegexp(),
 				resources:        apiGatewayResources,
 				metric: &model.Metric{
 					MetricName: "5xx",
@@ -114,9 +114,9 @@ func TestAssociatorAPIGateway(t *testing.T) {
 			expectedResource: apiGatewayV1Stage,
 		},
 		{
-			name: "no match",
+			name: "should match API Gateway V1 with ApiName (Stage is not matched)",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ApiGateway").ToModelDimensionsRegexp(),
 				resources:        apiGatewayResources,
 				metric: &model.Metric{
 					MetricName: "5xx",
@@ -127,13 +127,14 @@ func TestAssociatorAPIGateway(t *testing.T) {
 					},
 				},
 			},
-			expectedSkip: true,
+			expectedSkip:     false,
+			expectedResource: apiGatewayV1,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -13,9 +12,7 @@ import (
 func runStaticJob(
 	ctx context.Context,
 	logger logging.Logger,
-	resource *config.Static,
-	region string,
-	accountID string,
+	resource model.StaticJob,
 	clientCloudwatch cloudwatch.Client,
 ) []*model.CloudwatchData {
 	cw := []*model.CloudwatchData{}
@@ -36,10 +33,7 @@ func runStaticJob(
 				Statistics:             metric.Statistics,
 				NilToZero:              metric.NilToZero,
 				AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-				CustomTags:             resource.CustomTags,
 				Dimensions:             createStaticDimensions(resource.Dimensions),
-				Region:                 &region,
-				AccountID:              &accountID,
 			}
 
 			data.Points = clientCloudwatch.GetMetricStatistics(ctx, logger, data.Dimensions, resource.Namespace, metric)
@@ -55,7 +49,7 @@ func runStaticJob(
 	return cw
 }
 
-func createStaticDimensions(dimensions []config.Dimension) []*model.Dimension {
+func createStaticDimensions(dimensions []model.Dimension) []*model.Dimension {
 	out := make([]*model.Dimension, 0, len(dimensions))
 	for _, d := range dimensions {
 		d := d

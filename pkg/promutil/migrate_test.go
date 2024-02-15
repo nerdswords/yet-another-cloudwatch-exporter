@@ -1,6 +1,7 @@
 package promutil
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -14,26 +15,30 @@ import (
 func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	type testCase struct {
 		name                 string
-		resources            []*model.TaggedResource
+		resources            []model.TaggedResourceResult
 		metrics              []*PrometheusMetric
 		observedMetricLabels map[string]model.LabelSet
 		labelsSnakeCase      bool
 		expectedMetrics      []*PrometheusMetric
 		expectedLabels       map[string]model.LabelSet
 	}
-
 	testCases := []testCase{
 		{
 			name: "metric with tag",
-			resources: []*model.TaggedResource{
+			resources: []model.TaggedResourceResult{
 				{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
+					Context: nil,
+					Data: []*model.TaggedResource{
 						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
+							},
 						},
 					},
 				},
@@ -60,15 +65,20 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "label snake case",
-			resources: []*model.TaggedResource{
+			resources: []model.TaggedResourceResult{
 				{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
+					Context: nil,
+					Data: []*model.TaggedResource{
 						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
+							},
 						},
 					},
 				},
@@ -95,15 +105,20 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 		},
 		{
 			name: "with observed metrics and labels",
-			resources: []*model.TaggedResource{
+			resources: []model.TaggedResourceResult{
 				{
-					ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					Namespace: "AWS/ElastiCache",
-					Region:    "us-east-1",
-					Tags: []model.Tag{
+					Context: nil,
+					Data: []*model.TaggedResource{
 						{
-							Key:   "CustomTag",
-							Value: "tag_Value",
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "CustomTag",
+									Value: "tag_Value",
+								},
+							},
 						},
 					},
 				},
@@ -154,6 +169,59 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "context on info metrics",
+			resources: []model.TaggedResourceResult{
+				{
+					Context: &model.ScrapeContext{
+						Region:    "us-east-2",
+						AccountID: "12345",
+						CustomTags: []model.Tag{{
+							Key:   "billable-to",
+							Value: "api",
+						}},
+					},
+					Data: []*model.TaggedResource{
+						{
+							ARN:       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+							Namespace: "AWS/ElastiCache",
+							Region:    "us-east-1",
+							Tags: []model.Tag{
+								{
+									Key:   "cache_name",
+									Value: "cache_instance_1",
+								},
+							},
+						},
+					},
+				},
+			},
+			metrics:              []*PrometheusMetric{},
+			observedMetricLabels: map[string]model.LabelSet{},
+			labelsSnakeCase:      true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name: aws.String("aws_elasticache_info"),
+					Labels: map[string]string{
+						"name":                   "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"tag_cache_name":         "cache_instance_1",
+						"account_id":             "12345",
+						"region":                 "us-east-2",
+						"custom_tag_billable_to": "api",
+					},
+					Value: aws.Float64(0),
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_info": map[string]struct{}{
+					"name":                   {},
+					"tag_cache_name":         {},
+					"account_id":             {},
+					"region":                 {},
+					"custom_tag_billable_to": {},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -166,11 +234,11 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 }
 
 func TestBuildMetrics(t *testing.T) {
-	ts := time.Now()
+	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	type testCase struct {
 		name            string
-		data            []*model.CloudwatchData
+		data            []model.CloudwatchMetricResult
 		labelsSnakeCase bool
 		expectedMetrics []*PrometheusMetric
 		expectedLabels  map[string]model.LabelSet
@@ -180,31 +248,117 @@ func TestBuildMetrics(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "metric with non-nil data point",
-			data: []*model.CloudwatchData{
-				{
-					Metric:     aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ElastiCache"),
-					Statistics: []string{"Average"},
-					Dimensions: []*model.Dimension{
-						{
-							Name:  "CacheClusterId",
-							Value: "redis-cluster",
-						},
-					},
-					NilToZero:               aws.Bool(false),
-					GetMetricDataPoint:      aws.Float64(1),
-					GetMetricDataTimestamps: aws.Time(ts),
-					ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
-					Region:                  aws.String("us-east-1"),
-					AccountID:               aws.String("123456789012"),
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
 				},
-			},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("FreeableMemory"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(2),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("NetworkBytesIn"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						AddCloudwatchTimestamp:  aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(3),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("NetworkBytesOut"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						AddCloudwatchTimestamp:  aws.Bool(true),
+						GetMetricDataPoint:      aws.Float64(4),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
 				{
 					Name:      aws.String("aws_elasticache_cpuutilization_average"),
 					Value:     aws.Float64(1),
 					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+				{
+					Name:      aws.String("aws_elasticache_freeable_memory_average"),
+					Value:     aws.Float64(2),
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+				{
+					Name:      aws.String("aws_elasticache_network_bytes_in_average"),
+					Value:     aws.Float64(3),
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+				{
+					Name:             aws.String("aws_elasticache_network_bytes_out_average"),
+					Value:            aws.Float64(4),
+					Timestamp:        ts,
+					IncludeTimestamp: true,
 					Labels: map[string]string{
 						"account_id":               "123456789012",
 						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
@@ -220,30 +374,184 @@ func TestBuildMetrics(t *testing.T) {
 					"region":                   {},
 					"dimension_CacheClusterId": {},
 				},
+				"aws_elasticache_freeable_memory_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
+				"aws_elasticache_network_bytes_in_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
+				"aws_elasticache_network_bytes_out_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "metrics with nil data points",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						GetMetricDataPoint:      nil,
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("FreeableMemory"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      nil,
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("NetworkBytesIn"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						AddCloudwatchTimestamp:  aws.Bool(false),
+						GetMetricDataPoint:      nil,
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+					{
+						Metric:     aws.String("NetworkBytesOut"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(true),
+						AddCloudwatchTimestamp:  aws.Bool(true),
+						GetMetricDataPoint:      nil,
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
+			labelsSnakeCase: false,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Value:     aws.Float64(0),
+					Timestamp: time.Time{},
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+				{
+					Name:      aws.String("aws_elasticache_freeable_memory_average"),
+					Value:     aws.Float64(math.NaN()),
+					Timestamp: time.Time{},
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+				{
+					Name:      aws.String("aws_elasticache_network_bytes_in_average"),
+					Value:     aws.Float64(0),
+					Timestamp: time.Time{},
+					Labels: map[string]string{
+						"account_id":               "123456789012",
+						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                   "us-east-1",
+						"dimension_CacheClusterId": "redis-cluster",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_cpuutilization_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
+				"aws_elasticache_freeable_memory_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
+				"aws_elasticache_network_bytes_in_average": {
+					"account_id":               {},
+					"name":                     {},
+					"region":                   {},
+					"dimension_CacheClusterId": {},
+				},
 			},
 			expectedErr: nil,
 		},
 		{
 			name: "label snake case",
-			data: []*model.CloudwatchData{
-				{
-					Metric:     aws.String("CPUUtilization"),
-					Namespace:  aws.String("AWS/ElastiCache"),
-					Statistics: []string{"Average"},
-					Dimensions: []*model.Dimension{
-						{
-							Name:  "CacheClusterId",
-							Value: "redis-cluster",
-						},
-					},
-					NilToZero:               aws.Bool(false),
-					GetMetricDataPoint:      aws.Float64(1),
-					GetMetricDataTimestamps: aws.Time(ts),
-					ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
-					Region:                  aws.String("us-east-1"),
-					AccountID:               aws.String("123456789012"),
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
 				},
-			},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
@@ -268,6 +576,61 @@ func TestBuildMetrics(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			name: "custom tag",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:    "us-east-1",
+					AccountID: "123456789012",
+					CustomTags: []model.Tag{{
+						Key:   "billable-to",
+						Value: "api",
+					}},
+				},
+				Data: []*model.CloudwatchData{
+					{
+						Metric:     aws.String("CPUUtilization"),
+						Namespace:  aws.String("AWS/ElastiCache"),
+						Statistics: []string{"Average"},
+						Dimensions: []*model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						NilToZero:               aws.Bool(false),
+						GetMetricDataPoint:      aws.Float64(1),
+						GetMetricDataTimestamps: ts,
+						ID:                      aws.String("arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster"),
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Value:     aws.Float64(1),
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":                 "123456789012",
+						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                     "us-east-1",
+						"dimension_cache_cluster_id": "redis-cluster",
+						"custom_tag_billable_to":     "api",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_cpuutilization_average": {
+					"account_id":                 {},
+					"name":                       {},
+					"region":                     {},
+					"dimension_cache_cluster_id": {},
+					"custom_tag_billable_to":     {},
+				},
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -277,27 +640,40 @@ func TestBuildMetrics(t *testing.T) {
 				require.Equal(t, tc.expectedErr, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tc.expectedMetrics, res)
+				require.Equal(t, replaceNaNValues(tc.expectedMetrics), replaceNaNValues(res))
 				require.Equal(t, tc.expectedLabels, labels)
 			}
 		})
 	}
 }
 
+// replaceNaNValues replaces any NaN floating-point values with a marker value (54321.0)
+// so that require.Equal() can compare them. By default, require.Equal() will fail if any
+// struct values are NaN because NaN != NaN
+func replaceNaNValues(metrics []*PrometheusMetric) []*PrometheusMetric {
+	for _, metric := range metrics {
+		if metric.Value != nil && math.IsNaN(*metric.Value) {
+			metric.Value = aws.Float64(54321.0)
+		}
+	}
+	return metrics
+}
+
 // TestSortByTimeStamp validates that sortByTimestamp() sorts in descending order.
 func TestSortByTimeStamp(t *testing.T) {
+	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 	dataPointMiddle := &model.Datapoint{
-		Timestamp: aws.Time(time.Now().Add(time.Minute * 2 * -1)),
+		Timestamp: aws.Time(ts.Add(time.Minute * 2 * -1)),
 		Maximum:   aws.Float64(2),
 	}
 
 	dataPointNewest := &model.Datapoint{
-		Timestamp: aws.Time(time.Now().Add(time.Minute * -1)),
+		Timestamp: aws.Time(ts.Add(time.Minute * -1)),
 		Maximum:   aws.Float64(1),
 	}
 
 	dataPointOldest := &model.Datapoint{
-		Timestamp: aws.Time(time.Now().Add(time.Minute * 3 * -1)),
+		Timestamp: aws.Time(ts.Add(time.Minute * 3 * -1)),
 		Maximum:   aws.Float64(3),
 	}
 

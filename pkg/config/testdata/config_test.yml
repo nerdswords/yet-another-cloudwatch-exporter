@@ -101,6 +101,15 @@ discovery:
         - Sum
         period: 60
         length: 300
+  - type: kms
+    regions:
+      - eu-west-1
+    metrics:
+      - name: SecondsUntilKeyMaterialExpiration
+        statistics:
+          - Minimum
+        period: 60
+        length: 300
   - type: s3
     regions:
       - eu-west-1

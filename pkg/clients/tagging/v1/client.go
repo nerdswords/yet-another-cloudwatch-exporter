@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -27,8 +25,6 @@ type client struct {
 	logger            logging.Logger
 	taggingAPI        resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	autoscalingAPI    autoscalingiface.AutoScalingAPI
-	apiGatewayAPI     apigatewayiface.APIGatewayAPI
-	apiGatewayV2API   apigatewayv2iface.ApiGatewayV2API
 	ec2API            ec2iface.EC2API
 	dmsAPI            databasemigrationserviceiface.DatabaseMigrationServiceAPI
 	prometheusSvcAPI  prometheusserviceiface.PrometheusServiceAPI
@@ -40,8 +36,6 @@ func NewClient(
 	logger logging.Logger,
 	taggingAPI resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI,
 	autoscalingAPI autoscalingiface.AutoScalingAPI,
-	apiGatewayAPI apigatewayiface.APIGatewayAPI,
-	apiGatewayV2API apigatewayv2iface.ApiGatewayV2API,
 	ec2API ec2iface.EC2API,
 	dmsClient databasemigrationserviceiface.DatabaseMigrationServiceAPI,
 	prometheusClient prometheusserviceiface.PrometheusServiceAPI,
@@ -52,8 +46,6 @@ func NewClient(
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
-		apiGatewayAPI:     apiGatewayAPI,
-		apiGatewayV2API:   apiGatewayV2API,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
@@ -62,16 +54,34 @@ func NewClient(
 	}
 }
 
-func (c client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false
 
 	if len(svc.ResourceFilters) > 0 {
 		shouldHaveDiscoveredResources = true
+
+		var tagFilters []*resourcegroupstaggingapi.TagFilter
+		if len(job.SearchTags) > 0 {
+			for i := range job.SearchTags {
+				// Because everything with the AWS APIs is pointers we need a pointer to the `Key` field from the SearchTag.
+				// We can't take a pointer to any fields from loop variable or the pointer will always be the same and this logic will be broken.
+				st := job.SearchTags[i]
+
+				// AWS's GetResources has a TagFilter option which matches the semantics of our SearchTags where all filters must match
+				// Their value matching implementation is different though so instead of mapping the Key and Value we only map the Keys.
+				// Their API docs say, "If you don't specify a value for a key, the response returns all resources that are tagged with that key, with any or no value."
+				// which makes this a safe way to reduce the amount of data we need to filter out.
+				// https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html#resourcegrouptagging-GetResources-request-TagFilters
+				tagFilters = append(tagFilters, &resourcegroupstaggingapi.TagFilter{Key: &st.Key})
+			}
+		}
+
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: svc.ResourceFilters,
 			ResourcesPerPage:    aws.Int64(100), // max allowed value according to API docs
+			TagFilters:          tagFilters,
 		}
 		pageNum := 0
 

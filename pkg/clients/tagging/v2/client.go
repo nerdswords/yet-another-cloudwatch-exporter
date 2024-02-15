@@ -6,12 +6,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
 
@@ -26,8 +25,6 @@ type client struct {
 	logger            logging.Logger
 	taggingAPI        *resourcegroupstaggingapi.Client
 	autoscalingAPI    *autoscaling.Client
-	apiGatewayAPI     *apigateway.Client
-	apiGatewayV2API   *apigatewayv2.Client
 	ec2API            *ec2.Client
 	dmsAPI            *databasemigrationservice.Client
 	prometheusSvcAPI  *amp.Client
@@ -39,8 +36,6 @@ func NewClient(
 	logger logging.Logger,
 	taggingAPI *resourcegroupstaggingapi.Client,
 	autoscalingAPI *autoscaling.Client,
-	apiGatewayAPI *apigateway.Client,
-	apiGatewayV2API *apigatewayv2.Client,
 	ec2API *ec2.Client,
 	dmsClient *databasemigrationservice.Client,
 	prometheusClient *amp.Client,
@@ -51,8 +46,6 @@ func NewClient(
 		logger:            logger,
 		taggingAPI:        taggingAPI,
 		autoscalingAPI:    autoscalingAPI,
-		apiGatewayAPI:     apiGatewayAPI,
-		apiGatewayV2API:   apiGatewayV2API,
 		ec2API:            ec2API,
 		dmsAPI:            dmsClient,
 		prometheusSvcAPI:  prometheusClient,
@@ -61,7 +54,7 @@ func NewClient(
 	}
 }
 
-func (c client) GetResources(ctx context.Context, job *config.Job, region string) ([]*model.TaggedResource, error) {
+func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Type)
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false
@@ -72,9 +65,25 @@ func (c client) GetResources(ctx context.Context, job *config.Job, region string
 		for _, filter := range svc.ResourceFilters {
 			filters = append(filters, *filter)
 		}
+		var tagFilters []types.TagFilter
+		if len(job.SearchTags) > 0 {
+			for i := range job.SearchTags {
+				// Because everything with the AWS APIs is pointers we need a pointer to the `Key` field from the SearchTag.
+				// We can't take a pointer to any fields from loop variable or the pointer will always be the same and this logic will be broken.
+				st := job.SearchTags[i]
+
+				// AWS's GetResources has a TagFilter option which matches the semantics of our SearchTags where all filters must match
+				// Their value matching implementation is different though so instead of mapping the Key and Value we only map the Keys.
+				// Their API docs say, "If you don't specify a value for a key, the response returns all resources that are tagged with that key, with any or no value."
+				// which makes this a safe way to reduce the amount of data we need to filter out.
+				// https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/API_GetResources.html#resourcegrouptagging-GetResources-request-TagFilters
+				tagFilters = append(tagFilters, types.TagFilter{Key: &st.Key})
+			}
+		}
 		inputparams := &resourcegroupstaggingapi.GetResourcesInput{
 			ResourceTypeFilters: filters,
 			ResourcesPerPage:    aws.Int32(int32(100)), // max allowed value according to API docs
+			TagFilters:          tagFilters,
 		}
 
 		paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(c.taggingAPI, inputparams, func(options *resourcegroupstaggingapi.GetResourcesPaginatorOptions) {

@@ -3,28 +3,23 @@ package v1
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/shield"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
-	"github.com/grafana/regexp"
 
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
 type ServiceFilter struct {
 	// ResourceFunc can be used to fetch additional resources
-	ResourceFunc func(context.Context, client, *config.Job, string) ([]*model.TaggedResource, error)
+	ResourceFunc func(context.Context, client, model.DiscoveryJob, string) ([]*model.TaggedResource, error)
 
 	// FilterFunc can be used to the input resources or to drop based on some condition
 	FilterFunc func(context.Context, client, []*model.TaggedResource) ([]*model.TaggedResource, error)
@@ -32,63 +27,12 @@ type ServiceFilter struct {
 
 // ServiceFilters maps a service namespace to (optional) ServiceFilter
 var ServiceFilters = map[string]ServiceFilter{
-	"AWS/ApiGateway": {
-		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
-			promutil.APIGatewayAPICounter.Inc()
-			const maxPages = 10
-
-			var (
-				limit           int64 = 500 // max number of results per page. default=25, max=500
-				input                 = apigateway.GetRestApisInput{Limit: &limit}
-				output                = apigateway.GetRestApisOutput{}
-				pageNum         int
-				outputResources []*model.TaggedResource
-			)
-
-			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, lastPage bool) bool {
-				promutil.APIGatewayAPICounter.Inc()
-				pageNum++
-				output.Items = append(output.Items, page.Items...)
-				return pageNum <= maxPages
-			})
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
-			}
-			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
-			promutil.APIGatewayAPIV2Counter.Inc()
-			if err != nil {
-				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
-			}
-
-			for _, resource := range inputResources {
-				for i, gw := range output.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*restapis/%s$", *gw.Id))
-					if searchString.MatchString(resource.ARN) {
-						r := resource
-						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
-						outputResources = append(outputResources, r)
-						output.Items = append(output.Items[:i], output.Items[i+1:]...)
-						break
-					}
-				}
-				for i, gw := range outputV2.Items {
-					searchString := regexp.MustCompile(fmt.Sprintf(".*apis/%s$", *gw.ApiId))
-					if searchString.MatchString(resource.ARN) {
-						outputResources = append(outputResources, resource)
-						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
-						break
-					}
-				}
-			}
-			return outputResources, nil
-		},
-	},
 	"AWS/AutoScaling": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.autoscalingAPI.DescribeAutoScalingGroupsPagesWithContext(ctx, &autoscaling.DescribeAutoScalingGroupsInput{},
-				func(page *autoscaling.DescribeAutoScalingGroupsOutput, more bool) bool {
+				func(page *autoscaling.DescribeAutoScalingGroupsOutput, _ bool) bool {
 					pageNum++
 					promutil.AutoScalingAPICounter.Inc()
 
@@ -126,7 +70,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			replicationInstanceIdentifiers := make(map[string]string)
 			pageNum := 0
 			if err := client.dmsAPI.DescribeReplicationInstancesPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationInstancesOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -141,7 +85,7 @@ var ServiceFilters = map[string]ServiceFilter{
 			}
 			pageNum = 0
 			if err := client.dmsAPI.DescribeReplicationTasksPagesWithContext(ctx, nil,
-				func(page *databasemigrationservice.DescribeReplicationTasksOutput, lastPage bool) bool {
+				func(page *databasemigrationservice.DescribeReplicationTasksOutput, _ bool) bool {
 					pageNum++
 					promutil.DmsAPICounter.Inc()
 
@@ -171,11 +115,11 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/EC2Spot": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeSpotFleetRequestsPagesWithContext(ctx, &ec2.DescribeSpotFleetRequestsInput{},
-				func(page *ec2.DescribeSpotFleetRequestsOutput, more bool) bool {
+				func(page *ec2.DescribeSpotFleetRequestsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -204,11 +148,11 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/Prometheus": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.prometheusSvcAPI.ListWorkspacesPagesWithContext(ctx, &prometheusservice.ListWorkspacesInput{},
-				func(page *prometheusservice.ListWorkspacesOutput, more bool) bool {
+				func(page *prometheusservice.ListWorkspacesOutput, _ bool) bool {
 					pageNum++
 					promutil.ManagedPrometheusAPICounter.Inc()
 
@@ -237,11 +181,11 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/StorageGateway": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.storageGatewayAPI.ListGatewaysPagesWithContext(ctx, &storagegateway.ListGatewaysInput{},
-				func(page *storagegateway.ListGatewaysOutput, more bool) bool {
+				func(page *storagegateway.ListGatewaysOutput, _ bool) bool {
 					pageNum++
 					promutil.StoragegatewayAPICounter.Inc()
 
@@ -277,11 +221,11 @@ var ServiceFilters = map[string]ServiceFilter{
 		},
 	},
 	"AWS/TransitGateway": {
-		ResourceFunc: func(ctx context.Context, client client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0
 			var resources []*model.TaggedResource
 			err := client.ec2API.DescribeTransitGatewayAttachmentsPagesWithContext(ctx, &ec2.DescribeTransitGatewayAttachmentsInput{},
-				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, more bool) bool {
+				func(page *ec2.DescribeTransitGatewayAttachmentsOutput, _ bool) bool {
 					pageNum++
 					promutil.Ec2APICounter.Inc()
 
@@ -313,12 +257,12 @@ var ServiceFilters = map[string]ServiceFilter{
 		// Resource discovery only targets the protections, protections are global, so they will only be discoverable in us-east-1.
 		// Outside us-east-1 no resources are going to be found. We use the shield.ListProtections API to get the protections +
 		// protected resources to add to the tagged resources. This data is eventually usable for joining with metrics.
-		ResourceFunc: func(ctx context.Context, c client, job *config.Job, region string) ([]*model.TaggedResource, error) {
+		ResourceFunc: func(ctx context.Context, c client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			var output []*model.TaggedResource
 			pageNum := 0
 			// Default page size is only 20 which can easily lead to throttling
 			input := &shield.ListProtectionsInput{MaxResults: aws.Int64(1000)}
-			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, b bool) bool {
+			err := c.shieldAPI.ListProtectionsPagesWithContext(ctx, input, func(page *shield.ListProtectionsOutput, _ bool) bool {
 				promutil.ShieldAPICounter.Inc()
 				for _, protection := range page.Protections {
 					protectedResourceArn := *protection.ResourceArn
@@ -327,7 +271,19 @@ var ServiceFilters = map[string]ServiceFilter{
 					if err != nil {
 						continue
 					}
-					if protectedResource.Region == region {
+
+					// Shield covers regional services,
+					// 		EC2 (arn:aws:ec2:<REGION>:<ACCOUNT_ID>:eip-allocation/*)
+					// 		load balancers (arn:aws:elasticloadbalancing:<REGION>:<ACCOUNT_ID>:loadbalancer:*)
+					// 	where the region of the protectedResource ARN should match the region for the job to prevent
+					// 	duplicating resources across all regions
+					// Shield also covers other global services,
+					// 		global accelerator (arn:aws:globalaccelerator::<ACCOUNT_ID>:accelerator/*)
+					//		route53 (arn:aws:route53:::hostedzone/*)
+					//	where the protectedResource contains no region. Just like other global services the metrics for
+					//	these land in us-east-1 so any protected resource without a region should be added when the job
+					//	is for us-east-1
+					if protectedResource.Region == region || (protectedResource.Region == "" && region == "us-east-1") {
 						taggedResource := &model.TaggedResource{
 							ARN:       protectedResourceArn,
 							Namespace: job.Type,

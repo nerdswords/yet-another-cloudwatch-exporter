@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -33,7 +33,7 @@ var ecsResources = []*model.TaggedResource{
 
 func TestAssociatorECS(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -49,7 +49,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "cluster metric should be assigned cluster resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "MemoryReservation",
@@ -65,7 +65,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "service metric should be assigned service1 resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
@@ -82,7 +82,7 @@ func TestAssociatorECS(t *testing.T) {
 		{
 			name: "service metric should be assigned service2 resource",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/ECS").ToModelDimensionsRegexp(),
 				resources:        ecsResources,
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
@@ -100,7 +100,7 @@ func TestAssociatorECS(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)
