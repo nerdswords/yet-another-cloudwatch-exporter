@@ -3,18 +3,18 @@ module github.com/nerdswords/yet-another-cloudwatch-exporter
 go 1.22.0
 
 require (
-	github.com/aws/aws-sdk-go v1.50.17
+	github.com/aws/aws-sdk-go v1.50.19
 	github.com/aws/aws-sdk-go-v2 v1.25.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.0
 	github.com/aws/aws-sdk-go-v2/service/amp v1.23.0
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.34.0
-	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.36.0
+	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.36.1
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.147.0
-	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.20.0
-	github.com/aws/aws-sdk-go-v2/service/shield v1.24.0
-	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.26.0
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.20.1
+	github.com/aws/aws-sdk-go-v2/service/shield v1.24.1
+	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.26.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.27.0
 	github.com/aws/smithy-go v1.20.0
 	github.com/go-kit/log v0.2.1
