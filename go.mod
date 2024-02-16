@@ -8,8 +8,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.0
 	github.com/aws/aws-sdk-go-v2/service/amp v1.23.0
-	github.com/aws/aws-sdk-go-v2/service/apigateway v1.22.0
-	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.19.0
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.34.0
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.36.0
@@ -22,7 +20,7 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db
 	github.com/prometheus/client_golang v1.18.0
-	github.com/prometheus/common v0.46.0
+	github.com/prometheus/common v0.47.0
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sync v0.6.0
