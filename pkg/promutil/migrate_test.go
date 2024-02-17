@@ -247,7 +247,7 @@ func TestBuildMetrics(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "metric with GetMetricDataResult",
+			name: "metric with GetMetricDataResult and non-nil datapoint",
 			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
@@ -256,14 +256,15 @@ func TestBuildMetrics(t *testing.T) {
 				},
 				Data: []*model.CloudwatchData{
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:      "CPUUtilization",
-							NilToZero: true,
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              true,
+							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 1,
+							Datapoint: aws.Float64(1),
 							Timestamp: ts,
 						},
 						Dimensions: []model.Dimension{
@@ -275,9 +276,10 @@ func TestBuildMetrics(t *testing.T) {
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:      "FreeableMemory",
-							NilToZero: false,
+						MetricName: "FreeableMemory",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
 						Dimensions: []model.Dimension{
@@ -288,14 +290,14 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 2,
+							Datapoint: aws.Float64(2),
 							Timestamp: ts,
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:                   "NetworkBytesIn",
+						MetricName: "NetworkBytesIn",
+						MetricMigrationParams: model.MetricMigrationParams{
 							NilToZero:              true,
 							AddCloudwatchTimestamp: false,
 						},
@@ -308,14 +310,14 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 3,
+							Datapoint: aws.Float64(3),
 							Timestamp: ts,
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:                   "NetworkBytesOut",
+						MetricName: "NetworkBytesOut",
+						MetricMigrationParams: model.MetricMigrationParams{
 							NilToZero:              true,
 							AddCloudwatchTimestamp: true,
 						},
@@ -328,7 +330,7 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 4,
+							Datapoint: aws.Float64(4),
 							Timestamp: ts,
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
@@ -412,7 +414,7 @@ func TestBuildMetrics(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "metrics with no data points",
+			name: "metric with GetMetricDataResult and nil datapoint",
 			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
 					Region:     "us-east-1",
@@ -421,47 +423,8 @@ func TestBuildMetrics(t *testing.T) {
 				},
 				Data: []*model.CloudwatchData{
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:      "CPUUtilization",
-							NilToZero: true,
-						},
-						Namespace: "AWS/ElastiCache",
-						Dimensions: []model.Dimension{
-							{
-								Name:  "CacheClusterId",
-								Value: "redis-cluster",
-							},
-						},
-						GetMetricDataResult: &model.GetMetricDataResult{
-							Statistic: "Average",
-							Datapoint: 0,
-							Timestamp: ts,
-						},
-						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					},
-					{
-						MetricConfig: &model.MetricConfig{
-							Name:      "FreeableMemory",
-							NilToZero: false,
-						},
-						Namespace: "AWS/ElastiCache",
-
-						Dimensions: []model.Dimension{
-							{
-								Name:  "CacheClusterId",
-								Value: "redis-cluster",
-							},
-						},
-						GetMetricDataResult: &model.GetMetricDataResult{
-							Statistic: "Average",
-							Datapoint: 0,
-							Timestamp: ts,
-						},
-						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-					},
-					{
-						MetricConfig: &model.MetricConfig{
-							Name:                   "NetworkBytesIn",
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
 							NilToZero:              true,
 							AddCloudwatchTimestamp: false,
 						},
@@ -474,14 +437,55 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 0,
+							Datapoint: nil,
 							Timestamp: ts,
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 					},
 					{
-						MetricConfig: &model.MetricConfig{
-							Name:                   "NetworkBytesOut",
+						MetricName: "FreeableMemory",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "AWS/ElastiCache",
+
+						Dimensions: []model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: nil,
+							Timestamp: ts,
+						},
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+					},
+					{
+						MetricName: "NetworkBytesIn",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              true,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "AWS/ElastiCache",
+						Dimensions: []model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: nil,
+							Timestamp: ts,
+						},
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+					},
+					{
+						MetricName: "NetworkBytesOut",
+						MetricMigrationParams: model.MetricMigrationParams{
 							NilToZero:              true,
 							AddCloudwatchTimestamp: true,
 						},
@@ -494,7 +498,7 @@ func TestBuildMetrics(t *testing.T) {
 						},
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 0,
+							Datapoint: nil,
 							Timestamp: ts,
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
@@ -506,35 +510,38 @@ func TestBuildMetrics(t *testing.T) {
 				{
 					Name:      aws.String("aws_elasticache_cpuutilization_average"),
 					Value:     0,
-					Timestamp: time.Time{},
+					Timestamp: ts,
 					Labels: map[string]string{
 						"account_id":               "123456789012",
 						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"region":                   "us-east-1",
 						"dimension_CacheClusterId": "redis-cluster",
 					},
+					IncludeTimestamp: false,
 				},
 				{
 					Name:      aws.String("aws_elasticache_freeable_memory_average"),
 					Value:     math.NaN(),
-					Timestamp: time.Time{},
+					Timestamp: ts,
 					Labels: map[string]string{
 						"account_id":               "123456789012",
 						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"region":                   "us-east-1",
 						"dimension_CacheClusterId": "redis-cluster",
 					},
+					IncludeTimestamp: false,
 				},
 				{
 					Name:      aws.String("aws_elasticache_network_bytes_in_average"),
 					Value:     0,
-					Timestamp: time.Time{},
+					Timestamp: ts,
 					Labels: map[string]string{
 						"account_id":               "123456789012",
 						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"region":                   "us-east-1",
 						"dimension_CacheClusterId": "redis-cluster",
 					},
+					IncludeTimestamp: false,
 				},
 			},
 			expectedLabels: map[string]model.LabelSet{
@@ -569,10 +576,15 @@ func TestBuildMetrics(t *testing.T) {
 				},
 				Data: []*model.CloudwatchData{
 					{
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
 						Namespace: "AWS/ElastiCache",
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 1,
+							Datapoint: aws.Float64(1),
 							Timestamp: ts,
 						},
 						Dimensions: []model.Dimension{
@@ -582,10 +594,6 @@ func TestBuildMetrics(t *testing.T) {
 							},
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						MetricConfig: &model.MetricConfig{
-							NilToZero: false,
-							Name:      "CPUUtilization",
-						},
 					},
 				},
 			}},
@@ -626,10 +634,15 @@ func TestBuildMetrics(t *testing.T) {
 				},
 				Data: []*model.CloudwatchData{
 					{
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
 						Namespace: "AWS/ElastiCache",
 						GetMetricDataResult: &model.GetMetricDataResult{
 							Statistic: "Average",
-							Datapoint: 1,
+							Datapoint: aws.Float64(1),
 							Timestamp: ts,
 						},
 						Dimensions: []model.Dimension{
@@ -639,10 +652,6 @@ func TestBuildMetrics(t *testing.T) {
 							},
 						},
 						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						MetricConfig: &model.MetricConfig{
-							NilToZero: false,
-							Name:      "CPUUtilization",
-						},
 					},
 				},
 			}},

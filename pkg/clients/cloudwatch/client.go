@@ -43,8 +43,9 @@ type ConcurrencyLimiter interface {
 }
 
 type MetricDataResult struct {
-	ID        string
-	Datapoint float64
+	ID string
+	// A nil datapoint is a marker for no datapoint being found
+	Datapoint *float64
 	Timestamp time.Time
 }
 

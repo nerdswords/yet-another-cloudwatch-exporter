@@ -154,6 +154,7 @@ type ScrapeContext struct {
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
+	MetricName string
 	// ResourceName will have different values depending on the job type
 	// DiscoveryJob = Resource ARN associated with the metric or global when it could not be associated but shouldn't be dropped
 	// StaticJob = Resource Name from static job config
@@ -162,26 +163,46 @@ type CloudwatchData struct {
 	Namespace    string
 	Tags         []Tag
 	Dimensions   []Dimension
-	MetricConfig *MetricConfig
+	// GetMetricDataProcessingParams includes necessary fields to run GetMetricData
+	GetMetricDataProcessingParams *GetMetricDataProcessingParams
+
+	// MetricMigrationParams holds configuration values necessary when migrating the resulting metrics
+	MetricMigrationParams MetricMigrationParams
+
 	// GetMetricsDataResult is an optional field and will be non-nil when metric data was populated from the GetMetricsData API (Discovery and CustomNamespace jobs)
 	GetMetricDataResult *GetMetricDataResult
+
 	// GetMetricStatisticsResult is an optional field and will be non-nil when metric data was populated from the GetMetricStatistics API (static jobs)
-	GetMetricStatisticsResult *GetMetricStatisticResult
+	GetMetricStatisticsResult *GetMetricStatisticsResult
 }
 
-type GetMetricStatisticResult struct {
+type GetMetricStatisticsResult struct {
 	Datapoints []*Datapoint
+	Statistics []string
+}
+
+type GetMetricDataProcessingParams struct {
+	// QueryID is the query ID for GetMetricData used in results mapping
+	QueryID string
+
+	// The statistic to be used to call GetMetricData
+	Statistic string
+
+	// Fields which impact the start and endtime for
+	Period int64
+	Length int64
+	Delay  int64
+}
+
+type MetricMigrationParams struct {
+	NilToZero              bool
+	AddCloudwatchTimestamp bool
 }
 
 type GetMetricDataResult struct {
-	// GetMetricData Query ID used for results mapping
-	ID string
-	// Indicates if this result was successfully mapped to a query result, only used during metric gathering
-	// and does not need to be respected afterward
-	MappedToAQueryResult bool
-	Statistic            string
-	Datapoint            float64
-	Timestamp            time.Time
+	Statistic string
+	Datapoint *float64
+	Timestamp time.Time
 }
 
 // TaggedResource is an AWS resource with tags

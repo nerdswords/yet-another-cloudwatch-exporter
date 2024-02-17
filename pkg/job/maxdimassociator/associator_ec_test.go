@@ -48,7 +48,7 @@ func TestAssociatorEC(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "TotalCmdsCount",
 					Namespace:  "AWS/ElastiCache",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "clusterId", Value: "test-serverless-cluster"},
 					},
 				},
@@ -64,7 +64,7 @@ func TestAssociatorEC(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "EngineCPUUtilization",
 					Namespace:  "AWS/ElastiCache",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "CacheClusterId", Value: "test-cluster-0001-001"},
 					},
 				},
@@ -80,7 +80,7 @@ func TestAssociatorEC(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "EngineCPUUtilization",
 					Namespace:  "AWS/ElastiCache",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "CacheClusterId", Value: "test-cluster-0001-002"},
 					},
 				},
@@ -96,7 +96,7 @@ func TestAssociatorEC(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "TotalCmdsCount",
 					Namespace:  "AWS/ElastiCache",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "clusterId", Value: "test-unmatched-serverless-cluster"},
 					},
 				},

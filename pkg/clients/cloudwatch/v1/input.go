@@ -18,20 +18,20 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 	metricsDataQuery := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
 	roundingPeriod := model.DefaultPeriodSeconds
 	for _, data := range getMetricData {
-		if data.MetricConfig.Period < roundingPeriod {
-			roundingPeriod = data.MetricConfig.Period
+		if data.GetMetricDataProcessingParams.Period < roundingPeriod {
+			roundingPeriod = data.GetMetricDataProcessingParams.Period
 		}
 		metricStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: toCloudWatchDimensions(data.Dimensions),
-				MetricName: &data.MetricConfig.Name,
+				MetricName: &data.MetricName,
 				Namespace:  namespace,
 			},
-			Period: &data.MetricConfig.Period,
+			Period: &data.GetMetricDataProcessingParams.Period,
 			Stat:   &data.GetMetricDataResult.Statistic,
 		}
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
-			Id:         &data.GetMetricDataResult.ID,
+			Id:         &data.GetMetricDataProcessingParams.QueryID,
 			MetricStat: metricStat,
 			ReturnData: aws.Bool(true),
 		})

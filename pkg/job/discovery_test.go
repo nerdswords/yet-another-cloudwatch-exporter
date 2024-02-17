@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -88,6 +89,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
+					MetricName: "StorageBytes",
 					Dimensions: []model.Dimension{
 						{
 							Name:  "FileSystemId",
@@ -98,9 +100,8 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "Standard",
 						},
 					},
-					ResourceName:        "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
-					Namespace:           "efs",
-					GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Average"},
+					ResourceName: "arn:aws:elasticfilesystem:us-east-1:123123123123:file-system/fs-abc123",
+					Namespace:    "efs",
 					Tags: []model.Tag{
 						{
 							Key:   "Value1",
@@ -111,14 +112,14 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "",
 						},
 					},
-					MetricConfig: &model.MetricConfig{
-						Name: "StorageBytes",
-						Statistics: []string{
-							"Average",
-						},
-						Period:                 60,
-						Length:                 600,
-						Delay:                  120,
+					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+						QueryID:   "asdf",
+						Period:    60,
+						Length:    600,
+						Delay:     120,
+						Statistic: "Average",
+					},
+					MetricMigrationParams: model.MetricMigrationParams{
 						NilToZero:              false,
 						AddCloudwatchTimestamp: false,
 					},
@@ -176,15 +177,15 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
+					MetricName:   "CPUUtilization",
+					ResourceName: "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
+					Namespace:    "ec2",
 					Dimensions: []model.Dimension{
 						{
 							Name:  "InstanceId",
 							Value: "i-12312312312312312",
 						},
 					},
-					ResourceName:        "arn:aws:ec2:us-east-1:123123123123:instance/i-12312312312312312",
-					Namespace:           "ec2",
-					GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Average"},
 					Tags: []model.Tag{
 						{
 							Key:   "Value1",
@@ -195,14 +196,13 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "",
 						},
 					},
-					MetricConfig: &model.MetricConfig{
-						Name: "CPUUtilization",
-						Statistics: []string{
-							"Average",
-						},
-						Period:                 60,
-						Length:                 600,
-						Delay:                  120,
+					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+						Statistic: "Average",
+						Period:    60,
+						Length:    600,
+						Delay:     120,
+					},
+					MetricMigrationParams: model.MetricMigrationParams{
 						NilToZero:              false,
 						AddCloudwatchTimestamp: false,
 					},
@@ -260,15 +260,15 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
+					MetricName: "GlobalTopicCount",
 					Dimensions: []model.Dimension{
 						{
 							Name:  "Cluster Name",
 							Value: "demo-cluster-1",
 						},
 					},
-					ResourceName:        "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
-					Namespace:           "kafka",
-					GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Average"},
+					ResourceName: "arn:aws:kafka:us-east-1:123123123123:cluster/demo-cluster-1/12312312-1231-1231-1231-123123123123-12",
+					Namespace:    "kafka",
 					Tags: []model.Tag{
 						{
 							Key:   "Value1",
@@ -279,14 +279,14 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "",
 						},
 					},
-					MetricConfig: &model.MetricConfig{
-						Name: "GlobalTopicCount",
-						Statistics: []string{
-							"Average",
-						},
-						Period:                 60,
-						Length:                 600,
-						Delay:                  120,
+					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+						QueryID:   "asdf",
+						Statistic: "Average",
+						Period:    60,
+						Length:    600,
+						Delay:     120,
+					},
+					MetricMigrationParams: model.MetricMigrationParams{
 						NilToZero:              false,
 						AddCloudwatchTimestamp: false,
 					},
@@ -388,6 +388,7 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			},
 			[]model.CloudwatchData{
 				{
+					MetricName: "RequestCount",
 					Dimensions: []model.Dimension{
 						{
 							Name:  "LoadBalancer",
@@ -398,18 +399,16 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 							Value: "targetgroup/some-ALB/9999666677773333",
 						},
 					},
-					ResourceName:        "arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345",
-					Namespace:           "alb",
-					GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Sum"},
-					Tags:                []model.Tag{},
-					MetricConfig: &model.MetricConfig{
-						Name: "RequestCount",
-						Statistics: []string{
-							"Sum",
-						},
-						Period:                 60,
-						Length:                 600,
-						Delay:                  120,
+					ResourceName: "arn:aws:elasticloadbalancing:us-east-1:123123123123:loadbalancer/app/some-ALB/0123456789012345",
+					Namespace:    "alb",
+					Tags:         []model.Tag{},
+					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+						Statistic: "Sum",
+						Period:    60,
+						Length:    600,
+						Delay:     120,
+					},
+					MetricMigrationParams: model.MetricMigrationParams{
 						NilToZero:              false,
 						AddCloudwatchTimestamp: false,
 					},
@@ -426,12 +425,19 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 			}
 			for i, got := range metricDatas {
 				want := tt.wantGetMetricsData[i]
+				assert.Equal(t, want.MetricName, got.MetricName)
 				assert.Equal(t, want.ResourceName, got.ResourceName)
 				assert.Equal(t, want.Namespace, got.Namespace)
 				assert.ElementsMatch(t, want.Dimensions, got.Dimensions)
-				assert.Equal(t, want.GetMetricDataResult.Statistic, got.GetMetricDataResult.Statistic)
 				assert.ElementsMatch(t, want.Tags, got.Tags)
-				assert.Equal(t, want.MetricConfig, got.MetricConfig)
+				assert.Equal(t, want.MetricMigrationParams, got.MetricMigrationParams)
+				assert.NotEmpty(t, got.GetMetricDataProcessingParams.QueryID)
+				assert.Equal(t, want.GetMetricDataProcessingParams.Statistic, got.GetMetricDataProcessingParams.Statistic)
+				assert.Equal(t, want.GetMetricDataProcessingParams.Length, got.GetMetricDataProcessingParams.Length)
+				assert.Equal(t, want.GetMetricDataProcessingParams.Period, got.GetMetricDataProcessingParams.Period)
+				assert.Equal(t, want.GetMetricDataProcessingParams.Delay, got.GetMetricDataProcessingParams.Delay)
+				assert.Nil(t, got.GetMetricDataResult)
+				assert.Nil(t, got.GetMetricStatisticsResult)
 			}
 		})
 	}
@@ -452,66 +458,58 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-3", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC)},
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-3", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 					{
-						{ID: "metric-4", Datapoint: 20, Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC)},
+						{ID: "metric-4", Datapoint: aws.Float64(20), Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC)},
 					},
 					{
-						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(12), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-2"}, MetricConfig: &model.MetricConfig{Name: "MetricTwo"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-3"}, MetricConfig: &model.MetricConfig{Name: "MetricThree"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-4"}, MetricConfig: &model.MetricConfig{Name: "MetricFour"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-2", Statistic: "Max"}, MetricName: "MetricTwo", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-3", Statistic: "Sum"}, MetricName: "MetricThree", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-4", Statistic: "Count"}, MetricName: "MetricFour", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricTwo"},
-					Namespace:    "svc",
+					MetricName: "MetricTwo",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-2",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            12,
-						Timestamp:            time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
+						Statistic: "Max",
+						Datapoint: aws.Float64(12),
+						Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricThree"},
-					Namespace:    "svc",
+					MetricName: "MetricThree",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-3",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            15,
-						Timestamp:            time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC),
+						Statistic: "Sum",
+						Datapoint: aws.Float64(15),
+						Timestamp: time.Date(2023, time.June, 7, 3, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricFour"},
-					Namespace:    "svc",
+					MetricName: "MetricFour",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-4",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            20,
-						Timestamp:            time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC),
+						Statistic: "Count",
+						Datapoint: aws.Float64(20),
+						Timestamp: time.Date(2023, time.June, 7, 4, 9, 8, 0, time.UTC),
 					},
 				},
 			},
@@ -521,24 +519,22 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
-						{ID: "metric-1", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 			},
@@ -548,24 +544,22 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
-						{ID: "metric-2", Datapoint: 15, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(15), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 			},
@@ -575,39 +569,35 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 					nil,
 					{
-						{ID: "metric-2", Datapoint: 12, Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
+						{ID: "metric-2", Datapoint: aws.Float64(12), Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-2"}, MetricConfig: &model.MetricConfig{Name: "MetricTwo"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-2", Statistic: "Max"}, MetricName: "MetricTwo", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricTwo"},
-					Namespace:    "svc",
+					MetricName: "MetricTwo",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-2",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            12,
-						Timestamp:            time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
+						Statistic: "Max",
+						Datapoint: aws.Float64(12),
+						Timestamp: time.Date(2023, time.June, 7, 2, 9, 8, 0, time.UTC),
 					},
 				},
 			},
@@ -617,74 +607,62 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-2"}, MetricConfig: &model.MetricConfig{Name: "MetricTwo"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-2", Statistic: "Max"}, MetricName: "MetricTwo", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricTwo"},
-					Namespace:    "svc",
-					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-2",
-						MappedToAQueryResult: false,
-						Statistic:            "",
-						Datapoint:            0,
-						Timestamp:            time.Time{},
-					},
+					MetricName:          "MetricTwo",
+					Namespace:           "svc",
+					GetMetricDataResult: nil,
 				},
 			},
 		},
 		{
-			"missing metric datapoint",
+			"nil metric datapoint",
 			args{
 				metricDataResults: [][]cloudwatch.MetricDataResult{
 					{
-						{ID: "metric-1", Datapoint: 5, Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
+						{ID: "metric-1", Datapoint: aws.Float64(5), Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC)},
 						{ID: "metric-2"},
 					},
 				},
 				cloudwatchDatas: []*model.CloudwatchData{
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-1"}, MetricConfig: &model.MetricConfig{Name: "MetricOne"}, Namespace: "svc"},
-					{GetMetricDataResult: &model.GetMetricDataResult{ID: "metric-2"}, MetricConfig: &model.MetricConfig{Name: "MetricTwo"}, Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-1", Statistic: "Min"}, MetricName: "MetricOne", Namespace: "svc"},
+					{GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{QueryID: "metric-2", Statistic: "Max"}, MetricName: "MetricTwo", Namespace: "svc"},
 				},
 			},
 			[]*model.CloudwatchData{
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricOne"},
-					Namespace:    "svc",
+					MetricName: "MetricOne",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-1",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            5,
-						Timestamp:            time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
+						Statistic: "Min",
+						Datapoint: aws.Float64(5),
+						Timestamp: time.Date(2023, time.June, 7, 1, 9, 8, 0, time.UTC),
 					},
 				},
 				{
-					MetricConfig: &model.MetricConfig{Name: "MetricTwo"},
-					Namespace:    "svc",
+					MetricName: "MetricTwo",
+					Namespace:  "svc",
 					GetMetricDataResult: &model.GetMetricDataResult{
-						ID:                   "metric-2",
-						MappedToAQueryResult: true,
-						Statistic:            "",
-						Datapoint:            0,
-						Timestamp:            time.Time{},
+						Statistic: "Max",
+						Datapoint: nil,
+						Timestamp: time.Time{},
 					},
 				},
 			},
@@ -694,13 +672,26 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mapResultsToMetricDatas(tt.args.metricDataResults, tt.args.cloudwatchDatas, logging.NewNopLogger())
 			// mapResultsToMetricDatas() modifies its []*model.CloudwatchData parameter in-place, assert that it was updated
-			require.Equal(t, tt.wantCloudwatchDatas, tt.args.cloudwatchDatas)
+
+			// Ensure processing params were nil'ed when expected to be
+			for _, data := range tt.args.cloudwatchDatas {
+				if data.GetMetricDataResult != nil {
+					require.Nil(t, data.GetMetricDataProcessingParams, "GetMetricDataResult is not nil GetMetricDataProcessingParams should have been nil")
+				} else {
+					require.NotNil(t, data.GetMetricDataProcessingParams, "GetMetricDataResult is nil GetMetricDataProcessingParams should not have been nil")
+				}
+
+				// Drop processing params to simplify further asserts
+				data.GetMetricDataProcessingParams = nil
+			}
+			require.ElementsMatch(t, tt.wantCloudwatchDatas, tt.args.cloudwatchDatas)
 		})
 	}
 }
 
 func getSampleMetricDatas(id string) *model.CloudwatchData {
 	return &model.CloudwatchData{
+		MetricName: "StorageBytes",
 		Dimensions: []model.Dimension{
 			{
 				Name:  "FileSystemId",
@@ -723,16 +714,16 @@ func getSampleMetricDatas(id string) *model.CloudwatchData {
 				Value: "",
 			},
 		},
-		MetricConfig: &model.MetricConfig{
-			Name:      "StorageBytes",
-			NilToZero: false,
-			Period:    60,
-			Statistics: []string{
-				"Average",
-			},
+		MetricMigrationParams: model.MetricMigrationParams{
+			NilToZero:              false,
+			AddCloudwatchTimestamp: false,
 		},
-		GetMetricDataResult: &model.GetMetricDataResult{
-			ID: id,
+		GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+			QueryID:   id,
+			Period:    60,
+			Length:    60,
+			Delay:     0,
+			Statistic: "Average",
 		},
 	}
 }
@@ -789,7 +780,7 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount, metricsPerResour
 			id := testResourceIDs[(batch*metricsPerQuery+i)%testResourcesCount]
 			newBatchOutputs = append(newBatchOutputs, cloudwatch.MetricDataResult{
 				ID:        id,
-				Datapoint: 1.4 * float64(batch),
+				Datapoint: aws.Float64(1.4 * float64(batch)),
 				Timestamp: now,
 			})
 		}

@@ -54,7 +54,7 @@ func TestAssociatorGwlb(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
 					Namespace:  "AWS/GatewayELB",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "LoadBalancer", Value: "gwy/gwlb-1/4a049e69add14452"},
 					},
 				},
@@ -70,7 +70,7 @@ func TestAssociatorGwlb(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
 					Namespace:  "AWS/GatewayELB",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "LoadBalancer", Value: "gwy/gwlb-1/4a049e69add14452"},
 						{Name: "TargetGroup", Value: "targetgroup/gwlb-target-group-1/012e9f368748cd345c"},
 					},
@@ -87,7 +87,7 @@ func TestAssociatorGwlb(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "HealthyHostCount",
 					Namespace:  "AWS/GatewayELB",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "LoadBalancer", Value: "gwy/non-existing-gwlb/a96cc19724cf1a87"},
 					},
 				},

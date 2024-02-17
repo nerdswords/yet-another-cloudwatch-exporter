@@ -63,37 +63,30 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	for _, result := range results {
 		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
-			var statisticsRepresentedInMetric []string
-			includeTimestamp := metric.MetricConfig.AddCloudwatchTimestamp
-			// A result from GetMetricData is for a single statistic noted on the result while a
-			// result from GetMetricStatistics is for all statistics configured for the metric
-			if metric.GetMetricDataResult != nil {
-				statisticsRepresentedInMetric = []string{metric.GetMetricDataResult.Statistic}
-			} else {
-				statisticsRepresentedInMetric = metric.MetricConfig.Statistics
+			// This should not be possible but check just in case
+			if metric.GetMetricStatisticsResult == nil && metric.GetMetricDataResult == nil {
+				logger.Warn("Attempted to migrate metric with no result", "namespace", metric.Namespace, "metric_name", metric.MetricName, "resource_name", metric.ResourceName)
 			}
-			for _, statistic := range statisticsRepresentedInMetric {
-				var exportedDatapoint float64
-				var timestamp time.Time
-				if metric.GetMetricDataResult != nil {
-					exportedDatapoint = metric.GetMetricDataResult.Datapoint
-					timestamp = metric.GetMetricDataResult.Timestamp
-				} else {
-					dataPoint, ts, err := getDatapoint(metric.MetricConfig.Name, metric.GetMetricStatisticsResult, statistic)
-					if err != nil {
-						return nil, nil, err
-					}
-					timestamp = ts
-					if dataPoint == nil {
-						exportedDatapoint = math.NaN()
-						// If there was no datapoint then timestamp is a default value
-						includeTimestamp = false
-					}
+
+			for _, statistic := range statisticsInCloudwatchData(metric) {
+				dataPoint, ts, err := getDatapoint(metric, statistic)
+				if err != nil {
+					return nil, nil, err
 				}
-				// It's unclear if this use case is possible with GetMetricDataResults since NaN would need to be returned
-				// as the value directly. GetMetricStatisticsResults can include a statistic with no matching datapoint which
-				// we will turn in to a NaN above. Doing this here ensures we will always respect NilToZero for any possible NaN
-				if metric.MetricConfig.NilToZero && math.IsNaN(exportedDatapoint) {
+				var exportedDatapoint float64
+				if dataPoint == nil && metric.MetricMigrationParams.AddCloudwatchTimestamp {
+					// If we did not get a datapoint then the is default making it unusable in the exported metric
+					// Attempting to put a timestamp on the metric ourselves will likely conflict with future CloudWatch
+					// timestamps which are always in the past. It's safer to skip here than guess
+					continue
+				}
+				if dataPoint == nil {
+					exportedDatapoint = math.NaN()
+				} else {
+					exportedDatapoint = *dataPoint
+				}
+
+				if metric.MetricMigrationParams.NilToZero && math.IsNaN(exportedDatapoint) {
 					exportedDatapoint = 0
 				}
 
@@ -104,7 +97,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				}
 				sb.WriteString(promNs)
 				sb.WriteString("_")
-				sb.WriteString(PromString(metric.MetricConfig.Name))
+				sb.WriteString(PromString(metric.MetricName))
 				sb.WriteString("_")
 				sb.WriteString(PromString(statistic))
 				name := sb.String()
@@ -112,12 +105,13 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
 				maps.Copy(promLabels, contextLabels)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
+
 				output = append(output, &PrometheusMetric{
 					Name:             &name,
 					Labels:           promLabels,
 					Value:            exportedDatapoint,
-					Timestamp:        timestamp,
-					IncludeTimestamp: includeTimestamp,
+					Timestamp:        ts,
+					IncludeTimestamp: metric.MetricMigrationParams.AddCloudwatchTimestamp,
 				})
 
 			}
@@ -127,12 +121,31 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	return output, observedMetricLabels, nil
 }
 
-func getDatapoint(metricName string, result *model.GetMetricStatisticResult, statistic string) (*float64, time.Time, error) {
+func statisticsInCloudwatchData(d *model.CloudwatchData) []string {
+	if d.GetMetricDataResult != nil {
+		return []string{d.GetMetricDataResult.Statistic}
+	}
+	if d.GetMetricStatisticsResult != nil {
+		return d.GetMetricStatisticsResult.Statistics
+	}
+	return []string{}
+}
+
+func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
+	// Not possible but for sanity
+	if cwd.GetMetricStatisticsResult == nil && cwd.GetMetricDataResult == nil {
+		return nil, time.Time{}, fmt.Errorf("cannot map a data point with no results on %s", cwd.MetricName)
+	}
+
+	if cwd.GetMetricDataResult != nil {
+		return cwd.GetMetricDataResult.Datapoint, cwd.GetMetricDataResult.Timestamp, nil
+	}
+
 	var averageDataPoints []*model.Datapoint
 
 	// sorting by timestamps so we can consistently export the most updated datapoint
 	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
-	for _, datapoint := range sortByTimestamp(result.Datapoints) {
+	for _, datapoint := range sortByTimestamp(cwd.GetMetricStatisticsResult.Datapoints) {
 		switch {
 		case statistic == "Maximum":
 			if datapoint.Maximum != nil {
@@ -159,7 +172,7 @@ func getDatapoint(metricName string, result *model.GetMetricStatisticResult, sta
 				return data, *datapoint.Timestamp, nil
 			}
 		default:
-			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", metricName, statistic)
+			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", cwd.MetricName, statistic)
 		}
 	}
 

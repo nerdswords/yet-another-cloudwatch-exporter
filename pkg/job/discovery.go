@@ -109,7 +109,7 @@ func runDiscoveryJob(
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
 	getMetricDatas = compact(getMetricDatas, func(m *model.CloudwatchData) bool {
-		return m.GetMetricDataResult.MappedToAQueryResult
+		return m.GetMetricDataResult == nil
 	})
 	return resources, getMetricDatas
 }
@@ -118,13 +118,13 @@ func runDiscoveryJob(
 //
 // This has been extracted into a separate function to make benchmarking easier.
 func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) {
-	// metricIDToData is a support structure used to easily find via a MetricID, the corresponding
+	// queryIDToData is a support structure used to easily find via a QueryID, the corresponding
 	// model.CloudatchData.
-	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
+	queryIDToData := make(map[string]*model.CloudwatchData, len(datas))
 
 	// load the index
 	for _, data := range datas {
-		metricIDToData[data.GetMetricDataResult.ID] = data
+		queryIDToData[data.GetMetricDataProcessingParams.QueryID] = data
 	}
 
 	// Update getMetricDatas slice with values and timestamps from API response.
@@ -140,18 +140,22 @@ func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*mo
 		}
 		for _, metricDataResult := range data {
 			// find into index
-			metricData, ok := metricIDToData[metricDataResult.ID]
+			metricData, ok := queryIDToData[metricDataResult.ID]
 			if !ok {
 				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
 				continue
 			}
-			// skip elements that have been already mapped but still exist in metricIDToData
-			if metricData.GetMetricDataResult.MappedToAQueryResult {
+			// skip elements that have been already mapped but still exist in queryIDToData
+			if metricData.GetMetricDataResult != nil {
 				continue
 			}
-			metricData.GetMetricDataResult.Datapoint = metricDataResult.Datapoint
-			metricData.GetMetricDataResult.Timestamp = metricDataResult.Timestamp
-			metricData.GetMetricDataResult.MappedToAQueryResult = true
+			metricData.GetMetricDataResult = &model.GetMetricDataResult{
+				Statistic: metricData.GetMetricDataProcessingParams.Statistic,
+				Datapoint: metricDataResult.Datapoint,
+				Timestamp: metricDataResult.Timestamp,
+			}
+			// All GetMetricData processing is done clear the params
+			metricData.GetMetricDataProcessingParams = nil
 		}
 	}
 }
@@ -259,15 +263,24 @@ func getFilteredMetricDatas(
 			id := fmt.Sprintf("id_%d", rand.Int())
 
 			getMetricsData = append(getMetricsData, &model.CloudwatchData{
+				MetricName:   m.Name,
 				ResourceName: resource.ARN,
 				Namespace:    namespace,
-				Tags:         metricTags,
 				Dimensions:   cwMetric.Dimensions,
-				GetMetricDataResult: &model.GetMetricDataResult{
-					ID:        id,
+				GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+					QueryID:   id,
+					Period:    m.Period,
+					Length:    m.Length,
+					Delay:     m.Delay,
 					Statistic: stat,
 				},
-				MetricConfig: m,
+				MetricMigrationParams: model.MetricMigrationParams{
+					NilToZero:              m.NilToZero,
+					AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+				},
+				Tags:                      metricTags,
+				GetMetricDataResult:       nil,
+				GetMetricStatisticsResult: nil,
 			})
 		}
 	}
