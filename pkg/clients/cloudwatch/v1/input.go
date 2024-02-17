@@ -28,7 +28,7 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 				Namespace:  namespace,
 			},
 			Period: &data.GetMetricDataProcessingParams.Period,
-			Stat:   &data.GetMetricDataResult.Statistic,
+			Stat:   &data.GetMetricDataProcessingParams.Statistic,
 		}
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
 			Id:         &data.GetMetricDataProcessingParams.QueryID,

@@ -29,7 +29,7 @@ func createGetMetricDataInput(logger logging.Logger, getMetricData []*model.Clou
 				Namespace:  namespace,
 			},
 			Period: aws.Int32(int32(data.GetMetricDataProcessingParams.Period)),
-			Stat:   &data.GetMetricDataResult.Statistic,
+			Stat:   &data.GetMetricDataProcessingParams.Statistic,
 		}
 		metricsDataQuery = append(metricsDataQuery, types.MetricDataQuery{
 			Id:         &data.GetMetricDataProcessingParams.QueryID,
