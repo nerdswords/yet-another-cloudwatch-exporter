@@ -1,4 +1,4 @@
-package discovery
+package getmetricdata
 
 import (
 	"context"
@@ -263,7 +263,7 @@ func Test_mapResultsToMetricDatas(t *testing.T) {
 	}
 }
 
-func TestSimpleBatchingProcessor_Run(t *testing.T) {
+func TestProcessor_Run(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name                  string
@@ -303,10 +303,10 @@ func TestSimpleBatchingProcessor_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := SimpleBatchingProcessor{
-				metricsPerQuery:          500,
-				cloudwatchClient:         testClient{GetMetricDataResponse: tt.getMetricDataResponse},
-				getMetricDataConcurrency: 1,
+			r := Processor{
+				metricsPerQuery: 500,
+				client:          testClient{GetMetricDataResponse: tt.getMetricDataResponse},
+				concurrency:     1,
 			}
 			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 1, 1, aws.Int64(1), getMetricDataProcessingParamsToCloudwatchData(tt.requests))
 			require.NoError(t, err)
@@ -324,7 +324,7 @@ func TestSimpleBatchingProcessor_Run(t *testing.T) {
 	}
 }
 
-func TestSimpleBatchingProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
+func TestProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name                                 string
@@ -356,10 +356,10 @@ func TestSimpleBatchingProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
 			for i := 0; i < tt.numberOfRequests; i++ {
 				requests = append(requests, getSampleMetricDatas(strconv.Itoa(i)))
 			}
-			r := SimpleBatchingProcessor{
-				metricsPerQuery:          tt.metricsPerQuery,
-				cloudwatchClient:         testClient{GetMetricDataFunc: getMetricDataFunc},
-				getMetricDataConcurrency: 1,
+			r := Processor{
+				metricsPerQuery: tt.metricsPerQuery,
+				client:          testClient{GetMetricDataFunc: getMetricDataFunc},
+				concurrency:     1,
 			}
 			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 1, 1, aws.Int64(1), requests)
 			require.NoError(t, err)

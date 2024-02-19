@@ -1,4 +1,4 @@
-package discovery
+package getmetricdata
 
 import (
 	"context"
@@ -13,37 +13,37 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-type GetMetricDataClient interface {
+type Client interface {
 	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
 }
 
-type SimpleBatchingProcessor struct {
-	metricsPerQuery          int
-	cloudwatchClient         GetMetricDataClient
-	getMetricDataConcurrency int
+type Processor struct {
+	metricsPerQuery int
+	client          Client
+	concurrency     int
 }
 
-func NewSimpleBatchingProcessor(cloudwatchClient GetMetricDataClient, metricsPerQuery int, getMetricDataConcurrency int) SimpleBatchingProcessor {
-	return SimpleBatchingProcessor{
-		metricsPerQuery:          metricsPerQuery,
-		cloudwatchClient:         cloudwatchClient,
-		getMetricDataConcurrency: getMetricDataConcurrency,
+func NewProcessor(client Client, metricsPerQuery int, concurrency int) Processor {
+	return Processor{
+		metricsPerQuery: metricsPerQuery,
+		client:          client,
+		concurrency:     concurrency,
 	}
 }
 
-func (s SimpleBatchingProcessor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
+func (p Processor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
 	metricDataLength := len(requests)
-	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(s.metricsPerQuery)))
+	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(p.metricsPerQuery)))
 	logger.Debug("GetMetricData partitions", "size", partitionSize)
 	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
 
 	g, gCtx := errgroup.WithContext(ctx)
-	g.SetLimit(s.getMetricDataConcurrency)
+	g.SetLimit(p.concurrency)
 	mu := sync.Mutex{}
 	count := 0
-	for i := 0; i < metricDataLength; i += s.metricsPerQuery {
+	for i := 0; i < metricDataLength; i += p.metricsPerQuery {
 		start := i
-		end := i + s.metricsPerQuery
+		end := i + p.metricsPerQuery
 		if end > metricDataLength {
 			end = metricDataLength
 		}
@@ -52,7 +52,7 @@ func (s SimpleBatchingProcessor) Run(ctx context.Context, logger logging.Logger,
 
 		g.Go(func() error {
 			input := requests[start:end]
-			data := s.cloudwatchClient.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
+			data := p.client.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
 			if data != nil {
 				mu.Lock()
 				getMetricDataOutput = append(getMetricDataOutput, data)

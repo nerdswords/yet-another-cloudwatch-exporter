@@ -1,4 +1,4 @@
-package discovery
+package getmetricdata
 
 // compact iterates over a slice of pointers and deletes
 // unwanted elements as per the keep function return value.

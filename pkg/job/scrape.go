@@ -7,7 +7,7 @@ import (
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/discovery"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/getmetricdata"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
@@ -41,7 +41,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
-					gmdProcessor := discovery.NewSimpleBatchingProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
+					gmdProcessor := getmetricdata.NewProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
 					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), cloudwatchClient, gmdProcessor)
 					addDataToOutput := len(metrics) != 0
 					if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.AlwaysReturnInfoMetrics) {
@@ -120,7 +120,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
-					gmdProcessor := discovery.NewSimpleBatchingProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
+					gmdProcessor := getmetricdata.NewProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
 					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, cloudwatchClient, gmdProcessor)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.ScrapeContext{
