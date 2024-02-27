@@ -48,7 +48,7 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/DDoSProtection",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ResourceArn", Value: "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123"},
 					},
 				},

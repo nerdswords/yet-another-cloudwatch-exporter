@@ -18,20 +18,20 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 	metricsDataQuery := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
 	roundingPeriod := model.DefaultPeriodSeconds
 	for _, data := range getMetricData {
-		if data.Period < roundingPeriod {
-			roundingPeriod = data.Period
+		if data.GetMetricDataProcessingParams.Period < roundingPeriod {
+			roundingPeriod = data.GetMetricDataProcessingParams.Period
 		}
 		metricStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: toCloudWatchDimensions(data.Dimensions),
-				MetricName: data.Metric,
+				MetricName: &data.MetricName,
 				Namespace:  namespace,
 			},
-			Period: &data.Period,
-			Stat:   &data.Statistics[0],
+			Period: &data.GetMetricDataProcessingParams.Period,
+			Stat:   &data.GetMetricDataProcessingParams.Statistic,
 		}
 		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
-			Id:         data.MetricID,
+			Id:         &data.GetMetricDataProcessingParams.QueryID,
 			MetricStat: metricStat,
 			ReturnData: aws.Bool(true),
 		})
@@ -59,18 +59,20 @@ func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *
 	}
 }
 
-func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimension {
+func toCloudWatchDimensions(dimensions []model.Dimension) []*cloudwatch.Dimension {
 	cwDim := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, dim := range dimensions {
+		// Don't take pointers directly to loop variables
+		cDim := dim
 		cwDim = append(cwDim, &cloudwatch.Dimension{
-			Name:  &dim.Name,
-			Value: &dim.Value,
+			Name:  &cDim.Name,
+			Value: &cDim.Value,
 		})
 	}
 	return cwDim
 }
 
-func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
+func createGetMetricStatisticsInput(dimensions []model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -113,7 +115,7 @@ func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *st
 	return output
 }
 
-func dimensionsToCliString(dimensions []*model.Dimension) string {
+func dimensionsToCliString(dimensions []model.Dimension) string {
 	out := strings.Builder{}
 	for _, dim := range dimensions {
 		out.WriteString("Name=")

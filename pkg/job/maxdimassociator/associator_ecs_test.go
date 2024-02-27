@@ -54,7 +54,7 @@ func TestAssociatorECS(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "MemoryReservation",
 					Namespace:  "AWS/ECS",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "sampleCluster"},
 					},
 				},
@@ -70,7 +70,7 @@ func TestAssociatorECS(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
 					Namespace:  "AWS/ECS",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "sampleCluster"},
 						{Name: "ServiceName", Value: "service1"},
 					},
@@ -87,7 +87,7 @@ func TestAssociatorECS(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
 					Namespace:  "AWS/ECS",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "sampleCluster"},
 						{Name: "ServiceName", Value: "service2"},
 					},

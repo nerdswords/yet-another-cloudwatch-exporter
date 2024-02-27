@@ -38,7 +38,7 @@ func TestAssociatorDX(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "VirtualInterfaceBpsIngress",
 					Namespace:  "AWS/DX",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ConnectionId", Value: "dxlag-abc123"},
 						{Name: "VirtualInterfaceId", Value: "dxvif-abc123"},
 					},

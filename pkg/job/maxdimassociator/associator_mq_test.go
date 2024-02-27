@@ -43,7 +43,7 @@ func TestAssociatorMQ(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ProducerCount",
 					Namespace:  "AWS/AmazonMQ",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Broker", Value: "rabbitmq-broker"},
 					},
 				},
@@ -62,7 +62,7 @@ func TestAssociatorMQ(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ProducerCount",
 					Namespace:  "AWS/AmazonMQ",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Broker", Value: "activemq-broker-1"},
 					},
 				},

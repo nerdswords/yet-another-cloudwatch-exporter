@@ -48,7 +48,7 @@ func TestAssociatorEC2(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "InstanceId", Value: "i-abc123"},
 					},
 				},
@@ -64,7 +64,7 @@ func TestAssociatorEC2(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "InstanceId", Value: "i-def456"},
 					},
 				},
@@ -80,7 +80,7 @@ func TestAssociatorEC2(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "InstanceId", Value: "i-blahblah"},
 					},
 				},
@@ -96,7 +96,7 @@ func TestAssociatorEC2(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/EC2",
 					MetricName: "StatusCheckFailed_System",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "AutoScalingGroupName", Value: "some-asg-name"},
 					},
 				},
