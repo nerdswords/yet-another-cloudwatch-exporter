@@ -486,8 +486,8 @@ func toModelMetricConfig(metrics []*Metric) []*model.MetricConfig {
 			Period:                 m.Period,
 			Length:                 m.Length,
 			Delay:                  m.Delay,
-			NilToZero:              m.NilToZero,
-			AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+			NilToZero:              aws.BoolValue(m.NilToZero),
+			AddCloudwatchTimestamp: aws.BoolValue(m.AddCloudwatchTimestamp),
 		})
 	}
 	return ret

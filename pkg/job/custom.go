@@ -54,8 +54,13 @@ func runCustomNamespaceJob(
 				for _, result := range data {
 					getMetricData, err := findGetMetricDataByIDForCustomNamespace(input, result.ID)
 					if err == nil {
-						getMetricData.GetMetricDataPoint = result.Datapoint
-						getMetricData.GetMetricDataTimestamps = result.Timestamp
+						getMetricData.GetMetricDataResult = &model.GetMetricDataResult{
+							Statistic: getMetricData.GetMetricDataProcessingParams.Statistic,
+							Datapoint: result.Datapoint,
+							Timestamp: result.Timestamp,
+						}
+						// All done processing we can drop the processing params
+						getMetricData.GetMetricDataProcessingParams = nil
 						output = append(output, getMetricData)
 					}
 				}
@@ -72,7 +77,7 @@ func runCustomNamespaceJob(
 
 func findGetMetricDataByIDForCustomNamespace(getMetricDatas []*model.CloudwatchData, value string) (*model.CloudwatchData, error) {
 	for _, getMetricData := range getMetricDatas {
-		if *getMetricData.MetricID == value {
+		if getMetricData.GetMetricDataResult == nil && getMetricData.GetMetricDataProcessingParams.QueryID == value {
 			return getMetricData, nil
 		}
 	}
@@ -106,18 +111,27 @@ func getMetricDataForQueriesForCustomNamespace(
 						continue
 					}
 
-					for _, stats := range metric.Statistics {
+					for _, stat := range metric.Statistics {
 						id := fmt.Sprintf("id_%d", rand.Int())
 						data = append(data, &model.CloudwatchData{
-							ID:                     &customNamespaceJob.Name,
-							MetricID:               &id,
-							Metric:                 &metric.Name,
-							Namespace:              &customNamespaceJob.Namespace,
-							Statistics:             []string{stats},
-							NilToZero:              metric.NilToZero,
-							AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
-							Dimensions:             cwMetric.Dimensions,
-							Period:                 metric.Period,
+							MetricName:   metric.Name,
+							ResourceName: customNamespaceJob.Name,
+							Namespace:    customNamespaceJob.Namespace,
+							Dimensions:   cwMetric.Dimensions,
+							GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
+								QueryID:   id,
+								Period:    metric.Period,
+								Length:    metric.Length,
+								Delay:     metric.Delay,
+								Statistic: stat,
+							},
+							MetricMigrationParams: model.MetricMigrationParams{
+								NilToZero:              metric.NilToZero,
+								AddCloudwatchTimestamp: metric.AddCloudwatchTimestamp,
+							},
+							Tags:                      nil,
+							GetMetricDataResult:       nil,
+							GetMetricStatisticsResult: nil,
 						})
 					}
 				}

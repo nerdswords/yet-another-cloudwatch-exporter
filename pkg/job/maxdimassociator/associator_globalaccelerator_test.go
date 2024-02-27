@@ -54,7 +54,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
 					Namespace:  "AWS/GlobalAccelerator",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Accelerator", Value: "super-accelerator"},
 					},
 				},
@@ -70,7 +70,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
 					Namespace:  "AWS/GlobalAccelerator",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Accelerator", Value: "super-accelerator"},
 						{Name: "Listener", Value: "some_listener"},
 					},
@@ -87,7 +87,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
 					Namespace:  "AWS/GlobalAccelerator",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Accelerator", Value: "super-accelerator"},
 						{Name: "Listener", Value: "some_listener"},
 						{Name: "EndpointGroup", Value: "eg1"},

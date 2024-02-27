@@ -42,7 +42,7 @@ func TestAssociatorEventRule(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/Events",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EventBusName", Value: "event-bus-name"},
 						{Name: "RuleName", Value: "rule-name"},
 					},

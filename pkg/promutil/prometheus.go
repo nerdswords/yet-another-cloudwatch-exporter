@@ -89,7 +89,7 @@ var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 type PrometheusMetric struct {
 	Name             *string
 	Labels           map[string]string
-	Value            *float64
+	Value            float64
 	IncludeTimestamp bool
 	Timestamp        time.Time
 }
@@ -125,7 +125,7 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 		ConstLabels: metric.Labels,
 	})
 
-	gauge.Set(*metric.Value)
+	gauge.Set(metric.Value)
 
 	if !metric.IncludeTimestamp {
 		return gauge

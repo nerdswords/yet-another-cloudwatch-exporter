@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 
@@ -49,7 +48,7 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 			metrics = append(metrics, &PrometheusMetric{
 				Name:   &metricName,
 				Labels: promLabels,
-				Value:  aws.Float64(0),
+				Value:  0,
 			})
 		}
 	}
@@ -64,47 +63,57 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	for _, result := range results {
 		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
-			for _, statistic := range metric.Statistics {
-				var includeTimestamp bool
-				if metric.AddCloudwatchTimestamp != nil {
-					includeTimestamp = *metric.AddCloudwatchTimestamp
-				}
-				exportedDatapoint, timestamp, err := getDatapoint(metric, statistic)
+			// This should not be possible but check just in case
+			if metric.GetMetricStatisticsResult == nil && metric.GetMetricDataResult == nil {
+				logger.Warn("Attempted to migrate metric with no result", "namespace", metric.Namespace, "metric_name", metric.MetricName, "resource_name", metric.ResourceName)
+			}
+
+			for _, statistic := range statisticsInCloudwatchData(metric) {
+				dataPoint, ts, err := getDatapoint(metric, statistic)
 				if err != nil {
 					return nil, nil, err
 				}
-				if exportedDatapoint == nil && (metric.AddCloudwatchTimestamp == nil || !*metric.AddCloudwatchTimestamp) {
-					exportedDatapoint = aws.Float64(math.NaN())
-					includeTimestamp = false
-					if *metric.NilToZero {
-						exportedDatapoint = aws.Float64(0)
-					}
+				var exportedDatapoint float64
+				if dataPoint == nil && metric.MetricMigrationParams.AddCloudwatchTimestamp {
+					// If we did not get a datapoint then the timestamp is a default value making it unusable in the
+					// exported metric. Attempting to put a fake timestamp on the metric will likely conflict with
+					// future CloudWatch timestamps which are always in the past. It's safer to skip here than guess
+					continue
+				}
+				if dataPoint == nil {
+					exportedDatapoint = math.NaN()
+				} else {
+					exportedDatapoint = *dataPoint
+				}
+
+				if metric.MetricMigrationParams.NilToZero && math.IsNaN(exportedDatapoint) {
+					exportedDatapoint = 0
 				}
 
 				sb := strings.Builder{}
-				promNs := PromString(strings.ToLower(*metric.Namespace))
+				promNs := PromString(strings.ToLower(metric.Namespace))
 				if !strings.HasPrefix(promNs, "aws") {
 					sb.WriteString("aws_")
 				}
 				sb.WriteString(promNs)
 				sb.WriteString("_")
-				sb.WriteString(PromString(*metric.Metric))
+				sb.WriteString(PromString(metric.MetricName))
 				sb.WriteString("_")
 				sb.WriteString(PromString(statistic))
 				name := sb.String()
 
-				if exportedDatapoint != nil {
-					promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
-					maps.Copy(promLabels, contextLabels)
-					observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
-					output = append(output, &PrometheusMetric{
-						Name:             &name,
-						Labels:           promLabels,
-						Value:            exportedDatapoint,
-						Timestamp:        timestamp,
-						IncludeTimestamp: includeTimestamp,
-					})
-				}
+				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
+				maps.Copy(promLabels, contextLabels)
+				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
+
+				output = append(output, &PrometheusMetric{
+					Name:             &name,
+					Labels:           promLabels,
+					Value:            exportedDatapoint,
+					Timestamp:        ts,
+					IncludeTimestamp: metric.MetricMigrationParams.AddCloudwatchTimestamp,
+				})
+
 			}
 		}
 	}
@@ -112,15 +121,31 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	return output, observedMetricLabels, nil
 }
 
-func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
-	if cwd.GetMetricDataPoint != nil {
-		return cwd.GetMetricDataPoint, cwd.GetMetricDataTimestamps, nil
+func statisticsInCloudwatchData(d *model.CloudwatchData) []string {
+	if d.GetMetricDataResult != nil {
+		return []string{d.GetMetricDataResult.Statistic}
 	}
+	if d.GetMetricStatisticsResult != nil {
+		return d.GetMetricStatisticsResult.Statistics
+	}
+	return []string{}
+}
+
+func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
+	// Not possible but for sanity
+	if cwd.GetMetricStatisticsResult == nil && cwd.GetMetricDataResult == nil {
+		return nil, time.Time{}, fmt.Errorf("cannot map a data point with no results on %s", cwd.MetricName)
+	}
+
+	if cwd.GetMetricDataResult != nil {
+		return cwd.GetMetricDataResult.Datapoint, cwd.GetMetricDataResult.Timestamp, nil
+	}
+
 	var averageDataPoints []*model.Datapoint
 
 	// sorting by timestamps so we can consistently export the most updated datapoint
 	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
-	for _, datapoint := range sortByTimestamp(cwd.Points) {
+	for _, datapoint := range sortByTimestamp(cwd.GetMetricStatisticsResult.Datapoints) {
 		switch {
 		case statistic == "Maximum":
 			if datapoint.Maximum != nil {
@@ -147,7 +172,7 @@ func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.T
 				return data, *datapoint.Timestamp, nil
 			}
 		default:
-			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", *cwd.Metric, statistic)
+			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", cwd.MetricName, statistic)
 		}
 	}
 
@@ -177,7 +202,7 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 
 func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
 	labels := make(map[string]string)
-	labels["name"] = *cwd.ID
+	labels["name"] = cwd.ResourceName
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {

@@ -54,7 +54,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/SageMaker",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-one"},
 						{Name: "VariantName", Value: "example-endpoint-one-variant-one"},
 						{Name: "EndpointConfigName", Value: "example-endpoint-one-endpoint-config"},
@@ -72,7 +72,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/SageMaker",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-two"},
 						{Name: "VariantName", Value: "example-endpoint-two-variant-one"},
 					},
@@ -89,7 +89,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "Invocations",
 					Namespace:  "AWS/SageMaker",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-three"},
 						{Name: "VariantName", Value: "example-endpoint-three-variant-one"},
 					},
@@ -106,7 +106,7 @@ func TestAssociatorSagemaker(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ModelLatency",
 					Namespace:  "AWS/SageMaker",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "Example-Endpoint-Upper"},
 						{Name: "VariantName", Value: "example-endpoint-two-variant-one"},
 					},

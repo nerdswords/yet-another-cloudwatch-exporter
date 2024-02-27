@@ -450,6 +450,6 @@ func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*mode
 	return nil
 }
 
-func (t testClient) GetMetricStatistics(_ context.Context, _ logging.Logger, _ []*model.Dimension, _ string, _ *model.MetricConfig) []*model.Datapoint {
+func (t testClient) GetMetricStatistics(_ context.Context, _ logging.Logger, _ []model.Dimension, _ string, _ *model.MetricConfig) []*model.Datapoint {
 	return nil
 }

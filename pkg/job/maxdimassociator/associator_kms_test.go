@@ -38,7 +38,7 @@ func TestAssociatorKMS(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "SecondsUntilKeyMaterialExpiration",
 					Namespace:  "AWS/KMS",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "KeyId", Value: "12345678-1234-1234-1234-123456789012"},
 					},
 				},

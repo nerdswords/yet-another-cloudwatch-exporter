@@ -38,7 +38,7 @@ func TestAssociatorClientVPN(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "CrlDaysToExpiry",
 					Namespace:  "AWS/ClientVPN",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Endpoint", Value: "cvpn-endpoint-0c9e5bd20be71e296"},
 					},
 				},
