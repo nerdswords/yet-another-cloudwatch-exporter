@@ -29,6 +29,52 @@ Refactoring:
 **Full Changelog**: https://github.com/...
 
 
+# v0.57.0
+
+**Important news and breaking changes**
+
+* New job setting `includeContextOnInfoMetrics` can be used to include contextual information (account_id, region, and customTags) on "info" metrics and cloudwatch metrics. This can be particularly useful when cloudwatch metrics might not be present or when using "info" metrics to understand where your resources exist.
+* No more need to add the `apigateway:GET` permissions for ApiGateway discovery jobs, as that API is not being used anymore.
+
+**Bugfixes and features**
+
+Features:
+* Add serverless ElastiCache support by @pkubicsek-sb
+* Add GWLB support by @vainiusd
+* Add support for KMS metrics by @daharon
+* Optionally include context labels (account, region, customTags) on info metrics with `includeContextOnInfoMetrics` by @kgeckhart
+* Improve usability and performance of searchTags by @kgeckhart
+* Add metric yace_cloudwatch_getmetricdata_metrics_total by @keyolk
+
+Bugs:
+* Fix race condition in scraper registry usage by @cristiangreco
+* Restore default behaviour of returning nil/absent metrics as NaN by @nhinds
+* Remove filtering of ApiGateway namespace resources by @cristiangreco
+
+Refactoring:
+* Refactor dimensions regexp usage for discovery jobs by @cristiangreco
+* Simplify associator usage by @kgeckhart
+* Update build tools and CI to go 1.22 by @cristiangreco
+* Restructure fields on CloudwatchData by @kgeckhart
+
+**Dependencies**
+
+* Bump alpine from 3.19.0 to 3.19.1
+* Bump github.com/aws/aws-sdk-go from 1.49.19 to 1.50.26
+* Bump github.com/aws/smithy-go from 1.19.0 to 1.20.1
+* Bump github.com/prometheus/common from 0.45.0 to 0.48.0
+* Bump golang from 1.21 to 1.22
+* Bump golangci/golangci-lint-action from 3.7.0 to 4.0.0
+* Bump the aws-sdk-v2 group
+
+**New contributors**
+
+* @vainiusd made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1093
+* @daharon made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1306
+* @keyolk made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/939
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.56.0...v0.57.0
+
 # v0.56.0
 
 **Important news and breaking changes**
