@@ -25,7 +25,7 @@ type Client interface {
 	GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []MetricDataResult
 
 	// GetMetricStatistics returns the output of the GetMetricStatistics CloudWatch API.
-	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint
+	GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint
 }
 
 // ConcurrencyLimiter limits the concurrency when calling AWS CloudWatch APIs. The functions implemented
@@ -43,7 +43,8 @@ type ConcurrencyLimiter interface {
 }
 
 type MetricDataResult struct {
-	ID        string
+	ID string
+	// A nil datapoint is a marker for no datapoint being found
 	Datapoint *float64
 	Timestamp time.Time
 }
@@ -60,7 +61,7 @@ func NewLimitedConcurrencyClient(client Client, limiter ConcurrencyLimiter) Clie
 	}
 }
 
-func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
+func (c limitedConcurrencyClient) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
 	c.limiter.Acquire(getMetricStatisticsCall)
 	res := c.client.GetMetricStatistics(ctx, logger, dimensions, namespace, metric)
 	c.limiter.Release(getMetricStatisticsCall)

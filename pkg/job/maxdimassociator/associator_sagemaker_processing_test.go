@@ -42,7 +42,7 @@ func TestAssociatorSagemakerProcessingJob(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "CPUUtilization",
 					Namespace:  "/aws/sagemaker/ProcessingJobs",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Host", Value: "example-processing-job-one/algo-1"},
 					},
 				},

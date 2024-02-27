@@ -48,7 +48,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "mycluster"},
 					},
 				},
@@ -64,7 +64,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "othercluster"},
 					},
 				},
@@ -80,7 +80,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "blahblah"},
 					},
 				},
@@ -96,7 +96,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "BytesUsedForMemoryDB",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "OtherName", Value: "some-other-value"},
 					},
 				},

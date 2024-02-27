@@ -16,7 +16,7 @@ func TestDimensionsToCliString(t *testing.T) {
 	// Setup Test
 
 	// Arrange
-	dimensions := []*model.Dimension{}
+	dimensions := []model.Dimension{}
 	expected := ""
 
 	// Act

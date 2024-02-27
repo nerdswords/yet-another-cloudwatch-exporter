@@ -42,7 +42,7 @@ func TestAssociatorSagemakerInfRecJob(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ClientInvocations",
 					Namespace:  "/aws/sagemaker/InferenceRecommendationsJobs",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "JobName", Value: "example-inf-rec-job-one"},
 					},
 				},

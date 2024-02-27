@@ -48,7 +48,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
 					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-one"},
 						{Name: "StepName", Value: "example-pipeline-one-step-two"},
 					},
@@ -65,7 +65,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
 					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-two"},
 					},
 				},
@@ -81,7 +81,7 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
 					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-three"},
 						{Name: "StepName", Value: "example-pipeline-three-step-two"},
 					},

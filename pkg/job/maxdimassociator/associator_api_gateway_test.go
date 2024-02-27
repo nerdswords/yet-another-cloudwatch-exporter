@@ -55,7 +55,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "5xx",
 					Namespace:  "AWS/ApiGateway",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ApiId", Value: "98765fghij"},
 					},
 				},
@@ -71,7 +71,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "5xx",
 					Namespace:  "AWS/ApiGateway",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ApiId", Value: "98765fghij"},
 						{Name: "Stage", Value: "$default"},
 					},
@@ -88,7 +88,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "5xx",
 					Namespace:  "AWS/ApiGateway",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ApiName", Value: "test-api"},
 					},
 				},
@@ -104,7 +104,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "5xx",
 					Namespace:  "AWS/ApiGateway",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ApiName", Value: "test-api"},
 						{Name: "Stage", Value: "test"},
 					},
@@ -121,7 +121,7 @@ func TestAssociatorAPIGateway(t *testing.T) {
 				metric: &model.Metric{
 					MetricName: "5xx",
 					Namespace:  "AWS/ApiGateway",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ApiName", Value: "test-api"},
 						{Name: "Stage", Value: "dev"},
 					},
