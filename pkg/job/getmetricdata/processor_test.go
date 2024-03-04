@@ -339,7 +339,7 @@ func TestProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var callCounter atomic.Int32
-			getMetricDataFunc := func(ctx context.Context, logger logging.Logger, requests []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult {
+			getMetricDataFunc := func(_ context.Context, _ logging.Logger, requests []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch.MetricDataResult {
 				callCounter.Add(1)
 				response := make([]cloudwatch.MetricDataResult, 0, len(requests))
 				for _, gmd := range requests {
