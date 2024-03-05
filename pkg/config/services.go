@@ -721,6 +721,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/SecretsManager",
+		Alias:     "secretsmanager",
+	},
+	{
 		Namespace: "AWS/SES",
 		Alias:     "ses",
 	},
