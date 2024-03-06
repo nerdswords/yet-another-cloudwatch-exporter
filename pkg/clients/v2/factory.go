@@ -12,6 +12,8 @@ import (
 	aws_config "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/amp"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
@@ -174,6 +176,8 @@ func (c *CachingFactory) GetTaggingClient(region string, role model.Role, concur
 		c.logger,
 		c.createTaggingClient(c.clients[role][region].awsConfig),
 		c.createAutoScalingClient(c.clients[role][region].awsConfig),
+		c.createAPIGatewayClient(c.clients[role][region].awsConfig),
+		c.createAPIGatewayV2Client(c.clients[role][region].awsConfig),
 		c.createEC2Client(c.clients[role][region].awsConfig),
 		c.createDMSClient(c.clients[role][region].awsConfig),
 		c.createPrometheusClient(c.clients[role][region].awsConfig),
@@ -218,6 +222,8 @@ func (c *CachingFactory) Refresh() {
 				c.logger,
 				c.createTaggingClient(cache.awsConfig),
 				c.createAutoScalingClient(cache.awsConfig),
+				c.createAPIGatewayClient(cache.awsConfig),
+				c.createAPIGatewayV2Client(cache.awsConfig),
 				c.createEC2Client(cache.awsConfig),
 				c.createDMSClient(cache.awsConfig),
 				c.createPrometheusClient(cache.awsConfig),
@@ -305,6 +311,34 @@ func (c *CachingFactory) createAutoScalingClient(assumedConfig *aws.Config) *aut
 		// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 		// 	EC2 autoscaling has FIPS compliant URLs for govcloud, but they do not use any FIPS prefixing, and should work
 		//	with sdk v2s EndpointResolverV2
+	})
+}
+
+func (c *CachingFactory) createAPIGatewayClient(assumedConfig *aws.Config) *apigateway.Client {
+	return apigateway.NewFromConfig(*assumedConfig, func(options *apigateway.Options) {
+		if c.logger.IsDebugEnabled() {
+			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
+	})
+}
+
+func (c *CachingFactory) createAPIGatewayV2Client(assumedConfig *aws.Config) *apigatewayv2.Client {
+	return apigatewayv2.NewFromConfig(*assumedConfig, func(options *apigatewayv2.Options) {
+		if c.logger.IsDebugEnabled() {
+			options.ClientLogMode = aws.LogRequestWithBody | aws.LogResponseWithBody
+		}
+		if c.endpointURLOverride != "" {
+			options.BaseEndpoint = aws.String(c.endpointURLOverride)
+		}
+		if c.fipsEnabled {
+			options.EndpointOptions.UseFIPSEndpoint = aws.FIPSEndpointStateEnabled
+		}
 	})
 }
 
