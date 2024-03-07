@@ -998,6 +998,30 @@ func TestCreateTagSession(t *testing.T) {
 		})
 }
 
+func TestCreateAPIGatewaySession(t *testing.T) {
+	testAWSClient(
+		t,
+		"APIGateway",
+		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
+			iface := createAPIGatewaySession(s, region, role, fips, false)
+			if iface == nil {
+				t.Fail()
+			}
+		})
+}
+
+func TestCreateAPIGatewayV2Session(t *testing.T) {
+	testAWSClient(
+		t,
+		"APIGatewayV2",
+		func(t *testing.T, s *session.Session, region *string, role model.Role, fips bool) {
+			iface := createAPIGatewayV2Session(s, region, role, fips, false)
+			if iface == nil {
+				t.Fail()
+			}
+		})
+}
+
 func TestCreateASGSession(t *testing.T) {
 	testAWSClient(
 		t,
