@@ -29,6 +29,28 @@ Refactoring:
 **Full Changelog**: https://github.com/...
 
 
+# 0.57.1
+
+**Important news and breaking changes**
+
+* Reverted a change from 0.57.0 to fix scraping of ApiGateway resources.
+
+**Bugfixes and features**
+
+Bugs:
+* ApiGateway: bugfix to restore FilterFunc for correct mapping of resources by @cristiangreco
+
+**Dependencies**
+
+## What's Changed
+* Bump github.com/aws/aws-sdk-go from 1.50.26 to 1.50.30
+* Bump github.com/prometheus/client_golang from 1.18.0 to 1.19.0
+* Bump github.com/prometheus/common from 0.48.0 to 0.49.0
+* Bump github.com/stretchr/testify from 1.8.4 to 1.9.0
+* Bump the aws-sdk-v2 group
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.57.0...v0.57.1
+
 # v0.57.0
 
 **Important news and breaking changes**
