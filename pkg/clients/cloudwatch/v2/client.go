@@ -43,10 +43,10 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *model
 	})
 
 	for paginator.HasMorePages() {
-		promutil.CloudwatchAPICounter.Inc()
+		promutil.CloudwatchListMetricsAPICounter.Inc()
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
-			promutil.CloudwatchAPIErrorCounter.Inc()
+			promutil.CloudwatchAPIErrorCounter.WithLabelValues("ListMetrics").Inc()
 			c.logger.Error(err, "ListMetrics error")
 			return err
 		}
@@ -89,6 +89,8 @@ func toModelDimensions(dimensions []types.Dimension) []model.Dimension {
 
 func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch_client.MetricDataResult {
 	filter := createGetMetricDataInput(logger, getMetricData, &namespace, length, delay, configuredRoundingPeriod)
+	promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(filter.MetricDataQueries)))
+
 	var resp cloudwatch.GetMetricDataOutput
 
 	if c.logger.IsDebugEnabled() {
@@ -99,16 +101,16 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 		options.StopOnDuplicateToken = true
 	})
 	for paginator.HasMorePages() {
-		promutil.CloudwatchAPICounter.Inc()
+		promutil.CloudwatchAPICounter.WithLabelValues("GetMetricData").Inc()
 		promutil.CloudwatchGetMetricDataAPICounter.Inc()
 
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
+			promutil.CloudwatchAPIErrorCounter.WithLabelValues("GetMetricData").Inc()
 			c.logger.Error(err, "GetMetricData error")
 			return nil
 		}
 		resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
-		promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(page.MetricDataResults)))
 	}
 
 	if c.logger.IsDebugEnabled() {
@@ -143,10 +145,11 @@ func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, 
 		c.logger.Debug("GetMetricStatistics", "output", resp)
 	}
 
-	promutil.CloudwatchAPICounter.Inc()
+	promutil.CloudwatchAPICounter.WithLabelValues("GetMetricStatistics").Inc()
 	promutil.CloudwatchGetMetricStatisticsAPICounter.Inc()
 
 	if err != nil {
+		promutil.CloudwatchAPIErrorCounter.WithLabelValues("GetMetricStatistics").Inc()
 		c.logger.Error(err, "Failed to get metric statistics")
 		return nil
 	}
