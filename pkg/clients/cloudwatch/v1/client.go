@@ -39,7 +39,6 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *model
 	}
 
 	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter, func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-		promutil.CloudwatchListMetricsAPICounter.Inc()
 		promutil.CloudwatchAPICounter.WithLabelValues("ListMetrics").Inc()
 
 		metricsPage := toModelMetric(page)

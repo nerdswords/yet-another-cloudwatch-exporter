@@ -43,7 +43,7 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *model
 	})
 
 	for paginator.HasMorePages() {
-		promutil.CloudwatchListMetricsAPICounter.Inc()
+		promutil.CloudwatchAPICounter.WithLabelValues("ListMetrics").Inc()
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			promutil.CloudwatchAPIErrorCounter.WithLabelValues("ListMetrics").Inc()

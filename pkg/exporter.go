@@ -19,7 +19,6 @@ import (
 var Metrics = []prometheus.Collector{
 	promutil.CloudwatchAPIErrorCounter,
 	promutil.CloudwatchAPICounter,
-	promutil.CloudwatchListMetricsAPICounter,
 	promutil.CloudwatchGetMetricDataAPICounter,
 	promutil.CloudwatchGetMetricDataAPIMetricsCounter,
 	promutil.CloudwatchGetMetricStatisticsAPICounter,
