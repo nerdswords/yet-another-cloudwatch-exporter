@@ -3,9 +3,12 @@ package v1
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -27,6 +30,59 @@ type ServiceFilter struct {
 
 // ServiceFilters maps a service namespace to (optional) ServiceFilter
 var ServiceFilters = map[string]ServiceFilter{
+	"AWS/ApiGateway": {
+		// ApiGateway ARNs use the Id (for v1 REST APIs) and ApiId (for v2 APIs) instead of
+		// the ApiName (display name). See https://docs.aws.amazon.com/apigateway/latest/developerguide/arn-format-reference.html
+		// However, in metrics, the ApiId dimension uses the ApiName as value.
+		//
+		// Here we use the ApiGateway API to map resource correctly. For backward compatibility,
+		// in v1 REST APIs we change the ARN to replace the ApiId with ApiName, while for v2 APIs
+		// we leave the ARN as-is.
+		FilterFunc: func(ctx context.Context, client client, inputResources []*model.TaggedResource) ([]*model.TaggedResource, error) {
+			var limit int64 = 500 // max number of results per page. default=25, max=500
+			const maxPages = 10
+			input := apigateway.GetRestApisInput{Limit: &limit}
+			output := apigateway.GetRestApisOutput{}
+			var pageNum int
+
+			err := client.apiGatewayAPI.GetRestApisPagesWithContext(ctx, &input, func(page *apigateway.GetRestApisOutput, _ bool) bool {
+				promutil.APIGatewayAPICounter.Inc()
+				pageNum++
+				output.Items = append(output.Items, page.Items...)
+				return pageNum <= maxPages
+			})
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPI.GetRestApisPages, %w", err)
+			}
+
+			outputV2, err := client.apiGatewayV2API.GetApisWithContext(ctx, &apigatewayv2.GetApisInput{})
+			promutil.APIGatewayAPIV2Counter.Inc()
+			if err != nil {
+				return nil, fmt.Errorf("error calling apiGatewayAPIv2.GetApis, %w", err)
+			}
+
+			var outputResources []*model.TaggedResource
+			for _, resource := range inputResources {
+				for i, gw := range output.Items {
+					if strings.HasSuffix(resource.ARN, "/restapis/"+*gw.Id) {
+						r := resource
+						r.ARN = strings.ReplaceAll(resource.ARN, *gw.Id, *gw.Name)
+						outputResources = append(outputResources, r)
+						output.Items = append(output.Items[:i], output.Items[i+1:]...)
+						break
+					}
+				}
+				for i, gw := range outputV2.Items {
+					if strings.HasSuffix(resource.ARN, "/apis/"+*gw.ApiId) {
+						outputResources = append(outputResources, resource)
+						outputV2.Items = append(outputV2.Items[:i], outputV2.Items[i+1:]...)
+						break
+					}
+				}
+			}
+			return outputResources, nil
+		},
+	},
 	"AWS/AutoScaling": {
 		ResourceFunc: func(ctx context.Context, client client, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 			pageNum := 0

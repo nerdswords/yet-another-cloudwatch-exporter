@@ -17,14 +17,15 @@ import (
 
 // Metrics is a slice of prometheus metrics specific to the scraping process such API call counters
 var Metrics = []prometheus.Collector{
-	promutil.CloudwatchAPICounter,
 	promutil.CloudwatchAPIErrorCounter,
+	promutil.CloudwatchAPICounter,
 	promutil.CloudwatchGetMetricDataAPICounter,
 	promutil.CloudwatchGetMetricDataAPIMetricsCounter,
 	promutil.CloudwatchGetMetricStatisticsAPICounter,
 	promutil.ResourceGroupTaggingAPICounter,
 	promutil.AutoScalingAPICounter,
 	promutil.TargetGroupsAPICounter,
+	promutil.APIGatewayAPICounter,
 	promutil.Ec2APICounter,
 	promutil.DmsAPICounter,
 	promutil.StoragegatewayAPICounter,

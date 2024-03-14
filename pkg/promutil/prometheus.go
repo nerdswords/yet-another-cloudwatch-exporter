@@ -10,25 +10,25 @@ import (
 )
 
 var (
-	CloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_requests_total",
-		Help: "Help is not implemented yet.",
-	})
-	CloudwatchAPIErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchAPIErrorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_request_errors",
 		Help: "Help is not implemented yet.",
-	})
+	}, []string{"api_name"})
+	CloudwatchAPICounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Number of calls made to the CloudWatch APIs",
+	}, []string{"api_name"})
 	CloudwatchGetMetricDataAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricdata_requests_total",
-		Help: "Help is not implemented yet.",
+		Help: "DEPRECATED: replaced by yace_cloudwatch_requests_total with api_name label",
 	})
 	CloudwatchGetMetricDataAPIMetricsCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_getmetricdata_metrics_total",
-		Help: "Help is not implemented yet.",
+		Name: "yace_cloudwatch_getmetricdata_metrics_requested_total",
+		Help: "Number of metrics requested from the CloudWatch GetMetricData API which is how AWS bills",
 	})
 	CloudwatchGetMetricStatisticsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricstatistics_requests_total",
-		Help: "Help is not implemented yet.",
+		Help: "DEPRECATED: replaced by yace_cloudwatch_requests_total with api_name label",
 	})
 	ResourceGroupTaggingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_resourcegrouptaggingapi_requests_total",
@@ -41,6 +41,12 @@ var (
 	TargetGroupsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_targetgroupapi_requests_total",
 		Help: "Help is not implemented yet.",
+	})
+	APIGatewayAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_apigatewayapi_requests_total",
+	})
+	APIGatewayAPIV2Counter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_apigatewayapiv2_requests_total",
 	})
 	Ec2APICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_ec2api_requests_total",
