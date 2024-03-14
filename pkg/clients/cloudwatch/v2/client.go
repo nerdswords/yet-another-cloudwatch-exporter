@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
@@ -87,17 +88,41 @@ func toModelDimensions(dimensions []types.Dimension) []model.Dimension {
 	return modelDimensions
 }
 
-func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch_client.MetricDataResult {
-	filter := createGetMetricDataInput(logger, getMetricData, &namespace, length, delay, configuredRoundingPeriod)
-	promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(filter.MetricDataQueries)))
-
-	var resp cloudwatch.GetMetricDataOutput
-
-	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("GetMetricData", "input", filter)
+func (c client) GetMetricData(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch_client.MetricDataResult {
+	metricDataQueries := make([]types.MetricDataQuery, 0, len(getMetricData))
+	for _, data := range getMetricData {
+		metricStat := &types.MetricStat{
+			Metric: &types.Metric{
+				Dimensions: toCloudWatchDimensions(data.Dimensions),
+				MetricName: &data.MetricName,
+				Namespace:  &namespace,
+			},
+			Period: aws.Int32(int32(data.GetMetricDataProcessingParams.Period)),
+			Stat:   &data.GetMetricDataProcessingParams.Statistic,
+		}
+		metricDataQueries = append(metricDataQueries, types.MetricDataQuery{
+			// TODO consider switching this to be id_<i> and mapping the data directly to getMetricData after the API
+			//  call saving the need to allocate all the response array, and all the other work done else where
+			//  to map the results
+			Id:         &data.GetMetricDataProcessingParams.QueryID,
+			MetricStat: metricStat,
+			ReturnData: aws.Bool(true),
+		})
 	}
 
-	paginator := cloudwatch.NewGetMetricDataPaginator(c.cloudwatchAPI, filter, func(options *cloudwatch.GetMetricDataPaginatorOptions) {
+	input := &cloudwatch.GetMetricDataInput{
+		EndTime:           &endTime,
+		StartTime:         &startTime,
+		MetricDataQueries: metricDataQueries,
+		ScanBy:            "TimestampDescending",
+	}
+	var resp cloudwatch.GetMetricDataOutput
+	promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(input.MetricDataQueries)))
+	if c.logger.IsDebugEnabled() {
+		c.logger.Debug("GetMetricData", "input", input)
+	}
+
+	paginator := cloudwatch.NewGetMetricDataPaginator(c.cloudwatchAPI, input, func(options *cloudwatch.GetMetricDataPaginatorOptions) {
 		options.StopOnDuplicateToken = true
 	})
 	for paginator.HasMorePages() {

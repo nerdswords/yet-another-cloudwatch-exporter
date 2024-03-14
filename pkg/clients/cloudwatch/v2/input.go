@@ -9,56 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 
-	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
-
-func createGetMetricDataInput(logger logging.Logger, getMetricData []*model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64) *cloudwatch.GetMetricDataInput {
-	metricsDataQuery := make([]types.MetricDataQuery, 0, len(getMetricData))
-	roundingPeriod := model.DefaultPeriodSeconds
-	for _, data := range getMetricData {
-		if data.GetMetricDataProcessingParams.Period < roundingPeriod {
-			roundingPeriod = data.GetMetricDataProcessingParams.Period
-		}
-		metricStat := &types.MetricStat{
-			Metric: &types.Metric{
-				Dimensions: toCloudWatchDimensions(data.Dimensions),
-				MetricName: &data.MetricName,
-				Namespace:  namespace,
-			},
-			Period: aws.Int32(int32(data.GetMetricDataProcessingParams.Period)),
-			Stat:   &data.GetMetricDataProcessingParams.Statistic,
-		}
-		metricsDataQuery = append(metricsDataQuery, types.MetricDataQuery{
-			Id:         &data.GetMetricDataProcessingParams.QueryID,
-			MetricStat: metricStat,
-			ReturnData: aws.Bool(true),
-		})
-	}
-
-	if configuredRoundingPeriod != nil {
-		roundingPeriod = *configuredRoundingPeriod
-	}
-
-	startTime, endTime := cloudwatch_client.DetermineGetMetricDataWindow(
-		cloudwatch_client.TimeClock{},
-		time.Duration(roundingPeriod)*time.Second,
-		time.Duration(length)*time.Second,
-		time.Duration(delay)*time.Second)
-
-	if logger.IsDebugEnabled() {
-		logger.Debug("GetMetricData Window", "start_time", startTime.Format(cloudwatch_client.TimeFormat), "end_time", endTime.Format(cloudwatch_client.TimeFormat))
-	}
-
-	return &cloudwatch.GetMetricDataInput{
-		EndTime:           &endTime,
-		StartTime:         &startTime,
-		MetricDataQueries: metricsDataQuery,
-		ScanBy:            "TimestampDescending",
-	}
-}
 
 func toCloudWatchDimensions(dimensions []model.Dimension) []types.Dimension {
 	cwDim := make([]types.Dimension, 0, len(dimensions))

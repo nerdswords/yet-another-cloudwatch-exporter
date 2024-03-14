@@ -3,9 +3,9 @@ package getmetricdata
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -15,47 +15,71 @@ import (
 )
 
 type Client interface {
-	GetMetricData(ctx context.Context, logger logging.Logger, data []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
+	GetMetricData(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch.MetricDataResult
+}
+
+type IteratorFactory interface {
+	// Build returns an ideal batch iterator based on the provided CloudwatchData
+	Build(requests []*model.CloudwatchData, jobMetricLength, jobMetricDelay int64) BatchIterator
+}
+
+type BatchIterator interface {
+	// Size returns the number of batches in the iterator
+	Size() int
+
+	// Next returns the next batch of CloudWatch data be used when calling GetMetricData and the start + end time for
+	// the GetMetricData call
+	// If called when there are no more batches default values will be returned
+	Next() ([]*model.CloudwatchData, time.Time, time.Time)
+
+	// HasMore returns true if there are more batches to iterate otherwise false. Should be used in a loop
+	// to govern calls to Next()
+	HasMore() bool
 }
 
 type Processor struct {
-	metricsPerQuery int
-	client          Client
-	concurrency     int
+	client      Client
+	concurrency int
+	logger      logging.Logger
+	factory     IteratorFactory
 }
 
-func NewProcessor(client Client, metricsPerQuery int, concurrency int) Processor {
+func NewDefaultProcessor(logger logging.Logger, client Client, metricsPerQuery int, concurrency int) Processor {
+	factory := iteratorFactory{
+		metricsPerQuery:  metricsPerQuery,
+		windowCalculator: MetricWindowCalculator{clock: TimeClock{}},
+	}
+
+	return NewProcessor(logger, client, factory, concurrency)
+}
+
+func NewProcessor(logger logging.Logger, client Client, factory IteratorFactory, concurrency int) Processor {
 	return Processor{
-		metricsPerQuery: metricsPerQuery,
-		client:          client,
-		concurrency:     concurrency,
+		logger:      logger,
+		factory:     factory,
+		client:      client,
+		concurrency: concurrency,
 	}
 }
 
-func (p Processor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
-	metricDataLength := len(requests)
-	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(p.metricsPerQuery)))
-	logger.Debug("GetMetricData partitions", "size", partitionSize)
+func (b Processor) Run(ctx context.Context, namespace string, jobMetricLength, jobMetricDelay int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
+	if len(requests) == 0 {
+		return requests, nil
+	}
 
+	iterator := b.factory.Build(requests, jobMetricLength, jobMetricDelay)
 	g, gCtx := errgroup.WithContext(ctx)
-	g.SetLimit(p.concurrency)
-	count := 0
-	for i := 0; i < metricDataLength; i += p.metricsPerQuery {
-		start := i
-		end := i + p.metricsPerQuery
-		if end > metricDataLength {
-			end = metricDataLength
-		}
-		partitionNum := count
-		count++
+	g.SetLimit(b.concurrency)
 
+	for iterator.HasMore() {
+		batch, startTime, endTime := iterator.Next()
 		g.Go(func() error {
-			input := addQueryIDsToBatch(requests[start:end])
-			data := p.client.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
+			batch = addQueryIDsToBatch(batch)
+			data := b.client.GetMetricData(gCtx, batch, namespace, startTime, endTime)
 			if data != nil {
-				mapResultsToBatch(logger, data, input)
+				mapResultsToBatch(b.logger, data, batch)
 			} else {
-				logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
+				b.logger.Warn("GetMetricData empty result", "start", startTime, "end", endTime)
 			}
 
 			return nil

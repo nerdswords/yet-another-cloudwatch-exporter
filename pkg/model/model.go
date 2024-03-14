@@ -9,7 +9,6 @@ import (
 const (
 	DefaultPeriodSeconds = int64(300)
 	DefaultLengthSeconds = int64(300)
-	DefaultDelaySeconds  = int64(300)
 )
 
 type JobsConfig struct {
@@ -27,7 +26,6 @@ type DiscoveryJob struct {
 	CustomTags                  []Tag
 	DimensionNameRequirements   []string
 	Metrics                     []*MetricConfig
-	RoundingPeriod              *int64
 	RecentlyActiveOnly          bool
 	ExportedTagsOnMetrics       []string
 	IncludeContextOnInfoMetrics bool
@@ -54,7 +52,6 @@ type CustomNamespaceJob struct {
 	Metrics                   []*MetricConfig
 	CustomTags                []Tag
 	DimensionNameRequirements []string
-	RoundingPeriod            *int64
 	JobLevelMetricFields
 }
 
