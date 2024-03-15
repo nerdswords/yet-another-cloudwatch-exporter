@@ -571,6 +571,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/MediaPackage",
+		Alias:     "mediapackage",
+	},
+	{
 		Namespace: "AWS/MediaLive",
 		Alias:     "medialive",
 		ResourceFilters: []*string{
