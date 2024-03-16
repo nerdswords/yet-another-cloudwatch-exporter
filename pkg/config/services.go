@@ -335,6 +335,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/EC2CapacityReservations",
+		Alias:     "ec2CapacityReservations",
+	},
+	{
 		Namespace: "AWS/ECS",
 		Alias:     "ecs-svc",
 		ResourceFilters: []*string{
