@@ -287,6 +287,16 @@ func startScraper(c *cli.Context) error {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	// Debug configuration in certain cases
+	mux.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		configBody, err := os.ReadFile(configFile)
+		if err != nil {
+			logger.Error(err, "Couldn't read config file", "path", configFile)
+			return
+		}
+		_, _ = w.Write(configBody)
+	})
 
 	mux.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
