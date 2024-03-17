@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 
@@ -166,15 +165,12 @@ func getFilteredMetricDatas(
 
 		metricTags := resource.MetricTags(tagsOnMetrics)
 		for _, stat := range m.Statistics {
-			id := fmt.Sprintf("id_%d", rand.Int())
-
 			getMetricsData = append(getMetricsData, &model.CloudwatchData{
 				MetricName:   m.Name,
 				ResourceName: resource.ARN,
 				Namespace:    namespace,
 				Dimensions:   cwMetric.Dimensions,
 				GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
-					QueryID:   id,
 					Period:    m.Period,
 					Length:    m.Length,
 					Delay:     m.Delay,
