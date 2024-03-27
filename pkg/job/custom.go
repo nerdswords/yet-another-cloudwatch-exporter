@@ -2,8 +2,6 @@ package job
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"sync"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
@@ -63,14 +61,12 @@ func getMetricDataForQueriesForCustomNamespace(
 					}
 
 					for _, stat := range metric.Statistics {
-						id := fmt.Sprintf("id_%d", rand.Int())
 						data = append(data, &model.CloudwatchData{
 							MetricName:   metric.Name,
 							ResourceName: customNamespaceJob.Name,
 							Namespace:    customNamespaceJob.Namespace,
 							Dimensions:   cwMetric.Dimensions,
 							GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
-								QueryID:   id,
 								Period:    metric.Period,
 								Length:    metric.Length,
 								Delay:     metric.Delay,
