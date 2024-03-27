@@ -108,7 +108,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						},
 					},
 					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
-						QueryID:   "asdf",
 						Period:    60,
 						Length:    600,
 						Delay:     120,
@@ -275,7 +274,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 						},
 					},
 					GetMetricDataProcessingParams: &model.GetMetricDataProcessingParams{
-						QueryID:   "asdf",
 						Statistic: "Average",
 						Period:    60,
 						Length:    600,
@@ -426,7 +424,6 @@ func Test_getFilteredMetricDatas(t *testing.T) {
 				assert.ElementsMatch(t, want.Dimensions, got.Dimensions)
 				assert.ElementsMatch(t, want.Tags, got.Tags)
 				assert.Equal(t, want.MetricMigrationParams, got.MetricMigrationParams)
-				assert.NotEmpty(t, got.GetMetricDataProcessingParams.QueryID)
 				assert.Equal(t, want.GetMetricDataProcessingParams.Statistic, got.GetMetricDataProcessingParams.Statistic)
 				assert.Equal(t, want.GetMetricDataProcessingParams.Length, got.GetMetricDataProcessingParams.Length)
 				assert.Equal(t, want.GetMetricDataProcessingParams.Period, got.GetMetricDataProcessingParams.Period)
