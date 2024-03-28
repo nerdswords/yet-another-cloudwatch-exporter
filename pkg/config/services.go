@@ -885,7 +885,7 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
-		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
+		Namespace: "AWS/SageMaker/ModelBuildingPipeline",
 		Alias:     "sagemaker-model-building-pipeline",
 		ResourceFilters: []*string{
 			aws.String("sagemaker:pipeline"),
