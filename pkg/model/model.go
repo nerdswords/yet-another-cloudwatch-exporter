@@ -182,7 +182,7 @@ type GetMetricStatisticsResult struct {
 }
 
 type GetMetricDataProcessingParams struct {
-	// QueryID is the query ID for GetMetricData used in results mapping
+	// QueryID is a value internal to processing used for mapping results from GetMetricData their original request
 	QueryID string
 
 	// The statistic to be used to call GetMetricData
