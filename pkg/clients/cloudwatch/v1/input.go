@@ -1,3 +1,5 @@
+//go:build !v2only
+
 package v1
 
 import (
