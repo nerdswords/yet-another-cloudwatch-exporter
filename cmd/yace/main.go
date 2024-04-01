@@ -13,7 +13,6 @@ import (
 
 	exporter "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v1"
 	v2 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/v2"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
@@ -247,17 +246,17 @@ func startScraper(c *cli.Context) error {
 
 	featureFlags := c.StringSlice(enableFeatureFlag)
 	s := NewScraper(featureFlags)
-	var cache cachingFactory = v1.NewFactory(logger, jobsCfg, fips)
-	for _, featureFlag := range featureFlags {
-		if featureFlag == config.AwsSdkV2 {
-			var err error
-			// Can't override cache while also creating err
-			cache, err = v2.NewFactory(logger, jobsCfg, fips)
-			if err != nil {
-				return fmt.Errorf("failed to construct aws sdk v2 client cache: %w", err)
-			}
-		}
+	// var cache cachingFactory = v1.NewFactory(logger, jobsCfg, fips)
+	// for _, featureFlag := range featureFlags {
+	// 	if featureFlag == config.AwsSdkV2 {
+	// var err error
+	// Can't override cache while also creating err
+	cache, err := v2.NewFactory(logger, jobsCfg, fips)
+	if err != nil {
+		return fmt.Errorf("failed to construct aws sdk v2 client cache: %w", err)
 	}
+	// 	}
+	// }
 
 	ctx, cancelRunningScrape := context.WithCancel(context.Background())
 	go s.decoupled(ctx, logger, jobsCfg, cache)
@@ -303,19 +302,19 @@ func startScraper(c *cli.Context) error {
 		}
 
 		logger.Info("Reset clients cache")
-		cache = v1.NewFactory(logger, newJobsCfg, fips)
-		for _, featureFlag := range featureFlags {
-			if featureFlag == config.AwsSdkV2 {
-				logger.Info("Using aws sdk v2")
-				var err error
-				// Can't override cache while also creating err
-				cache, err = v2.NewFactory(logger, newJobsCfg, fips)
-				if err != nil {
-					logger.Error(err, "Failed to construct aws sdk v2 client cache", "path", configFile)
-					return
-				}
-			}
+		// cache = v1.NewFactory(logger, newJobsCfg, fips)
+		// for _, featureFlag := range featureFlags {
+		// 	if featureFlag == config.AwsSdkV2 {
+		// 		logger.Info("Using aws sdk v2")
+		// var err error
+		// Can't override cache while also creating err
+		cache, err = v2.NewFactory(logger, newJobsCfg, fips)
+		if err != nil {
+			logger.Error(err, "Failed to construct aws sdk v2 client cache", "path", configFile)
+			return
 		}
+		// 	}
+		// }
 
 		cancelRunningScrape()
 		ctx, cancelRunningScrape = context.WithCancel(context.Background())
