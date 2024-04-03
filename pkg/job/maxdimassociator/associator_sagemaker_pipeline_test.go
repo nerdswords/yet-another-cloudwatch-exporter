@@ -43,11 +43,11 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
-					Namespace:  "AWS/SageMaker/ModelBuildingPipeline",
+					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
 					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-one"},
 						{Name: "StepName", Value: "example-pipeline-one-step-two"},
@@ -60,11 +60,11 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "1 dimension should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
-					Namespace:  "AWS/SageMaker/ModelBuildingPipeline",
+					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
 					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-two"},
 					},
@@ -76,11 +76,11 @@ func TestAssociatorSagemakerPipeline(t *testing.T) {
 		{
 			name: "2 dimensions should not match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/SageMaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Sagemaker/ModelBuildingPipeline").ToModelDimensionsRegexp(),
 				resources:        sagemakerPipelineResources,
 				metric: &model.Metric{
 					MetricName: "ExecutionStarted",
-					Namespace:  "AWS/SageMaker/ModelBuildingPipeline",
+					Namespace:  "AWS/Sagemaker/ModelBuildingPipeline",
 					Dimensions: []model.Dimension{
 						{Name: "PipelineName", Value: "example-pipeline-three"},
 						{Name: "StepName", Value: "example-pipeline-three-step-two"},
