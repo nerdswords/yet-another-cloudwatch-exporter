@@ -23,6 +23,10 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 		for _, d := range tagResult.Data {
 			sb := strings.Builder{}
 			promNs := PromString(strings.ToLower(d.Namespace))
+			// Some namespaces have a leading forward slash like
+			// /aws/sagemaker/TrainingJobs, which gets converted to
+			// a leading _ by PromString().
+			promNs = strings.TrimPrefix(promNs, "_")
 			if !strings.HasPrefix(promNs, "aws") {
 				sb.WriteString("aws_")
 			}
