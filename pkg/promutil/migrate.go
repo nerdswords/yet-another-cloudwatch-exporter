@@ -17,7 +17,7 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildInfoMetricName(namespace string) string {
+func buildMetricPrefix(namespace string) string {
 	sb := strings.Builder{}
 	promNs := PromString(strings.ToLower(namespace))
 	// Some namespaces have a leading forward slash like
@@ -28,6 +28,12 @@ func BuildInfoMetricName(namespace string) string {
 		sb.WriteString("aws_")
 	}
 	sb.WriteString(promNs)
+	return sb.String()
+}
+
+func BuildInfoMetricName(namespace string) string {
+	sb := strings.Builder{}
+	sb.WriteString(buildMetricPrefix(namespace))
 	sb.WriteString("_info")
 	return sb.String()
 }
@@ -99,11 +105,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				}
 
 				sb := strings.Builder{}
-				promNs := PromString(strings.ToLower(metric.Namespace))
-				if !strings.HasPrefix(promNs, "aws") {
-					sb.WriteString("aws_")
-				}
-				sb.WriteString(promNs)
+				sb.WriteString(buildMetricPrefix(metric.Namespace))
 				sb.WriteString("_")
 				sb.WriteString(PromString(metric.MetricName))
 				sb.WriteString("_")
