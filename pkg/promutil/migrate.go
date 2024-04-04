@@ -17,22 +17,26 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
+func BuildInfoMetricName(namespace string) string {
+	sb := strings.Builder{}
+	promNs := PromString(strings.ToLower(namespace))
+	// Some namespaces have a leading forward slash like
+	// /aws/sagemaker/TrainingJobs, which gets converted to
+	// a leading _ by PromString().
+	promNs = strings.TrimPrefix(promNs, "_")
+	if !strings.HasPrefix(promNs, "aws") {
+		sb.WriteString("aws_")
+	}
+	sb.WriteString(promNs)
+	sb.WriteString("_info")
+	return sb.String()
+}
+
 func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
-			sb := strings.Builder{}
-			promNs := PromString(strings.ToLower(d.Namespace))
-			// Some namespaces have a leading forward slash like
-			// /aws/sagemaker/TrainingJobs, which gets converted to
-			// a leading _ by PromString().
-			promNs = strings.TrimPrefix(promNs, "_")
-			if !strings.HasPrefix(promNs, "aws") {
-				sb.WriteString("aws_")
-			}
-			sb.WriteString(promNs)
-			sb.WriteString("_info")
-			metricName := sb.String()
+			metricName := BuildInfoMetricName(d.Namespace)
 
 			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
 			maps.Copy(promLabels, contextLabels)
