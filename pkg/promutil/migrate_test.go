@@ -662,6 +662,61 @@ func TestBuildMetrics(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name: "metric with nonstandard namespace",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "/aws/sagemaker/TrainingJobs",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "Host",
+								Value: "sagemaker-xgboost",
+							},
+						},
+						ResourceName: "arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_sagemaker_trainingjobs_cpuutilization_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":     "123456789012",
+						"name":           "arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
+						"region":         "us-east-1",
+						"dimension_host": "sagemaker-xgboost",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_sagemaker_trainingjobs_cpuutilization_average": {
+					"account_id":     {},
+					"name":           {},
+					"region":         {},
+					"dimension_host": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
 			name: "custom tag",
 			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
