@@ -10,7 +10,8 @@ Features:
 * ...
 
 Bugs:
-* ...
+* Fixed issue with generated Prometheus metric name when working with AWS namespaces which have
+a leading special character, like `/aws/sagemaker/TrainingJobs`
 
 Docs:
 * ...
