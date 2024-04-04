@@ -17,7 +17,7 @@ Docs:
 * ...
 
 Refactoring:
-* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` into `promutil.BuildInfoMetricName()` and `promutil.BuildMetricPrefix()`.
+* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` and `promutil.BuildMetrics()` into `promutil.BuildMetricName()`.
 
 **Dependencies**
 

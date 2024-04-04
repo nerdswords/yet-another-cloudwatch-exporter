@@ -17,7 +17,7 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildMetricPrefix(namespace string) string {
+func BuildMetricName(namespace, metricName, statistic string) string {
 	sb := strings.Builder{}
 	promNs := PromString(strings.ToLower(namespace))
 	// Some namespaces have a leading forward slash like
@@ -28,13 +28,12 @@ func BuildMetricPrefix(namespace string) string {
 		sb.WriteString("aws_")
 	}
 	sb.WriteString(promNs)
-	return sb.String()
-}
-
-func BuildInfoMetricName(namespace string) string {
-	sb := strings.Builder{}
-	sb.WriteString(BuildMetricPrefix(namespace))
-	sb.WriteString("_info")
+	sb.WriteString("_")
+	sb.WriteString(PromString(metricName))
+	if statistic != "" {
+		sb.WriteString("_")
+		sb.WriteString(PromString(statistic))
+	}
 	return sb.String()
 }
 
@@ -42,7 +41,7 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
-			metricName := BuildInfoMetricName(d.Namespace)
+			metricName := BuildMetricName(d.Namespace, "info", "")
 
 			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
 			maps.Copy(promLabels, contextLabels)
@@ -104,13 +103,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 					exportedDatapoint = 0
 				}
 
-				sb := strings.Builder{}
-				sb.WriteString(BuildMetricPrefix(metric.Namespace))
-				sb.WriteString("_")
-				sb.WriteString(PromString(metric.MetricName))
-				sb.WriteString("_")
-				sb.WriteString(PromString(statistic))
-				name := sb.String()
+				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
 
 				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
 				maps.Copy(promLabels, contextLabels)
