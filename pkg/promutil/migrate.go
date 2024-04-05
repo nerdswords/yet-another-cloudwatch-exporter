@@ -105,8 +105,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 
 				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
 
-				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
-				maps.Copy(promLabels, contextLabels)
+				promLabels := createPrometheusLabels(metric, labelsSnakeCase, contextLabels, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 
 				output = append(output, &PrometheusMetric{
@@ -203,8 +202,8 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	return datapoints
 }
 
-func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
-	labels := make(map[string]string)
+func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, contextLabels map[string]string, logger logging.Logger) map[string]string {
+	labels := make(map[string]string, len(cwd.Dimensions)+len(cwd.Tags)+len(contextLabels))
 	labels["name"] = cwd.ResourceName
 
 	// Inject the sfn name back as a label
@@ -226,14 +225,17 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 		labels["tag_"+promTag] = tag.Value
 	}
 
+	maps.Copy(labels, contextLabels)
+
 	return labels
 }
 
 func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) map[string]string {
-	labels := make(map[string]string)
 	if context == nil {
-		return labels
+		return map[string]string{}
 	}
+
+	labels := make(map[string]string, 2+len(context.CustomTags))
 	labels["region"] = context.Region
 	labels["account_id"] = context.AccountID
 
