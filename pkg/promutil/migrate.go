@@ -17,18 +17,31 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
+func BuildMetricName(namespace, metricName, statistic string) string {
+	sb := strings.Builder{}
+	promNs := PromString(strings.ToLower(namespace))
+	// Some namespaces have a leading forward slash like
+	// /aws/sagemaker/TrainingJobs, which gets converted to
+	// a leading _ by PromString().
+	promNs = strings.TrimPrefix(promNs, "_")
+	if !strings.HasPrefix(promNs, "aws") {
+		sb.WriteString("aws_")
+	}
+	sb.WriteString(promNs)
+	sb.WriteString("_")
+	sb.WriteString(PromString(metricName))
+	if statistic != "" {
+		sb.WriteString("_")
+		sb.WriteString(PromString(statistic))
+	}
+	return sb.String()
+}
+
 func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
-			sb := strings.Builder{}
-			promNs := PromString(strings.ToLower(d.Namespace))
-			if !strings.HasPrefix(promNs, "aws") {
-				sb.WriteString("aws_")
-			}
-			sb.WriteString(promNs)
-			sb.WriteString("_info")
-			metricName := sb.String()
+			metricName := BuildMetricName(d.Namespace, "info", "")
 
 			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
 			maps.Copy(promLabels, contextLabels)
@@ -90,17 +103,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 					exportedDatapoint = 0
 				}
 
-				sb := strings.Builder{}
-				promNs := PromString(strings.ToLower(metric.Namespace))
-				if !strings.HasPrefix(promNs, "aws") {
-					sb.WriteString("aws_")
-				}
-				sb.WriteString(promNs)
-				sb.WriteString("_")
-				sb.WriteString(PromString(metric.MetricName))
-				sb.WriteString("_")
-				sb.WriteString(PromString(statistic))
-				name := sb.String()
+				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
 
 				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
 				maps.Copy(promLabels, contextLabels)

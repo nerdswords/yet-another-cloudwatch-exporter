@@ -10,13 +10,14 @@ Features:
 * ...
 
 Bugs:
-* ...
+* Fixed issue with generated Prometheus metric name when working with AWS namespaces which have
+a leading special character, like `/aws/sagemaker/TrainingJobs`
 
 Docs:
 * ...
 
 Refactoring:
-* ...
+* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` and `promutil.BuildMetrics()` into `promutil.BuildMetricName()`.
 
 **Dependencies**
 
