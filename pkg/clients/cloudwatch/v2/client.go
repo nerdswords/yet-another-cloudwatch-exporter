@@ -101,9 +101,6 @@ func (c client) GetMetricData(ctx context.Context, getMetricData []*model.Cloudw
 			Stat:   &data.GetMetricDataProcessingParams.Statistic,
 		}
 		metricDataQueries = append(metricDataQueries, types.MetricDataQuery{
-			// TODO consider switching this to be id_<i> and mapping the data directly to getMetricData after the API
-			//  call saving the need to allocate all the response array, and all the other work done else where
-			//  to map the results
 			Id:         &data.GetMetricDataProcessingParams.QueryID,
 			MetricStat: metricStat,
 			ReturnData: aws.Bool(true),
