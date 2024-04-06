@@ -10,14 +10,13 @@ Features:
 * ...
 
 Bugs:
-* Fixed issue with generated Prometheus metric name when working with AWS namespaces which have
-a leading special character, like `/aws/sagemaker/TrainingJobs`
+* ...
 
 Docs:
 * ...
 
 Refactoring:
-* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` and `promutil.BuildMetrics()` into `promutil.BuildMetricName()`.
+* ...
 
 **Dependencies**
 
@@ -28,6 +27,35 @@ Refactoring:
 * ...
 
 **Full Changelog**: https://github.com/...
+
+# 0.58.0
+
+**Bugfixes and features**
+
+Features:
+* Simplify CloudWatch API call counters by @kgeckhart
+
+Bugs:
+* Fixed issue with generated Prometheus metric name when working with AWS namespaces which have a leading special character, like `/aws/sagemaker/TrainingJobs` by @tristanburgess
+
+Refactoring:
+* Add abstraction for `GetMetricsData` processing by @kgeckhart
+* `GetMetricData`: refactor QueryID generation and result mapping by @kgeckhart
+* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` and `promutil.BuildMetrics()` into `promutil.BuildMetricName()` by @tristanburgess
+* Set initial maps size in promutil/migrate by @cristiangreco
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.50.30 to 1.51.16
+* Bump github.com/prometheus/common from 0.49.0 to 0.52.2
+* Bump golang.org/x/sync from 0.6.0 to 0.7.0
+* Bump the aws-sdk-v2 group with 14 updates
+
+**New contributors**
+
+* @tristanburgess made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1351
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.57.1...v0.58.0
 
 
 # 0.57.1
