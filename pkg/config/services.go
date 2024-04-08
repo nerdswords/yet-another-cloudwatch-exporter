@@ -444,8 +444,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/GatewayELB",
 		Alias:     "gwlb",
 		ResourceFilters: []*string{
-			aws.String("elasticloadbalancing:loadbalancer/gwy"),
-			aws.String("elasticloadbalancing:targetgroup"),
+			aws.String("elasticloadbalancing:loadbalancer"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":(?P<TargetGroup>targetgroup/.+)"),
