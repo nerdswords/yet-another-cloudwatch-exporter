@@ -914,5 +914,8 @@ var SupportedServices = serviceConfigs{
 		ResourceFilters: []*string{
 			aws.String("events"),
 		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":rule/(?P<EventBusName>.+)/(?P<RuleName>[^/]+)$"),
+		},
 	},
 }
