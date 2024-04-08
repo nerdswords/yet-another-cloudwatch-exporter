@@ -83,6 +83,7 @@ Only the latest version gets security updates. We won't support older versions.
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
+  * logs (AWS/Logs) - CloudWatch Logs
   * mediaconnect (AWS/MediaConnect) - AWS Elemental MediaConnect
   * mediaconvert (AWS/MediaConvert) - AWS Elemental MediaConvert
   * medialive (AWS/MediaLive) - AWS Elemental MediaLive
