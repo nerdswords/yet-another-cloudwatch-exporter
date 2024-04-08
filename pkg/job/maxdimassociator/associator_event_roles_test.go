@@ -15,8 +15,13 @@ var eventRule0 = &model.TaggedResource{
 	Namespace: "AWS/Events",
 }
 
+var eventRule1 = &model.TaggedResource{
+	ARN:       "arn:aws:events:eu-central-1:123456789012:rule/aws.partner/partner.name/123456/rule-name",
+	Namespace: "AWS/Events",
+}
+
 var eventRuleResources = []*model.TaggedResource{
-	eventRule0,
+	eventRule0, eventRule1,
 }
 
 func TestAssociatorEventRule(t *testing.T) {
