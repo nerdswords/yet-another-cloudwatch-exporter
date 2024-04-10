@@ -3,7 +3,6 @@ package promutil
 import (
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -170,7 +169,7 @@ func sanitize(text string) string {
 			b[i] = '_'
 		}
 	}
-	return *(*string)(unsafe.Pointer(&b))
+	return string(b)
 }
 
 // splitString replaces consecutive occurrences of a lowercase and uppercase letter,
