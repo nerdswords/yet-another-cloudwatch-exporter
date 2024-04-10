@@ -717,6 +717,116 @@ func TestBuildMetrics(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name: "metric with metric name that does duplicates part of the namespace as a prefix",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "glue.driver.aggregate.bytesRead",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "Glue",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "JobName",
+								Value: "test-job",
+							},
+						},
+						ResourceName: "arn:aws:glue:us-east-1:123456789012:job/test-job",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_glue_driver_aggregate_bytes_read_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":         "123456789012",
+						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"region":             "us-east-1",
+						"dimension_job_name": "test-job",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_glue_driver_aggregate_bytes_read_average": {
+					"account_id":         {},
+					"name":               {},
+					"region":             {},
+					"dimension_job_name": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "metric with metric name that does not duplicate part of the namespace as a prefix",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "aggregate.glue.jobs.bytesRead",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "Glue",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "JobName",
+								Value: "test-job",
+							},
+						},
+						ResourceName: "arn:aws:glue:us-east-1:123456789012:job/test-job",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_glue_aggregate_glue_jobs_bytes_read_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":         "123456789012",
+						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"region":             "us-east-1",
+						"dimension_job_name": "test-job",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_glue_aggregate_glue_jobs_bytes_read_average": {
+					"account_id":         {},
+					"name":               {},
+					"region":             {},
+					"dimension_job_name": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
 			name: "custom tag",
 			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
