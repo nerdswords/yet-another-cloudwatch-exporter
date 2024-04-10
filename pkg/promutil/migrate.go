@@ -262,7 +262,7 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 // the updated observedMetricLabels
 func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(model.LabelSet)
+		observedMetricLabels[metricName] = make(model.LabelSet, len(promLabels))
 	}
 	for label := range promLabels {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {
