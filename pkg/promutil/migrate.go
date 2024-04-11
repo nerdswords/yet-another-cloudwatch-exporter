@@ -287,7 +287,9 @@ func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, obse
 			}
 		}
 
-		metricKey := fmt.Sprintf("%s-%d", *metric.Name, prom_model.LabelsToSignature(metric.Labels))
+		// Include the timestamp to avoid genuine duplicates!? At this point we have all the metrics to be exposed under the `/metrics` endpoint so
+		// we aren't able to tell if some of the metrics are present because the `addHistoricalMetrics` is set to `true`!?
+		metricKey := fmt.Sprintf("%s-%d-%d", *metric.Name, prom_model.LabelsToSignature(metric.Labels), metric.Timestamp.Unix())
 		if _, exists := metricKeys[metricKey]; !exists {
 			metricKeys[metricKey] = struct{}{}
 			output = append(output, metric)

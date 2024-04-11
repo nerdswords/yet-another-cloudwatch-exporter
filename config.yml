@@ -1,0 +1,13 @@
+
+  apiVersion: v1alpha1
+  discovery:
+    jobs:
+    - type: AWS/EC2
+      regions: [eu-central-1]
+      period: 60
+      length: 180
+      delay: 180
+      addHistoricalMetrics: true
+      metrics:
+        - name: CPUUtilization
+          statistics: [Average]

@@ -65,6 +65,7 @@ type JobLevelMetricFields struct {
 	Delay                  int64
 	NilToZero              *bool
 	AddCloudwatchTimestamp *bool
+	AddHistoricalMetrics   *bool
 }
 
 type Role struct {
