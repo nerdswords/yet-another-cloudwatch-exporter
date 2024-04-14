@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/associator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/job/maxdimassociator"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -24,13 +26,12 @@ type resourceAssociator interface {
 func runDiscoveryJob(
 	ctx context.Context,
 	logger logging.Logger,
-	job *config.Job,
+	job model.DiscoveryJob,
 	region string,
-	accountID string,
-	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientTag tagging.Client,
 	clientCloudwatch cloudwatch.Client,
 	metricsPerQuery int,
+	cloudwatchConcurrency cloudwatch.ConcurrencyConfig,
 ) ([]*model.TaggedResource, []*model.CloudwatchData) {
 	logger.Debug("Get tagged resources")
 
@@ -51,7 +52,7 @@ func runDiscoveryJob(
 	}
 
 	svc := config.SupportedServices.GetService(job.Type)
-	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, region, accountID, tagsOnMetrics, clientCloudwatch, resources)
+	getMetricDatas := getMetricDataForQueries(ctx, logger, job, svc, clientCloudwatch, resources)
 	metricDataLength := len(getMetricDatas)
 	if metricDataLength == 0 {
 		logger.Info("No metrics data found")
@@ -60,12 +61,16 @@ func runDiscoveryJob(
 
 	maxMetricCount := metricsPerQuery
 	length := getMetricDataInputLength(job.Metrics)
-	partition := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(maxMetricCount)))
+	logger.Debug("GetMetricData partitions", "size", partitionSize)
 
-	var wg sync.WaitGroup
-	wg.Add(partition)
+	g, gCtx := errgroup.WithContext(ctx)
+	// TODO: don't know if this is ok, double check, and should work for either per-api and single cl
+	g.SetLimit(cloudwatchConcurrency.GetMetricData)
 
-	getMetricDataOutput := make([][]*cloudwatch.MetricDataResult, partition)
+	mu := sync.Mutex{}
+	getMetricDataOutput := make([][]cloudwatch.MetricDataResult, 0, partitionSize)
+
 	count := 0
 
 	var addHistoricalMetrics bool
@@ -74,65 +79,37 @@ func runDiscoveryJob(
 	}
 
 	for i := 0; i < metricDataLength; i += maxMetricCount {
-		go func(i, n int) {
-			defer wg.Done()
-			end := i + maxMetricCount
-			if end > metricDataLength {
-				end = metricDataLength
-			}
-			input := getMetricDatas[i:end]
-			data := clientCloudwatch.GetMetricData(ctx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod, addHistoricalMetrics)
-			if data != nil {
-				getMetricDataOutput[n] = data
-			} else {
-				logger.Warn("GetMetricData partition empty result", "partition", n, "start", i, "end", end)
-			}
-		}(i, count)
+		start := i
+		end := i + maxMetricCount
+		if end > metricDataLength {
+			end = metricDataLength
+		}
+		partitionNum := count
 		count++
-	}
-	wg.Wait()
 
-	// Update getMetricDatas slice with values and timestamps from API response.
-	// We iterate through the response MetricDataResults and match the result ID
-	// with what was sent in the API request.
-	// In the event that the API response contains any ID we don't know about
-	// (shouldn't really happen) we log a warning and move on. On the other hand,
-	// in case the API response does not contain results for all the IDs we've
-	// requested, unprocessed elements will be removed later on.
-	for _, data := range getMetricDataOutput {
-		if data == nil {
-			continue
-		}
-		previousIdx := -1
-		previousID := ""
-		for _, metricDataResult := range data {
-			idx := findGetMetricDataByID(getMetricDatas, *metricDataResult.ID)
-			// TODO: This logic needs to be guarded by a feature flag! Also, remember to add compatibility in the client v2
-			if idx == -1 {
-				if addHistoricalMetrics {
-					// Use the previousIdx to make a copy
-					if previousIdx != -1 && previousID == *metricDataResult.ID {
-						// Create a new CloudwatchData object
-						newData := *getMetricDatas[previousIdx]
-						newData.GetMetricDataPoint = metricDataResult.Datapoint
-						newData.GetMetricDataTimestamps = metricDataResult.Timestamp
+		g.Go(func() error {
+			logger.Debug("GetMetricData partition", "start", start, "end", end, "partitionNum", partitionNum)
 
-						getMetricDatas = append(getMetricDatas, &newData)
-					} else {
-						logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
-					}
-				} else {
-					logger.Warn("GetMetricData returned unknown metric ID", "metric_id", *metricDataResult.ID)
-				}
-				continue
+			input := getMetricDatas[start:end]
+			data := clientCloudwatch.GetMetricData(gCtx, logger, input, svc.Namespace, length, job.Delay, job.RoundingPeriod, addHistoricalMetrics)
+			if data != nil {
+				mu.Lock()
+				getMetricDataOutput = append(getMetricDataOutput, data)
+				mu.Unlock()
+			} else {
+				logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
 			}
-			getMetricDatas[idx].GetMetricDataPoint = metricDataResult.Datapoint
-			getMetricDatas[idx].GetMetricDataTimestamps = metricDataResult.Timestamp
-			getMetricDatas[idx].MetricID = nil // mark as processed
-			previousIdx = idx
-			previousID = *metricDataResult.ID
-		}
+
+			return nil
+		})
 	}
+
+	if err = g.Wait(); err != nil {
+		logger.Error(err, "GetMetricData work group error")
+		return nil, nil
+	}
+
+	getMetricDatas = mapResultsToMetricDatas(getMetricDataOutput, getMetricDatas, logger)
 
 	// Remove unprocessed/unknown elements in place, if any. Since getMetricDatas
 	// is a slice of pointers, the compaction can be easily done in-place.
@@ -142,7 +119,70 @@ func runDiscoveryJob(
 	return resources, getMetricDatas
 }
 
-func getMetricDataInputLength(metrics []*config.Metric) int64 {
+// mapResultsToMetricDatas walks over all CW GetMetricData results, and map each one with the corresponding model.CloudwatchData.
+//
+// This has been extracted into a separate function to make benchmarking easier.
+func mapResultsToMetricDatas(output [][]cloudwatch.MetricDataResult, datas []*model.CloudwatchData, logger logging.Logger) []*model.CloudwatchData {
+	// metricIDToData is a support structure used to easily find via a MetricID, the corresponding
+	// model.CloudatchData.
+	metricIDToData := make(map[string]*model.CloudwatchData, len(datas))
+
+	// load the index
+	for _, data := range datas {
+		metricIDToData[*(data.MetricID)] = data
+	}
+
+	// Update getMetricDatas slice with values and timestamps from API response.
+	// We iterate through the response MetricDataResults and match the result ID
+	// with what was sent in the API request.
+	// In the event that the API response contains any ID we don't know about
+	// (shouldn't really happen) we log a warning and move on. On the other hand,
+	// in case the API response does not contain results for all the IDs we've
+	// requested, unprocessed elements will be removed later on.
+	for _, data := range output {
+		if data == nil {
+			continue
+		}
+
+		previousID := ""
+		for _, metricDataResult := range data {
+			// find into index
+			metricData, ok := metricIDToData[metricDataResult.ID]
+			if !ok {
+				logger.Warn("GetMetricData returned unknown metric ID", "metric_id", metricDataResult.ID)
+				continue
+			}
+
+			// TODO: This logic needs to be guarded by a feature flag! Also, remember to add compatibility in the client v2
+			// skip elements that have been already mapped but still exist in metricIDToData
+			if metricData.MetricID == nil {
+				if *metricData.AddHistoricalMetrics {
+					// Use the previousIdx to make a copy
+					if previousID == metricDataResult.ID {
+						// Create a new CloudwatchData object
+						newData := *metricData
+						newData.GetMetricDataPoint = metricDataResult.Datapoint
+						newData.GetMetricDataTimestamps = metricDataResult.Timestamp
+
+						datas = append(datas, &newData)
+					}
+				}
+
+				continue
+			}
+
+			metricData.GetMetricDataPoint = metricDataResult.Datapoint
+			metricData.GetMetricDataTimestamps = metricDataResult.Timestamp
+			previousID = metricDataResult.ID
+
+			metricData.MetricID = nil // mark as processed
+		}
+	}
+
+	return datas
+}
+
+func getMetricDataInputLength(metrics []*model.MetricConfig) int64 {
 	var length int64
 	for _, metric := range metrics {
 		if metric.Length > length {
@@ -152,31 +192,24 @@ func getMetricDataInputLength(metrics []*config.Metric) int64 {
 	return length
 }
 
-func findGetMetricDataByID(getMetricDatas []*model.CloudwatchData, value string) int {
-	for i := 0; i < len(getMetricDatas); i++ {
-		if getMetricDatas[i].MetricID == nil {
-			continue // skip elements that have been already marked
-		}
-		if *(getMetricDatas[i].MetricID) == value {
-			return i
-		}
-	}
-	return -1
-}
-
 func getMetricDataForQueries(
 	ctx context.Context,
 	logger logging.Logger,
-	discoveryJob *config.Job,
+	discoveryJob model.DiscoveryJob,
 	svc *config.ServiceConfig,
-	region string,
-	accountID string,
-	tagsOnMetrics model.ExportedTagsOnMetrics,
 	clientCloudwatch cloudwatch.Client,
 	resources []*model.TaggedResource,
 ) []*model.CloudwatchData {
 	mux := &sync.Mutex{}
 	var getMetricDatas []*model.CloudwatchData
+
+	var assoc resourceAssociator
+	if len(svc.DimensionRegexps) > 0 && len(resources) > 0 {
+		assoc = maxdimassociator.NewAssociator(logger, discoveryJob.DimensionsRegexps, resources)
+	} else {
+		// If we don't have dimension regex's and resources there's nothing to associate but metrics shouldn't be skipped
+		assoc = nopAssociator{}
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(discoveryJob.Metrics))
@@ -184,79 +217,41 @@ func getMetricDataForQueries(
 	// For every metric of the job call the ListMetrics API
 	// to fetch the existing combinations of dimensions and
 	// value of dimensions with data.
+	for _, metric := range discoveryJob.Metrics {
+		go func(metric *model.MetricConfig) {
+			defer wg.Done()
 
-	if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.ListMetricsCallback) {
-		for _, metric := range discoveryJob.Metrics {
-			go func(metric *config.Metric) {
-				defer wg.Done()
-
-				var assoc resourceAssociator
-				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
-				} else {
-					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-				if logger.IsDebugEnabled() {
-					logger.Debug("associator", assoc)
-				}
-
-				_, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
-					data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
-
-					mux.Lock()
-					getMetricDatas = append(getMetricDatas, data...)
-					mux.Unlock()
-				})
-				if err != nil {
-					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-					return
-				}
-			}(metric)
-		}
-	} else {
-		for _, metric := range discoveryJob.Metrics {
-			go func(metric *config.Metric) {
-				defer wg.Done()
-
-				var assoc resourceAssociator
-				if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.MaxDimensionsAssociator) {
-					assoc = maxdimassociator.NewAssociator(svc.DimensionRegexps, resources)
-				} else {
-					assoc = associator.NewAssociator(svc.DimensionRegexps, resources)
-				}
-				if logger.IsDebugEnabled() {
-					logger.Debug("associator", assoc)
-				}
-
-				metricsList, err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, nil)
-				if err != nil {
-					logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
-					return
-				}
-
-				data := getFilteredMetricDatas(logger, region, accountID, discoveryJob.Type, discoveryJob.CustomTags, tagsOnMetrics, metricsList, discoveryJob.DimensionNameRequirements, metric, assoc)
+			err := clientCloudwatch.ListMetrics(ctx, svc.Namespace, metric, discoveryJob.RecentlyActiveOnly, func(page []*model.Metric) {
+				data := getFilteredMetricDatas(logger, discoveryJob.Type, discoveryJob.ExportedTagsOnMetrics, page, discoveryJob.DimensionNameRequirements, metric, assoc)
 
 				mux.Lock()
 				getMetricDatas = append(getMetricDatas, data...)
 				mux.Unlock()
-			}(metric)
-		}
+			})
+			if err != nil {
+				logger.Error(err, "Failed to get full metric list", "metric_name", metric.Name, "namespace", svc.Namespace)
+				return
+			}
+		}(metric)
 	}
 
 	wg.Wait()
 	return getMetricDatas
 }
 
+type nopAssociator struct{}
+
+func (ns nopAssociator) AssociateMetricToResource(_ *model.Metric) (*model.TaggedResource, bool) {
+	return nil, false
+}
+
 func getFilteredMetricDatas(
 	logger logging.Logger,
-	region string,
-	accountID string,
 	namespace string,
-	customTags []model.Tag,
-	tagsOnMetrics model.ExportedTagsOnMetrics,
+	tagsOnMetrics []string,
 	metricsList []*model.Metric,
 	dimensionNameList []string,
-	m *config.Metric,
+	m *model.MetricConfig,
 	assoc resourceAssociator,
 ) []*model.CloudwatchData {
 	getMetricsData := make([]*model.CloudwatchData, 0, len(metricsList))
@@ -268,7 +263,11 @@ func getFilteredMetricDatas(
 		matchedResource, skip := assoc.AssociateMetricToResource(cwMetric)
 		if skip {
 			if logger.IsDebugEnabled() {
-				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", cwMetric.Dimensions)
+				dimensions := make([]string, 0, len(cwMetric.Dimensions))
+				for _, dim := range cwMetric.Dimensions {
+					dimensions = append(dimensions, fmt.Sprintf("%s=%s", dim.Name, dim.Value))
+				}
+				logger.Debug("skipping metric unmatched by associator", "metric", m.Name, "dimensions", strings.Join(dimensions, ","))
 			}
 			continue
 		}
@@ -280,8 +279,8 @@ func getFilteredMetricDatas(
 				Namespace: namespace,
 			}
 		}
-		metricTags := resource.MetricTags(tagsOnMetrics)
 
+		metricTags := resource.MetricTags(tagsOnMetrics)
 		for _, stats := range m.Statistics {
 			id := fmt.Sprintf("id_%d", rand.Int())
 
@@ -293,11 +292,9 @@ func getFilteredMetricDatas(
 				Statistics:             []string{stats},
 				NilToZero:              m.NilToZero,
 				AddCloudwatchTimestamp: m.AddCloudwatchTimestamp,
+				AddHistoricalMetrics:   m.AddHistoricalMetrics,
 				Tags:                   metricTags,
-				CustomTags:             customTags,
 				Dimensions:             cwMetric.Dimensions,
-				Region:                 &region,
-				AccountID:              &accountID,
 				Period:                 m.Period,
 			})
 		}

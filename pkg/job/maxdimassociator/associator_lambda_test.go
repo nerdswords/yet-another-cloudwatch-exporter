@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -19,7 +19,7 @@ var lambdaResources = []*model.TaggedResource{lambdaFunction}
 
 func TestAssociatorLambda(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -35,7 +35,7 @@ func TestAssociatorLambda(t *testing.T) {
 		{
 			name: "should match with FunctionName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").ToModelDimensionsRegexp(),
 				resources:        lambdaResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -51,7 +51,7 @@ func TestAssociatorLambda(t *testing.T) {
 		{
 			name: "should skip with unmatched FunctionName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").ToModelDimensionsRegexp(),
 				resources:        lambdaResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -67,7 +67,7 @@ func TestAssociatorLambda(t *testing.T) {
 		{
 			name: "should match with FunctionName and Resource dimensions",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").ToModelDimensionsRegexp(),
 				resources:        lambdaResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -84,7 +84,7 @@ func TestAssociatorLambda(t *testing.T) {
 		{
 			name: "should not skip when empty dimensions",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/Lambda").ToModelDimensionsRegexp(),
 				resources:        lambdaResources,
 				metric: &model.Metric{
 					MetricName: "Invocations",
@@ -99,7 +99,7 @@ func TestAssociatorLambda(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

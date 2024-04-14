@@ -26,7 +26,7 @@ the differences in implementation are largely superficial.
 
 # Ensuring v1 and v2 stay in sync
 Since we are in a transition state from sdk v1 to sdk v2 it's very important that we maintain as much feature parity as possible
-between the two implementations. Cache/client interface changes are relatively easy to keep in sync since changes need to be
+between the two implementations. Factory/client interface changes are relatively easy to keep in sync since changes need to be
 made to v1 and v2 implementations. Other areas are not quite so obvious such as
 
 ## /clients/tagging/v_/filters.go serviceFilters

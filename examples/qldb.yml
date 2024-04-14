@@ -1,0 +1,40 @@
+apiVersion: v1alpha1
+discovery:
+  exportedTagsOnMetrics:
+    qldb:
+      - Name
+  jobs:
+    - type: qldb
+      regions:
+        - us-east-2
+      period: 300
+      length: 300
+      metrics:
+        - name: JournalStorage
+          statistics:
+            - Average
+        - name: IndexedStorage
+          statistics:
+            - Average
+        - name: ReadIOs
+          statistics: 
+            - Sum
+        - name: WriteIOs
+          statistics: 
+            - Sum
+        - name: CommandLatency
+          statistics: 
+            - Average
+        - name: OccConflictExceptions
+          statistics: 
+            - Sum
+        - name: Session4xxExceptions
+          statistics: 
+            - Sum
+        - name: Session5xxExceptions
+          statistics: 
+            - Sum
+        - name: SessionRateExceededExceptions
+          statistics: 
+            - Sum
+          

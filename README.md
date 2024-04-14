@@ -26,7 +26,7 @@ Only the latest version gets security updates. We won't support older versions.
 ## Features
 
 * Stop worrying about your AWS IDs - Auto discovery of resources via tags
-* Structured JSON logging
+* Structured logging (json and logfmt)
 * Filter monitored resources via regex
 * Automatic adding of tag labels to metrics
 * Automatic adding of dimension labels to metrics
@@ -55,6 +55,7 @@ Only the latest version gets security updates. We won't support older versions.
   * cassandra (AWS/Cassandra) - Cassandra
   * cloudfront (AWS/CloudFront) - Cloud Front
   * cognito-idp (AWS/Cognito) - Cognito
+  * datasync (AWS/DataSync) - DataSync
   * dms (AWS/DMS) - Database Migration Service
   * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
   * dx (AWS/DX) - Direct Connect
@@ -74,9 +75,11 @@ Only the latest version gets security updates. We won't support older versions.
   * gamelift (AWS/GameLift) - GameLift
   * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
   * glue (Glue) - AWS Glue Jobs
+  * gwlb (AWS/GatewayELB) - Gateway Load Balancer
   * iot (AWS/IoT) - IoT
   * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
   * kinesis (AWS/Kinesis) - Kinesis Data Stream
+  * kms (AWS/KMS) - Key Management Service
   * nfw (AWS/NetworkFirewall) - Network Firewall
   * ngw (AWS/NATGateway) - NAT Gateway
   * lambda (AWS/Lambda) - Lambda Functions
@@ -95,6 +98,13 @@ Only the latest version gets security updates. We won't support older versions.
   * route53 (AWS/Route53) - Route53 Health Checks
   * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
   * s3 (AWS/S3) - Object Storage
+  * sagemaker - Sagemaker invocations
+  * sagemaker-endpoints - Sagemaker Endpoints
+  * sagemaker-training - Sagemaker Training Jobs
+  * sagemaker-processing - Sagemaker Processing Jobs
+  * sagemaker-transform - Sagemaker Batch Transform Jobs
+  * sagemaker-inf-rec - Sagemaker Inference Recommender Jobs
+  * sagemaker-model-building - Sagemaker Model Building Pipelines
   * ses (AWS/SES) - Simple Email Service
   * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
   * sqs (AWS/SQS) - Simple Queue Service
@@ -108,6 +118,7 @@ Only the latest version gets security updates. We won't support older versions.
   * sfn (AWS/States) - Step Functions
   * wafv2 (AWS/WAFV2) - Web Application Firewall v2
   * workspaces (AWS/WorkSpaces) - Workspaces
+  * ipam (AWS/IPAM) - IP address manager
 
 ## Feature flags
 
@@ -121,7 +132,7 @@ Refer to the [installation guide](docs/installation.md).
 
 The exporter will need to be running in an environment which has access to AWS. The exporter uses the [AWS SDK for Go](https://aws.github.io/aws-sdk-go-v2/docs/getting-started/) and supports providing authentication via [AWS's default credential chain](https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/#specifying-credentials). Regardless of the method used to acquire the credentials, some permissions are needed for the exporter to work.
 
-As a quick start, the following IAM policy can be used to grant the all permissions required by YACE 
+As a quick start, the following IAM policy can be used to grant the all permissions required by YACE
 ```json
 {
   "Version": "2012-10-17",
@@ -132,13 +143,13 @@ As a quick start, the following IAM policy can be used to grant the all permissi
         "cloudwatch:GetMetricData",
         "cloudwatch:GetMetricStatistics",
         "cloudwatch:ListMetrics",
-        "apigateway:GET",
         "aps:ListWorkspaces",
         "autoscaling:DescribeAutoScalingGroups",
         "dms:DescribeReplicationInstances",
         "dms:DescribeReplicationTasks",
         "ec2:DescribeTransitGatewayAttachments",
         "ec2:DescribeSpotFleetRequests",
+        "shield:ListProtections",
         "storagegateway:ListGateways",
         "storagegateway:ListTagsForResource"
       ],
@@ -157,11 +168,6 @@ These are the bare minimum permissions required to run Static and Discovery Jobs
 "cloudwatch:GetMetricData",
 "cloudwatch:GetMetricStatistics",
 "cloudwatch:ListMetrics"
-```
-
-This permission is required to discover resources for the AWS/ApiGateway namespace
-```json
-"apigateway:GET"
 ```
 
 This permission is required to discover resources for the AWS/AutoScaling namespace
@@ -195,6 +201,11 @@ These permissions are required to discover resources for the AWS/StorageGateway 
 This permission is required to discover resources for the AWS/TransitGateway namespace
 ```json
 "ec2:DescribeTransitGatewayAttachments"
+```
+
+This permission is required to discover protected resources for the AWS/DDoSProtection namespace
+```json
+"shield:ListProtections"
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.

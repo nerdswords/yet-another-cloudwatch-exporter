@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -33,7 +33,7 @@ var globalAcceleratorResources = []*model.TaggedResource{
 
 func TestAssociatorGlobalAccelerator(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -49,7 +49,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 		{
 			name: "should match with Accelerator dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").ToModelDimensionsRegexp(),
 				resources:        globalAcceleratorResources,
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
@@ -65,7 +65,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 		{
 			name: "should match Listener with Accelerator and Listener dimensions",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").ToModelDimensionsRegexp(),
 				resources:        globalAcceleratorResources,
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
@@ -82,7 +82,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 		{
 			name: "should match EndpointGroup with Accelerator, Listener and EndpointGroup dimensions",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/GlobalAccelerator").ToModelDimensionsRegexp(),
 				resources:        globalAcceleratorResources,
 				metric: &model.Metric{
 					MetricName: "ProcessedBytesOut",
@@ -101,7 +101,7 @@ func TestAssociatorGlobalAccelerator(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

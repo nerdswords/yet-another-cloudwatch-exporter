@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 )
 
@@ -21,7 +23,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -62,7 +64,7 @@ func TestBadConfigs(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
@@ -71,5 +73,39 @@ func TestBadConfigs(t *testing.T) {
 			t.Log("expected validation error")
 			t.FailNow()
 		}
+	}
+}
+
+func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
+	type testcase struct {
+		config   ScrapeConf
+		errorMsg string
+	}
+	testCases := map[string]testcase{
+		"empty role should be configured when environment role is desired": {
+			config: ScrapeConf{
+				APIVersion: "v1alpha1",
+				StsRegion:  "us-east-2",
+				Discovery: Discovery{
+					Jobs: []*Job{{
+						Regions: []string{"us-east-2"},
+						Type:    "sqs",
+						Metrics: []*Metric{{
+							Name:       "NumberOfMessagesSent",
+							Statistics: []string{"Average"},
+						}},
+					}},
+				},
+			},
+			errorMsg: "no IAM roles configured. If the current IAM role is desired, an empty Role should be configured",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			_, err := tc.config.Validate()
+			require.Error(t, err, "Expected config validation to fail")
+			require.Equal(t, tc.errorMsg, err.Error())
+		})
 	}
 }

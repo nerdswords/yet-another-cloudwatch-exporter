@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -11,10 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/aws/aws-sdk-go/service/apigateway/apigatewayiface"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2/apigatewayv2iface"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -25,6 +20,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go/service/shield"
+	"github.com/aws/aws-sdk-go/service/shield/shieldiface"
 	"github.com/aws/aws-sdk-go/service/storagegateway"
 	"github.com/aws/aws-sdk-go/service/storagegateway/storagegatewayiface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -37,16 +34,16 @@ import (
 	cloudwatch_v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch/v1"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging"
 	tagging_v1 "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/tagging/v1"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
-type clientCache struct {
+type CachingFactory struct {
 	stsRegion        string
 	session          *session.Session
 	endpointResolver endpoints.ResolverFunc
-	stscache         map[config.Role]stsiface.STSAPI
-	clients          map[config.Role]map[string]*cachedClients
+	stscache         map[model.Role]stsiface.STSAPI
+	clients          map[model.Role]map[string]*cachedClients
 	cleared          bool
 	refreshed        bool
 	mu               sync.Mutex
@@ -64,13 +61,15 @@ type cachedClients struct {
 	account    account.Client
 }
 
-// NewClientCache creates a new clients cache to use when fetching data from
-// AWS.
-func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) clients.Cache {
-	stscache := map[config.Role]stsiface.STSAPI{}
-	cache := map[config.Role]map[string]*cachedClients{}
+// Ensure the struct properly implements the interface
+var _ clients.Factory = &CachingFactory{}
 
-	for _, discoveryJob := range cfg.Discovery.Jobs {
+// NewFactory creates a new client factory to use when fetching data from AWS with sdk v2
+func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *CachingFactory {
+	stscache := map[model.Role]stsiface.STSAPI{}
+	cache := map[model.Role]map[string]*cachedClients{}
+
+	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
 		for _, role := range discoveryJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -84,7 +83,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 		}
 	}
 
-	for _, staticJob := range cfg.Static {
+	for _, staticJob := range jobsCfg.StaticJobs {
 		for _, role := range staticJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -105,7 +104,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 		}
 	}
 
-	for _, customNamespaceJob := range cfg.CustomNamespace {
+	for _, customNamespaceJob := range jobsCfg.CustomNamespaceJobs {
 		for _, role := range customNamespaceJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
@@ -131,15 +130,15 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 	endpointURLOverride := os.Getenv("AWS_ENDPOINT_URL")
 	if endpointURLOverride != "" {
 		// allow override of all endpoints for local testing
-		endpointResolver = func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		endpointResolver = func(_ string, _ string, _ ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 			return endpoints.ResolvedEndpoint{
 				URL: endpointURLOverride,
 			}, nil
 		}
 	}
 
-	return &clientCache{
-		stsRegion:        cfg.StsRegion,
+	return &CachingFactory{
+		stsRegion:        jobsCfg.StsRegion,
 		session:          nil,
 		endpointResolver: endpointResolver,
 		stscache:         stscache,
@@ -153,7 +152,7 @@ func NewClientCache(cfg config.ScrapeConf, fips bool, logger logging.Logger) cli
 
 // Refresh and Clear help to avoid using lock primitives by asserting that
 // there are no ongoing writes to the map.
-func (c *clientCache) Clear() {
+func (c *CachingFactory) Clear() {
 	if c.cleared {
 		return
 	}
@@ -174,7 +173,7 @@ func (c *clientCache) Clear() {
 	c.refreshed = false
 }
 
-func (c *clientCache) Refresh() {
+func (c *CachingFactory) Refresh() {
 	if c.refreshed {
 		return
 	}
@@ -214,24 +213,26 @@ func (c *clientCache) Refresh() {
 	c.refreshed = true
 }
 
-func createCloudWatchClient(logger logging.Logger, s *session.Session, region *string, role config.Role, fips bool) cloudwatch_client.Client {
+func createCloudWatchClient(logger logging.Logger, s *session.Session, region *string, role model.Role, fips bool) cloudwatch_client.Client {
 	return cloudwatch_v1.NewClient(
 		logger,
 		createCloudwatchSession(s, region, role, fips, logger.IsDebugEnabled()),
 	)
 }
 
-func createTaggingClient(logger logging.Logger, session *session.Session, region *string, role config.Role, fips bool) tagging.Client {
+func createTaggingClient(logger logging.Logger, session *session.Session, region *string, role model.Role, fips bool) tagging.Client {
+	// The createSession function for a service which does not support FIPS does not take a fips parameter
+	// This currently applies to createTagSession(Resource Groups Tagging), ASG (EC2 autoscaling), and Prometheus (Amazon Managed Prometheus)
+	// AWS FIPS Reference: https://aws.amazon.com/compliance/fips/
 	return tagging_v1.NewClient(
 		logger,
 		createTagSession(session, region, role, logger.IsDebugEnabled()),
 		createASGSession(session, region, role, logger.IsDebugEnabled()),
-		createAPIGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
-		createAPIGatewayV2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createEC2Session(session, region, role, fips, logger.IsDebugEnabled()),
 		createDMSSession(session, region, role, fips, logger.IsDebugEnabled()),
-		createPrometheusSession(session, region, role, fips, logger.IsDebugEnabled()),
+		createPrometheusSession(session, region, role, logger.IsDebugEnabled()),
 		createStorageGatewaySession(session, region, role, fips, logger.IsDebugEnabled()),
+		createShieldSession(session, region, role, fips, logger.IsDebugEnabled()),
 	)
 }
 
@@ -239,20 +240,20 @@ func createAccountClient(logger logging.Logger, sts stsiface.STSAPI) account.Cli
 	return account_v1.NewClient(logger, sts)
 }
 
-func (c *clientCache) GetCloudwatchClient(region string, role config.Role, concurrencyLimit int) cloudwatch_client.Client {
+func (c *CachingFactory) GetCloudwatchClient(region string, role model.Role, concurrency cloudwatch_client.ConcurrencyConfig) cloudwatch_client.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
 		defer c.mu.Unlock()
 	}
 	if client := c.clients[role][region].cloudwatch; client != nil {
-		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrencyLimit)
+		return cloudwatch_client.NewLimitedConcurrencyClient(client, concurrency.NewLimiter())
 	}
 	c.clients[role][region].cloudwatch = createCloudWatchClient(c.logger, c.session, &region, role, c.fips)
-	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrencyLimit)
+	return cloudwatch_client.NewLimitedConcurrencyClient(c.clients[role][region].cloudwatch, concurrency.NewLimiter())
 }
 
-func (c *clientCache) GetTaggingClient(region string, role config.Role, concurrencyLimit int) tagging.Client {
+func (c *CachingFactory) GetTaggingClient(region string, role model.Role, concurrencyLimit int) tagging.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -265,7 +266,7 @@ func (c *clientCache) GetTaggingClient(region string, role config.Role, concurre
 	return tagging.NewLimitedConcurrencyClient(c.clients[role][region].tagging, concurrencyLimit)
 }
 
-func (c *clientCache) GetAccountClient(region string, role config.Role) account.Client {
+func (c *CachingFactory) GetAccountClient(region string, role model.Role) account.Client {
 	if !c.refreshed {
 		// if we have not refreshed then we need to lock in case we are accessing concurrently
 		c.mu.Lock()
@@ -286,7 +287,7 @@ func setExternalID(ID string) func(p *stscreds.AssumeRoleProvider) {
 	}
 }
 
-func setSTSCreds(sess *session.Session, config *aws.Config, role config.Role) *aws.Config {
+func setSTSCreds(sess *session.Session, config *aws.Config, role model.Role) *aws.Config {
 	if role.RoleArn != "" {
 		config.Credentials = stscreds.NewCredentials(
 			sess, role.RoleArn, setExternalID(role.ExternalID))
@@ -323,7 +324,7 @@ func createAWSSession(resolver endpoints.ResolverFunc, isDebugEnabled bool) *ses
 	return sess
 }
 
-func createStsSession(sess *session.Session, role config.Role, region string, fips bool, isDebugEnabled bool) *sts.STS {
+func createStsSession(sess *session.Session, role model.Role, region string, fips bool, isDebugEnabled bool) *sts.STS {
 	maxStsRetries := 5
 	config := &aws.Config{MaxRetries: &maxStsRetries}
 
@@ -332,9 +333,7 @@ func createStsSession(sess *session.Session, role config.Role, region string, fi
 	}
 
 	if fips {
-		// https://aws.amazon.com/compliance/fips/
-		endpoint := fmt.Sprintf("https://sts-fips.%s.amazonaws.com", region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -344,13 +343,11 @@ func createStsSession(sess *session.Session, role config.Role, region string, fi
 	return sts.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createCloudwatchSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) *cloudwatch.CloudWatch {
+func createCloudwatchSession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) *cloudwatch.CloudWatch {
 	config := &aws.Config{Region: region, Retryer: getAwsRetryer()}
 
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/cw_region.html
-		endpoint := fmt.Sprintf("https://monitoring-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -360,7 +357,7 @@ func createCloudwatchSession(sess *session.Session, region *string, role config.
 	return cloudwatch.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createTagSession(sess *session.Session, region *string, role config.Role, isDebugEnabled bool) *resourcegroupstaggingapi.ResourceGroupsTaggingAPI {
+func createTagSession(sess *session.Session, region *string, role model.Role, isDebugEnabled bool) *resourcegroupstaggingapi.ResourceGroupsTaggingAPI {
 	maxResourceGroupTaggingRetries := 5
 	config := &aws.Config{
 		Region:                        region,
@@ -375,7 +372,7 @@ func createTagSession(sess *session.Session, region *string, role config.Role, i
 	return resourcegroupstaggingapi.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createASGSession(sess *session.Session, region *string, role config.Role, isDebugEnabled bool) autoscalingiface.AutoScalingAPI {
+func createASGSession(sess *session.Session, region *string, role model.Role, isDebugEnabled bool) autoscalingiface.AutoScalingAPI {
 	maxAutoScalingAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxAutoScalingAPIRetries}
 
@@ -386,14 +383,12 @@ func createASGSession(sess *session.Session, region *string, role config.Role, i
 	return autoscaling.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createStorageGatewaySession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) storagegatewayiface.StorageGatewayAPI {
+func createStorageGatewaySession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) storagegatewayiface.StorageGatewayAPI {
 	maxStorageGatewayAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxStorageGatewayAPIRetries}
 
 	if fips {
-		// https://aws.amazon.com/compliance/fips/
-		endpoint := fmt.Sprintf("https://storagegateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -403,13 +398,11 @@ func createStorageGatewaySession(sess *session.Session, region *string, role con
 	return storagegateway.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createEC2Session(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) ec2iface.EC2API {
+func createEC2Session(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) ec2iface.EC2API {
 	maxEC2APIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxEC2APIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/ec2-service.html
-		endpoint := fmt.Sprintf("https://ec2-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -419,13 +412,9 @@ func createEC2Session(sess *session.Session, region *string, role config.Role, f
 	return ec2.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createPrometheusSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
+func createPrometheusSession(sess *session.Session, region *string, role model.Role, isDebugEnabled bool) prometheusserviceiface.PrometheusServiceAPI {
 	maxPrometheusAPIRetries := 10
 	config := &aws.Config{Region: region, MaxRetries: &maxPrometheusAPIRetries}
-	if fips {
-		endpoint := fmt.Sprintf("https://aps-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
-	}
 
 	if isDebugEnabled {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
@@ -434,13 +423,11 @@ func createPrometheusSession(sess *session.Session, region *string, role config.
 	return prometheusservice.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createDMSSession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
+func createDMSSession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) databasemigrationserviceiface.DatabaseMigrationServiceAPI {
 	maxDMSAPIRetries := 5
 	config := &aws.Config{Region: region, MaxRetries: &maxDMSAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/dms.html
-		endpoint := fmt.Sprintf("https://dms-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
@@ -450,34 +437,16 @@ func createDMSSession(sess *session.Session, region *string, role config.Role, f
 	return databasemigrationservice.New(sess, setSTSCreds(sess, config, role))
 }
 
-func createAPIGatewaySession(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) apigatewayiface.APIGatewayAPI {
-	maxAPIGatewayAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
+func createShieldSession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) shieldiface.ShieldAPI {
+	maxShieldAPIRetries := 5
+	config := &aws.Config{Region: region, MaxRetries: &maxShieldAPIRetries}
 	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
-		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
 
 	if isDebugEnabled {
 		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
 	}
 
-	return apigateway.New(sess, setSTSCreds(sess, config, role))
-}
-
-func createAPIGatewayV2Session(sess *session.Session, region *string, role config.Role, fips bool, isDebugEnabled bool) apigatewayv2iface.ApiGatewayV2API {
-	maxAPIGatewayAPIRetries := 5
-	config := &aws.Config{Region: region, MaxRetries: &maxAPIGatewayAPIRetries}
-	if fips {
-		// https://docs.aws.amazon.com/general/latest/gr/apigateway.html
-		endpoint := fmt.Sprintf("https://apigateway-fips.%s.amazonaws.com", *region)
-		config.Endpoint = aws.String(endpoint)
-	}
-
-	if isDebugEnabled {
-		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
-	}
-
-	return apigatewayv2.New(sess, setSTSCreds(sess, config, role))
+	return shield.New(sess, setSTSCreds(sess, config, role))
 }

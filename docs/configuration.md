@@ -17,9 +17,14 @@ All flags may be prefixed with either one hypen or two (i.e., both `-config.file
 | --- | --- | --- |
 | `-listen-address` | Network address to listen to | `127.0.0.1:5000` |
 | `-config.file` | Path to the configuration file | `config.yml` |
+| `-log.format` | Output format of log messages. One of: [logfmt, json] | `json` |
 | `-debug` | Log at debug level | `false` |
 | `-fips` | Use FIPS compliant AWS API | `false` |
 | `-cloudwatch-concurrency` | Maximum number of concurrent requests to CloudWatch API | `5` |
+| `-cloudwatch-concurrency.per-api-limit-enabled` | Enables a concurrency limiter, that has a specific limit per CloudWatch API call. | `false` |
+| `-cloudwatch-concurrency.list-metrics-limit` | Maximum number of concurrent requests to CloudWatch `ListMetrics` API. Only applicable if `per-api-limit-enabled` is `true`. | `5` |
+| `-cloudwatch-concurrency.get-metric-data-limit` | Maximum number of concurrent requests to CloudWatch `GetMetricsData` API. Only applicable if `per-api-limit-enabled` is `true`. | `5` |
+| `-cloudwatch-concurrency.get-metric-statistics-limit` | Maximum number of concurrent requests to CloudWatch `GetMetricStatistics` API. Only applicable if `per-api-limit-enabled` is `true`. | `5` |
 | `-tag-concurrency` | Maximum number of concurrent requests to Resource Tagging API | `5` |
 | `-scraping-interval` | Seconds to wait between scraping the AWS metrics | `300` |
 | `-metrics-per-query` | Number of metrics made in a single GetMetricsData request | `500` |
@@ -48,7 +53,7 @@ discovery: <discovery_jobs_list_config>
 static:
   [ - <static_job_config> ... ]
 
-# Configurations for jobs of type "custom namespace" (deprecated)
+# Configurations for jobs of type "custom namespace"
 customNamespace:
   [ - <custom_namespace_job_config> ... ]
 ```
@@ -86,7 +91,9 @@ type: <string>
 roles:
   [ - <role_config> ... ]
 
-# List of Key/Value pairs to use for tag filtering (all must match). Value can be a regex.
+# List of Key/Value pairs to use for tag filtering (all must match). 
+# The key is the AWS Tag key and is case-sensitive  
+# The value will be treated as a regex
 searchTags:
   [ - <search_tags_config> ... ]
 
@@ -106,6 +113,10 @@ dimensionNameRequirements:
 # Passes down the flag `--recently-active PT3H` to the CloudWatch API. This will only return metrics that have been active in the last 3 hours.
 # This is useful for reducing the number of metrics returned by CloudWatch, which can be very large for some services. See AWS Cloudwatch API docs for [ListMetrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_ListMetrics.html) for more details.
 [ recentlyActiveOnly: <boolean> ]
+
+# Can be used to include contextual information (account_id, region, and customTags) on info metrics and cloudwatch metrics. This can be particularly 
+# useful when cloudwatch metrics might not be present or when using info metrics to understand where your resources exist
+[ includeContextOnInfoMetrics: <boolean> ]
 
 # List of statistic types, e.g. "Minimum", "Maximum", etc (General Setting for all metrics in this job)
 statistics:
@@ -218,8 +229,6 @@ static:
 ### `custom_namespace_job_config`
 
 The `custom_namespace_job_config` block configures jobs of type "custom namespace".
-
-**These type of configs are [deprecated](https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/888) since [v0.51.0](https://github.com/nerdswords/yet-another-cloudwatch-exporter/blob/v0.51.0/CHANGELOG.md#v0510). Please use [static_job_config](#static_job_config) from now on.**
 
 ```yaml
 # Name of the job (required)
