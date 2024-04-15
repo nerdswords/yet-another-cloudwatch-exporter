@@ -17,18 +17,38 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
+func BuildMetricName(namespace, metricName, statistic string) string {
+	sb := strings.Builder{}
+	promNs := PromString(strings.ToLower(namespace))
+	// Some namespaces have a leading forward slash like
+	// /aws/sagemaker/TrainingJobs, which gets converted to
+	// a leading _ by PromString().
+	promNs = strings.TrimPrefix(promNs, "_")
+	if !strings.HasPrefix(promNs, "aws") {
+		sb.WriteString("aws_")
+	}
+	sb.WriteString(promNs)
+	sb.WriteString("_")
+	promMetricName := PromString(metricName)
+	// Some metric names duplicate parts of the namespace as a prefix,
+	// For example, the `Glue` namespace metrics have names prefixed also by `glue``
+	for _, part := range strings.Split(promNs, "_") {
+		promMetricName = strings.TrimPrefix(promMetricName, part)
+	}
+	promMetricName = strings.TrimPrefix(promMetricName, "_")
+	sb.WriteString(promMetricName)
+	if statistic != "" {
+		sb.WriteString("_")
+		sb.WriteString(PromString(statistic))
+	}
+	return sb.String()
+}
+
 func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
-			sb := strings.Builder{}
-			promNs := PromString(strings.ToLower(d.Namespace))
-			if !strings.HasPrefix(promNs, "aws") {
-				sb.WriteString("aws_")
-			}
-			sb.WriteString(promNs)
-			sb.WriteString("_info")
-			metricName := sb.String()
+			metricName := BuildMetricName(d.Namespace, "info", "")
 
 			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
 			maps.Copy(promLabels, contextLabels)
@@ -90,20 +110,9 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 					exportedDatapoint = 0
 				}
 
-				sb := strings.Builder{}
-				promNs := PromString(strings.ToLower(metric.Namespace))
-				if !strings.HasPrefix(promNs, "aws") {
-					sb.WriteString("aws_")
-				}
-				sb.WriteString(promNs)
-				sb.WriteString("_")
-				sb.WriteString(PromString(metric.MetricName))
-				sb.WriteString("_")
-				sb.WriteString(PromString(statistic))
-				name := sb.String()
+				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
 
-				promLabels := createPrometheusLabels(metric, labelsSnakeCase, logger)
-				maps.Copy(promLabels, contextLabels)
+				promLabels := createPrometheusLabels(metric, labelsSnakeCase, contextLabels, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 
 				output = append(output, &PrometheusMetric{
@@ -200,8 +209,8 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	return datapoints
 }
 
-func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
-	labels := make(map[string]string)
+func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, contextLabels map[string]string, logger logging.Logger) map[string]string {
+	labels := make(map[string]string, len(cwd.Dimensions)+len(cwd.Tags)+len(contextLabels))
 	labels["name"] = cwd.ResourceName
 
 	// Inject the sfn name back as a label
@@ -223,14 +232,17 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 		labels["tag_"+promTag] = tag.Value
 	}
 
+	maps.Copy(labels, contextLabels)
+
 	return labels
 }
 
 func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) map[string]string {
-	labels := make(map[string]string)
 	if context == nil {
-		return labels
+		return map[string]string{}
 	}
+
+	labels := make(map[string]string, 2+len(context.CustomTags))
 	labels["region"] = context.Region
 	labels["account_id"] = context.AccountID
 
@@ -250,7 +262,7 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 // the updated observedMetricLabels
 func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(model.LabelSet)
+		observedMetricLabels[metricName] = make(model.LabelSet, len(promLabels))
 	}
 	for label := range promLabels {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {

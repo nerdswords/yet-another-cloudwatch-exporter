@@ -68,7 +68,7 @@ type cachedClients struct {
 // Ensure the struct properly implements the interface
 var _ clients.Factory = &CachingFactory{}
 
-// NewFactory creates a new client factory to use when fetching data from AWS with sdk v2
+// NewFactory creates a new client factory to use when fetching data from AWS with sdk v1
 func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *CachingFactory {
 	stscache := map[model.Role]stsiface.STSAPI{}
 	cache := map[model.Role]map[string]*cachedClients{}

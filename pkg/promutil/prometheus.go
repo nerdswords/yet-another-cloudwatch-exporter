@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 )
@@ -90,7 +89,6 @@ var replacer = strings.NewReplacer(
 	">", "_",
 	"%", "_percent",
 )
-var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 
 type PrometheusMetric struct {
 	Name             *string
@@ -155,10 +153,54 @@ func PromStringTag(text string, labelsSnakeCase bool) (bool, string) {
 	return model.LabelName(s).IsValid(), s
 }
 
+// sanitize replaces some invalid chars with an underscore
 func sanitize(text string) string {
-	return replacer.Replace(text)
+	if strings.ContainsAny(text, "“%") {
+		// fallback to the replacer for complex cases:
+		// - '“' is non-ascii rune
+		// - '%' is replaced with a whole string
+		return replacer.Replace(text)
+	}
+
+	b := []byte(text)
+	for i := 0; i < len(b); i++ {
+		switch b[i] {
+		case ' ', ',', '\t', '/', '\\', '.', '-', ':', '=', '@', '<', '>':
+			b[i] = '_'
+		}
+	}
+	return string(b)
 }
 
+// splitString replaces consecutive occurrences of a lowercase and uppercase letter,
+// or a number and an upper case letter, by putting a dot between the two chars.
+//
+// This is an optimised version of the original implementation:
+//
+//	  var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+//
+//		func splitString(text string) string {
+//		  return splitRegexp.ReplaceAllString(text, `$1.$2`)
+//		}
 func splitString(text string) string {
-	return splitRegexp.ReplaceAllString(text, `$1.$2`)
+	sb := strings.Builder{}
+	sb.Grow(len(text) + 4) // make some room for replacements
+
+	i := 0
+	for i < len(text) {
+		c := text[i]
+		sb.WriteByte(c)
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			if i < (len(text) - 1) {
+				c = text[i+1]
+				if c >= 'A' && c <= 'Z' {
+					sb.WriteByte('.')
+					sb.WriteByte(c)
+					i++
+				}
+			}
+		}
+		i++
+	}
+	return sb.String()
 }

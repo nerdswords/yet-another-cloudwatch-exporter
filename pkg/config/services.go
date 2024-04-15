@@ -721,6 +721,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/SecretsManager",
+		Alias:     "secretsmanager",
+	},
+	{
 		Namespace: "AWS/SES",
 		Alias:     "ses",
 	},
@@ -885,7 +889,7 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
-		Namespace: "AWS/SageMaker/ModelBuildingPipeline",
+		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
 		Alias:     "sagemaker-model-building-pipeline",
 		ResourceFilters: []*string{
 			aws.String("sagemaker:pipeline"),
