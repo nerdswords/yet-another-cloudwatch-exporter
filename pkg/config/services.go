@@ -920,6 +920,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":rule/(?P<EventBusName>[^/]+)/(?P<RuleName>[^/]+)$"),
+			regexp.MustCompile(":rule/aws.partner/(?P<EventBusName>.+)/(?P<RuleName>[^/]+)$"),
 		},
 	},
 }
