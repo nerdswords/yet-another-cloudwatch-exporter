@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.23.6
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.20.4
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.40.5
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.37.0
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.4
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.156.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.21.4
