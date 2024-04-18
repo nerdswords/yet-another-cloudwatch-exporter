@@ -28,6 +28,52 @@ Refactoring:
 
 **Full Changelog**: https://github.com/...
 
+# 0.59.0
+
+**Important news and breaking changes**
+
+This release brings a bunch of breaking changes:
+* Setting `roundingPeriod` for discovery jobs is deprecated, a warning will be logged at startup.
+* Setting `delay` at the metric level is deprecated, a warning will be logged at startup.
+* For discovery jobs, the `type` field and the keys of `exportedTagsOnMetrics` must be the AWS namespace rather than the alias (the README contains an up-to-date list of namespaces). Aliases are not allowed anymore. An error will be thrown at startup in an invalid namespace or an alias is used.
+* Some metric names have been changed to avoid duplicating the namespace. This includes:
+  - `aws_es_esreporting_failed_request_sys_err_count` is `aws_es_reporting_failed_request_sys_err_count`
+  - `aws_es_esreporting_failed_request_user_err_count` is `aws_es_reporting_failed_request_user_err_count`
+  - `aws_es_esreporting_request_count` is `aws_es_reporting_request_count`
+  - `aws_es_esreporting_success_count` is `aws_es_reporting_success_count`
+  - `aws_kafka_kafka_app_logs_disk_used` is `aws_kafka_app_logs_disk_used`
+  - `aws_kafka_kafka_data_logs_disk_used` is `aws_kafka_data_logs_disk_used`
+  - `aws_rds_rdsto_aurora_postgre_sqlreplica_lag` is  `aws_rds_to_aurora_postgre_sqlreplica_lag`
+  - `aws_glue_glue_.*` is `aws_glue_.*`
+
+These breaking changes will allow making the configuration easier to understand and less error prone, and also to build better documentation around supported services.
+
+**Bugfixes and features**
+
+Features:
+* Add AWS/SecretsManager to the services list by @taraspos
+* Support partner events buses by @HristoStoyanovYotpo
+
+Refactoring:
+* Update comment in factory.go by @andriikushch
+* getmetricdata: move window calculator to processor by @kgeckhart
+* promutil: clean up prom metric names that duplicate parts of the namespace by @tristanburgess
+* promutil: rewrite sanitisation funcs for memory optimisation by @cristiangreco
+* Do not allow using aliases as job types in discovery jobs by @cristiangreco
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.51.16 to 1.51.21
+* Bump github.com/aws/aws-sdk-go-v2 group
+* Bump github.com/prometheus/common from 0.52.2 to 0.52.3
+
+**New contributors**
+
+* @taraspos made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1330
+* @HristoStoyanovYotpo made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1359
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.58.0...v0.59.0
+
 # 0.58.0
 
 **Bugfixes and features**
