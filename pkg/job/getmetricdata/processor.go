@@ -62,7 +62,7 @@ func (p Processor) Run(ctx context.Context, namespace string, jobMetricLength, j
 		g.Go(func() error {
 			input := addQueryIDsToBatch(requests[start:end])
 
-			var batchPeriod int64
+			batchPeriod := model.DefaultPeriodSeconds
 			if jobRoundingPeriod == nil {
 				for _, data := range input {
 					if data.GetMetricDataProcessingParams.Period < batchPeriod {
