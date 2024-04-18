@@ -146,6 +146,17 @@ func (c *ScrapeConf) Validate(logger logging.Logger) (model.JobsConfig, error) {
 	}
 
 	if c.Discovery.Jobs != nil {
+		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
+			for ns := range c.Discovery.ExportedTagsOnMetrics {
+				if svc := SupportedServices.GetService(ns); svc == nil {
+					if svc = SupportedServices.getServiceByAlias(ns); svc != nil {
+						return model.JobsConfig{}, fmt.Errorf("Discovery jobs: Invalid key in 'exportedTagsOnMetrics', use namespace %q rather than alias %q", svc.Namespace, svc.Alias)
+					}
+					return model.JobsConfig{}, fmt.Errorf("Discovery jobs: 'exportedTagsOnMetrics' key is not a valid namespace: %s", ns)
+				}
+			}
+		}
+
 		for idx, job := range c.Discovery.Jobs {
 			err := job.validateDiscoveryJob(logger, idx)
 			if err != nil {
@@ -180,7 +191,10 @@ func (c *ScrapeConf) Validate(logger logging.Logger) (model.JobsConfig, error) {
 
 func (j *Job) validateDiscoveryJob(logger logging.Logger, jobIdx int) error {
 	if j.Type != "" {
-		if SupportedServices.GetService(j.Type) == nil {
+		if svc := SupportedServices.GetService(j.Type); svc == nil {
+			if svc = SupportedServices.getServiceByAlias(j.Type); svc != nil {
+				return fmt.Errorf("Discovery job [%d]: Invalid 'type' field, use namespace %q rather than alias %q", jobIdx, svc.Namespace, svc.Alias)
+			}
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
 		}
 	} else {
@@ -373,7 +387,7 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 
 		job := model.DiscoveryJob{}
 		job.Regions = discoveryJob.Regions
-		job.Type = discoveryJob.Type
+		job.Type = svc.Namespace
 		job.DimensionNameRequirements = discoveryJob.DimensionNameRequirements
 		job.RecentlyActiveOnly = discoveryJob.RecentlyActiveOnly
 		job.RoundingPeriod = discoveryJob.RoundingPeriod
@@ -393,8 +407,6 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.ExportedTagsOnMetrics = []string{}
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
 			if exportedTags, ok := c.Discovery.ExportedTagsOnMetrics[svc.Namespace]; ok {
-				job.ExportedTagsOnMetrics = exportedTags
-			} else if exportedTags, ok := c.Discovery.ExportedTagsOnMetrics[svc.Alias]; ok {
 				job.ExportedTagsOnMetrics = exportedTags
 			}
 		}
