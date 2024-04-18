@@ -103,7 +103,7 @@ func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			_, err := tc.config.Validate()
+			_, err := tc.config.Validate(logging.NewNopLogger())
 			require.Error(t, err, "Expected config validation to fail")
 			require.Equal(t, tc.errorMsg, err.Error())
 		})
