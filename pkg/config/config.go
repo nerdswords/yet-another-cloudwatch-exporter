@@ -137,17 +137,17 @@ func (c *ScrapeConf) Load(file string, logger logging.Logger) (model.JobsConfig,
 		}
 	}
 
-	return c.Validate()
+	return c.Validate(logger)
 }
 
-func (c *ScrapeConf) Validate() (model.JobsConfig, error) {
+func (c *ScrapeConf) Validate(logger logging.Logger) (model.JobsConfig, error) {
 	if c.Discovery.Jobs == nil && c.Static == nil && c.CustomNamespace == nil {
 		return model.JobsConfig{}, fmt.Errorf("At least 1 Discovery job, 1 Static or one CustomNamespace must be defined")
 	}
 
 	if c.Discovery.Jobs != nil {
 		for idx, job := range c.Discovery.Jobs {
-			err := job.validateDiscoveryJob(idx)
+			err := job.validateDiscoveryJob(logger, idx)
 			if err != nil {
 				return model.JobsConfig{}, err
 			}
@@ -156,7 +156,7 @@ func (c *ScrapeConf) Validate() (model.JobsConfig, error) {
 
 	if c.CustomNamespace != nil {
 		for idx, job := range c.CustomNamespace {
-			err := job.validateCustomNamespaceJob(idx)
+			err := job.validateCustomNamespaceJob(logger, idx)
 			if err != nil {
 				return model.JobsConfig{}, err
 			}
@@ -165,7 +165,7 @@ func (c *ScrapeConf) Validate() (model.JobsConfig, error) {
 
 	if c.Static != nil {
 		for idx, job := range c.Static {
-			err := job.validateStaticJob(idx)
+			err := job.validateStaticJob(logger, idx)
 			if err != nil {
 				return model.JobsConfig{}, err
 			}
@@ -178,7 +178,7 @@ func (c *ScrapeConf) Validate() (model.JobsConfig, error) {
 	return c.toModelConfig(), nil
 }
 
-func (j *Job) validateDiscoveryJob(jobIdx int) error {
+func (j *Job) validateDiscoveryJob(logger logging.Logger, jobIdx int) error {
 	if j.Type != "" {
 		if SupportedServices.GetService(j.Type) == nil {
 			return fmt.Errorf("Discovery job [%d]: Service is not in known list!: %s", jobIdx, j.Type)
@@ -203,7 +203,7 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 		return fmt.Errorf("Discovery job [%s/%d]: Metrics should not be empty", j.Type, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
+		err := metric.validateMetric(logger, metricIdx, parent, &j.JobLevelMetricFields)
 		if err != nil {
 			return err
 		}
@@ -215,10 +215,14 @@ func (j *Job) validateDiscoveryJob(jobIdx int) error {
 		}
 	}
 
+	if j.RoundingPeriod != nil {
+		logger.Warn("Discovery job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Type, jobIdx)
+	}
+
 	return nil
 }
 
-func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
+func (j *CustomNamespace) validateCustomNamespaceJob(logger logging.Logger, jobIdx int) error {
 	if j.Name == "" {
 		return fmt.Errorf("CustomNamespace job [%v]: Name should not be empty", jobIdx)
 	}
@@ -242,16 +246,17 @@ func (j *CustomNamespace) validateCustomNamespaceJob(jobIdx int) error {
 		return fmt.Errorf("CustomNamespace job [%s/%d]: Metrics should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := metric.validateMetric(metricIdx, parent, &j.JobLevelMetricFields)
+		err := metric.validateMetric(logger, metricIdx, parent, &j.JobLevelMetricFields)
 		if err != nil {
 			return err
 		}
 	}
 
+	logger.Warn("CustomNamespace job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Name, jobIdx)
 	return nil
 }
 
-func (j *Static) validateStaticJob(jobIdx int) error {
+func (j *Static) validateStaticJob(logger logging.Logger, jobIdx int) error {
 	if j.Name == "" {
 		return fmt.Errorf("Static job [%v]: Name should not be empty", jobIdx)
 	}
@@ -272,7 +277,7 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 		return fmt.Errorf("Static job [%s/%d]: Regions should not be empty", j.Name, jobIdx)
 	}
 	for metricIdx, metric := range j.Metrics {
-		err := metric.validateMetric(metricIdx, parent, nil)
+		err := metric.validateMetric(logger, metricIdx, parent, nil)
 		if err != nil {
 			return err
 		}
@@ -281,7 +286,7 @@ func (j *Static) validateStaticJob(jobIdx int) error {
 	return nil
 }
 
-func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLevelMetricFields) error {
+func (m *Metric) validateMetric(logger logging.Logger, metricIdx int, parent string, discovery *JobLevelMetricFields) error {
 	if m.Name == "" {
 		return fmt.Errorf("Metric [%s/%d] in %v: Name should not be empty", m.Name, metricIdx, parent)
 	}
@@ -315,13 +320,14 @@ func (m *Metric) validateMetric(metricIdx int, parent string, discovery *JobLeve
 		}
 	}
 
-	mDelay := m.Delay
-	if mDelay == 0 {
-		if discovery != nil && discovery.Delay != 0 {
-			mDelay = discovery.Delay
-		} else {
-			mDelay = model.DefaultDelaySeconds
-		}
+	// Delay at the metric level has been ignored for an incredibly long time. If we started respecting metric delay
+	// now a lot of configurations would break on release. This logs a warning for now
+	if m.Delay != 0 {
+		logger.Warn(fmt.Sprintf("Metric [%s/%d] in %v: Metric is configured with delay that has been being ignored. This behavior will change in the future, if your config works now remove this delay to prevent a future issue.", m.Name, metricIdx, parent))
+	}
+	var mDelay int64
+	if discovery != nil && discovery.Delay != 0 {
+		mDelay = discovery.Delay
 	}
 
 	mNilToZero := m.NilToZero
@@ -369,8 +375,8 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.Regions = discoveryJob.Regions
 		job.Type = discoveryJob.Type
 		job.DimensionNameRequirements = discoveryJob.DimensionNameRequirements
-		job.RoundingPeriod = discoveryJob.RoundingPeriod
 		job.RecentlyActiveOnly = discoveryJob.RecentlyActiveOnly
+		job.RoundingPeriod = discoveryJob.RoundingPeriod
 		job.Statistics = discoveryJob.Statistics
 		job.Period = discoveryJob.Period
 		job.Length = discoveryJob.Length
