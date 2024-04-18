@@ -33,7 +33,7 @@ Refactoring:
 **Important news and breaking changes**
 
 This release brings a bunch of breaking changes:
-* Setting `roundingPeriod` for discovery jobs is deprecated, a warning will be logged at startup.
+* Setting `roundingPeriod` for discovery jobs is deprecated, a warning will be logged at startup. This is being deprecated in favor of always using the metric period. The implementation for `roundingPeriod` can result in inconsistent Start and EndTime between batches. This negates its intent to ensure Start and EndTimes align with the metric period for [CloudWatch best practices](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html). This has the potential to produce data which will look inaccurate when compared against CloudWatch itself driving a lot of confusion. See https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/1290 for further context.
 * Setting `delay` at the metric level is deprecated, a warning will be logged at startup. This `delay` configuration has existed for a long time but was never utilized. Deprecating it and eventually removing it was chosen to simplify the configuration.
 * For discovery jobs, the `type` field and the keys of `exportedTagsOnMetrics` must be the AWS namespace rather than the alias (the README contains an up-to-date list of namespaces). Aliases are not allowed anymore. An error will be thrown at startup in an invalid namespace or an alias is used.
 * Some metric names have been changed to avoid duplicating the namespace. This includes:
