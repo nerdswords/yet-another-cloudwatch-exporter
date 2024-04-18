@@ -22,8 +22,8 @@ github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.20.4 h1:PLfHdrvs3L32R21hoxz
 github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.20.4/go.mod h1:PkfhkgYj7XKPO/kGyF7s4DC5ZVrxfHoWDD+rrxobLMg=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.40.5 h1:vhdJymxlWS2qftzLiuCjSswjXBRLGfzo/BEE9LDveBA=
 github.com/aws/aws-sdk-go-v2/service/autoscaling v1.40.5/go.mod h1:ZErgk/bPaaZIpj+lUWGlwI1A0UFhSIscgnCPzTLnb2s=
-github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.37.0 h1:sGGUnU/pUSzjrcCvQgN2pEc3aTQILyK2rRsWVY5CSt0=
-github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.37.0/go.mod h1:U12sr6Lt14X96f16t+rR52+2BdqtydwN7DjEEHRMjO0=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.38.0 h1:vAfGwYFCcPDS9Bg7ckfMBer6olJLOHsOAVoKWpPIirs=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.38.0/go.mod h1:U12sr6Lt14X96f16t+rR52+2BdqtydwN7DjEEHRMjO0=
 github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.4 h1:ot9PKavvbeEg3eofQdkpJWrf8DR90S9wx1OirBUComU=
 github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.4/go.mod h1:hTZS15Gghi40UxU03Cv09Qr2tXgoQrZOSGY6oaNUNAg=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.156.0 h1:TFK9GeUINErClL2+A+GLYhjiChVdaXCgIUiCsS/UQrE=
