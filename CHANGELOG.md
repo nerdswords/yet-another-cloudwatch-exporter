@@ -53,6 +53,7 @@ These breaking changes will allow making the configuration easier to understand 
 Features:
 * Add AWS/SecretsManager to the services list by @taraspos
 * Support partner events buses by @HristoStoyanovYotpo
+* `discovery.exportedTagsOnMetrics`: validate that keys match one of the job types defined by @cristiangreco
 
 Refactoring:
 * Update comment in factory.go by @andriikushch
