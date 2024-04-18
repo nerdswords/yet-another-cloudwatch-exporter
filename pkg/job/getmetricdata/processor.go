@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -15,30 +16,39 @@ import (
 )
 
 type Client interface {
-	GetMetricData(ctx context.Context, logger logging.Logger, data []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
+	GetMetricData(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch.MetricDataResult
 }
 
 type Processor struct {
-	metricsPerQuery int
-	client          Client
-	concurrency     int
+	metricsPerQuery  int
+	client           Client
+	concurrency      int
+	windowCalculator MetricWindowCalculator
+	logger           logging.Logger
 }
 
-func NewProcessor(client Client, metricsPerQuery int, concurrency int) Processor {
+func NewDefaultProcessor(logger logging.Logger, client Client, metricsPerQuery int, concurrency int) Processor {
+	return NewProcessor(logger, client, metricsPerQuery, concurrency, MetricWindowCalculator{clock: TimeClock{}})
+}
+
+func NewProcessor(logger logging.Logger, client Client, metricsPerQuery int, concurrency int, windowCalculator MetricWindowCalculator) Processor {
 	return Processor{
-		metricsPerQuery: metricsPerQuery,
-		client:          client,
-		concurrency:     concurrency,
+		logger:           logger,
+		metricsPerQuery:  metricsPerQuery,
+		client:           client,
+		concurrency:      concurrency,
+		windowCalculator: windowCalculator,
 	}
 }
 
-func (p Processor) Run(ctx context.Context, logger logging.Logger, namespace string, jobMetricLength int64, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
+func (p Processor) Run(ctx context.Context, namespace string, jobMetricLength, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
 	metricDataLength := len(requests)
 	partitionSize := int(math.Ceil(float64(metricDataLength) / float64(p.metricsPerQuery)))
-	logger.Debug("GetMetricData partitions", "size", partitionSize)
+	p.logger.Debug("GetMetricData partitions", "size", partitionSize)
 
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(p.concurrency)
+
 	count := 0
 	for i := 0; i < metricDataLength; i += p.metricsPerQuery {
 		start := i
@@ -51,11 +61,28 @@ func (p Processor) Run(ctx context.Context, logger logging.Logger, namespace str
 
 		g.Go(func() error {
 			input := addQueryIDsToBatch(requests[start:end])
-			data := p.client.GetMetricData(gCtx, logger, input, namespace, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
-			if data != nil {
-				mapResultsToBatch(logger, data, input)
+
+			var batchPeriod int64
+			if jobRoundingPeriod == nil {
+				for _, data := range input {
+					if data.GetMetricDataProcessingParams.Period < batchPeriod {
+						batchPeriod = data.GetMetricDataProcessingParams.Period
+					}
+				}
 			} else {
-				logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
+				batchPeriod = *jobRoundingPeriod
+			}
+
+			startTime, endTime := p.windowCalculator.Calculate(toSecondDuration(batchPeriod), toSecondDuration(jobMetricLength), toSecondDuration(jobMetricDelay))
+			if p.logger.IsDebugEnabled() {
+				p.logger.Debug("GetMetricData Window", "start_time", startTime.Format(TimeFormat), "end_time", endTime.Format(TimeFormat))
+			}
+
+			data := p.client.GetMetricData(gCtx, input, namespace, startTime, endTime)
+			if data != nil {
+				mapResultsToBatch(p.logger, data, input)
+			} else {
+				p.logger.Warn("GetMetricData partition empty result", "start", start, "end", end, "partitionNum", partitionNum)
 			}
 
 			return nil
@@ -112,4 +139,8 @@ func queryIDToIndex(queryID string) (int, error) {
 	noID := strings.TrimPrefix(queryID, "id_")
 	id, err := strconv.Atoi(noID)
 	return id, err
+}
+
+func toSecondDuration(i int64) time.Duration {
+	return time.Duration(i) * time.Second
 }
