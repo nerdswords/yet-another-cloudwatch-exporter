@@ -71,6 +71,10 @@ func TestBadConfigs(t *testing.T) {
 			configFile: "discovery_job_exported_tags_alias.bad.yml",
 			errorMsg:   "Discovery jobs: Invalid key in 'exportedTagsOnMetrics', use namespace \"AWS/S3\" rather than alias \"s3\"",
 		},
+		{
+			configFile: "discovery_job_exported_tags_mismatch.bad.yml",
+			errorMsg:   "Discovery jobs: 'exportedTagsOnMetrics' key \"AWS/RDS\" does not match with any discovery job type",
+		},
 	}
 
 	for _, tc := range testCases {
