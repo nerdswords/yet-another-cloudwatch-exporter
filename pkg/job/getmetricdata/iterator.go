@@ -20,10 +20,6 @@ func (b iteratorFactory) Build(data []*model.CloudwatchData, jobMetricLength, jo
 
 type nothingToIterate struct{}
 
-func (n nothingToIterate) Size() int {
-	return 0
-}
-
 func (n nothingToIterate) Next() ([]*model.CloudwatchData, *model.GetMetricDataProcessingParams) {
 	return nil, nil
 }
@@ -35,14 +31,11 @@ func (n nothingToIterate) HasMore() bool {
 type simpleBatchingIterator struct {
 	size            int
 	currentBatch    int
-	params          *model.GetMetricDataProcessingParams
 	data            []*model.CloudwatchData
 	entriesPerBatch int
 	roundingPeriod  *int64
-}
-
-func (s *simpleBatchingIterator) Size() int {
-	return s.size
+	delay           int64
+	length          int64
 }
 
 func (s *simpleBatchingIterator) Next() ([]*model.CloudwatchData, *model.GetMetricDataProcessingParams) {
@@ -73,11 +66,13 @@ func (s *simpleBatchingIterator) Next() ([]*model.CloudwatchData, *model.GetMetr
 		batchPeriod = *s.roundingPeriod
 	}
 
-	// shallow copy all fields are non-pointers so should be safe
-	batchParams := &(*s.params)
-	batchParams.Period = batchPeriod
+	params := &model.GetMetricDataProcessingParams{
+		Length: s.length,
+		Delay:  s.delay,
+		Period: batchPeriod,
+	}
 
-	return result, batchParams
+	return result, params
 }
 
 func (s *simpleBatchingIterator) HasMore() bool {
@@ -86,16 +81,10 @@ func (s *simpleBatchingIterator) HasMore() bool {
 
 // NewSimpleBatchIterator returns an iterator which slices the data in place based on the metricsPerQuery.
 func NewSimpleBatchIterator(metricsPerQuery int, data []*model.CloudwatchData, jobMetricLength, jobMetricDelay int64, jobRoundingPeriod *int64) Iterator {
-	size := int(math.Ceil(float64(len(data)) / float64(metricsPerQuery)))
-
-	params := &model.GetMetricDataProcessingParams{
-		Length: jobMetricLength,
-		Delay:  jobMetricDelay,
-	}
-
 	return &simpleBatchingIterator{
-		size:            size,
-		params:          params,
+		size:            int(math.Ceil(float64(len(data)) / float64(metricsPerQuery))),
+		length:          jobMetricLength,
+		delay:           jobMetricDelay,
 		roundingPeriod:  jobRoundingPeriod,
 		data:            data,
 		entriesPerBatch: metricsPerQuery,

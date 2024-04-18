@@ -24,9 +24,6 @@ type IteratorFactory interface {
 }
 
 type Iterator interface {
-	// Size returns the number of batches in the iterator
-	Size() int
-
 	// Next returns the next batch of CloudWatch data be used when calling GetMetricData and the start + end time for
 	// the GetMetricData call
 	// If called when there are no more batches default values will be returned

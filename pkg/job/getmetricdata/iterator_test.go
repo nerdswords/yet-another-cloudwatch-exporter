@@ -144,7 +144,6 @@ func TestSimpleBatchingIterator_IterateFlow(t *testing.T) {
 				data = append(data, getSampleMetricDatas(strconv.Itoa(i)))
 			}
 			iterator := NewSimpleBatchIterator(tc.metricsPerQuery, data, data[0].GetMetricDataProcessingParams.Length, data[0].GetMetricDataProcessingParams.Delay, nil)
-			assert.Equal(t, tc.expectedSizeAndNumberOfCallsToNext, iterator.Size())
 
 			numberOfCallsToNext := 0
 			for iterator.HasMore() {
