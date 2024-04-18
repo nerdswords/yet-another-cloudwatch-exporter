@@ -1,10 +1,10 @@
 apiVersion: v1alpha1
 discovery:
   exportedTagsOnMetrics:
-    qldb:
+    AWS/QLDB:
       - Name
   jobs:
-    - type: qldb
+    - type: AWS/QLDB
       regions:
         - us-east-2
       period: 300
@@ -17,24 +17,23 @@ discovery:
           statistics:
             - Average
         - name: ReadIOs
-          statistics: 
+          statistics:
             - Sum
         - name: WriteIOs
-          statistics: 
+          statistics:
             - Sum
         - name: CommandLatency
-          statistics: 
+          statistics:
             - Average
         - name: OccConflictExceptions
-          statistics: 
+          statistics:
             - Sum
         - name: Session4xxExceptions
-          statistics: 
+          statistics:
             - Sum
         - name: Session5xxExceptions
-          statistics: 
+          statistics:
             - Sum
         - name: SessionRateExceededExceptions
-          statistics: 
+          statistics:
             - Sum
-          

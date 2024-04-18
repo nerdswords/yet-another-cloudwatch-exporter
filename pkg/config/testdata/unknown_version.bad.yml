@@ -1,12 +1,12 @@
 apiVersion: invalidVersion
 discovery:
   exportedTagsOnMetrics:
-    ebs:
+    AWS/EBS:
       - VolumeId
-    kafka:
+    AWS/Kafka:
       - Name
   jobs:
-  - type: billing
+  - type: AWS/Billing
     regions:
       - us-east-1
     metrics:
@@ -15,7 +15,7 @@ discovery:
         - Sum
         period: 3600
         length: 87600
-  - type: es
+  - type: AWS/ES
     regions:
       - eu-west-1
     searchTags:
@@ -42,7 +42,7 @@ discovery:
         - Maximum
         period: 60
         length: 600
-  - type: elb
+  - type: AWS/ELB
     regions:
       - eu-west-1
     length: 900
@@ -63,7 +63,7 @@ discovery:
         length: 900 #(this will be ignored)
         delay: 300 #(this will be ignored)
         nilToZero: true
-  - type: alb
+  - type: AWS/ApplicationELB
     regions:
       - eu-west-1
     searchTags:
@@ -74,7 +74,7 @@ discovery:
         statistics: [Maximum]
         period: 60
         length: 600
-  - type: vpn
+  - type: AWS/VPN
     regions:
       - eu-west-1
     searchTags:
@@ -86,7 +86,7 @@ discovery:
         - p90
         period: 60
         length: 300
-  - type: kinesis
+  - type: AWS/Kinesis
     regions:
       - eu-west-1
     metrics:
@@ -95,7 +95,7 @@ discovery:
         - Sum
         period: 60
         length: 300
-  - type: s3
+  - type: AWS/S3
     regions:
       - eu-west-1
     searchTags:
@@ -112,7 +112,7 @@ discovery:
           - Average
         period: 86400
         length: 172800
-  - type: ebs
+  - type: AWS/EBS
     regions:
       - eu-west-1
     searchTags:
@@ -125,7 +125,7 @@ discovery:
         period: 600
         length: 600
         addCloudwatchTimestamp: true
-  - type: kafka
+  - type: AWS/Kafka
     regions:
       - eu-west-1
     searchTags:
