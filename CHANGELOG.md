@@ -34,7 +34,7 @@ Refactoring:
 
 This release brings a bunch of breaking changes:
 * Setting `roundingPeriod` for discovery jobs is deprecated, a warning will be logged at startup.
-* Setting `delay` at the metric level is deprecated, a warning will be logged at startup.
+* Setting `delay` at the metric level is deprecated, a warning will be logged at startup. This `delay` configuration has existed for a long time but was never utilized. Deprecating it and eventually removing it was chosen to simplify the configuration.
 * For discovery jobs, the `type` field and the keys of `exportedTagsOnMetrics` must be the AWS namespace rather than the alias (the README contains an up-to-date list of namespaces). Aliases are not allowed anymore. An error will be thrown at startup in an invalid namespace or an alias is used.
 * Some metric names have been changed to avoid duplicating the namespace. This includes:
   - `aws_es_esreporting_failed_request_sys_err_count` is `aws_es_reporting_failed_request_sys_err_count`
