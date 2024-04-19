@@ -284,7 +284,7 @@ apiVersion: v1alpha1
 sts-region: eu-west-1
 discovery:
   jobs:
-    - type: ecs-svc
+    - type: AWS/ECS
       regions:
         - eu-north-1
       roles:
