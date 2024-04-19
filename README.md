@@ -72,7 +72,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/EC2Spot` - Elastic Compute Cloud for Spot Instances
   * `AWS/ECS` - Elastic Container Service (Service Metrics)
   * `AWS/EFS` - Elastic File System
-  * `AWS/Elasticache` - ElastiCache
+  * `AWS/ElastiCache` - ElastiCache
   * `AWS/ElasticBeanstalk` - Elastic Beanstalk
   * `AWS/ElasticMapReduce` - Elastic MapReduce
   * `AWS/ELB` - Elastic Load Balancer
