@@ -38,87 +38,96 @@ Only the latest version gets security updates. We won't support older versions.
 * Support the scraping of custom namespaces metrics with the CloudWatch Dimensions.
 * Supported services with auto discovery through tags:
 
-  * acm (AWS/CertificateManager) - Certificate Manager
-  * acm-pca (AWS/ACMPrivateCA) - ACM Private CA
-  * airflow (AmazonMWAA) - Managed Apache Airflow
-  * mwaa (AWS/MWAA) - Managed Apache Airflow (Container, queue, and database metrics)
-  * alb (AWS/ApplicationELB) - Application Load Balancer
-  * apigateway (AWS/ApiGateway) - API Gateway
-  * appstream (AWS/AppStream) - AppStream
-  * appsync (AWS/AppSync) - AppSync
-  * amp (AWS/Prometheus) - Managed Service for Prometheus
-  * aoss (AWS/AOSS) - OpenSearch Serverless
-  * athena (AWS/Athena) - Athena
-  * backup (AWS/Backup) - Backup
-  * beanstalk (AWS/ElasticBeanstalk) - Elastic Beanstalk
-  * billing (AWS/Billing) - Billing
-  * cassandra (AWS/Cassandra) - Cassandra
-  * cloudfront (AWS/CloudFront) - Cloud Front
-  * cognito-idp (AWS/Cognito) - Cognito
-  * datasync (AWS/DataSync) - DataSync
-  * dms (AWS/DMS) - Database Migration Service
-  * docdb (AWS/DocDB) - DocumentDB (with MongoDB compatibility)
-  * dx (AWS/DX) - Direct Connect
-  * dynamodb (AWS/DynamoDB) - NoSQL Key-Value Database
-  * ebs (AWS/EBS) - Elastic Block Storage
-  * ec (AWS/Elasticache) - ElastiCache
-  * ec2 (AWS/EC2) - Elastic Compute Cloud
-  * ec2Spot (AWS/EC2Spot) - Elastic Compute Cloud for Spot Instances
-  * ecs-svc (AWS/ECS) - Elastic Container Service (Service Metrics)
-  * ecs-containerinsights (ECS/ContainerInsights) - ECS/ContainerInsights (Fargate metrics)
-  * efs (AWS/EFS) - Elastic File System
-  * elb (AWS/ELB) - Elastic Load Balancer
-  * emr (AWS/ElasticMapReduce) - Elastic MapReduce
-  * emr-serverless (AWS/EMRServerless) - Amazon EMR Serverless
-  * es (AWS/ES) - ElasticSearch
-  * fsx (AWS/FSx) - FSx File System
-  * gamelift (AWS/GameLift) - GameLift
-  * ga (AWS/GlobalAccelerator) - AWS Global Accelerator
-  * glue (Glue) - AWS Glue Jobs
-  * gwlb (AWS/GatewayELB) - Gateway Load Balancer
-  * iot (AWS/IoT) - IoT
-  * kafkaconnect (AWS/KafkaConnect) - AWS MSK Connectors
-  * kinesis (AWS/Kinesis) - Kinesis Data Stream
-  * kms (AWS/KMS) - Key Management Service
-  * nfw (AWS/NetworkFirewall) - Network Firewall
-  * ngw (AWS/NATGateway) - NAT Gateway
-  * lambda (AWS/Lambda) - Lambda Functions
-  * mediaconnect (AWS/MediaConnect) - AWS Elemental MediaConnect
-  * mediaconvert (AWS/MediaConvert) - AWS Elemental MediaConvert
-  * medialive (AWS/MediaLive) - AWS Elemental MediaLive
-  * mediatailor (AWS/MediaTailor) - AWS Elemental MediaTailor
-  * mq (AWS/AmazonMQ) - Managed Message Broker Service
-  * memorydb (AWS/MemoryDB) - AWS MemoryDB
-  * neptune (AWS/Neptune) - Neptune
-  * nlb (AWS/NetworkELB) - Network Load Balancer
-  * vpc-endpoint (AWS/PrivateLinkEndpoints) - VPC Endpoint
-  * vpc-endpoint-service (AWS/PrivateLinkServices) - VPC Endpoint Service
-  * redshift (AWS/Redshift) - Redshift Database
-  * rds (AWS/RDS) - Relational Database Service
-  * route53 (AWS/Route53) - Route53 Health Checks
-  * route53-resolver (AWS/Route53Resolver) - Route53 Resolver
-  * s3 (AWS/S3) - Object Storage
-  * sagemaker - Sagemaker invocations
-  * sagemaker-endpoints - Sagemaker Endpoints
-  * sagemaker-training - Sagemaker Training Jobs
-  * sagemaker-processing - Sagemaker Processing Jobs
-  * sagemaker-transform - Sagemaker Batch Transform Jobs
-  * sagemaker-inf-rec - Sagemaker Inference Recommender Jobs
-  * sagemaker-model-building - Sagemaker Model Building Pipelines
-  * ses (AWS/SES) - Simple Email Service
-  * shield (AWS/DDoSProtection) - Distributed Denial of Service (DDoS) protection service
-  * sqs (AWS/SQS) - Simple Queue Service
-  * storagegateway (AWS/StorageGateway) - On-premises access to cloud storage
-  * tgw (AWS/TransitGateway) - Transit Gateway
-  * vpn (AWS/VPN) - VPN connection
-  * asg (AWS/AutoScaling) - Auto Scaling Group
-  * kafka (AWS/Kafka) - Managed Apache Kafka
-  * firehose (AWS/Firehose) - Managed Streaming Service
-  * sns (AWS/SNS) - Simple Notification Service
-  * sfn (AWS/States) - Step Functions
-  * wafv2 (AWS/WAFV2) - Web Application Firewall v2
-  * workspaces (AWS/WorkSpaces) - Workspaces
-  * ipam (AWS/IPAM) - IP address manager
+  * `/aws/sagemaker/Endpoints` - Sagemaker Endpoints
+  * `/aws/sagemaker/InferenceRecommendationsJobs` - Sagemaker Inference Recommender Jobs
+  * `/aws/sagemaker/ProcessingJobs` - Sagemaker Processing Jobs
+  * `/aws/sagemaker/TrainingJobs` - Sagemaker Training Jobs
+  * `/aws/sagemaker/TransformJobs` - Sagemaker Batch Transform Jobs
+  * `AmazonMWAA` - Managed Apache Airflow
+  * `AWS/ACMPrivateCA` - ACM Private CA
+  * `AWS/AmazonMQ` - Managed Message Broker Service
+  * `AWS/AOSS` - OpenSearch Serverless
+  * `AWS/ApiGateway` - ApiGateway (V1 and V2)
+  * `AWS/ApplicationELB` - Application Load Balancer
+  * `AWS/AppStream` - AppStream
+  * `AWS/AppSync` - AppSync
+  * `AWS/Athena` - Athena
+  * `AWS/AutoScaling` - Auto Scaling Group
+  * `AWS/Backup` - Backup
+  * `AWS/Bedrock` - GenerativeAI
+  * `AWS/Billing` - Billing
+  * `AWS/Cassandra` - Cassandra
+  * `AWS/CertificateManager` - Certificate Manager
+  * `AWS/ClientVPN` - Client-based VPN
+  * `AWS/CloudFront` - Cloud Front
+  * `AWS/Cognito` - Cognito
+  * `AWS/DataSync` - DataSync
+  * `AWS/DDoSProtection` - Distributed Denial of Service (DDoS) protection service
+  * `AWS/DMS` - Database Migration Service
+  * `AWS/DocDB` - DocumentDB (with MongoDB compatibility)
+  * `AWS/DX` - Direct Connect
+  * `AWS/DynamoDB` - NoSQL Key-Value Database
+  * `AWS/EBS` - Elastic Block Storage
+  * `AWS/EC2` - Elastic Compute Cloud
+  * `AWS/EC2Spot` - Elastic Compute Cloud for Spot Instances
+  * `AWS/ECS` - Elastic Container Service (Service Metrics)
+  * `AWS/EFS` - Elastic File System
+  * `AWS/ElastiCache` - ElastiCache
+  * `AWS/ElasticBeanstalk` - Elastic Beanstalk
+  * `AWS/ElasticMapReduce` - Elastic MapReduce
+  * `AWS/ELB` - Elastic Load Balancer
+  * `AWS/EMRServerless` - Amazon EMR Serverless
+  * `AWS/ES` - ElasticSearch
+  * `AWS/Events` - EventBridge
+  * `AWS/Firehose` - Managed Streaming Service
+  * `AWS/FSx` - FSx File System
+  * `AWS/GameLift` - GameLift
+  * `AWS/GatewayELB` - Gateway Load Balancer
+  * `AWS/GlobalAccelerator` - AWS Global Accelerator
+  * `AWS/IoT` - IoT
+  * `AWS/IPAM` - IP address manager
+  * `AWS/Kafka` - Managed Apache Kafka
+  * `AWS/KafkaConnect` - AWS MSK Connectors
+  * `AWS/Kinesis` - Kinesis Data Stream
+  * `AWS/KinesisAnalytics` - Kinesis Data Analytics for SQL Applications
+  * `AWS/KMS` - Key Management Service
+  * `AWS/Lambda` - Lambda Functions
+  * `AWS/MediaConnect` - AWS Elemental MediaConnect
+  * `AWS/MediaConvert` - AWS Elemental MediaConvert
+  * `AWS/MediaLive` - AWS Elemental MediaLive
+  * `AWS/MediaTailor` - AWS Elemental MediaTailor
+  * `AWS/MemoryDB` - AWS MemoryDB
+  * `AWS/MWAA` - Managed Apache Airflow (Container, queue, and database metrics)
+  * `AWS/NATGateway` - NAT Gateway
+  * `AWS/Neptune` - Neptune
+  * `AWS/NetworkELB` - Network Load Balancer
+  * `AWS/NetworkFirewall` - Network Firewall
+  * `AWS/PrivateLinkEndpoints` - VPC Endpoint
+  * `AWS/PrivateLinkServices` - VPC Endpoint Service
+  * `AWS/Prometheus` - Managed Service for Prometheus
+  * `AWS/QLDB` - Quantum Ledger Database
+  * `AWS/RDS` - Relational Database Service
+  * `AWS/Redshift` - Redshift Database
+  * `AWS/Route53` - Route53 Health Checks
+  * `AWS/Route53Resolver` - Route53 Resolver
+  * `AWS/S3` - Object Storage
+  * `AWS/Sagemaker/ModelBuildingPipeline` - Sagemaker Model Building Pipelines
+  * `AWS/SageMaker` - Sagemaker invocations
+  * `AWS/SecretsManager` - Secrets Manager
+  * `AWS/SES` - Simple Email Service
+  * `AWS/SNS` - Simple Notification Service
+  * `AWS/SQS` - Simple Queue Service
+  * `AWS/States` - Step Functions
+  * `AWS/StorageGateway` - On-premises access to cloud storage
+  * `AWS/TransitGateway` - Transit Gateway
+  * `AWS/TrustedAdvisor` - Trusted Advisor
+  * `AWS/Usage` - Usage of some AWS resources and APIs
+  * `AWS/VPN` - VPN connection
+  * `AWS/WAFV2` - Web Application Firewall v2
+  * `AWS/WorkSpaces` - Workspaces
+  * `CWAgent` - CloudWatch agent
+  * `ECS/ContainerInsights` - ECS/ContainerInsights (Fargate metrics)
+  * `Glue` - AWS Glue Jobs
 
 ## Feature flags
 
@@ -275,7 +284,7 @@ apiVersion: v1alpha1
 sts-region: eu-west-1
 discovery:
   jobs:
-    - type: ecs-svc
+    - type: AWS/ECS
       regions:
         - eu-north-1
       roles:

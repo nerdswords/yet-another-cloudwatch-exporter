@@ -146,6 +146,13 @@ func (c *ScrapeConf) Validate(logger logging.Logger) (model.JobsConfig, error) {
 	}
 
 	if c.Discovery.Jobs != nil {
+		for idx, job := range c.Discovery.Jobs {
+			err := job.validateDiscoveryJob(logger, idx)
+			if err != nil {
+				return model.JobsConfig{}, err
+			}
+		}
+
 		if len(c.Discovery.ExportedTagsOnMetrics) > 0 {
 			for ns := range c.Discovery.ExportedTagsOnMetrics {
 				if svc := SupportedServices.GetService(ns); svc == nil {
@@ -154,13 +161,17 @@ func (c *ScrapeConf) Validate(logger logging.Logger) (model.JobsConfig, error) {
 					}
 					return model.JobsConfig{}, fmt.Errorf("Discovery jobs: 'exportedTagsOnMetrics' key is not a valid namespace: %s", ns)
 				}
-			}
-		}
 
-		for idx, job := range c.Discovery.Jobs {
-			err := job.validateDiscoveryJob(logger, idx)
-			if err != nil {
-				return model.JobsConfig{}, err
+				jobTypeMatch := false
+				for _, job := range c.Discovery.Jobs {
+					if job.Type == ns {
+						jobTypeMatch = true
+						break
+					}
+				}
+				if !jobTypeMatch {
+					return model.JobsConfig{}, fmt.Errorf("Discovery jobs: 'exportedTagsOnMetrics' key %q does not match with any discovery job type", ns)
+				}
 			}
 		}
 	}
