@@ -556,6 +556,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/Logs",
+		Alias:     "logs",
+		ResourceFilters: []*string{
+			aws.String("logs:log-group"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":log-group:(?P<LogGroupName>.+)"),
+		},
+	},
+	{
 		Namespace: "AWS/MediaConnect",
 		Alias:     "mediaconnect",
 		ResourceFilters: []*string{

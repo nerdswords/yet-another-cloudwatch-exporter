@@ -37,7 +37,6 @@ Only the latest version gets security updates. We won't support older versions.
 * Can be used as a library in an external application
 * Support the scraping of custom namespaces metrics with the CloudWatch Dimensions.
 * Supported services with auto discovery through tags:
-
   * `/aws/sagemaker/Endpoints` - Sagemaker Endpoints
   * `/aws/sagemaker/InferenceRecommendationsJobs` - Sagemaker Inference Recommender Jobs
   * `/aws/sagemaker/ProcessingJobs` - Sagemaker Processing Jobs
@@ -92,6 +91,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/KinesisAnalytics` - Kinesis Data Analytics for SQL Applications
   * `AWS/KMS` - Key Management Service
   * `AWS/Lambda` - Lambda Functions
+  * `AWS/Logs` - CloudWatch Logs
   * `AWS/MediaConnect` - AWS Elemental MediaConnect
   * `AWS/MediaConvert` - AWS Elemental MediaConvert
   * `AWS/MediaLive` - AWS Elemental MediaLive
