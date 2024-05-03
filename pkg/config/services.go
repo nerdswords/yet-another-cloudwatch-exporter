@@ -54,7 +54,16 @@ type serviceConfigs []ServiceConfig
 
 func (sc serviceConfigs) GetService(serviceType string) *ServiceConfig {
 	for _, sf := range sc {
-		if sf.Alias == serviceType || sf.Namespace == serviceType {
+		if sf.Namespace == serviceType {
+			return &sf
+		}
+	}
+	return nil
+}
+
+func (sc serviceConfigs) getServiceByAlias(alias string) *ServiceConfig {
+	for _, sf := range sc {
+		if sf.Alias == alias {
 			return &sf
 		}
 	}
@@ -731,6 +740,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/SecretsManager",
+		Alias:     "secretsmanager",
+	},
+	{
 		Namespace: "AWS/SES",
 		Alias:     "ses",
 	},
@@ -926,6 +939,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":rule/(?P<EventBusName>[^/]+)/(?P<RuleName>[^/]+)$"),
+			regexp.MustCompile(":rule/aws.partner/(?P<EventBusName>.+)/(?P<RuleName>[^/]+)$"),
 		},
 	},
 }

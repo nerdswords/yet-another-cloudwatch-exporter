@@ -29,7 +29,14 @@ func BuildMetricName(namespace, metricName, statistic string) string {
 	}
 	sb.WriteString(promNs)
 	sb.WriteString("_")
-	sb.WriteString(PromString(metricName))
+	promMetricName := PromString(metricName)
+	// Some metric names duplicate parts of the namespace as a prefix,
+	// For example, the `Glue` namespace metrics have names prefixed also by `glue``
+	for _, part := range strings.Split(promNs, "_") {
+		promMetricName = strings.TrimPrefix(promMetricName, part)
+	}
+	promMetricName = strings.TrimPrefix(promMetricName, "_")
+	sb.WriteString(promMetricName)
 	if statistic != "" {
 		sb.WriteString("_")
 		sb.WriteString(PromString(statistic))
@@ -255,7 +262,7 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 // the updated observedMetricLabels
 func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(model.LabelSet)
+		observedMetricLabels[metricName] = make(model.LabelSet, len(promLabels))
 	}
 	for label := range promLabels {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {
