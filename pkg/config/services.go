@@ -507,6 +507,15 @@ var SupportedServices = serviceConfigs{
 	{
 		Namespace: "AWS/MediaPackage",
 		Alias:     "mediapackage",
+		ResourceFilters: []*string{
+		        aws.String("mediapackage"),
+		        aws.String("mediapackage-vod"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+		        regexp.MustCompile(":channels/(?P<IngestEndpoint>.+)$"),
+		        regexp.MustCompile(":packaging-configurations/(?P<PackagingConfiguration>.+)$"),
+		},
+		
 	},
 	{
 		Namespace: "AWS/MediaLive",
