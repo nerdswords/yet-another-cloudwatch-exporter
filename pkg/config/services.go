@@ -730,6 +730,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/RUM",
+		Alias:     "rum",
+	},
+	{
 		Namespace: "AWS/S3",
 		Alias:     "s3",
 		ResourceFilters: []*string{
