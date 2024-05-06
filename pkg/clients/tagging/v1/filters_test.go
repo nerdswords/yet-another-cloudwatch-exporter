@@ -415,22 +415,6 @@ func TestDMSFilterFunc(t *testing.T) {
 	}
 }
 
-type dmsClient struct {
-	databasemigrationserviceiface.DatabaseMigrationServiceAPI
-	describeReplicationInstancesOutput *databasemigrationservice.DescribeReplicationInstancesOutput
-	describeReplicationTasksOutput     *databasemigrationservice.DescribeReplicationTasksOutput
-}
-
-func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, _ ...request.Option) error {
-	fn(dms.describeReplicationInstancesOutput, true)
-	return nil
-}
-
-func (dms dmsClient) DescribeReplicationTasksPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, _ ...request.Option) error {
-	fn(dms.describeReplicationTasksOutput, true)
-	return nil
-}
-
 type apiGatewayClient struct {
 	apigatewayiface.APIGatewayAPI
 	getRestApisOutput *apigateway.GetRestApisOutput
@@ -448,4 +432,20 @@ type apiGatewayV2Client struct {
 
 func (apigateway apiGatewayV2Client) GetApisWithContext(_ aws.Context, _ *apigatewayv2.GetApisInput, _ ...request.Option) (*apigatewayv2.GetApisOutput, error) {
 	return apigateway.getRestApisOutput, nil
+}
+
+type dmsClient struct {
+	databasemigrationserviceiface.DatabaseMigrationServiceAPI
+	describeReplicationInstancesOutput *databasemigrationservice.DescribeReplicationInstancesOutput
+	describeReplicationTasksOutput     *databasemigrationservice.DescribeReplicationTasksOutput
+}
+
+func (dms dmsClient) DescribeReplicationInstancesPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationInstancesInput, fn func(*databasemigrationservice.DescribeReplicationInstancesOutput, bool) bool, _ ...request.Option) error {
+	fn(dms.describeReplicationInstancesOutput, true)
+	return nil
+}
+
+func (dms dmsClient) DescribeReplicationTasksPagesWithContext(_ aws.Context, _ *databasemigrationservice.DescribeReplicationTasksInput, fn func(*databasemigrationservice.DescribeReplicationTasksOutput, bool) bool, _ ...request.Option) error {
+	fn(dms.describeReplicationTasksOutput, true)
+	return nil
 }

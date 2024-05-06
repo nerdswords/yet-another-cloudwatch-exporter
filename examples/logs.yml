@@ -1,0 +1,19 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/Logs
+      regions:
+        - us-east-1
+      period: 60
+      length: 60
+      delay: 120
+      statistics: [Sum]
+      metrics:
+        - name: DeliveryErrors
+        - name: DeliveryThrottling
+        - name: EMFParsingErrors
+        - name: EMFValidationErrors
+        - name: ForwardedBytes
+        - name: ForwardedLogEvents
+        - name: IncomingBytes
+        - name: IncomingLogEvents

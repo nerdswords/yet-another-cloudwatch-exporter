@@ -2,7 +2,7 @@ apiVersion: v1alpha1
 sts-region: eu-west-1
 discovery:
   jobs:
-  - type: s3
+  - type: AWS/S3
     regions:
     - eu-west-1
     roles:
@@ -14,4 +14,3 @@ discovery:
           - Average
         period: 86400
         length: 172800
-

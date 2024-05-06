@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -27,7 +27,7 @@ var sagemakerHealthResources = []*model.TaggedResource{
 
 func TestAssociatorSagemakerEndpoint(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -43,12 +43,12 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 		{
 			name: "2 dimensions should match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").ToModelDimensionsRegexp(),
 				resources:        sagemakerHealthResources,
 				metric: &model.Metric{
 					MetricName: "MemoryUtilization",
 					Namespace:  "/aws/sagemaker/Endpoints",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-two"},
 						{Name: "VariantName", Value: "example-endpoint-two-variant-one"},
 					},
@@ -60,12 +60,12 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 		{
 			name: "2 dimensions should not match",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("/aws/sagemaker/Endpoints").ToModelDimensionsRegexp(),
 				resources:        sagemakerHealthResources,
 				metric: &model.Metric{
 					MetricName: "MemoryUtilization",
 					Namespace:  "/aws/sagemaker/Endpoints",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "EndpointName", Value: "example-endpoint-three"},
 						{Name: "VariantName", Value: "example-endpoint-three-variant-one"},
 					},
@@ -78,7 +78,7 @@ func TestAssociatorSagemakerEndpoint(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

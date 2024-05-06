@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -27,7 +27,7 @@ var protectedResources = []*model.TaggedResource{
 
 func TestAssociatorDDoSProtection(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -43,12 +43,12 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 		{
 			name: "should match with ResourceArn dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/DDoSProtection").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/DDoSProtection").ToModelDimensionsRegexp(),
 				resources:        protectedResources,
 				metric: &model.Metric{
 					Namespace:  "AWS/DDoSProtection",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ResourceArn", Value: "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123"},
 					},
 				},
@@ -60,7 +60,7 @@ func TestAssociatorDDoSProtection(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			assert.Equal(t, tc.expectedSkip, skip)
 			assert.Equal(t, tc.expectedResource, res)

@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -27,7 +27,7 @@ var mediaConvertResources = []*model.TaggedResource{
 
 func TestAssociatorMediaConvert(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -43,12 +43,12 @@ func TestAssociatorMediaConvert(t *testing.T) {
 		{
 			name: "should match with mediaconvert queue one dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").ToModelDimensionsRegexp(),
 				resources:        mediaConvertResources,
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-queue"},
 					},
 				},
@@ -59,12 +59,12 @@ func TestAssociatorMediaConvert(t *testing.T) {
 		{
 			name: "should match with mediaconvert queue two dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").ToModelDimensionsRegexp(),
 				resources:        mediaConvertResources,
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-second-queue"},
 					},
 				},
@@ -75,12 +75,12 @@ func TestAssociatorMediaConvert(t *testing.T) {
 		{
 			name: "should not match with any mediaconvert queue",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MediaConvert").ToModelDimensionsRegexp(),
 				resources:        mediaConvertResources,
 				metric: &model.Metric{
 					MetricName: "JobsCompletedCount",
 					Namespace:  "AWS/MediaConvert",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "Queue", Value: "arn:aws:mediaconvert:eu-west-1:631611414237:queues/a-non-existing-queue"},
 					},
 				},
@@ -92,7 +92,7 @@ func TestAssociatorMediaConvert(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

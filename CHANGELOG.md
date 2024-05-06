@@ -1,3 +1,331 @@
+# main (unreleased)
+
+**Important news and breaking changes**
+
+* ...
+
+**Bugfixes and features**
+
+Features:
+* ...
+
+Bugs:
+* ...
+
+Docs:
+* ...
+
+Refactoring:
+* ...
+
+**Dependencies**
+
+* ...
+
+**New contributors**
+
+* ...
+
+**Full Changelog**: https://github.com/...
+
+# 0.59.0
+
+**Important news and breaking changes**
+
+This release brings a bunch of breaking changes:
+* Setting `roundingPeriod` for discovery jobs is deprecated, a warning will be logged at startup. This is being deprecated in favor of always using the metric period. The implementation for `roundingPeriod` can result in inconsistent Start and EndTime between batches. This negates its intent to ensure Start and EndTimes align with the metric period for [CloudWatch best practices](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html). This has the potential to produce data which will look inaccurate when compared against CloudWatch itself driving a lot of confusion. See https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/1290 for further context.
+* Setting `delay` at the metric level is deprecated, a warning will be logged at startup. This `delay` configuration has existed for a long time but was never utilized. Deprecating it and eventually removing it was chosen to simplify the configuration. See https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/1290#issuecomment-1948904375 for further context.
+* For discovery jobs, the `type` field and the keys of `exportedTagsOnMetrics` must be the AWS namespace rather than the alias (the README contains an up-to-date list of namespaces). Aliases are not allowed anymore. An error will be thrown at startup in an invalid namespace or an alias is used.
+* Some metric names have been changed to avoid duplicating the namespace. This includes:
+  - `aws_es_esreporting_failed_request_sys_err_count` is `aws_es_reporting_failed_request_sys_err_count`
+  - `aws_es_esreporting_failed_request_user_err_count` is `aws_es_reporting_failed_request_user_err_count`
+  - `aws_es_esreporting_request_count` is `aws_es_reporting_request_count`
+  - `aws_es_esreporting_success_count` is `aws_es_reporting_success_count`
+  - `aws_kafka_kafka_app_logs_disk_used` is `aws_kafka_app_logs_disk_used`
+  - `aws_kafka_kafka_data_logs_disk_used` is `aws_kafka_data_logs_disk_used`
+  - `aws_rds_rdsto_aurora_postgre_sqlreplica_lag` is  `aws_rds_to_aurora_postgre_sqlreplica_lag`
+  - `aws_glue_glue_.*` is `aws_glue_.*`
+
+These breaking changes will allow making the configuration easier to understand and less error prone, and also to build better documentation around supported services.
+
+**Bugfixes and features**
+
+Features:
+* Add AWS/SecretsManager to the services list by @taraspos
+* Support partner events buses by @HristoStoyanovYotpo
+* `discovery.exportedTagsOnMetrics`: validate that keys match one of the job types defined by @cristiangreco
+
+Refactoring:
+* Update comment in factory.go by @andriikushch
+* getmetricdata: move window calculator to processor by @kgeckhart
+* promutil: clean up prom metric names that duplicate parts of the namespace by @tristanburgess
+* promutil: rewrite sanitisation funcs for memory optimisation by @cristiangreco
+* Do not allow using aliases as job types in discovery jobs by @cristiangreco
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.51.16 to 1.51.21
+* Bump github.com/aws/aws-sdk-go-v2 group
+* Bump github.com/prometheus/common from 0.52.2 to 0.52.3
+
+**New contributors**
+
+* @taraspos made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1330
+* @HristoStoyanovYotpo made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1359
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.58.0...v0.59.0
+
+# 0.58.0
+
+**Bugfixes and features**
+
+Features:
+* Simplify CloudWatch API call counters by @kgeckhart
+
+Bugs:
+* Fixed issue with generated Prometheus metric name when working with AWS namespaces which have a leading special character, like `/aws/sagemaker/TrainingJobs` by @tristanburgess
+
+Refactoring:
+* Add abstraction for `GetMetricsData` processing by @kgeckhart
+* `GetMetricData`: refactor QueryID generation and result mapping by @kgeckhart
+* Refactored out the name-building part of `promutil.BuildNamespaceInfoMetrics()` and `promutil.BuildMetrics()` into `promutil.BuildMetricName()` by @tristanburgess
+* Set initial maps size in promutil/migrate by @cristiangreco
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.50.30 to 1.51.16
+* Bump github.com/prometheus/common from 0.49.0 to 0.52.2
+* Bump golang.org/x/sync from 0.6.0 to 0.7.0
+* Bump the aws-sdk-v2 group with 14 updates
+
+**New contributors**
+
+* @tristanburgess made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1351
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.57.1...v0.58.0
+
+
+# 0.57.1
+
+**Important news and breaking changes**
+
+* Reverted a change from 0.57.0 to fix scraping of ApiGateway resources.
+
+**Bugfixes and features**
+
+Bugs:
+* ApiGateway: bugfix to restore FilterFunc for correct mapping of resources by @cristiangreco
+
+**Dependencies**
+
+## What's Changed
+* Bump github.com/aws/aws-sdk-go from 1.50.26 to 1.50.30
+* Bump github.com/prometheus/client_golang from 1.18.0 to 1.19.0
+* Bump github.com/prometheus/common from 0.48.0 to 0.49.0
+* Bump github.com/stretchr/testify from 1.8.4 to 1.9.0
+* Bump the aws-sdk-v2 group
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.57.0...v0.57.1
+
+# v0.57.0
+
+**Important news and breaking changes**
+
+* New job setting `includeContextOnInfoMetrics` can be used to include contextual information (account_id, region, and customTags) on "info" metrics and cloudwatch metrics. This can be particularly useful when cloudwatch metrics might not be present or when using "info" metrics to understand where your resources exist.
+* No more need to add the `apigateway:GET` permissions for ApiGateway discovery jobs, as that API is not being used anymore.
+
+**Bugfixes and features**
+
+Features:
+* Add serverless ElastiCache support by @pkubicsek-sb
+* Add GWLB support by @vainiusd
+* Add support for KMS metrics by @daharon
+* Optionally include context labels (account, region, customTags) on info metrics with `includeContextOnInfoMetrics` by @kgeckhart
+* Improve usability and performance of searchTags by @kgeckhart
+* Add metric yace_cloudwatch_getmetricdata_metrics_total by @keyolk
+
+Bugs:
+* Fix race condition in scraper registry usage by @cristiangreco
+* Restore default behaviour of returning nil/absent metrics as NaN by @nhinds
+* Remove filtering of ApiGateway namespace resources by @cristiangreco
+
+Refactoring:
+* Refactor dimensions regexp usage for discovery jobs by @cristiangreco
+* Simplify associator usage by @kgeckhart
+* Update build tools and CI to go 1.22 by @cristiangreco
+* Restructure fields on CloudwatchData by @kgeckhart
+
+**Dependencies**
+
+* Bump alpine from 3.19.0 to 3.19.1
+* Bump github.com/aws/aws-sdk-go from 1.49.19 to 1.50.26
+* Bump github.com/aws/smithy-go from 1.19.0 to 1.20.1
+* Bump github.com/prometheus/common from 0.45.0 to 0.48.0
+* Bump golang from 1.21 to 1.22
+* Bump golangci/golangci-lint-action from 3.7.0 to 4.0.0
+* Bump the aws-sdk-v2 group
+
+**New contributors**
+
+* @vainiusd made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1093
+* @daharon made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1306
+* @keyolk made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/939
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.56.0...v0.57.0
+
+# v0.56.0
+
+**Important news and breaking changes**
+
+* Release v0.55.0 didn't include binaries artifact due to an issue with the release pipeline.
+* The `list-metrics-callback` and `max-dimensions-associator` feature flags have been removed: their behaviour is now the new default.
+
+**Bugfixes and features**
+
+Features:
+* Add new CloudWatch API concurrency limiter by @thepalbi
+* Remove feature flag `list-metrics-callback` by @cristiangreco
+* Remove feature flag `max-dimensions-associator` by @cristiangreco
+* Add support for AWS/Bedrock metrics by @thepalbi
+* Add support for AWS/Events by @raanand-dig
+* Add support for AWS/DataSync by @wkneewalden
+* Add support for AWS/IPAM by @pkubicsek-sb
+
+Bugs:
+* Remove unsupported MWAA resource filter by @matej-g
+* DDoSProtection: Include regionless protectedResources in us-east-1 by @kgeckhart
+* aws sdk v2: ensure region is respected for all aws clients by @kgeckhart
+* SageMaker: Associator buildLabelsMap to lower case EndpointName to match ARN by @GGonzalezGomez
+* Update goreleaser action by @cristiangreco
+
+Refactoring:
+* Decouple config models from internal models by @cristiangreco
+* Change config Validate() signature to include model conversion by @cristiangreco
+
+**Dependencies**
+
+* Bump actions/setup-go from 4 to 5
+* Bump alpine from 3.18.3 to 3.19.0
+* Bump docker/setup-buildx-action from 2 to 3
+* Bump docker/setup-qemu-action from 2 to 3
+* Bump github.com/aws/aws-sdk-go from 1.45.24 to 1.49.19
+* Bump github.com/aws/smithy-go from 1.17.0 to 1.19.0
+* Bump github.com/prometheus/client_golang from 1.16.0 to 1.18.0
+* Bump github.com/prometheus/common from 0.44.0 to 0.45.0
+* Bump github.com/urfave/cli/v2 from 2.25.7 to 2.27.1
+* Bump golang.org/x/sync from 0.3.0 to 0.6.0
+* Bump goreleaser/goreleaser-action from 4 to 5
+* Bump the aws-sdk-v2 group dependencies
+
+**New contributors**
+
+* @GGonzalezGomez
+* @wkneewalden
+* @pkubicsek-sb
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.55.0...v0.56.0
+
+# v0.55.0
+
+**Important news and breaking changes**
+
+* jobs of type `customNamespace`, which were deprecated in `v0.51.0`, are now **un-deprecated** due to customers' feedback
+* new feature flag `always-return-info-metrics`: return info metrics even if there are no CloudWatch metrics for the resource. This is useful if you want to get a complete picture of your estate, for example if you have some resources which have not yet been used.
+
+**Bugfixes and features**
+
+Features:
+* Un-deprecate custom namespace jobs by @cristiangreco
+* scrape: Return resources even if there are no metrics by @iainlane
+* kinesisanalytics application: add tags support by @raanand-dig
+* Add support for AWS/ClientVPN by @hc2p
+* Add support for QLDB by @alexandre-alvarengazh
+
+Bugs:
+* main: Initialise logger when exiting if needed by @iainlane
+
+Docs:
+* Create sqs.yml example file by @dverzolla
+
+Refactoring:
+* Update code to go 1.21 by @cristiangreco
+* aws sdk v2 use EndpointResolverV2 by @kgeckhart
+* move duplicated fields from CloudwatchData to a new JobContext by @kgeckhart
+
+**Dependencies**
+
+* Bump github.com/aws/aws-sdk-go from 1.44.328 to 1.45.7
+* Bump the aws-sdk-v2 group with 2 updates
+* Bump actions/checkout from 3 to 4 by
+
+**New Contributors**
+
+* @raanand-dig
+* @dverzolla
+* @iainlane
+* @hc2p
+* @alexandre-alvarengazh
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.1...v0.55.0
+
+
+# v0.54.1
+
+Bugs:
+* sdk v2: Set RetryMaxAttempts on root config instead client options by @kgeckhart
+* Match FIPS implementation between sdk v1 and sdk v2 by @kgeckhart
+* Fix regex for vpc-endpoint-service by @cristiangreco
+
+**Dependencies**
+
+* Bump golangci/golangci-lint-action from 3.6.0 to 3.7.0
+* Bump github.com/aws/aws-sdk-go from 1.44.327 to 1.44.328
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.54.0...v0.54.1
+
+# v0.54.0
+
+**Bugfixes and features**
+
+Features:
+* Log features enabled at startup by @cristiangreco
+* Use go-kit logger and add `log.format` flag by @cristiangreco
+
+Bugs:
+* Remove tagged resource requirement from TrustedAdvisor by @kgeckhart
+* Fix: RDS dashboard filtering by job value by @andriikushch
+* Review dimensions regexps for APIGateway by @cristiangreco
+* Fix syntax in rds.libsonnet by @andriikushch
+* Fix the `FilterId` label value selection for s3 dashboard by @andriikushch
+* MaxDimAssociator: loop through all mappings by @cristiangreco
+* MaxDimAssociator: wrap some expensive debug logs by @cristiangreco
+* MaxDimAssociator: compile AmazonMQ broker suffix regex once by @cristiangreco
+* Limit number of goroutines for GetMetricData calls by @cristiangreco
+* Reduce uncessary pointer usage in getmetricdata code path by @kgeckhart
+* Improve perf in discovery jobs metrics to data lookup by @thepalbi
+* Improve FIPS endpoints resolve logic for sdk v1 by @thepalbi
+
+Docs:
+* Add more config examples (ApiGW, SES, SNS, ECS) by @cristiangreco
+
+Refactoring:
+* Refactor clients.Cache -> clients.Factory by @kgeckhart
+* dependabot: use group updates for aws sdk v2 by @cristiangreco
+* Add debug logging to maxdimassociator by @cristiangreco
+
+**Dependencies**
+
+New dependecies:
+* github.com/go-kit/log v0.2.1
+
+Updates:
+* Docker image: bump alpine from 3.18.2 to 3.18.3
+* Docker image: bump golang from 1.20 to 1.21
+* Bump github.com/aws/smithy-go from 1.13.5 to 1.14.2
+* Bump github.com/aws/aws-sdk-go and aws-sdk-go-v2 to latest versions
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.53.0...v0.54.0
+
 # v0.53.0
 
 **Bugfixes and features**

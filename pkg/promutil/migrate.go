@@ -2,12 +2,12 @@ package promutil
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/grafana/regexp"
 	prom_model "github.com/prometheus/common/model"
 
@@ -17,86 +17,112 @@ import (
 
 var Percentile = regexp.MustCompile(`^p(\d{1,2}(\.\d{0,2})?|100)$`)
 
-func BuildNamespaceInfoMetrics(tagData []*model.TaggedResource, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
-	for _, d := range tagData {
-		sb := strings.Builder{}
-		promNs := PromString(strings.ToLower(d.Namespace))
-		if !strings.HasPrefix(promNs, "aws") {
-			sb.WriteString("aws_")
-		}
-		sb.WriteString(promNs)
-		sb.WriteString("_info")
-		metricName := sb.String()
+func BuildMetricName(namespace, metricName, statistic string) string {
+	sb := strings.Builder{}
+	promNs := PromString(strings.ToLower(namespace))
+	// Some namespaces have a leading forward slash like
+	// /aws/sagemaker/TrainingJobs, which gets converted to
+	// a leading _ by PromString().
+	promNs = strings.TrimPrefix(promNs, "_")
+	if !strings.HasPrefix(promNs, "aws") {
+		sb.WriteString("aws_")
+	}
+	sb.WriteString(promNs)
+	sb.WriteString("_")
+	promMetricName := PromString(metricName)
+	// Some metric names duplicate parts of the namespace as a prefix,
+	// For example, the `Glue` namespace metrics have names prefixed also by `glue``
+	for _, part := range strings.Split(promNs, "_") {
+		promMetricName = strings.TrimPrefix(promMetricName, part)
+	}
+	promMetricName = strings.TrimPrefix(promMetricName, "_")
+	sb.WriteString(promMetricName)
+	if statistic != "" {
+		sb.WriteString("_")
+		sb.WriteString(PromString(statistic))
+	}
+	return sb.String()
+}
 
-		promLabels := make(map[string]string, len(d.Tags))
-		promLabels["name"] = d.ARN
+func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
+	for _, tagResult := range tagData {
+		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
+		for _, d := range tagResult.Data {
+			metricName := BuildMetricName(d.Namespace, "info", "")
 
-		for _, tag := range d.Tags {
-			ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
-			if !ok {
-				logger.Warn("tag name is an invalid prometheus label name", "tag", tag.Key)
-				continue
+			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
+			maps.Copy(promLabels, contextLabels)
+			promLabels["name"] = d.ARN
+			for _, tag := range d.Tags {
+				ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
+				if !ok {
+					logger.Warn("tag name is an invalid prometheus label name", "tag", tag.Key)
+					continue
+				}
+
+				labelName := "tag_" + promTag
+				promLabels[labelName] = tag.Value
 			}
 
-			labelName := "tag_" + promTag
-			promLabels[labelName] = tag.Value
+			observedMetricLabels = recordLabelsForMetric(metricName, promLabels, observedMetricLabels)
+			metrics = append(metrics, &PrometheusMetric{
+				Name:   &metricName,
+				Labels: promLabels,
+				Value:  0,
+			})
 		}
-
-		observedMetricLabels = recordLabelsForMetric(metricName, promLabels, observedMetricLabels)
-		metrics = append(metrics, &PrometheusMetric{
-			Name:   &metricName,
-			Labels: promLabels,
-			Value:  aws.Float64(0),
-		})
 	}
 
 	return metrics, observedMetricLabels
 }
 
-func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
+func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet, error) {
 	output := make([]*PrometheusMetric, 0)
 	observedMetricLabels := make(map[string]model.LabelSet)
 
-	for _, c := range cwd {
-		for _, statistic := range c.Statistics {
-			var includeTimestamp bool
-			if c.AddCloudwatchTimestamp != nil {
-				includeTimestamp = *c.AddCloudwatchTimestamp
+	for _, result := range results {
+		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
+		for _, metric := range result.Data {
+			// This should not be possible but check just in case
+			if metric.GetMetricStatisticsResult == nil && metric.GetMetricDataResult == nil {
+				logger.Warn("Attempted to migrate metric with no result", "namespace", metric.Namespace, "metric_name", metric.MetricName, "resource_name", metric.ResourceName)
 			}
-			exportedDatapoint, timestamp, err := getDatapoint(c, statistic)
-			if err != nil {
-				return nil, nil, err
-			}
-			if exportedDatapoint == nil && (c.AddCloudwatchTimestamp == nil || !*c.AddCloudwatchTimestamp) {
-				exportedDatapoint = aws.Float64(math.NaN())
-				includeTimestamp = false
-				if *c.NilToZero {
-					exportedDatapoint = aws.Float64(0)
+
+			for _, statistic := range statisticsInCloudwatchData(metric) {
+				dataPoint, ts, err := getDatapoint(metric, statistic)
+				if err != nil {
+					return nil, nil, err
 				}
-			}
+				var exportedDatapoint float64
+				if dataPoint == nil && metric.MetricMigrationParams.AddCloudwatchTimestamp {
+					// If we did not get a datapoint then the timestamp is a default value making it unusable in the
+					// exported metric. Attempting to put a fake timestamp on the metric will likely conflict with
+					// future CloudWatch timestamps which are always in the past. It's safer to skip here than guess
+					continue
+				}
+				if dataPoint == nil {
+					exportedDatapoint = math.NaN()
+				} else {
+					exportedDatapoint = *dataPoint
+				}
 
-			sb := strings.Builder{}
-			promNs := PromString(strings.ToLower(*c.Namespace))
-			if !strings.HasPrefix(promNs, "aws") {
-				sb.WriteString("aws_")
-			}
-			sb.WriteString(promNs)
-			sb.WriteString("_")
-			sb.WriteString(PromString(*c.Metric))
-			sb.WriteString("_")
-			sb.WriteString(PromString(statistic))
-			name := sb.String()
+				if metric.MetricMigrationParams.NilToZero && math.IsNaN(exportedDatapoint) {
+					exportedDatapoint = 0
+				}
 
-			if exportedDatapoint != nil {
-				promLabels := createPrometheusLabels(c, labelsSnakeCase, logger)
+				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
+
+				promLabels := createPrometheusLabels(metric, labelsSnakeCase, contextLabels, logger)
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
+
 				output = append(output, &PrometheusMetric{
 					Name:             &name,
 					Labels:           promLabels,
 					Value:            exportedDatapoint,
-					Timestamp:        timestamp,
-					IncludeTimestamp: includeTimestamp,
+					Timestamp:        ts,
+					IncludeTimestamp: metric.MetricMigrationParams.AddCloudwatchTimestamp,
 				})
+
 			}
 		}
 	}
@@ -104,15 +130,31 @@ func BuildMetrics(cwd []*model.CloudwatchData, labelsSnakeCase bool, logger logg
 	return output, observedMetricLabels, nil
 }
 
-func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
-	if cwd.GetMetricDataPoint != nil {
-		return cwd.GetMetricDataPoint, *cwd.GetMetricDataTimestamps, nil
+func statisticsInCloudwatchData(d *model.CloudwatchData) []string {
+	if d.GetMetricDataResult != nil {
+		return []string{d.GetMetricDataResult.Statistic}
 	}
+	if d.GetMetricStatisticsResult != nil {
+		return d.GetMetricStatisticsResult.Statistics
+	}
+	return []string{}
+}
+
+func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.Time, error) {
+	// Not possible but for sanity
+	if cwd.GetMetricStatisticsResult == nil && cwd.GetMetricDataResult == nil {
+		return nil, time.Time{}, fmt.Errorf("cannot map a data point with no results on %s", cwd.MetricName)
+	}
+
+	if cwd.GetMetricDataResult != nil {
+		return cwd.GetMetricDataResult.Datapoint, cwd.GetMetricDataResult.Timestamp, nil
+	}
+
 	var averageDataPoints []*model.Datapoint
 
 	// sorting by timestamps so we can consistently export the most updated datapoint
 	// assuming Timestamp field in cloudwatch.Datapoint struct is never nil
-	for _, datapoint := range sortByTimestamp(cwd.Points) {
+	for _, datapoint := range sortByTimestamp(cwd.GetMetricStatisticsResult.Datapoints) {
 		switch {
 		case statistic == "Maximum":
 			if datapoint.Maximum != nil {
@@ -139,7 +181,7 @@ func getDatapoint(cwd *model.CloudwatchData, statistic string) (*float64, time.T
 				return data, *datapoint.Timestamp, nil
 			}
 		default:
-			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", *cwd.Metric, statistic)
+			return nil, time.Time{}, fmt.Errorf("invalid statistic requested on metric %s: %s", cwd.MetricName, statistic)
 		}
 	}
 
@@ -167,11 +209,9 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	return datapoints
 }
 
-func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, logger logging.Logger) map[string]string {
-	labels := make(map[string]string)
-	labels["name"] = *cwd.ID
-	labels["region"] = *cwd.Region
-	labels["account_id"] = *cwd.AccountID
+func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, contextLabels map[string]string, logger logging.Logger) map[string]string {
+	labels := make(map[string]string, len(cwd.Dimensions)+len(cwd.Tags)+len(contextLabels))
+	labels["name"] = cwd.ResourceName
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
@@ -183,15 +223,6 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 		labels["dimension_"+promTag] = dimension.Value
 	}
 
-	for _, label := range cwd.CustomTags {
-		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)
-		if !ok {
-			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
-			continue
-		}
-		labels["custom_tag_"+promTag] = label.Value
-	}
-
 	for _, tag := range cwd.Tags {
 		ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 		if !ok {
@@ -201,6 +232,29 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 		labels["tag_"+promTag] = tag.Value
 	}
 
+	maps.Copy(labels, contextLabels)
+
+	return labels
+}
+
+func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) map[string]string {
+	if context == nil {
+		return map[string]string{}
+	}
+
+	labels := make(map[string]string, 2+len(context.CustomTags))
+	labels["region"] = context.Region
+	labels["account_id"] = context.AccountID
+
+	for _, label := range context.CustomTags {
+		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)
+		if !ok {
+			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
+			continue
+		}
+		labels["custom_tag_"+promTag] = label.Value
+	}
+
 	return labels
 }
 
@@ -208,7 +262,7 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, log
 // the updated observedMetricLabels
 func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(model.LabelSet)
+		observedMetricLabels[metricName] = make(model.LabelSet, len(promLabels))
 	}
 	for label := range promLabels {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {

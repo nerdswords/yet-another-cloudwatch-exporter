@@ -3,10 +3,10 @@ package maxdimassociator
 import (
 	"testing"
 
-	"github.com/grafana/regexp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
+	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 )
 
@@ -27,7 +27,7 @@ var memoryDBClusters = []*model.TaggedResource{
 
 func TestAssociatorMemoryDB(t *testing.T) {
 	type args struct {
-		dimensionRegexps []*regexp.Regexp
+		dimensionRegexps []model.DimensionsRegexp
 		resources        []*model.TaggedResource
 		metric           *model.Metric
 	}
@@ -43,12 +43,12 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should match with ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "mycluster"},
 					},
 				},
@@ -59,12 +59,12 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should match another instance with ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "othercluster"},
 					},
 				},
@@ -75,12 +75,12 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should skip with unmatched ClusterName dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "CPUUtilization",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "ClusterName", Value: "blahblah"},
 					},
 				},
@@ -91,12 +91,12 @@ func TestAssociatorMemoryDB(t *testing.T) {
 		{
 			name: "should not skip when unmatching because of non-ARN dimension",
 			args: args{
-				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").DimensionRegexps,
+				dimensionRegexps: config.SupportedServices.GetService("AWS/MemoryDB").ToModelDimensionsRegexp(),
 				resources:        memoryDBClusters,
 				metric: &model.Metric{
 					Namespace:  "AWS/MemoryDB",
 					MetricName: "BytesUsedForMemoryDB",
-					Dimensions: []*model.Dimension{
+					Dimensions: []model.Dimension{
 						{Name: "OtherName", Value: "some-other-value"},
 					},
 				},
@@ -108,7 +108,7 @@ func TestAssociatorMemoryDB(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			associator := NewAssociator(tc.args.dimensionRegexps, tc.args.resources)
+			associator := NewAssociator(logging.NewNopLogger(), tc.args.dimensionRegexps, tc.args.resources)
 			res, skip := associator.AssociateMetricToResource(tc.args.metric)
 			require.Equal(t, tc.expectedSkip, skip)
 			require.Equal(t, tc.expectedResource, res)

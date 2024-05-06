@@ -23,7 +23,7 @@ func TestConfLoad(t *testing.T) {
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			t.Error(err)
 			t.FailNow()
 		}
@@ -59,12 +59,28 @@ func TestBadConfigs(t *testing.T) {
 			configFile: "custom_namespace_without_region.bad.yml",
 			errorMsg:   "Regions should not be empty",
 		},
+		{
+			configFile: "discovery_job_type_unknown.bad.yml",
+			errorMsg:   "Discovery job [0]: Service is not in known list!: AWS/FancyNewNamespace",
+		},
+		{
+			configFile: "discovery_job_type_alias.bad.yml",
+			errorMsg:   "Discovery job [0]: Invalid 'type' field, use namespace \"AWS/S3\" rather than alias \"s3\"",
+		},
+		{
+			configFile: "discovery_job_exported_tags_alias.bad.yml",
+			errorMsg:   "Discovery jobs: Invalid key in 'exportedTagsOnMetrics', use namespace \"AWS/S3\" rather than alias \"s3\"",
+		},
+		{
+			configFile: "discovery_job_exported_tags_mismatch.bad.yml",
+			errorMsg:   "Discovery jobs: 'exportedTagsOnMetrics' key \"AWS/RDS\" does not match with any discovery job type",
+		},
 	}
 
 	for _, tc := range testCases {
 		config := ScrapeConf{}
 		configFile := fmt.Sprintf("testdata/%s", tc.configFile)
-		if err := config.Load(configFile, logging.NewNopLogger()); err != nil {
+		if _, err := config.Load(configFile, logging.NewNopLogger()); err != nil {
 			if !strings.Contains(err.Error(), tc.errorMsg) {
 				t.Errorf("expecter error for config file %q to contain %q but got: %s", tc.configFile, tc.errorMsg, err)
 				t.FailNow()
@@ -89,7 +105,7 @@ func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
 				Discovery: Discovery{
 					Jobs: []*Job{{
 						Regions: []string{"us-east-2"},
-						Type:    "sqs",
+						Type:    "AWS/SQS",
 						Metrics: []*Metric{{
 							Name:       "NumberOfMessagesSent",
 							Statistics: []string{"Average"},
@@ -103,7 +119,7 @@ func TestValidateConfigFailuresWhenUsingAsLibrary(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			err := tc.config.Validate()
+			_, err := tc.config.Validate(logging.NewNopLogger())
 			require.Error(t, err, "Expected config validation to fail")
 			require.Equal(t, tc.errorMsg, err.Error())
 		})

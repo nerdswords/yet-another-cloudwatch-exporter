@@ -8,70 +8,25 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
-	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
 )
 
-func createGetMetricDataInput(getMetricData []*model.CloudwatchData, namespace *string, length int64, delay int64, configuredRoundingPeriod *int64, logger logging.Logger) *cloudwatch.GetMetricDataInput {
-	metricsDataQuery := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
-	roundingPeriod := model.DefaultPeriodSeconds
-	for _, data := range getMetricData {
-		if data.Period < roundingPeriod {
-			roundingPeriod = data.Period
-		}
-		metricStat := &cloudwatch.MetricStat{
-			Metric: &cloudwatch.Metric{
-				Dimensions: toCloudWatchDimensions(data.Dimensions),
-				MetricName: data.Metric,
-				Namespace:  namespace,
-			},
-			Period: &data.Period,
-			Stat:   &data.Statistics[0],
-		}
-		metricsDataQuery = append(metricsDataQuery, &cloudwatch.MetricDataQuery{
-			Id:         data.MetricID,
-			MetricStat: metricStat,
-			ReturnData: aws.Bool(true),
-		})
-	}
-
-	if configuredRoundingPeriod != nil {
-		roundingPeriod = *configuredRoundingPeriod
-	}
-
-	startTime, endTime := cloudwatch_client.DetermineGetMetricDataWindow(
-		cloudwatch_client.TimeClock{},
-		time.Duration(roundingPeriod)*time.Second,
-		time.Duration(length)*time.Second,
-		time.Duration(delay)*time.Second)
-
-	if logger.IsDebugEnabled() {
-		logger.Debug("GetMetricData Window", "start_time", startTime.Format(cloudwatch_client.TimeFormat), "end_time", endTime.Format(cloudwatch_client.TimeFormat))
-	}
-
-	return &cloudwatch.GetMetricDataInput{
-		EndTime:           &endTime,
-		StartTime:         &startTime,
-		MetricDataQueries: metricsDataQuery,
-		ScanBy:            aws.String("TimestampDescending"),
-	}
-}
-
-func toCloudWatchDimensions(dimensions []*model.Dimension) []*cloudwatch.Dimension {
+func toCloudWatchDimensions(dimensions []model.Dimension) []*cloudwatch.Dimension {
 	cwDim := make([]*cloudwatch.Dimension, 0, len(dimensions))
 	for _, dim := range dimensions {
+		// Don't take pointers directly to loop variables
+		cDim := dim
 		cwDim = append(cwDim, &cloudwatch.Dimension{
-			Name:  &dim.Name,
-			Value: &dim.Value,
+			Name:  &cDim.Name,
+			Value: &cDim.Value,
 		})
 	}
 	return cwDim
 }
 
-func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *string, metric *config.Metric, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
+func createGetMetricStatisticsInput(dimensions []model.Dimension, namespace *string, metric *model.MetricConfig, logger logging.Logger) *cloudwatch.GetMetricStatisticsInput {
 	period := metric.Period
 	length := metric.Length
 	delay := metric.Delay
@@ -114,7 +69,7 @@ func createGetMetricStatisticsInput(dimensions []*model.Dimension, namespace *st
 	return output
 }
 
-func dimensionsToCliString(dimensions []*model.Dimension) string {
+func dimensionsToCliString(dimensions []model.Dimension) string {
 	out := strings.Builder{}
 	for _, dim := range dimensions {
 		out.WriteString("Name=")

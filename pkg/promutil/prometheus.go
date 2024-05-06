@@ -4,27 +4,30 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/regexp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 )
 
 var (
-	CloudwatchAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "yace_cloudwatch_requests_total",
-		Help: "Help is not implemented yet.",
-	})
-	CloudwatchAPIErrorCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	CloudwatchAPIErrorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_request_errors",
 		Help: "Help is not implemented yet.",
-	})
+	}, []string{"api_name"})
+	CloudwatchAPICounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_requests_total",
+		Help: "Number of calls made to the CloudWatch APIs",
+	}, []string{"api_name"})
 	CloudwatchGetMetricDataAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricdata_requests_total",
-		Help: "Help is not implemented yet.",
+		Help: "DEPRECATED: replaced by yace_cloudwatch_requests_total with api_name label",
+	})
+	CloudwatchGetMetricDataAPIMetricsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "yace_cloudwatch_getmetricdata_metrics_requested_total",
+		Help: "Number of metrics requested from the CloudWatch GetMetricData API which is how AWS bills",
 	})
 	CloudwatchGetMetricStatisticsAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_getmetricstatistics_requests_total",
-		Help: "Help is not implemented yet.",
+		Help: "DEPRECATED: replaced by yace_cloudwatch_requests_total with api_name label",
 	})
 	ResourceGroupTaggingAPICounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "yace_cloudwatch_resourcegrouptaggingapi_requests_total",
@@ -86,12 +89,11 @@ var replacer = strings.NewReplacer(
 	">", "_",
 	"%", "_percent",
 )
-var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 
 type PrometheusMetric struct {
 	Name             *string
 	Labels           map[string]string
-	Value            *float64
+	Value            float64
 	IncludeTimestamp bool
 	Timestamp        time.Time
 }
@@ -127,7 +129,7 @@ func createMetric(metric *PrometheusMetric) prometheus.Metric {
 		ConstLabels: metric.Labels,
 	})
 
-	gauge.Set(*metric.Value)
+	gauge.Set(metric.Value)
 
 	if !metric.IncludeTimestamp {
 		return gauge
@@ -151,10 +153,54 @@ func PromStringTag(text string, labelsSnakeCase bool) (bool, string) {
 	return model.LabelName(s).IsValid(), s
 }
 
+// sanitize replaces some invalid chars with an underscore
 func sanitize(text string) string {
-	return replacer.Replace(text)
+	if strings.ContainsAny(text, "“%") {
+		// fallback to the replacer for complex cases:
+		// - '“' is non-ascii rune
+		// - '%' is replaced with a whole string
+		return replacer.Replace(text)
+	}
+
+	b := []byte(text)
+	for i := 0; i < len(b); i++ {
+		switch b[i] {
+		case ' ', ',', '\t', '/', '\\', '.', '-', ':', '=', '@', '<', '>':
+			b[i] = '_'
+		}
+	}
+	return string(b)
 }
 
+// splitString replaces consecutive occurrences of a lowercase and uppercase letter,
+// or a number and an upper case letter, by putting a dot between the two chars.
+//
+// This is an optimised version of the original implementation:
+//
+//	  var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+//
+//		func splitString(text string) string {
+//		  return splitRegexp.ReplaceAllString(text, `$1.$2`)
+//		}
 func splitString(text string) string {
-	return splitRegexp.ReplaceAllString(text, `$1.$2`)
+	sb := strings.Builder{}
+	sb.Grow(len(text) + 4) // make some room for replacements
+
+	i := 0
+	for i < len(text) {
+		c := text[i]
+		sb.WriteByte(c)
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			if i < (len(text) - 1) {
+				c = text[i+1]
+				if c >= 'A' && c <= 'Z' {
+					sb.WriteByte('.')
+					sb.WriteByte(c)
+					i++
+				}
+			}
+		}
+		i++
+	}
+	return sb.String()
 }

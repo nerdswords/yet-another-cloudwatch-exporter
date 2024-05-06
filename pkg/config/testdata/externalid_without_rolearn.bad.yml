@@ -1,7 +1,7 @@
 apiVersion: v1alpha1
 discovery:
   jobs:
-  - type: s3
+  - type: AWS/S3
     regions:
     - eu-west-1
     roles:

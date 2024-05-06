@@ -9,16 +9,93 @@ import (
 const (
 	DefaultPeriodSeconds = int64(300)
 	DefaultLengthSeconds = int64(300)
-	DefaultDelaySeconds  = int64(300)
 )
 
-type ExportedTagsOnMetrics map[string][]string
+type JobsConfig struct {
+	StsRegion           string
+	DiscoveryJobs       []DiscoveryJob
+	StaticJobs          []StaticJob
+	CustomNamespaceJobs []CustomNamespaceJob
+}
+
+type DiscoveryJob struct {
+	Regions                     []string
+	Type                        string
+	Roles                       []Role
+	SearchTags                  []SearchTag
+	CustomTags                  []Tag
+	DimensionNameRequirements   []string
+	Metrics                     []*MetricConfig
+	RoundingPeriod              *int64
+	RecentlyActiveOnly          bool
+	ExportedTagsOnMetrics       []string
+	IncludeContextOnInfoMetrics bool
+	DimensionsRegexps           []DimensionsRegexp
+	JobLevelMetricFields
+}
+
+type StaticJob struct {
+	Name       string
+	Regions    []string
+	Roles      []Role
+	Namespace  string
+	CustomTags []Tag
+	Dimensions []Dimension
+	Metrics    []*MetricConfig
+}
+
+type CustomNamespaceJob struct {
+	Regions                   []string
+	Name                      string
+	Namespace                 string
+	RoundingPeriod            *int64
+	RecentlyActiveOnly        bool
+	Roles                     []Role
+	Metrics                   []*MetricConfig
+	CustomTags                []Tag
+	DimensionNameRequirements []string
+	JobLevelMetricFields
+}
+
+type JobLevelMetricFields struct {
+	Statistics             []string
+	Period                 int64
+	Length                 int64
+	Delay                  int64
+	NilToZero              *bool
+	AddCloudwatchTimestamp *bool
+}
+
+type Role struct {
+	RoleArn    string
+	ExternalID string
+}
+
+type MetricConfig struct {
+	Name                   string
+	Statistics             []string
+	Period                 int64
+	Length                 int64
+	Delay                  int64
+	NilToZero              bool
+	AddCloudwatchTimestamp bool
+}
+
+type DimensionsRegexp struct {
+	Regexp          *regexp.Regexp
+	DimensionsNames []string
+}
 
 type LabelSet map[string]struct{}
 
 type Tag struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
+	Key   string
+	Value string
+}
+
+type SearchTag struct {
+	Key   string
+	Value *regexp.Regexp
 }
 
 type Dimension struct {
@@ -28,7 +105,7 @@ type Dimension struct {
 
 type Metric struct {
 	// The dimensions for the metric.
-	Dimensions []*Dimension
+	Dimensions []Dimension
 	MetricName string
 	Namespace  string
 }
@@ -57,25 +134,74 @@ type Datapoint struct {
 	Timestamp *time.Time
 }
 
+type CloudwatchMetricResult struct {
+	Context *ScrapeContext
+	Data    []*CloudwatchData
+}
+
+type TaggedResourceResult struct {
+	Context *ScrapeContext
+	Data    []*TaggedResource
+}
+
+type ScrapeContext struct {
+	Region     string
+	AccountID  string
+	CustomTags []Tag
+}
+
 // CloudwatchData is an internal representation of a CloudWatch
 // metric with attached data points, metric and resource information.
 type CloudwatchData struct {
-	ID                      *string
-	MetricID                *string
-	Metric                  *string
-	Namespace               *string
-	Statistics              []string
-	Points                  []*Datapoint
-	GetMetricDataPoint      *float64
-	GetMetricDataTimestamps *time.Time
-	NilToZero               *bool
-	AddCloudwatchTimestamp  *bool
-	CustomTags              []Tag
-	Tags                    []Tag
-	Dimensions              []*Dimension
-	Region                  *string
-	AccountID               *string
-	Period                  int64
+	MetricName string
+	// ResourceName will have different values depending on the job type
+	// DiscoveryJob = Resource ARN associated with the metric or global when it could not be associated but shouldn't be dropped
+	// StaticJob = Resource Name from static job config
+	// CustomNamespace = Custom Namespace job name
+	ResourceName string
+	Namespace    string
+	Tags         []Tag
+	Dimensions   []Dimension
+	// GetMetricDataProcessingParams includes necessary fields to run GetMetricData
+	GetMetricDataProcessingParams *GetMetricDataProcessingParams
+
+	// MetricMigrationParams holds configuration values necessary when migrating the resulting metrics
+	MetricMigrationParams MetricMigrationParams
+
+	// GetMetricsDataResult is an optional field and will be non-nil when metric data was populated from the GetMetricsData API (Discovery and CustomNamespace jobs)
+	GetMetricDataResult *GetMetricDataResult
+
+	// GetMetricStatisticsResult is an optional field and will be non-nil when metric data was populated from the GetMetricStatistics API (static jobs)
+	GetMetricStatisticsResult *GetMetricStatisticsResult
+}
+
+type GetMetricStatisticsResult struct {
+	Datapoints []*Datapoint
+	Statistics []string
+}
+
+type GetMetricDataProcessingParams struct {
+	// QueryID is a value internal to processing used for mapping results from GetMetricData their original request
+	QueryID string
+
+	// The statistic to be used to call GetMetricData
+	Statistic string
+
+	// Fields which impact the start and endtime for
+	Period int64
+	Length int64
+	Delay  int64
+}
+
+type MetricMigrationParams struct {
+	NilToZero              bool
+	AddCloudwatchTimestamp bool
+}
+
+type GetMetricDataResult struct {
+	Statistic string
+	Datapoint *float64
+	Timestamp time.Time
 }
 
 // TaggedResource is an AWS resource with tags
@@ -93,44 +219,44 @@ type TaggedResource struct {
 	Tags []Tag
 }
 
-// filterThroughTags returns true if all filterTags match
+// FilterThroughTags returns true if all filterTags match
 // with tags of the TaggedResource, returns false otherwise.
-func (r TaggedResource) FilterThroughTags(filterTags []Tag) bool {
+func (r TaggedResource) FilterThroughTags(filterTags []SearchTag) bool {
 	if len(filterTags) == 0 {
 		return true
 	}
 
-	tagMatches := 0
+	tagFilterMatches := 0
 
 	for _, resourceTag := range r.Tags {
 		for _, filterTag := range filterTags {
 			if resourceTag.Key == filterTag.Key {
-				r, _ := regexp.Compile(filterTag.Value)
-				if r.MatchString(resourceTag.Value) {
-					tagMatches++
+				if !filterTag.Value.MatchString(resourceTag.Value) {
+					return false
 				}
+				// A resource needs to match all SearchTags to be returned, so we track the number of tag filter
+				// matches to ensure it matches the number of tag filters at the end
+				tagFilterMatches++
 			}
 		}
 	}
 
-	return tagMatches == len(filterTags)
+	return tagFilterMatches == len(filterTags)
 }
 
 // MetricTags returns a list of tags built from the tags of
-// TaggedResource, if there's a definition for its namespace
-// in tagsOnMetrics.
+// TaggedResource, if exportedTags is not empty.
 //
-// Returned tags have as key the key from tagsOnMetrics, and
+// Returned tags have as key the key from exportedTags, and
 // as value the value from the corresponding tag of the resource,
 // if it exists (otherwise an empty string).
-func (r TaggedResource) MetricTags(tagsOnMetrics ExportedTagsOnMetrics) []Tag {
-	wantedTags, ok := tagsOnMetrics[r.Namespace]
-	if !ok {
+func (r TaggedResource) MetricTags(exportedTags []string) []Tag {
+	if len(exportedTags) == 0 {
 		return []Tag{}
 	}
 
-	tags := make([]Tag, 0, len(wantedTags))
-	for _, tagName := range wantedTags {
+	tags := make([]Tag, 0, len(exportedTags))
+	for _, tagName := range exportedTags {
 		tag := Tag{
 			Key: tagName,
 		}

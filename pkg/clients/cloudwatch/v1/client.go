@@ -2,13 +2,13 @@ package v1
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 
 	cloudwatch_client "github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/clients/cloudwatch"
-	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/config"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/promutil"
@@ -26,7 +26,7 @@ func NewClient(logger logging.Logger, cloudwatchAPI cloudwatchiface.CloudWatchAP
 	}
 }
 
-func (c client) ListMetrics(ctx context.Context, namespace string, metric *config.Metric, recentlyActiveOnly bool, fn func(page []*model.Metric)) ([]*model.Metric, error) {
+func (c client) ListMetrics(ctx context.Context, namespace string, metric *model.MetricConfig, recentlyActiveOnly bool, fn func(page []*model.Metric)) error {
 	filter := &cloudwatch.ListMetricsInput{
 		MetricName: aws.String(metric.Name),
 		Namespace:  aws.String(namespace),
@@ -39,29 +39,25 @@ func (c client) ListMetrics(ctx context.Context, namespace string, metric *confi
 		c.logger.Debug("ListMetrics", "input", filter)
 	}
 
-	var metrics []*model.Metric
-	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter,
-		func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
-			promutil.CloudwatchAPICounter.Inc()
-			metricsPage := toModelMetric(page)
-			if fn != nil {
-				fn(metricsPage)
-			} else {
-				metrics = append(metrics, metricsPage...)
-			}
-			return !lastPage
-		})
+	err := c.cloudwatchAPI.ListMetricsPagesWithContext(ctx, filter, func(page *cloudwatch.ListMetricsOutput, lastPage bool) bool {
+		promutil.CloudwatchAPICounter.WithLabelValues("ListMetrics").Inc()
+
+		metricsPage := toModelMetric(page)
+
+		if c.logger.IsDebugEnabled() {
+			c.logger.Debug("ListMetrics", "output", metricsPage, "last_page", lastPage)
+		}
+
+		fn(metricsPage)
+		return !lastPage
+	})
 	if err != nil {
-		promutil.CloudwatchAPIErrorCounter.Inc()
+		promutil.CloudwatchAPIErrorCounter.WithLabelValues("ListMetrics").Inc()
 		c.logger.Error(err, "ListMetrics error")
-		return nil, err
+		return err
 	}
 
-	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("ListMetrics", "output", metrics)
-	}
-
-	return metrics, nil
+	return nil
 }
 
 func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
@@ -77,10 +73,10 @@ func toModelMetric(page *cloudwatch.ListMetricsOutput) []*model.Metric {
 	return modelMetrics
 }
 
-func toModelDimensions(dimensions []*cloudwatch.Dimension) []*model.Dimension {
-	modelDimensions := make([]*model.Dimension, 0, len(dimensions))
+func toModelDimensions(dimensions []*cloudwatch.Dimension) []model.Dimension {
+	modelDimensions := make([]model.Dimension, 0, len(dimensions))
 	for _, dimension := range dimensions {
-		modelDimension := &model.Dimension{
+		modelDimension := model.Dimension{
 			Name:  *dimension.Name,
 			Value: *dimension.Value,
 		}
@@ -89,18 +85,41 @@ func toModelDimensions(dimensions []*cloudwatch.Dimension) []*model.Dimension {
 	return modelDimensions
 }
 
-func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMetricData []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []*cloudwatch_client.MetricDataResult {
-	var resp cloudwatch.GetMetricDataOutput
-	filter := createGetMetricDataInput(getMetricData, &namespace, length, delay, configuredRoundingPeriod, logger)
+func (c client) GetMetricData(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch_client.MetricDataResult {
+	metricDataQueries := make([]*cloudwatch.MetricDataQuery, 0, len(getMetricData))
+	for _, data := range getMetricData {
+		metricStat := &cloudwatch.MetricStat{
+			Metric: &cloudwatch.Metric{
+				Dimensions: toCloudWatchDimensions(data.Dimensions),
+				MetricName: &data.MetricName,
+				Namespace:  &namespace,
+			},
+			Period: &data.GetMetricDataProcessingParams.Period,
+			Stat:   &data.GetMetricDataProcessingParams.Statistic,
+		}
+		metricDataQueries = append(metricDataQueries, &cloudwatch.MetricDataQuery{
+			Id:         &data.GetMetricDataProcessingParams.QueryID,
+			MetricStat: metricStat,
+			ReturnData: aws.Bool(true),
+		})
+	}
+	input := &cloudwatch.GetMetricDataInput{
+		EndTime:           &endTime,
+		StartTime:         &startTime,
+		MetricDataQueries: metricDataQueries,
+		ScanBy:            aws.String("TimestampDescending"),
+	}
+	promutil.CloudwatchGetMetricDataAPIMetricsCounter.Add(float64(len(input.MetricDataQueries)))
 	if c.logger.IsDebugEnabled() {
-		c.logger.Debug("GetMetricData", "input", filter)
+		c.logger.Debug("GetMetricData", "input", input)
 	}
 
+	var resp cloudwatch.GetMetricDataOutput
 	// Using the paged version of the function
-	err := c.cloudwatchAPI.GetMetricDataPagesWithContext(ctx, filter,
+	err := c.cloudwatchAPI.GetMetricDataPagesWithContext(ctx, input,
 		func(page *cloudwatch.GetMetricDataOutput, lastPage bool) bool {
-			promutil.CloudwatchAPICounter.Inc()
 			promutil.CloudwatchGetMetricDataAPICounter.Inc()
+			promutil.CloudwatchAPICounter.WithLabelValues("GetMetricData").Inc()
 			resp.MetricDataResults = append(resp.MetricDataResults, page.MetricDataResults...)
 			return !lastPage
 		})
@@ -110,26 +129,27 @@ func (c client) GetMetricData(ctx context.Context, logger logging.Logger, getMet
 	}
 
 	if err != nil {
+		promutil.CloudwatchAPIErrorCounter.WithLabelValues("GetMetricData").Inc()
 		c.logger.Error(err, "GetMetricData error")
 		return nil
 	}
 	return toMetricDataResult(resp)
 }
 
-func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []*cloudwatch_client.MetricDataResult {
-	output := make([]*cloudwatch_client.MetricDataResult, 0, len(resp.MetricDataResults))
+func toMetricDataResult(resp cloudwatch.GetMetricDataOutput) []cloudwatch_client.MetricDataResult {
+	output := make([]cloudwatch_client.MetricDataResult, 0, len(resp.MetricDataResults))
 	for _, metricDataResult := range resp.MetricDataResults {
-		mappedResult := cloudwatch_client.MetricDataResult{ID: metricDataResult.Id}
+		mappedResult := cloudwatch_client.MetricDataResult{ID: *metricDataResult.Id}
 		if len(metricDataResult.Values) > 0 {
 			mappedResult.Datapoint = metricDataResult.Values[0]
-			mappedResult.Timestamp = metricDataResult.Timestamps[0]
+			mappedResult.Timestamp = *metricDataResult.Timestamps[0]
 		}
-		output = append(output, &mappedResult)
+		output = append(output, mappedResult)
 	}
 	return output
 }
 
-func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []*model.Dimension, namespace string, metric *config.Metric) []*model.Datapoint {
+func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, dimensions []model.Dimension, namespace string, metric *model.MetricConfig) []*model.Datapoint {
 	filter := createGetMetricStatisticsInput(dimensions, &namespace, metric, logger)
 
 	if c.logger.IsDebugEnabled() {
@@ -142,10 +162,11 @@ func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, 
 		c.logger.Debug("GetMetricStatistics", "output", resp)
 	}
 
-	promutil.CloudwatchAPICounter.Inc()
 	promutil.CloudwatchGetMetricStatisticsAPICounter.Inc()
+	promutil.CloudwatchAPICounter.WithLabelValues("GetMetricStatistics").Inc()
 
 	if err != nil {
+		promutil.CloudwatchAPIErrorCounter.WithLabelValues("GetMetricStatistics").Inc()
 		c.logger.Error(err, "Failed to get metric statistics")
 		return nil
 	}
