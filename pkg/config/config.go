@@ -241,7 +241,7 @@ func (j *Job) validateDiscoveryJob(logger logging.Logger, jobIdx int) error {
 	}
 
 	if j.RoundingPeriod != nil {
-		logger.Warn("Discovery job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Type, jobIdx)
+		logger.Warn(fmt.Sprintf("Discovery job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Type, jobIdx))
 	}
 
 	return nil
@@ -277,7 +277,9 @@ func (j *CustomNamespace) validateCustomNamespaceJob(logger logging.Logger, jobI
 		}
 	}
 
-	logger.Warn("CustomNamespace job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Name, jobIdx)
+	if j.RoundingPeriod != nil {
+		logger.Warn(fmt.Sprintf("CustomNamespace job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Name, jobIdx))
+	}
 	return nil
 }
 
