@@ -51,6 +51,7 @@ grafana.dashboard.new(
     includeAll=true,
     multi=true,
     sort=common.sortAlphabeticalAsc,
+    allValue='.+',
   )
 )
 .addTemplate(
