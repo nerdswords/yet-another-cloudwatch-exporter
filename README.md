@@ -110,6 +110,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/Redshift` - Redshift Database
   * `AWS/Route53` - Route53 Health Checks
   * `AWS/Route53Resolver` - Route53 Resolver
+  * `AWS/RUM` - Real User Monitoring
   * `AWS/S3` - Object Storage
   * `AWS/Sagemaker/ModelBuildingPipeline` - Sagemaker Model Building Pipelines
   * `AWS/SageMaker` - Sagemaker invocations
