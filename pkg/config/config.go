@@ -404,12 +404,6 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.DimensionNameRequirements = discoveryJob.DimensionNameRequirements
 		job.RecentlyActiveOnly = discoveryJob.RecentlyActiveOnly
 		job.RoundingPeriod = discoveryJob.RoundingPeriod
-		job.Statistics = discoveryJob.Statistics
-		job.Period = discoveryJob.Period
-		job.Length = discoveryJob.Length
-		job.Delay = discoveryJob.Delay
-		job.NilToZero = discoveryJob.NilToZero
-		job.AddCloudwatchTimestamp = discoveryJob.AddCloudwatchTimestamp
 		job.Roles = toModelRoles(discoveryJob.Roles)
 		job.SearchTags = toModelSearchTags(discoveryJob.SearchTags)
 		job.CustomTags = toModelTags(discoveryJob.CustomTags)
@@ -447,12 +441,6 @@ func (c *ScrapeConf) toModelConfig() model.JobsConfig {
 		job.DimensionNameRequirements = customNamespaceJob.DimensionNameRequirements
 		job.RoundingPeriod = customNamespaceJob.RoundingPeriod
 		job.RecentlyActiveOnly = customNamespaceJob.RecentlyActiveOnly
-		job.Statistics = customNamespaceJob.Statistics
-		job.Period = customNamespaceJob.Period
-		job.Length = customNamespaceJob.Length
-		job.Delay = customNamespaceJob.Delay
-		job.NilToZero = customNamespaceJob.NilToZero
-		job.AddCloudwatchTimestamp = customNamespaceJob.AddCloudwatchTimestamp
 		job.Roles = toModelRoles(customNamespaceJob.Roles)
 		job.CustomTags = toModelTags(customNamespaceJob.CustomTags)
 		job.Metrics = toModelMetricConfig(customNamespaceJob.Metrics)
