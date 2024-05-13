@@ -41,6 +41,12 @@ type (
 	periodDelayToLongestLength = map[int64]map[int64]int64
 )
 
+// mapProcessingParams loops through all the incoming CloudwatchData to pre-compute important information
+// to be used when initializing the batching iterator
+// Knowing the period + delay combinations with their batch sizes will allow us to pre-allocate the batch slices that could
+// be very large ahead of time without looping again later
+// Similarly we need to know the largest length for a period + delay combination later so gathering it while we are already
+// iterating will save some cycles later
 func mapProcessingParams(data []*model.CloudwatchData) (periodDelayToBatchSize, periodDelayToLongestLength) {
 	batchSizesByPeriodAndDelay := periodDelayToBatchSize{}
 	longestLengthForBatch := periodDelayToLongestLength{}
