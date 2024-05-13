@@ -278,7 +278,7 @@ func (j *CustomNamespace) validateCustomNamespaceJob(logger logging.Logger, jobI
 	}
 
 	if j.RoundingPeriod != nil {
-		logger.Warn(fmt.Sprintf("CustomNamespace job [%s/%d]: Setting a rounding period is deprecated. In a future release it will always be enabled and set to the value of the metric period.", j.Name, jobIdx))
+		logger.Warn(fmt.Sprintf("CustomNamespace job [%s/%d]: Setting a rounding period is deprecated. It is always enabled and set to the value of the metric period.", j.Name, jobIdx))
 	}
 	return nil
 }
