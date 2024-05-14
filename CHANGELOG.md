@@ -28,6 +28,41 @@ Refactoring:
 
 **Full Changelog**: https://github.com/...
 
+# 0.60.0
+
+**Bugfixes and features**
+
+Features:
+* add cloudwatch log metric support by @vainiusd
+* feat: add AWS/RUM as supported service by @hexionas
+
+Bugs:
+* Fix all value for function_name variable in lambda dashboard by @thepalbi
+* Fix rounding period deprecation notice by @cristiangreco
+
+Docs:
+* README: update config example by @cristiangreco
+* Fix ElastiCache metric namespace typo on README by @Roberdvs
+
+Refactoring:
+* getmetricdata: Move batching to an iterator by @kgeckhart
+
+**Dependencies**
+* Bump github.com/aws/aws-sdk-go from 1.51.21 to 1.53.1
+* Bump github.com/aws/aws-sdk-go-v2/service/ec2 from 1.156.0 to 1.160.0
+* Bump github.com/prometheus/client_golang from 1.19.0 to 1.19.1
+* Bump github.com/prometheus/common from 0.52.3 to 0.53.0
+* Bump github.com/urfave/cli/v2 from 2.27.1 to 2.27.2
+* Bump golangci/golangci-lint-action from 4.0.0 to 5.3.0
+* Bump the aws-sdk-v2 group with 13 updates
+
+**New contributors**
+
+* @Roberdvs made their first contribution
+* @hexionas made their first contribution
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.59.0...v0.60.0
+
 # 0.59.0
 
 **Important news and breaking changes**
