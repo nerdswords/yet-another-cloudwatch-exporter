@@ -54,7 +54,16 @@ type serviceConfigs []ServiceConfig
 
 func (sc serviceConfigs) GetService(serviceType string) *ServiceConfig {
 	for _, sf := range sc {
-		if sf.Alias == serviceType || sf.Namespace == serviceType {
+		if sf.Namespace == serviceType {
+			return &sf
+		}
+	}
+	return nil
+}
+
+func (sc serviceConfigs) getServiceByAlias(alias string) *ServiceConfig {
+	for _, sf := range sc {
+		if sf.Alias == alias {
 			return &sf
 		}
 	}
@@ -554,6 +563,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/Logs",
+		Alias:     "logs",
+		ResourceFilters: []*string{
+			aws.String("logs:log-group"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":log-group:(?P<LogGroupName>.+)"),
+		},
+	},
+	{
 		Namespace: "AWS/MediaConnect",
 		Alias:     "mediaconnect",
 		ResourceFilters: []*string{
@@ -718,6 +737,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/RUM",
+		Alias:     "rum",
+	},
+	{
 		Namespace: "AWS/S3",
 		Alias:     "s3",
 		ResourceFilters: []*string{
@@ -726,6 +749,10 @@ var SupportedServices = serviceConfigs{
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("(?P<BucketName>[^:]+)$"),
 		},
+	},
+	{
+		Namespace: "AWS/SecretsManager",
+		Alias:     "secretsmanager",
 	},
 	{
 		Namespace: "AWS/SES",
@@ -892,7 +919,7 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
-		Namespace: "AWS/SageMaker/ModelBuildingPipeline",
+		Namespace: "AWS/Sagemaker/ModelBuildingPipeline",
 		Alias:     "sagemaker-model-building-pipeline",
 		ResourceFilters: []*string{
 			aws.String("sagemaker:pipeline"),
@@ -923,6 +950,7 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":rule/(?P<EventBusName>[^/]+)/(?P<RuleName>[^/]+)$"),
+			regexp.MustCompile(":rule/aws.partner/(?P<EventBusName>.+)/(?P<RuleName>[^/]+)$"),
 		},
 	},
 }

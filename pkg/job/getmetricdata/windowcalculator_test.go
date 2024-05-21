@@ -1,4 +1,4 @@
-package cloudwatch
+package getmetricdata
 
 import (
 	"testing"
@@ -85,7 +85,7 @@ func Test_MetricWindow(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			startTime, endTime := DetermineGetMetricDataWindow(tc.data.clock, tc.data.roundingPeriod, tc.data.length, tc.data.delay)
+			startTime, endTime := MetricWindowCalculator{tc.data.clock}.Calculate(tc.data.roundingPeriod, tc.data.length, tc.data.delay)
 			if !startTime.Equal(tc.data.expectedStartTime) {
 				t.Errorf("start time incorrect. Expected: %s, Actual: %s", tc.data.expectedStartTime.Format(TimeFormat), startTime.Format(TimeFormat))
 				t.Errorf("end time incorrect. Expected: %s, Actual: %s", tc.data.expectedEndTime.Format(TimeFormat), endTime.Format(TimeFormat))

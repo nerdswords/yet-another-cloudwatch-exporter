@@ -41,7 +41,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
-					gmdProcessor := getmetricdata.NewProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
+					gmdProcessor := getmetricdata.NewDefaultProcessor(logger, cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
 					resources, metrics := runDiscoveryJob(ctx, jobLogger, discoveryJob, region, factory.GetTaggingClient(region, role, taggingAPIConcurrency), cloudwatchClient, gmdProcessor)
 					addDataToOutput := len(metrics) != 0
 					if config.FlagsFromCtx(ctx).IsFeatureEnabled(config.AlwaysReturnInfoMetrics) {
@@ -120,7 +120,7 @@ func ScrapeAwsData(
 					jobLogger = jobLogger.With("account", accountID)
 
 					cloudwatchClient := factory.GetCloudwatchClient(region, role, cloudwatchConcurrency)
-					gmdProcessor := getmetricdata.NewProcessor(cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
+					gmdProcessor := getmetricdata.NewDefaultProcessor(logger, cloudwatchClient, metricsPerQuery, cloudwatchConcurrency.GetMetricData)
 					metrics := runCustomNamespaceJob(ctx, jobLogger, customNamespaceJob, cloudwatchClient, gmdProcessor)
 					metricResult := model.CloudwatchMetricResult{
 						Context: &model.ScrapeContext{
