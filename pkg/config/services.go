@@ -344,6 +344,13 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/EC2CapacityReservations",
+		Alias:     "ec2CapacityReservations",
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":capacity-reservation/(?P<CapacityReservationId>)$"),
+		},
+	},
+	{
 		Namespace: "AWS/ECS",
 		Alias:     "ecs-svc",
 		ResourceFilters: []*string{
