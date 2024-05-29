@@ -20,18 +20,24 @@ type Client interface {
 
 type IteratorFactory interface {
 	// Build returns an ideal batch iterator based on the provided CloudwatchData
-	Build(requests []*model.CloudwatchData, jobMetricLength, jobMetricDelay int64, jobRoundingPeriod *int64) Iterator
+	Build(requests []*model.CloudwatchData) Iterator
 }
 
 type Iterator interface {
 	// Next returns the next batch of CloudWatch data be used when calling GetMetricData and the start + end time for
 	// the GetMetricData call
 	// If called when there are no more batches default values will be returned
-	Next() ([]*model.CloudwatchData, *model.GetMetricDataProcessingParams)
+	Next() ([]*model.CloudwatchData, StartAndEndTimeParams)
 
 	// HasMore returns true if there are more batches to iterate otherwise false. Should be used in a loop
 	// to govern calls to Next()
 	HasMore() bool
+}
+
+type StartAndEndTimeParams struct {
+	Period int64
+	Length int64
+	Delay  int64
 }
 
 type Processor struct {
@@ -56,7 +62,7 @@ func NewProcessor(logger logging.Logger, client Client, concurrency int, windowC
 	}
 }
 
-func (p Processor) Run(ctx context.Context, namespace string, jobMetricLength, jobMetricDelay int64, jobRoundingPeriod *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
+func (p Processor) Run(ctx context.Context, namespace string, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error) {
 	if len(requests) == 0 {
 		return requests, nil
 	}
@@ -64,7 +70,7 @@ func (p Processor) Run(ctx context.Context, namespace string, jobMetricLength, j
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(p.concurrency)
 
-	iterator := p.factory.Build(requests, jobMetricLength, jobMetricDelay, jobRoundingPeriod)
+	iterator := p.factory.Build(requests)
 	for iterator.HasMore() {
 		batch, batchParams := iterator.Next()
 		g.Go(func() error {
