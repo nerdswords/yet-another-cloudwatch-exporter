@@ -189,7 +189,7 @@ func TestProcessor_Run(t *testing.T) {
 				metricsPerQuery = tt.metricsPerBatch
 			}
 			r := NewDefaultProcessor(logging.NewNopLogger(), testClient{GetMetricDataResultForMetrics: tt.metricDataResultForMetrics}, metricsPerQuery, 1)
-			cloudwatchData, err := r.Run(context.Background(), "anything_is_fine", 100, 100, nil, ToCloudwatchData(tt.requests))
+			cloudwatchData, err := r.Run(context.Background(), "anything_is_fine", ToCloudwatchData(tt.requests))
 			require.NoError(t, err)
 			require.Len(t, cloudwatchData, len(tt.want))
 			got := make([]cloudwatchDataOutput, 0, len(cloudwatchData))
@@ -328,6 +328,6 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount int, concurrency 
 		b.StartTimer()
 
 		//nolint:errcheck
-		r.Run(context.Background(), "anything_is_fine", 100, 100, nil, datas)
+		r.Run(context.Background(), "anything_is_fine", datas)
 	}
 }
