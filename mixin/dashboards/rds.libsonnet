@@ -8,7 +8,6 @@ grafana.dashboard.new(
   description='Visualize Amazon RDS metrics',
   tags=['Amazon', 'AWS', 'CloudWatch', 'RDS'],
   graphTooltip=common.tooltipSharedCrosshair,
-  uuid='6e59c66a8a103acbe34af5937e2903ca', // md5 of "rds.libsonnet"
 )
 .addTemplate(
   grafana.template.datasource.new(

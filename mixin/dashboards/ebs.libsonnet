@@ -8,7 +8,6 @@ grafana.dashboard.new(
   description='Visualize Amazon EBS metrics',
   tags=['Amazon', 'AWS', 'CloudWatch', 'EBS'],
   graphTooltip=common.tooltipSharedCrosshair,
-  uid='f256d34f6a2776d21297a8624d5d4725', // md5 of "ebs.libsonnet"
 )
 .addTemplate(
   grafana.template.datasource.new(

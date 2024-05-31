@@ -8,7 +8,6 @@ grafana.dashboard.new(
   description='Visualize Amazon EC2 metrics',
   tags=['Amazon', 'AWS', 'CloudWatch', 'EC2'],
   graphTooltip=common.tooltipSharedCrosshair,
-  uuid='10b1ad626d1ee7ed156aba5353a5c3fb', // md5 of "ec2.libsonnet"
 )
 .addTemplate(
   grafana.template.datasource.new(
