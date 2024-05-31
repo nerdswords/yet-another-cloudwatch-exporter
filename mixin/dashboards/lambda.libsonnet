@@ -8,6 +8,7 @@ grafana.dashboard.new(
   description='Visualize Amazon Lambda metrics',
   tags=['Amazon', 'AWS', 'CloudWatch', 'Lambda'],
   graphTooltip=common.tooltipSharedCrosshair,
+  uid='7d825cabee43902404e5ea28b0e3a8f1', // md5 of "lambda.libsonnet"
 )
 .addTemplate(
   grafana.template.datasource.new(
