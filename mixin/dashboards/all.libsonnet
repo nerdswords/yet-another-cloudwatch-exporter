@@ -1,17 +1,17 @@
 {
   'ebs.json': (import 'ebs.libsonnet') {
-    uid: std.md5('ebs.libsonnet'),
+    uid: "aws-ebs",
   },
   'ec2.json': (import 'ec2.libsonnet') {
-    uid: std.md5('ec2.libsonnet'),
+    uid: "aws-ec2",
   },
   'lambda.json': (import 'lambda.libsonnet') {
-    uid: std.md5('lambda.libsonnet'),
+    uid: "aws-lambda",
   },
   'rds.json': (import 'rds.libsonnet') {
-    uid: std.md5('rds.libsonnet'),
+    uid: "aws-rds",
   },
   's3.json': (import 's3.libsonnet') {
-    uid: std.md5('s3.libsonnet'),
+    uid: "aws-s3",
   },
 }
