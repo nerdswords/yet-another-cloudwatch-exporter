@@ -8,6 +8,7 @@ grafana.dashboard.new(
   description='Visualize Amazon S3 metrics',
   tags=['Amazon', 'AWS', 'CloudWatch', 'S3'],
   graphTooltip=common.tooltipSharedCrosshair,
+  uuid='06fd6fa8521ae073b7caf2672b8aadcc', // md5 of "s3.libsonnet"
 )
 .addTemplate(
   grafana.template.datasource.new(
