@@ -289,8 +289,8 @@ func TestScrapeRunner_Run(t *testing.T) {
 				return "", errors.New("failed to get account")
 			},
 			expectedErrs: []job.Error{
-				{AccountID: "", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"},
-				{AccountID: "", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"},
+				{JobContext: job.JobContext{AccountID: "", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}},
+				{JobContext: job.JobContext{AccountID: "", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}},
 			},
 		},
 		{
@@ -348,7 +348,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{AccountID: "aws-account-1", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"},
+				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}},
 			},
 		},
 		{
@@ -421,7 +421,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{AccountID: "aws-account-1", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"},
+				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}},
 			},
 		},
 	}

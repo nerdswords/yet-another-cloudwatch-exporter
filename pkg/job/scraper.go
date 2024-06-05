@@ -45,18 +45,17 @@ func NewScraper(logger logging.Logger,
 
 func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []model.CloudwatchMetricResult, []Error) {
 	// Setup so we only do one GetAccount call per region + role combo when running jobs
-	roleRegionToAccount := map[model.Role]map[string]func() string{}
+	roleRegionToAccount := map[model.Role]map[string]func() (string, error){}
 	jobConfigVisitor(s.jobsCfg, func(_ any, role model.Role, region string) {
 		if _, exists := roleRegionToAccount[role]; !exists {
-			roleRegionToAccount[role] = map[string]func() string{}
+			roleRegionToAccount[role] = map[string]func() (string, error){}
 		}
-		roleRegionToAccount[role][region] = sync.OnceValue[string](func() string {
+		roleRegionToAccount[role][region] = sync.OnceValues[string, error](func() (string, error) {
 			accountID, err := s.runnerFactory.GetAccountClient(region, role).GetAccount(ctx)
 			if err != nil {
-				s.logger.Error(err, "Failed to get Account", "region", region, "role_arn", role.RoleArn)
-				return ""
+				return "", fmt.Errorf("failed to get Account: %w", err)
 			}
-			return accountID
+			return accountID, nil
 		})
 	})
 
@@ -78,23 +77,23 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 			}, func(job model.CustomNamespaceJob) {
 				namespace = job.Namespace
 			})
-			jobLogger := s.logger.With("namespace", namespace, "region", region, "arn", role.RoleArn)
+			jobContext := JobContext{
+				Namespace: namespace,
+				Region:    region,
+				RoleARN:   role.RoleArn,
+			}
+			jobLogger := s.logger.With("namespace", jobContext.Namespace, "region", jobContext.Region, "arn", jobContext.RoleARN)
 
-			accountID := roleRegionToAccount[role][region]()
-			if accountID == "" {
-				jobError := Error{
-					AccountID: "",
-					Region:    region,
-					RoleARN:   role.RoleArn,
-					Namespace: namespace,
-					Message:   "Account for job was not found see previous errors",
-				}
+			accountID, err := roleRegionToAccount[role][region]()
+			if err != nil {
+				jobError := NewError(jobContext, "Account for job was not found", err)
 				mux.Lock()
 				jobErrors = append(jobErrors, jobError)
 				mux.Unlock()
 				return
 			}
-			jobLogger = jobLogger.With("account", accountID)
+			jobContext.AccountID = accountID
+			jobLogger = jobLogger.With("account", jobContext.AccountID)
 
 			var jobToRun cloudwatchrunner.Job
 			jobAction(jobLogger, job,
@@ -103,14 +102,7 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 					rmRunner := s.runnerFactory.NewResourceMetadataRunner(jobLogger, region, role)
 					resources, err := rmRunner.Run(ctx, region, job)
 					if err != nil {
-						jobError := Error{
-							AccountID: accountID,
-							Region:    region,
-							RoleARN:   role.RoleArn,
-							Namespace: namespace,
-							Message:   "Failed to run resource metadata for job",
-							Err:       err,
-						}
+						jobError := NewError(jobContext, "Failed to run resource metadata for job", err)
 						mux.Lock()
 						jobErrors = append(jobErrors, jobError)
 						mux.Unlock()
@@ -119,12 +111,8 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 					}
 					if len(resources) > 0 {
 						result := model.TaggedResourceResult{
-							Context: &model.ScrapeContext{
-								Region:     region,
-								AccountID:  accountID,
-								CustomTags: job.CustomTags,
-							},
-							Data: resources,
+							Context: jobContext.ToScrapeContext(job.CustomTags),
+							Data:    resources,
 						}
 						mux.Lock()
 						resourceResults = append(resourceResults, result)
@@ -143,18 +131,12 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 				jobLogger.Debug("Ending job run early due to job error see job errors")
 				return
 			}
+
 			jobLogger.Debug("Starting cloudwatch metrics runner")
 			cwRunner := s.runnerFactory.NewCloudWatchRunner(jobLogger, region, role, jobToRun)
 			metricResult, err := cwRunner.Run(ctx)
 			if err != nil {
-				jobError := Error{
-					AccountID: accountID,
-					Region:    region,
-					RoleARN:   role.RoleArn,
-					Namespace: namespace,
-					Message:   "Failed to gather cloudwatch metrics for job",
-					Err:       err,
-				}
+				jobError := NewError(jobContext, "Failed to gather cloudwatch metrics for job", err)
 				mux.Lock()
 				jobErrors = append(jobErrors, jobError)
 				mux.Unlock()
@@ -170,12 +152,8 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 			jobLogger.Debug("Job run finished", "number_of_metrics", len(metricResult))
 
 			result := model.CloudwatchMetricResult{
-				Context: &model.ScrapeContext{
-					Region:     region,
-					AccountID:  accountID,
-					CustomTags: jobToRun.CustomTags(),
-				},
-				Data: metricResult,
+				Context: jobContext.ToScrapeContext(jobToRun.CustomTags()),
+				Data:    metricResult,
 			}
 
 			mux.Lock()
@@ -221,13 +199,36 @@ func jobAction(logger logging.Logger, job any, discovery func(job model.Discover
 	}
 }
 
-type Error struct {
+// JobContext exists to track data we want for logging, errors, or other output context that's learned as the job runs
+// This makes it easier to track the data additively and morph it to the final shape necessary be it a model.ScrapeContext
+// or an Error. It's an exported type for tests but is not part of the public interface
+type JobContext struct { //nolint:revive
 	AccountID string
 	Namespace string
 	Region    string
 	RoleARN   string
-	Message   string
-	Err       error
+}
+
+func (jc JobContext) ToScrapeContext(customTags []model.Tag) *model.ScrapeContext {
+	return &model.ScrapeContext{
+		AccountID:  jc.AccountID,
+		Region:     jc.Region,
+		CustomTags: customTags,
+	}
+}
+
+type Error struct {
+	JobContext
+	Message string
+	Err     error
+}
+
+func NewError(context JobContext, message string, err error) Error {
+	return Error{
+		JobContext: context,
+		Message:    message,
+		Err:        err,
+	}
 }
 
 func (e Error) ToLoggerKeyVals() []interface{} {
