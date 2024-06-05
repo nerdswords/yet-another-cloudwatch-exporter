@@ -45,6 +45,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AmazonMWAA` - Managed Apache Airflow
   * `AWS/ACMPrivateCA` - ACM Private CA
   * `AWS/AmazonMQ` - Managed Message Broker Service
+  * `AWS/AppRunner` - Managed Container Apps Service
   * `AWS/AOSS` - OpenSearch Serverless
   * `AWS/ApiGateway` - ApiGateway (V1 and V2)
   * `AWS/ApplicationELB` - Application Load Balancer

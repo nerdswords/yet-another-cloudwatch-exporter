@@ -163,6 +163,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/AppRunner",
+		Alias:     "apprunner",
+	},
+	{
 		Namespace: "AWS/AppSync",
 		Alias:     "appsync",
 		ResourceFilters: []*string{
