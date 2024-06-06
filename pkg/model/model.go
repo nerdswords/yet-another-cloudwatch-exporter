@@ -134,9 +134,10 @@ type TaggedResourceResult struct {
 }
 
 type ScrapeContext struct {
-	Region     string
-	AccountID  string
-	CustomTags []Tag
+	Region       string
+	AccountID    string
+	AccountAlias string
+	CustomTags   []Tag
 }
 
 // CloudwatchData is an internal representation of a CloudWatch

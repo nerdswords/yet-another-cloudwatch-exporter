@@ -32,3 +32,7 @@ func (c client) GetAccount(ctx context.Context) (string, error) {
 	}
 	return *result.Account, nil
 }
+
+func (c client) GetAccountAlias(ctx context.Context) (string, error) {
+	return "", nil
+}
