@@ -14,6 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.38.7
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.11
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.164.2
+	github.com/aws/aws-sdk-go-v2/service/iam v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.21.11
 	github.com/aws/aws-sdk-go-v2/service/shield v1.25.11
 	github.com/aws/aws-sdk-go-v2/service/storagegateway v1.29.2

@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/storagegateway"
@@ -196,7 +197,10 @@ func (c *CachingFactory) GetAccountClient(region string, role model.Role) accoun
 	if client := c.clients[role][region].account; client != nil {
 		return client
 	}
-	c.clients[role][region].account = account_v2.NewClient(c.logger, c.createStsClient(c.clients[role][region].awsConfig))
+
+	stsClient := c.createStsClient(c.clients[role][region].awsConfig)
+	iamClient := c.createIAMClient(c.clients[role][region].awsConfig)
+	c.clients[role][region].account = account_v2.NewClient(c.logger, stsClient, iamClient)
 	return c.clients[role][region].account
 }
 
@@ -400,6 +404,10 @@ func (c *CachingFactory) createPrometheusClient(assumedConfig *aws.Config) *amp.
 
 func (c *CachingFactory) createStsClient(awsConfig *aws.Config) *sts.Client {
 	return sts.NewFromConfig(*awsConfig, c.stsOptions)
+}
+
+func (c *CachingFactory) createIAMClient(awsConfig *aws.Config) *iam.Client {
+	return iam.NewFromConfig(*awsConfig)
 }
 
 func (c *CachingFactory) createShieldClient(awsConfig *aws.Config) *shield.Client {
