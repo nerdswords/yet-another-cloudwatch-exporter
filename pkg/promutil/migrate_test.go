@@ -273,6 +273,87 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	}
 }
 
+func TestBuildAccountInfoMetrics(t *testing.T) {
+	type testCase struct {
+		resources       []model.TaggedResourceResult
+		metrics         []*PrometheusMetric
+		expectedMetrics []*PrometheusMetric
+	}
+	var acct1ScrapeContext = &model.ScrapeContext{
+		Region:       "us-east-1",
+		AccountID:    "123456789012",
+		CustomTags:   nil,
+		AccountAlias: "test-account",
+	}
+	var acct2ScrapeContext = &model.ScrapeContext{
+		Region:     "us-east-1",
+		AccountID:  "987123",
+		CustomTags: nil,
+	}
+	var tests = map[string]testCase{
+		"no tagged resources": {},
+		"single account across resources": {
+			resources: []model.TaggedResourceResult{
+				{
+					Context: acct1ScrapeContext,
+				},
+				{
+					Context: acct1ScrapeContext,
+				},
+			},
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name: aws.String("aws_account_info"),
+					Labels: map[string]string{
+						"account_id":    "123456789012",
+						"account_alias": "test-account",
+					},
+					Value: 1,
+				},
+			},
+		},
+		"two accounts across resources": {
+			resources: []model.TaggedResourceResult{
+				{
+					Context: acct1ScrapeContext,
+				},
+				{
+					Context: acct2ScrapeContext,
+				},
+				{
+					Context: acct1ScrapeContext,
+				},
+			},
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name: aws.String("aws_account_info"),
+					Labels: map[string]string{
+						"account_id":    "123456789012",
+						"account_alias": "test-account",
+					},
+					Value: 1,
+				},
+				{
+					Name: aws.String("aws_account_info"),
+					Labels: map[string]string{
+						"account_id":    "987123",
+						"account_alias": "",
+					},
+					Value: 1,
+				},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			metrics := BuildAccountInfoMetrics(tc.resources, tc.metrics, logging.NewNopLogger())
+			require.Equal(t, tc.expectedMetrics, metrics)
+		})
+	}
+
+}
+
 func TestBuildMetrics(t *testing.T) {
 	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 
