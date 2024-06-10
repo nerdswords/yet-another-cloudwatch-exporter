@@ -279,18 +279,18 @@ func TestBuildAccountInfoMetrics(t *testing.T) {
 		metrics         []*PrometheusMetric
 		expectedMetrics []*PrometheusMetric
 	}
-	var acct1ScrapeContext = &model.ScrapeContext{
+	acct1ScrapeContext := &model.ScrapeContext{
 		Region:       "us-east-1",
 		AccountID:    "123456789012",
 		CustomTags:   nil,
 		AccountAlias: "test-account",
 	}
-	var acct2ScrapeContext = &model.ScrapeContext{
+	acct2ScrapeContext := &model.ScrapeContext{
 		Region:     "us-east-1",
 		AccountID:  "987123",
 		CustomTags: nil,
 	}
-	var tests = map[string]testCase{
+	tests := map[string]testCase{
 		"no tagged resources": {},
 		"single account across resources": {
 			resources: []model.TaggedResourceResult{
@@ -351,7 +351,6 @@ func TestBuildAccountInfoMetrics(t *testing.T) {
 			require.Equal(t, tc.expectedMetrics, metrics)
 		})
 	}
-
 }
 
 func TestBuildMetrics(t *testing.T) {

@@ -24,6 +24,7 @@ func NewClient(logger logging.Logger, stsClient stsiface.STSAPI, iamClient iamif
 	return &client{
 		logger:    logger,
 		stsClient: stsClient,
+		iamClient: iamClient,
 	}
 }
 
@@ -39,7 +40,7 @@ func (c client) GetAccount(ctx context.Context) (string, error) {
 }
 
 func (c client) GetAccountAlias(ctx context.Context) (string, error) {
-	acctAliasOut, err := c.iamClient.ListAccountAliases(&iam.ListAccountAliasesInput{})
+	acctAliasOut, err := c.iamClient.ListAccountAliasesWithContext(ctx, &iam.ListAccountAliasesInput{})
 	if err != nil {
 		return "", err
 	}

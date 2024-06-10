@@ -45,7 +45,7 @@ func BuildMetricName(namespace, metricName, statistic string) string {
 }
 
 // BuildAccountInfoMetrics generates info metrics for each discovered AWS account.
-func BuildAccountInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, logger logging.Logger) []*PrometheusMetric {
+func BuildAccountInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, _ logging.Logger) []*PrometheusMetric {
 	type uniqueAcctInfo struct {
 		AccountID    string
 		AccountAlias string
