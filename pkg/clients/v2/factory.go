@@ -235,7 +235,7 @@ func (c *CachingFactory) Refresh() {
 				c.createShieldClient(cache.awsConfig),
 			)
 
-			cache.account = account_v2.NewClient(c.logger, c.createStsClient(cache.awsConfig))
+			cache.account = account_v2.NewClient(c.logger, c.createStsClient(cache.awsConfig), c.createIAMClient(cache.awsConfig))
 		}
 	}
 

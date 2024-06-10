@@ -52,6 +52,11 @@ func BuildAccountInfoMetrics(tagData []model.TaggedResourceResult, metrics []*Pr
 	}
 	uniqueAccts := map[string]uniqueAcctInfo{}
 	for _, tagResult := range tagData {
+		if tagResult.Context == nil {
+			// TODO: should I log something here? Is this a case?
+			continue
+		}
+
 		if _, ok := uniqueAccts[tagResult.Context.AccountID]; ok {
 			continue
 		}
