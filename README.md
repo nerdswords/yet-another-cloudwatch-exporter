@@ -162,7 +162,8 @@ As a quick start, the following IAM policy can be used to grant the all permissi
         "ec2:DescribeSpotFleetRequests",
         "shield:ListProtections",
         "storagegateway:ListGateways",
-        "storagegateway:ListTagsForResource"
+        "storagegateway:ListTagsForResource",
+        "iam:ListAccountAliases"
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -222,6 +223,11 @@ This permission is required to discover resources for the AWS/TransitGateway nam
 This permission is required to discover protected resources for the AWS/DDoSProtection namespace
 ```json
 "shield:ListProtections"
+```
+
+This permission is required to get the AWS account alias, used in the the `aws_account_info` metric
+```json
+"iam:ListAccountAliases"
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.
