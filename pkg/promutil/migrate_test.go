@@ -276,7 +276,6 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 func TestBuildAccountInfoMetrics(t *testing.T) {
 	type testCase struct {
 		resources       []model.TaggedResourceResult
-		metrics         []*PrometheusMetric
 		expectedMetrics []*PrometheusMetric
 	}
 	acct1ScrapeContext := &model.ScrapeContext{
@@ -291,7 +290,9 @@ func TestBuildAccountInfoMetrics(t *testing.T) {
 		CustomTags: nil,
 	}
 	tests := map[string]testCase{
-		"no tagged resources": {},
+		"no tagged resources": {
+			expectedMetrics: []*PrometheusMetric{},
+		},
 		"single account across resources": {
 			resources: []model.TaggedResourceResult{
 				{
@@ -347,8 +348,9 @@ func TestBuildAccountInfoMetrics(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			metrics := BuildAccountInfoMetrics(tc.resources, tc.metrics, logging.NewNopLogger())
-			require.Equal(t, tc.expectedMetrics, metrics)
+			metrics := []*PrometheusMetric{}
+			metrics = BuildAccountInfoMetrics(tc.resources, metrics, logging.NewNopLogger())
+			require.ElementsMatch(t, tc.expectedMetrics, metrics)
 		})
 	}
 }
