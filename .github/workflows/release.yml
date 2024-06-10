@@ -34,7 +34,7 @@ jobs:
       run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ghcr.io/nerdswords/yet-another-cloudwatch-exporter:${{github.ref_name}} --build-arg VERSION=${{github.ref_name}} --push .
 
     - name: Build && release binaries
-      uses: goreleaser/goreleaser-action@v5
+      uses: goreleaser/goreleaser-action@v6
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
