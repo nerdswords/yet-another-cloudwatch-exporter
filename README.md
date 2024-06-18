@@ -225,7 +225,7 @@ This permission is required to discover protected resources for the AWS/DDoSProt
 "shield:ListProtections"
 ```
 
-This permission is required to get the AWS account alias, used in the the `aws_account_info` metric
+AWS supports creating something called AWS account aliases. This are human friendly name that can be used to easily identify accounts. An account can have at most a single account alias ([docs](https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccountAliases.html)), and aliases are unique across an AWS network partition ([docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html#AboutAccountAlias)). The follwoing permission is required to get the AWS account alias, used in the the `aws_account_info` metric
 ```json
 "iam:ListAccountAliases"
 ```
