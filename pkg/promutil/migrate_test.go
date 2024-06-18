@@ -273,88 +273,6 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 	}
 }
 
-func TestBuildAccountInfoMetrics(t *testing.T) {
-	type testCase struct {
-		resources       []model.TaggedResourceResult
-		expectedMetrics []*PrometheusMetric
-	}
-	acct1ScrapeContext := &model.ScrapeContext{
-		Region:       "us-east-1",
-		AccountID:    "123456789012",
-		CustomTags:   nil,
-		AccountAlias: "test-account",
-	}
-	acct2ScrapeContext := &model.ScrapeContext{
-		Region:     "us-east-1",
-		AccountID:  "987123",
-		CustomTags: nil,
-	}
-	tests := map[string]testCase{
-		"no tagged resources": {
-			expectedMetrics: []*PrometheusMetric{},
-		},
-		"single account across resources": {
-			resources: []model.TaggedResourceResult{
-				{
-					Context: acct1ScrapeContext,
-				},
-				{
-					Context: acct1ScrapeContext,
-				},
-			},
-			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: aws.String("aws_account_info"),
-					Labels: map[string]string{
-						"account_id":    "123456789012",
-						"account_alias": "test-account",
-					},
-					Value: 1,
-				},
-			},
-		},
-		"two accounts across resources": {
-			resources: []model.TaggedResourceResult{
-				{
-					Context: acct1ScrapeContext,
-				},
-				{
-					Context: acct2ScrapeContext,
-				},
-				{
-					Context: acct1ScrapeContext,
-				},
-			},
-			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: aws.String("aws_account_info"),
-					Labels: map[string]string{
-						"account_id":    "123456789012",
-						"account_alias": "test-account",
-					},
-					Value: 1,
-				},
-				{
-					Name: aws.String("aws_account_info"),
-					Labels: map[string]string{
-						"account_id":    "987123",
-						"account_alias": "",
-					},
-					Value: 1,
-				},
-			},
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			metrics := []*PrometheusMetric{}
-			metrics = BuildAccountInfoMetrics(tc.resources, metrics, logging.NewNopLogger())
-			require.ElementsMatch(t, tc.expectedMetrics, metrics)
-		})
-	}
-}
-
 func TestBuildMetrics(t *testing.T) {
 	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 
@@ -964,6 +882,63 @@ func TestBuildMetrics(t *testing.T) {
 					"region":                     {},
 					"dimension_cache_cluster_id": {},
 					"custom_tag_billable_to":     {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "scraping with aws account alias",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:       "us-east-1",
+					AccountID:    "123456789012",
+					AccountAlias: "billingacct",
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "AWS/ElastiCache",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":                 "123456789012",
+						"account_alias":              "billingacct",
+						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                     "us-east-1",
+						"dimension_cache_cluster_id": "redis-cluster",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_cpuutilization_average": {
+					"account_id":                 {},
+					"account_alias":              {},
+					"name":                       {},
+					"region":                     {},
+					"dimension_cache_cluster_id": {},
 				},
 			},
 			expectedErr: nil,

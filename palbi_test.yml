@@ -1,0 +1,20 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+    - type: AWS/Lambda
+      includeContextOnInfoMetrics: true
+      regions:
+        - us-east-2
+      roles:
+        - roleArn: arn:aws:iam::076251419503:role/yace-testing
+      period: 60
+      length: 60
+      metrics:
+        - name: Invocations
+          statistics: [Sum]
+        - name: Errors
+          statistics: [Sum]
+        - name: Throttles
+          statistics: [Sum]
+        - name: Duration
+          statistics: [Average, Maximum, Minimum, p90]

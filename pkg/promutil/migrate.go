@@ -44,47 +44,6 @@ func BuildMetricName(namespace, metricName, statistic string) string {
 	return sb.String()
 }
 
-// BuildAccountInfoMetrics generates info metrics for each discovered AWS account.
-func BuildAccountInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, _ logging.Logger) []*PrometheusMetric {
-	type uniqueAcctInfo struct {
-		AccountID    string
-		AccountAlias string
-	}
-	uniqueAccts := map[string]uniqueAcctInfo{}
-	for _, tagResult := range tagData {
-		if tagResult.Context == nil {
-			// TODO: should I log something here? Is this a case?
-			continue
-		}
-
-		if _, ok := uniqueAccts[tagResult.Context.AccountID]; ok {
-			continue
-		}
-
-		// since each account is uniquely identified by its account ID, we can use it as the key
-		uniqueAccts[tagResult.Context.AccountID] = uniqueAcctInfo{
-			AccountID:    tagResult.Context.AccountID,
-			AccountAlias: tagResult.Context.AccountAlias,
-		}
-	}
-
-	metricName := "aws_account_info"
-	for _, acctInfo := range uniqueAccts {
-		// TODO: do we need to avoid adding the alias label if it's not present
-		// TODO: do we need to sanitize the alias?
-		metrics = append(metrics, &PrometheusMetric{
-			Name: &metricName,
-			Labels: map[string]string{
-				"account_id":    acctInfo.AccountID,
-				"account_alias": acctInfo.AccountAlias,
-			},
-			Value: 1, // Following info metrics pattern https://www.robustperception.io/why-info-style-metrics-have-a-value-of-1/
-		})
-	}
-
-	return metrics
-}
-
 func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
 		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
@@ -286,6 +245,10 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 	labels := make(map[string]string, 2+len(context.CustomTags))
 	labels["region"] = context.Region
 	labels["account_id"] = context.AccountID
+	// If there's no account alias, omit adding an extra label in the series, it will work either way query wise
+	if context.AccountAlias != "" {
+		labels["account_alias"] = context.AccountAlias
+	}
 
 	for _, label := range context.CustomTags {
 		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)
