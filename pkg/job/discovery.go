@@ -20,7 +20,7 @@ type resourceAssociator interface {
 }
 
 type getMetricDataProcessor interface {
-	Run(ctx context.Context, namespace string, jobMetricLength, jobMetricDelay int64, period *int64, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error)
+	Run(ctx context.Context, namespace string, requests []*model.CloudwatchData) ([]*model.CloudwatchData, error)
 }
 
 func runDiscoveryJob(
@@ -55,24 +55,13 @@ func runDiscoveryJob(
 		return resources, nil
 	}
 
-	jobLength := getLargestLengthForMetrics(job.Metrics)
-	getMetricDatas, err = gmdProcessor.Run(ctx, svc.Namespace, jobLength, job.Delay, job.RoundingPeriod, getMetricDatas)
+	getMetricDatas, err = gmdProcessor.Run(ctx, svc.Namespace, getMetricDatas)
 	if err != nil {
 		logger.Error(err, "Failed to get metric data")
 		return nil, nil
 	}
 
 	return resources, getMetricDatas
-}
-
-func getLargestLengthForMetrics(metrics []*model.MetricConfig) int64 {
-	var length int64
-	for _, metric := range metrics {
-		if metric.Length > length {
-			length = metric.Length
-		}
-	}
-	return length
 }
 
 func getMetricDataForQueries(

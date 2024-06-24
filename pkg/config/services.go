@@ -344,6 +344,13 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/EC2CapacityReservations",
+		Alias:     "ec2CapacityReservations",
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":capacity-reservation/(?P<CapacityReservationId>)$"),
+		},
+	},
+	{
 		Namespace: "AWS/ECS",
 		Alias:     "ecs-svc",
 		ResourceFilters: []*string{
@@ -740,6 +747,10 @@ var SupportedServices = serviceConfigs{
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":healthcheck/(?P<HealthCheckId>[^/]+)"),
 		},
+	},
+	{
+		Namespace: "AWS/RUM",
+		Alias:     "rum",
 	},
 	{
 		Namespace: "AWS/S3",
