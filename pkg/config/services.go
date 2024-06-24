@@ -163,6 +163,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/AppRunner",
+		Alias:     "apprunner",
+	},
+	{
 		Namespace: "AWS/AppSync",
 		Alias:     "appsync",
 		ResourceFilters: []*string{
@@ -460,8 +464,7 @@ var SupportedServices = serviceConfigs{
 		Namespace: "AWS/GatewayELB",
 		Alias:     "gwlb",
 		ResourceFilters: []*string{
-			aws.String("elasticloadbalancing:loadbalancer/gwy"),
-			aws.String("elasticloadbalancing:targetgroup"),
+			aws.String("elasticloadbalancing:loadbalancer"),
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile(":(?P<TargetGroup>targetgroup/.+)"),
@@ -594,6 +597,18 @@ var SupportedServices = serviceConfigs{
 		},
 		DimensionRegexps: []*regexp.Regexp{
 			regexp.MustCompile("(?P<Queue>.*:.*:mediaconvert:.*:queues/.*)$"),
+		},
+	},
+	{
+		Namespace: "AWS/MediaPackage",
+		Alias:     "mediapackage",
+		ResourceFilters: []*string{
+			aws.String("mediapackage"),
+			aws.String("mediapackage-vod"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":channels/(?P<IngestEndpoint>.+)$"),
+			regexp.MustCompile(":packaging-configurations/(?P<PackagingConfiguration>.+)$"),
 		},
 	},
 	{
