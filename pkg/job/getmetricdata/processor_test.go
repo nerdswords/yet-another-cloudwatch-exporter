@@ -3,8 +3,6 @@ package getmetricdata
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -33,14 +31,14 @@ type metricDataResultForMetric struct {
 }
 
 type testClient struct {
-	GetMetricDataFunc             func(ctx context.Context, logger logging.Logger, data []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult
+	GetMetricDataFunc             func(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch.MetricDataResult
 	GetMetricDataResultForMetrics []metricDataResultForMetric
 }
 
-func (t testClient) GetMetricData(ctx context.Context, logger logging.Logger, data []*model.CloudwatchData, namespace string, length int64, delay int64, configuredRoundingPeriod *int64) []cloudwatch.MetricDataResult {
+func (t testClient) GetMetricData(ctx context.Context, getMetricData []*model.CloudwatchData, namespace string, startTime time.Time, endTime time.Time) []cloudwatch.MetricDataResult {
 	if t.GetMetricDataResultForMetrics != nil {
 		var result []cloudwatch.MetricDataResult
-		for _, datum := range data {
+		for _, datum := range getMetricData {
 			for _, response := range t.GetMetricDataResultForMetrics {
 				if datum.MetricName == response.MetricName {
 					response.result.ID = datum.GetMetricDataProcessingParams.QueryID
@@ -50,7 +48,7 @@ func (t testClient) GetMetricData(ctx context.Context, logger logging.Logger, da
 		}
 		return result
 	}
-	return t.GetMetricDataFunc(ctx, logger, data, namespace, length, delay, configuredRoundingPeriod)
+	return t.GetMetricDataFunc(ctx, getMetricData, namespace, startTime, endTime)
 }
 
 func TestProcessor_Run(t *testing.T) {
@@ -190,8 +188,8 @@ func TestProcessor_Run(t *testing.T) {
 			if tt.metricsPerBatch != 0 {
 				metricsPerQuery = tt.metricsPerBatch
 			}
-			r := NewProcessor(testClient{GetMetricDataResultForMetrics: tt.metricDataResultForMetrics}, metricsPerQuery, 1)
-			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 100, 100, aws.Int64(100), ToCloudwatchData(tt.requests))
+			r := NewDefaultProcessor(logging.NewNopLogger(), testClient{GetMetricDataResultForMetrics: tt.metricDataResultForMetrics}, metricsPerQuery, 1)
+			cloudwatchData, err := r.Run(context.Background(), "anything_is_fine", ToCloudwatchData(tt.requests))
 			require.NoError(t, err)
 			require.Len(t, cloudwatchData, len(tt.want))
 			got := make([]cloudwatchDataOutput, 0, len(cloudwatchData))
@@ -206,51 +204,6 @@ func TestProcessor_Run(t *testing.T) {
 			}
 
 			assert.ElementsMatch(t, tt.want, got)
-		})
-	}
-}
-
-func TestProcessor_Run_BatchesByMetricsPerQuery(t *testing.T) {
-	now := time.Now()
-	tests := []struct {
-		name                                 string
-		metricsPerQuery                      int
-		numberOfRequests                     int
-		expectedNumberOfCallsToGetMetricData int32
-	}{
-		{name: "1 per batch", metricsPerQuery: 1, numberOfRequests: 10, expectedNumberOfCallsToGetMetricData: 10},
-		{name: "divisible batches and requests", metricsPerQuery: 5, numberOfRequests: 100, expectedNumberOfCallsToGetMetricData: 20},
-		{name: "indivisible batches and requests", metricsPerQuery: 5, numberOfRequests: 94, expectedNumberOfCallsToGetMetricData: 19},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var callCounter atomic.Int32
-			getMetricDataFunc := func(_ context.Context, _ logging.Logger, data []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch.MetricDataResult {
-				callCounter.Add(1)
-				response := make([]cloudwatch.MetricDataResult, 0, len(data))
-				for _, gmd := range data {
-					response = append(response, cloudwatch.MetricDataResult{
-						ID:        gmd.GetMetricDataProcessingParams.QueryID,
-						Datapoint: aws.Float64(1000),
-						Timestamp: now,
-					})
-				}
-				return response
-			}
-
-			requests := make([]*model.CloudwatchData, 0, tt.numberOfRequests)
-			for i := 0; i < tt.numberOfRequests; i++ {
-				requests = append(requests, getSampleMetricDatas(strconv.Itoa(i)))
-			}
-			r := Processor{
-				metricsPerQuery: tt.metricsPerQuery,
-				client:          testClient{GetMetricDataFunc: getMetricDataFunc},
-				concurrency:     1,
-			}
-			cloudwatchData, err := r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 1, 1, aws.Int64(1), requests)
-			require.NoError(t, err)
-			assert.Len(t, cloudwatchData, tt.numberOfRequests)
-			assert.Equal(t, tt.expectedNumberOfCallsToGetMetricData, callCounter.Load())
 		})
 	}
 }
@@ -347,7 +300,7 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount int, concurrency 
 		testResourceIDs[i] = fmt.Sprintf("test-resource-%d", i)
 	}
 
-	client := testClient{GetMetricDataFunc: func(_ context.Context, _ logging.Logger, getMetricData []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch.MetricDataResult {
+	client := testClient{GetMetricDataFunc: func(_ context.Context, getMetricData []*model.CloudwatchData, _ string, _ time.Time, _ time.Time) []cloudwatch.MetricDataResult {
 		b.StopTimer()
 		results := make([]cloudwatch.MetricDataResult, 0, len(getMetricData))
 		for _, entry := range getMetricData {
@@ -369,12 +322,12 @@ func doBench(b *testing.B, metricsPerQuery, testResourcesCount int, concurrency 
 		for i := 0; i < testResourcesCount; i++ {
 			datas = append(datas, getSampleMetricDatas(testResourceIDs[i]))
 		}
-		r := NewProcessor(client, metricsPerQuery, concurrency)
+		r := NewDefaultProcessor(logging.NewNopLogger(), client, metricsPerQuery, concurrency)
 		// re-start timer
 		b.ReportAllocs()
 		b.StartTimer()
 
 		//nolint:errcheck
-		r.Run(context.Background(), logging.NewNopLogger(), "anything_is_fine", 100, 100, aws.Int64(100), datas)
+		r.Run(context.Background(), "anything_is_fine", datas)
 	}
 }

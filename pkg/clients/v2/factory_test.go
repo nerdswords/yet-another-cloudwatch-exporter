@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -474,7 +475,7 @@ func (t testClient) ListMetrics(_ context.Context, _ string, _ *model.MetricConf
 	return nil
 }
 
-func (t testClient) GetMetricData(_ context.Context, _ logging.Logger, _ []*model.CloudwatchData, _ string, _ int64, _ int64, _ *int64) []cloudwatch_client.MetricDataResult {
+func (t testClient) GetMetricData(_ context.Context, _ []*model.CloudwatchData, _ string, _ time.Time, _ time.Time) []cloudwatch_client.MetricDataResult {
 	return nil
 }
 

@@ -717,6 +717,116 @@ func TestBuildMetrics(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name: "metric with metric name that does duplicates part of the namespace as a prefix",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "glue.driver.aggregate.bytesRead",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "Glue",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "JobName",
+								Value: "test-job",
+							},
+						},
+						ResourceName: "arn:aws:glue:us-east-1:123456789012:job/test-job",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_glue_driver_aggregate_bytes_read_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":         "123456789012",
+						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"region":             "us-east-1",
+						"dimension_job_name": "test-job",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_glue_driver_aggregate_bytes_read_average": {
+					"account_id":         {},
+					"name":               {},
+					"region":             {},
+					"dimension_job_name": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "metric with metric name that does not duplicate part of the namespace as a prefix",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:     "us-east-1",
+					AccountID:  "123456789012",
+					CustomTags: nil,
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "aggregate.glue.jobs.bytesRead",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "Glue",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "JobName",
+								Value: "test-job",
+							},
+						},
+						ResourceName: "arn:aws:glue:us-east-1:123456789012:job/test-job",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_glue_aggregate_glue_jobs_bytes_read_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":         "123456789012",
+						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"region":             "us-east-1",
+						"dimension_job_name": "test-job",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_glue_aggregate_glue_jobs_bytes_read_average": {
+					"account_id":         {},
+					"name":               {},
+					"region":             {},
+					"dimension_job_name": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
 			name: "custom tag",
 			data: []model.CloudwatchMetricResult{{
 				Context: &model.ScrapeContext{
@@ -790,6 +900,159 @@ func TestBuildMetrics(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Benchmark_BuildMetrics(b *testing.B) {
+	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	data := []model.CloudwatchMetricResult{{
+		Context: &model.ScrapeContext{
+			Region:     "us-east-1",
+			AccountID:  "123456789012",
+			CustomTags: nil,
+		},
+		Data: []*model.CloudwatchData{
+			{
+				MetricName: "CPUUtilization",
+				MetricMigrationParams: model.MetricMigrationParams{
+					NilToZero:              true,
+					AddCloudwatchTimestamp: false,
+				},
+				Namespace: "AWS/ElastiCache",
+				GetMetricDataResult: &model.GetMetricDataResult{
+					Statistic: "Average",
+					Datapoint: aws.Float64(1),
+					Timestamp: ts,
+				},
+				Dimensions: []model.Dimension{
+					{
+						Name:  "CacheClusterId",
+						Value: "redis-cluster",
+					},
+				},
+				ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+				Tags: []model.Tag{{
+					Key:   "managed_by",
+					Value: "terraform",
+				}},
+			},
+			{
+				MetricName: "FreeableMemory",
+				MetricMigrationParams: model.MetricMigrationParams{
+					NilToZero:              false,
+					AddCloudwatchTimestamp: false,
+				},
+				Namespace: "AWS/ElastiCache",
+				Dimensions: []model.Dimension{
+					{
+						Name:  "CacheClusterId",
+						Value: "redis-cluster",
+					},
+				},
+				GetMetricDataResult: &model.GetMetricDataResult{
+					Statistic: "Average",
+					Datapoint: aws.Float64(2),
+					Timestamp: ts,
+				},
+				ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+				Tags: []model.Tag{{
+					Key:   "managed_by",
+					Value: "terraform",
+				}},
+			},
+			{
+				MetricName: "NetworkBytesIn",
+				MetricMigrationParams: model.MetricMigrationParams{
+					NilToZero:              true,
+					AddCloudwatchTimestamp: false,
+				},
+				Namespace: "AWS/ElastiCache",
+				Dimensions: []model.Dimension{
+					{
+						Name:  "CacheClusterId",
+						Value: "redis-cluster",
+					},
+				},
+				GetMetricDataResult: &model.GetMetricDataResult{
+					Statistic: "Average",
+					Datapoint: aws.Float64(3),
+					Timestamp: ts,
+				},
+				ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+				Tags: []model.Tag{{
+					Key:   "managed_by",
+					Value: "terraform",
+				}},
+			},
+			{
+				MetricName: "NetworkBytesOut",
+				MetricMigrationParams: model.MetricMigrationParams{
+					NilToZero:              true,
+					AddCloudwatchTimestamp: true,
+				},
+				Namespace: "AWS/ElastiCache",
+				Dimensions: []model.Dimension{
+					{
+						Name:  "CacheClusterId",
+						Value: "redis-cluster",
+					},
+				},
+				GetMetricDataResult: &model.GetMetricDataResult{
+					Statistic: "Average",
+					Datapoint: aws.Float64(4),
+					Timestamp: ts,
+				},
+				ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+				Tags: []model.Tag{{
+					Key:   "managed_by",
+					Value: "terraform",
+				}},
+			},
+		},
+	}}
+
+	var labels map[string]model.LabelSet
+	var err error
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, labels, err = BuildMetrics(data, false, logging.NewNopLogger())
+	}
+
+	expectedLabels := map[string]model.LabelSet{
+		"aws_elasticache_cpuutilization_average": {
+			"account_id":               {},
+			"name":                     {},
+			"region":                   {},
+			"dimension_CacheClusterId": {},
+			"tag_managed_by":           {},
+		},
+		"aws_elasticache_freeable_memory_average": {
+			"account_id":               {},
+			"name":                     {},
+			"region":                   {},
+			"dimension_CacheClusterId": {},
+			"tag_managed_by":           {},
+		},
+		"aws_elasticache_network_bytes_in_average": {
+			"account_id":               {},
+			"name":                     {},
+			"region":                   {},
+			"dimension_CacheClusterId": {},
+			"tag_managed_by":           {},
+		},
+		"aws_elasticache_network_bytes_out_average": {
+			"account_id":               {},
+			"name":                     {},
+			"region":                   {},
+			"dimension_CacheClusterId": {},
+			"tag_managed_by":           {},
+		},
+	}
+
+	require.NoError(b, err)
+	require.Equal(b, expectedLabels, labels)
 }
 
 // replaceNaNValues replaces any NaN floating-point values with a marker value (54321.0)

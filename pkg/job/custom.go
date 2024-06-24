@@ -22,9 +22,8 @@ func runCustomNamespaceJob(
 		return nil
 	}
 
-	jobLength := getLargestLengthForMetrics(job.Metrics)
 	var err error
-	cloudwatchDatas, err = gmdProcessor.Run(ctx, logger, job.Namespace, jobLength, job.Delay, job.RoundingPeriod, cloudwatchDatas)
+	cloudwatchDatas, err = gmdProcessor.Run(ctx, job.Namespace, cloudwatchDatas)
 	if err != nil {
 		logger.Error(err, "Failed to get metric data")
 		return nil
