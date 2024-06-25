@@ -28,6 +28,42 @@ Refactoring:
 
 **Full Changelog**: https://github.com/...
 
+# 0.61.0
+
+**Important news and breaking changes**
+
+* This release adds support for AWS account aliases (by @thepalbi). If the role used by YACE has `"iam:ListAccountAliases"` permission, the account alias (if any) is added as a label to the `aws_account_info` metric.
+
+**Bugfixes and features**
+
+Features:
+* Add AWS/EC2CapacityReservations to the services list by @luismy
+* Add support for MediaPackage metrics by @theunissenne
+* Add AWS/AppRunner as supported service by @fabiiw05
+
+Bugs:
+* Fix association with gwlb by @vainiusd
+
+Refactoring:
+* Add support for batching by time params by @kgeckhart
+
+**Dependencies**
+
+* Bump alpine from 3.19.1 to 3.20.1
+* Bump github.com/aws/aws-sdk-go from 1.53.1 to 1.54.7
+* Bump github.com/aws/aws-sdk-go-v2/service/ec2 from 1.161.4 to 1.162.0 in the aws-sdk-v2 group
+* Bump github.com/prometheus/common from 0.53.0 to 0.54.0
+* Bump golangci/golangci-lint-action from 5.3.0 to 6.0.1
+* Bump goreleaser/goreleaser-action from 5 to 6
+* Bump the aws-sdk-v2 group
+
+**New contributors**
+
+* @luismy made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1341
+* @fabiiw05 made their first contribution in https://github.com/nerdswords/yet-another-cloudwatch-exporter/pull/1433
+
+**Full Changelog**: https://github.com/nerdswords/yet-another-cloudwatch-exporter/compare/v0.60.0...v0.61.0
+
 # 0.60.0
 
 **Bugfixes and features**
