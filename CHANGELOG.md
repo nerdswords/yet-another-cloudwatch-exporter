@@ -28,6 +28,12 @@ Refactoring:
 
 **Full Changelog**: https://github.com/...
 
+# 0.61.1
+
+Bugfix release to update the `goreleaser` configuration, please refer to the release notes for `0.61.0` for actual code changes.
+
+https://github.com/nerdswords/yet-another-cloudwatch-exporter/releases/tag/v0.61.0
+
 # 0.61.0
 
 **Important news and breaking changes**
