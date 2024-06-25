@@ -886,6 +886,63 @@ func TestBuildMetrics(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			name: "scraping with aws account alias",
+			data: []model.CloudwatchMetricResult{{
+				Context: &model.ScrapeContext{
+					Region:       "us-east-1",
+					AccountID:    "123456789012",
+					AccountAlias: "billingacct",
+				},
+				Data: []*model.CloudwatchData{
+					{
+						MetricName: "CPUUtilization",
+						MetricMigrationParams: model.MetricMigrationParams{
+							NilToZero:              false,
+							AddCloudwatchTimestamp: false,
+						},
+						Namespace: "AWS/ElastiCache",
+						GetMetricDataResult: &model.GetMetricDataResult{
+							Statistic: "Average",
+							Datapoint: aws.Float64(1),
+							Timestamp: ts,
+						},
+						Dimensions: []model.Dimension{
+							{
+								Name:  "CacheClusterId",
+								Value: "redis-cluster",
+							},
+						},
+						ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+					},
+				},
+			}},
+			labelsSnakeCase: true,
+			expectedMetrics: []*PrometheusMetric{
+				{
+					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Value:     1,
+					Timestamp: ts,
+					Labels: map[string]string{
+						"account_id":                 "123456789012",
+						"account_alias":              "billingacct",
+						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"region":                     "us-east-1",
+						"dimension_cache_cluster_id": "redis-cluster",
+					},
+				},
+			},
+			expectedLabels: map[string]model.LabelSet{
+				"aws_elasticache_cpuutilization_average": {
+					"account_id":                 {},
+					"account_alias":              {},
+					"name":                       {},
+					"region":                     {},
+					"dimension_cache_cluster_id": {},
+				},
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, tc := range testCases {

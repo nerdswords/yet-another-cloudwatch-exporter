@@ -28,6 +28,8 @@ github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.11 h1:OdHDbX
 github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.38.11/go.mod h1:qiWXZTmOzpRkW6JMyWy+2n1PRnhqmh7T1bH/jdxbJag=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.164.2 h1:Rts0EZgdi3tneJMXp+uKrZHbMxQIu0y5O/2MG6a2+hY=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.164.2/go.mod h1:j0V2ahvdX3mGIyXQSe9vjdIQvSxz3uaMM0bR7Y+0WCE=
+github.com/aws/aws-sdk-go-v2/service/iam v1.32.5 h1:G2judWqHbm2bDrmJPj9W0nD3Pv8+WzhY+fAAEQMpLf4=
+github.com/aws/aws-sdk-go-v2/service/iam v1.32.5/go.mod h1:RorjhuicJ7tEwun17BEeD//1JiPdvxPv15KOa9BKxS8=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 h1:Ji0DY1xUsUr3I8cHps0G+XM3WWU16lP6yG8qu1GAZAs=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2/go.mod h1:5CsjAbs3NlGQyZNFACh+zztPDI7fU6eW9QsxjfnuBKg=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.12 h1:kO2J7WMroF/OTHN9WTcUtMjPhJ7ZoNxx0dwv6UCXQgY=
