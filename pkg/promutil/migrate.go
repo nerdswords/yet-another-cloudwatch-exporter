@@ -245,6 +245,10 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 	labels := make(map[string]string, 2+len(context.CustomTags))
 	labels["region"] = context.Region
 	labels["account_id"] = context.AccountID
+	// If there's no account alias, omit adding an extra label in the series, it will work either way query wise
+	if context.AccountAlias != "" {
+		labels["account_alias"] = context.AccountAlias
+	}
 
 	for _, label := range context.CustomTags {
 		ok, promTag := PromStringTag(label.Key, labelsSnakeCase)

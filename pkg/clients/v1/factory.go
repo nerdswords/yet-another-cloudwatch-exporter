@@ -21,6 +21,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice/databasemigrationserviceiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/prometheusservice"
 	"github.com/aws/aws-sdk-go/service/prometheusservice/prometheusserviceiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -47,6 +49,7 @@ type CachingFactory struct {
 	session          *session.Session
 	endpointResolver endpoints.ResolverFunc
 	stscache         map[model.Role]stsiface.STSAPI
+	iamcache         map[model.Role]iamiface.IAMAPI
 	clients          map[model.Role]map[string]*cachedClients
 	cleared          bool
 	refreshed        bool
@@ -71,12 +74,16 @@ var _ clients.Factory = &CachingFactory{}
 // NewFactory creates a new client factory to use when fetching data from AWS with sdk v1
 func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *CachingFactory {
 	stscache := map[model.Role]stsiface.STSAPI{}
+	iamcache := map[model.Role]iamiface.IAMAPI{}
 	cache := map[model.Role]map[string]*cachedClients{}
 
 	for _, discoveryJob := range jobsCfg.DiscoveryJobs {
 		for _, role := range discoveryJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
+			}
+			if _, ok := iamcache[role]; !ok {
+				iamcache[role] = nil
 			}
 			if _, ok := cache[role]; !ok {
 				cache[role] = map[string]*cachedClients{}
@@ -91,6 +98,9 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *Cac
 		for _, role := range staticJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
+			}
+			if _, ok := iamcache[role]; !ok {
+				iamcache[role] = nil
 			}
 
 			if _, ok := cache[role]; !ok {
@@ -112,6 +122,9 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *Cac
 		for _, role := range customNamespaceJob.Roles {
 			if _, ok := stscache[role]; !ok {
 				stscache[role] = nil
+			}
+			if _, ok := iamcache[role]; !ok {
+				iamcache[role] = nil
 			}
 
 			if _, ok := cache[role]; !ok {
@@ -146,6 +159,7 @@ func NewFactory(logger logging.Logger, jobsCfg model.JobsConfig, fips bool) *Cac
 		session:          nil,
 		endpointResolver: endpointResolver,
 		stscache:         stscache,
+		iamcache:         iamcache,
 		clients:          cache,
 		fips:             fips,
 		cleared:          false,
@@ -163,6 +177,10 @@ func (c *CachingFactory) Clear() {
 
 	for role := range c.stscache {
 		c.stscache[role] = nil
+	}
+
+	for role := range c.iamcache {
+		c.iamcache[role] = nil
 	}
 
 	for role, regions := range c.clients {
@@ -198,6 +216,10 @@ func (c *CachingFactory) Refresh() {
 		c.stscache[role] = createStsSession(c.session, role, c.stsRegion, c.fips, c.logger.IsDebugEnabled())
 	}
 
+	for role := range c.iamcache {
+		c.iamcache[role] = createIamSession(c.session, role, c.fips, c.logger.IsDebugEnabled())
+	}
+
 	for role, regions := range c.clients {
 		for region := range regions {
 			cachedClient := c.clients[role][region]
@@ -209,7 +231,7 @@ func (c *CachingFactory) Refresh() {
 				continue
 			}
 			cachedClient.tagging = createTaggingClient(c.logger, c.session, &region, role, c.fips)
-			cachedClient.account = createAccountClient(c.logger, c.stscache[role])
+			cachedClient.account = createAccountClient(c.logger, c.stscache[role], c.iamcache[role])
 		}
 	}
 
@@ -242,8 +264,8 @@ func createTaggingClient(logger logging.Logger, session *session.Session, region
 	)
 }
 
-func createAccountClient(logger logging.Logger, sts stsiface.STSAPI) account.Client {
-	return account_v1.NewClient(logger, sts)
+func createAccountClient(logger logging.Logger, sts stsiface.STSAPI, iam iamiface.IAMAPI) account.Client {
+	return account_v1.NewClient(logger, sts, iam)
 }
 
 func (c *CachingFactory) GetCloudwatchClient(region string, role model.Role, concurrency cloudwatch_client.ConcurrencyConfig) cloudwatch_client.Client {
@@ -281,7 +303,7 @@ func (c *CachingFactory) GetAccountClient(region string, role model.Role) accoun
 	if client := c.clients[role][region].account; client != nil {
 		return client
 	}
-	c.clients[role][region].account = createAccountClient(c.logger, c.stscache[role])
+	c.clients[role][region].account = createAccountClient(c.logger, c.stscache[role], c.iamcache[role])
 	return c.clients[role][region].account
 }
 
@@ -347,6 +369,21 @@ func createStsSession(sess *session.Session, role model.Role, region string, fip
 	}
 
 	return sts.New(sess, setSTSCreds(sess, config, role))
+}
+
+func createIamSession(sess *session.Session, role model.Role, fips bool, isDebugEnabled bool) *iam.IAM {
+	maxStsRetries := 5
+	config := &aws.Config{MaxRetries: &maxStsRetries}
+
+	if fips {
+		config.UseFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
+	}
+
+	if isDebugEnabled {
+		config.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+	}
+
+	return iam.New(sess, setSTSCreds(sess, config, role))
 }
 
 func createCloudwatchSession(sess *session.Session, region *string, role model.Role, fips bool, isDebugEnabled bool) *cloudwatch.CloudWatch {
