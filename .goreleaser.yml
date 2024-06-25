@@ -1,3 +1,4 @@
+version: 2
 builds:
   - binary: yace
     main: ./cmd/yace
