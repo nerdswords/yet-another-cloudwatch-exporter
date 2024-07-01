@@ -289,8 +289,8 @@ func TestScrapeRunner_Run(t *testing.T) {
 				return "", errors.New("failed to get account")
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}},
-				{JobContext: job.JobContext{AccountID: "", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}},
+				{JobContext: job.JobContext{AccountID: "", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}, ErrorType: job.AccountErr},
+				{JobContext: job.JobContext{AccountID: "", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}, ErrorType: job.AccountErr},
 			},
 		},
 		{
@@ -348,7 +348,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}},
+				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}, ErrorType: job.ResourceMetadataErr},
 			},
 		},
 		{
@@ -421,7 +421,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}},
+				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}, ErrorType: job.CloudWatchCollectionErr},
 			},
 		},
 	}
@@ -443,9 +443,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			assert.NoError(t, err, "failed to diff metrics")
 			assert.Len(t, changelog, 0, changelog)
 
-			// We don't need the check the exact error or message
+			// We don't want to check the exact error just the message
 			changelog, err = diff.Diff(tc.expectedErrs, errs, diff.Filter(func(_ []string, _ reflect.Type, field reflect.StructField) bool {
-				return !(field.Name == "Err" || field.Name == "Message")
+				return !(field.Name == "Err")
 			}))
 			assert.NoError(t, err, "failed to diff errs")
 			assert.Len(t, changelog, 0, changelog)

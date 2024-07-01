@@ -43,6 +43,14 @@ func NewScraper(logger logging.Logger,
 	}
 }
 
+type ErrorType string
+
+var (
+	AccountErr              ErrorType = "Account for job was not found"
+	ResourceMetadataErr     ErrorType = "Failed to run resource metadata for job"
+	CloudWatchCollectionErr ErrorType = "Failed to gather cloudwatch metrics for job"
+)
+
 func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []model.CloudwatchMetricResult, []Error) {
 	// Setup so we only do one GetAccount call per region + role combo when running jobs
 	roleRegionToAccount := map[model.Role]map[string]func() (string, error){}
@@ -86,7 +94,7 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 
 			accountID, err := roleRegionToAccount[role][region]()
 			if err != nil {
-				jobError := NewError(jobContext, "Account for job was not found", err)
+				jobError := NewError(jobContext, AccountErr, err)
 				mux.Lock()
 				jobErrors = append(jobErrors, jobError)
 				mux.Unlock()
@@ -102,7 +110,7 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 					rmRunner := s.runnerFactory.NewResourceMetadataRunner(jobLogger, region, role)
 					resources, err := rmRunner.Run(ctx, region, job)
 					if err != nil {
-						jobError := NewError(jobContext, "Failed to run resource metadata for job", err)
+						jobError := NewError(jobContext, ResourceMetadataErr, err)
 						mux.Lock()
 						jobErrors = append(jobErrors, jobError)
 						mux.Unlock()
@@ -136,7 +144,7 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 			cwRunner := s.runnerFactory.NewCloudWatchRunner(jobLogger, region, role, jobToRun)
 			metricResult, err := cwRunner.Run(ctx)
 			if err != nil {
-				jobError := NewError(jobContext, "Failed to gather cloudwatch metrics for job", err)
+				jobError := NewError(jobContext, CloudWatchCollectionErr, err)
 				mux.Lock()
 				jobErrors = append(jobErrors, jobError)
 				mux.Unlock()
@@ -219,14 +227,14 @@ func (jc JobContext) ToScrapeContext(customTags []model.Tag) *model.ScrapeContex
 
 type Error struct {
 	JobContext
-	Message string
-	Err     error
+	ErrorType ErrorType
+	Err       error
 }
 
-func NewError(context JobContext, message string, err error) Error {
+func NewError(context JobContext, errorType ErrorType, err error) Error {
 	return Error{
 		JobContext: context,
-		Message:    message,
+		ErrorType:  errorType,
 		Err:        err,
 	}
 }
