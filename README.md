@@ -45,6 +45,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AmazonMWAA` - Managed Apache Airflow
   * `AWS/ACMPrivateCA` - ACM Private CA
   * `AWS/AmazonMQ` - Managed Message Broker Service
+  * `AWS/AppRunner` - Managed Container Apps Service
   * `AWS/AOSS` - OpenSearch Serverless
   * `AWS/ApiGateway` - ApiGateway (V1 and V2)
   * `AWS/ApplicationELB` - Application Load Balancer
@@ -162,7 +163,8 @@ As a quick start, the following IAM policy can be used to grant the all permissi
         "ec2:DescribeSpotFleetRequests",
         "shield:ListProtections",
         "storagegateway:ListGateways",
-        "storagegateway:ListTagsForResource"
+        "storagegateway:ListTagsForResource",
+        "iam:ListAccountAliases"
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -222,6 +224,11 @@ This permission is required to discover resources for the AWS/TransitGateway nam
 This permission is required to discover protected resources for the AWS/DDoSProtection namespace
 ```json
 "shield:ListProtections"
+```
+
+The AWS IAM API supports creating account aliases, which are human-friendly names that can be used to easily identify accounts. An account can have at most a single alias, see ([docs](https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListAccountAliases.html)). Each alias must be unique across an AWS network partition ([docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html#AboutAccountAlias)). The following permission is required to get the alias for an account, which is exported as a label in the `aws_account_info` metric:
+```json
+"iam:ListAccountAliases"
 ```
 
 If running YACE inside an AWS EC2 instance, the exporter will automatically attempt to assume the associated IAM Role. If this is undesirable behavior turn off the use the metadata endpoint by setting the environment variable `AWS_EC2_METADATA_DISABLED=true`.

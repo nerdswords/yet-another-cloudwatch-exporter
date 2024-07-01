@@ -1,3 +1,4 @@
+version: 2
 builds:
   - binary: yace
     main: ./cmd/yace
@@ -16,6 +17,6 @@ archives:
     files:
       - none*
 changelog:
-  skip: true
+  disable: true
 checksum:
   name_template: 'checksums.txt'

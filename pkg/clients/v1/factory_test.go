@@ -495,7 +495,7 @@ func TestClear(t *testing.T) {
 						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
-							account:    createAccountClient(logging.NewNopLogger(), nil),
+							account:    createAccountClient(logging.NewNopLogger(), nil, nil),
 							onlyStatic: true,
 						},
 					},
@@ -634,7 +634,7 @@ func TestRefresh(t *testing.T) {
 						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
-							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false), createIamSession(mock.Session, role, false, false)),
 						},
 					},
 				},
@@ -752,7 +752,7 @@ func testGetAWSClient(
 						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
-							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false), createIamSession(mock.Session, role, false, false)),
 						},
 					},
 				},
@@ -774,7 +774,7 @@ func testGetAWSClient(
 						"us-east-1": &cachedClients{
 							cloudwatch: createCloudWatchClient(logging.NewNopLogger(), mock.Session, &region, role, false),
 							tagging:    createTaggingClient(logging.NewNopLogger(), mock.Session, &region, role, false),
-							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false)),
+							account:    createAccountClient(logging.NewNopLogger(), createStsSession(mock.Session, role, "", false, false), createIamSession(mock.Session, role, false, false)),
 						},
 					},
 				},
