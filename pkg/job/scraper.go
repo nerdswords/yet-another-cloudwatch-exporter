@@ -51,19 +51,34 @@ var (
 	CloudWatchCollectionErr ErrorType = "Failed to gather cloudwatch metrics for job"
 )
 
+type Account struct {
+	ID    string
+	Alias string
+}
+
 func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []model.CloudwatchMetricResult, []Error) {
 	// Setup so we only do one GetAccount call per region + role combo when running jobs
-	roleRegionToAccount := map[model.Role]map[string]func() (string, error){}
+	roleRegionToAccount := map[model.Role]map[string]func() (Account, error){}
 	jobConfigVisitor(s.jobsCfg, func(_ any, role model.Role, region string) {
 		if _, exists := roleRegionToAccount[role]; !exists {
-			roleRegionToAccount[role] = map[string]func() (string, error){}
+			roleRegionToAccount[role] = map[string]func() (Account, error){}
 		}
-		roleRegionToAccount[role][region] = sync.OnceValues[string, error](func() (string, error) {
-			accountID, err := s.runnerFactory.GetAccountClient(region, role).GetAccount(ctx)
+		roleRegionToAccount[role][region] = sync.OnceValues[Account, error](func() (Account, error) {
+			client := s.runnerFactory.GetAccountClient(region, role)
+			accountID, err := client.GetAccount(ctx)
 			if err != nil {
-				return "", fmt.Errorf("failed to get Account: %w", err)
+				return Account{}, fmt.Errorf("failed to get Account: %w", err)
 			}
-			return accountID, nil
+			a := Account{
+				ID: accountID,
+			}
+			accountAlias, err := client.GetAccountAlias(ctx)
+			if err != nil {
+				s.logger.Warn("Failed to get optional account alias from account", "err", err, "account_id", accountID)
+			} else {
+				a.Alias = accountAlias
+			}
+			return a, nil
 		})
 	})
 
@@ -92,7 +107,7 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 			}
 			jobLogger := s.logger.With("namespace", jobContext.Namespace, "region", jobContext.Region, "arn", jobContext.RoleARN)
 
-			accountID, err := roleRegionToAccount[role][region]()
+			account, err := roleRegionToAccount[role][region]()
 			if err != nil {
 				jobError := NewError(jobContext, AccountErr, err)
 				mux.Lock()
@@ -100,8 +115,8 @@ func (s Scraper) Scrape(ctx context.Context) ([]model.TaggedResourceResult, []mo
 				mux.Unlock()
 				return
 			}
-			jobContext.AccountID = accountID
-			jobLogger = jobLogger.With("account", jobContext.AccountID)
+			jobContext.Account = account
+			jobLogger = jobLogger.With("account_id", jobContext.Account.ID)
 
 			var jobToRun cloudwatchrunner.Job
 			jobAction(jobLogger, job,
@@ -211,7 +226,7 @@ func jobAction(logger logging.Logger, job any, discovery func(job model.Discover
 // This makes it easier to track the data additively and morph it to the final shape necessary be it a model.ScrapeContext
 // or an Error. It's an exported type for tests but is not part of the public interface
 type JobContext struct { //nolint:revive
-	AccountID string
+	Account   Account
 	Namespace string
 	Region    string
 	RoleARN   string
@@ -219,9 +234,10 @@ type JobContext struct { //nolint:revive
 
 func (jc JobContext) ToScrapeContext(customTags []model.Tag) *model.ScrapeContext {
 	return &model.ScrapeContext{
-		AccountID:  jc.AccountID,
-		Region:     jc.Region,
-		CustomTags: customTags,
+		AccountID:    jc.Account.ID,
+		Region:       jc.Region,
+		CustomTags:   customTags,
+		AccountAlias: jc.Account.Alias,
 	}
 }
 
@@ -241,7 +257,7 @@ func NewError(context JobContext, errorType ErrorType, err error) Error {
 
 func (e Error) ToLoggerKeyVals() []interface{} {
 	return []interface{}{
-		"account_id", e.AccountID,
+		"account_id", e.Account.ID,
 		"namespace", e.Namespace,
 		"region", e.Region,
 		"role_arn", e.RoleARN,

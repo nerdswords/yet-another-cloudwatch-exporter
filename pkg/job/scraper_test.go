@@ -19,9 +19,14 @@ import (
 )
 
 type testRunnerFactory struct {
-	GetAccountFunc    func() (string, error)
-	MetadataRunFunc   func(ctx context.Context, region string, job model.DiscoveryJob) ([]*model.TaggedResource, error)
-	CloudwatchRunFunc func(ctx context.Context, job cloudwatchrunner.Job) ([]*model.CloudwatchData, error)
+	GetAccountAliasFunc func() (string, error)
+	GetAccountFunc      func() (string, error)
+	MetadataRunFunc     func(ctx context.Context, region string, job model.DiscoveryJob) ([]*model.TaggedResource, error)
+	CloudwatchRunFunc   func(ctx context.Context, job cloudwatchrunner.Job) ([]*model.CloudwatchData, error)
+}
+
+func (t *testRunnerFactory) GetAccountAlias(context.Context) (string, error) {
+	return t.GetAccountAliasFunc()
 }
 
 func (t *testRunnerFactory) GetAccount(context.Context) (string, error) {
@@ -63,14 +68,15 @@ func (t testCloudwatchRunner) Run(ctx context.Context) ([]*model.CloudwatchData,
 
 func TestScrapeRunner_Run(t *testing.T) {
 	tests := []struct {
-		name              string
-		jobsCfg           model.JobsConfig
-		getAccountFunc    func() (string, error)
-		metadataRunFunc   func(ctx context.Context, region string, job model.DiscoveryJob) ([]*model.TaggedResource, error)
-		cloudwatchRunFunc func(ctx context.Context, job cloudwatchrunner.Job) ([]*model.CloudwatchData, error)
-		expectedResources []model.TaggedResourceResult
-		expectedMetrics   []model.CloudwatchMetricResult
-		expectedErrs      []job.Error
+		name                string
+		jobsCfg             model.JobsConfig
+		getAccountFunc      func() (string, error)
+		getAccountAliasFunc func() (string, error)
+		metadataRunFunc     func(ctx context.Context, region string, job model.DiscoveryJob) ([]*model.TaggedResource, error)
+		cloudwatchRunFunc   func(ctx context.Context, job cloudwatchrunner.Job) ([]*model.CloudwatchData, error)
+		expectedResources   []model.TaggedResourceResult
+		expectedMetrics     []model.CloudwatchMetricResult
+		expectedErrs        []job.Error
 	}{
 		{
 			name: "can run a discovery job",
@@ -87,6 +93,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			getAccountFunc: func() (string, error) {
 				return "aws-account-1", nil
+			},
+			getAccountAliasFunc: func() (string, error) {
+				return "my-aws-account", nil
 			},
 			metadataRunFunc: func(_ context.Context, _ string, _ model.DiscoveryJob) ([]*model.TaggedResource, error) {
 				return []*model.TaggedResource{{
@@ -107,7 +116,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedResources: []model.TaggedResourceResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.TaggedResource{
 						{ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}}},
 					},
@@ -115,7 +124,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedMetrics: []model.CloudwatchMetricResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-1",
@@ -146,6 +155,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			getAccountFunc: func() (string, error) {
 				return "aws-account-1", nil
 			},
+			getAccountAliasFunc: func() (string, error) {
+				return "my-aws-account", nil
+			},
 			cloudwatchRunFunc: func(_ context.Context, _ cloudwatchrunner.Job) ([]*model.CloudwatchData, error) {
 				return []*model.CloudwatchData{
 					{
@@ -159,7 +171,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedMetrics: []model.CloudwatchMetricResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-2",
@@ -198,6 +210,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			getAccountFunc: func() (string, error) {
 				return "aws-account-1", nil
 			},
+			getAccountAliasFunc: func() (string, error) {
+				return "my-aws-account", nil
+			},
 			metadataRunFunc: func(_ context.Context, _ string, _ model.DiscoveryJob) ([]*model.TaggedResource, error) {
 				return []*model.TaggedResource{{
 					ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}},
@@ -228,7 +243,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedResources: []model.TaggedResourceResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.TaggedResource{
 						{ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}}},
 					},
@@ -236,7 +251,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedMetrics: []model.CloudwatchMetricResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-1",
@@ -249,7 +264,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 					},
 				},
 				{
-					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-2",
@@ -289,8 +304,66 @@ func TestScrapeRunner_Run(t *testing.T) {
 				return "", errors.New("failed to get account")
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}, ErrorType: job.AccountErr},
-				{JobContext: job.JobContext{AccountID: "", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}, ErrorType: job.AccountErr},
+				{JobContext: job.JobContext{Account: job.Account{}, Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}, ErrorType: job.AccountErr},
+				{JobContext: job.JobContext{Account: job.Account{}, Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}, ErrorType: job.AccountErr},
+			},
+		},
+		{
+			name: "ignores errors from GetAccountAlias",
+			jobsCfg: model.JobsConfig{
+				DiscoveryJobs: []model.DiscoveryJob{
+					{
+						Regions: []string{"us-east-1"},
+						Type:    "aws-namespace",
+						Roles: []model.Role{
+							{RoleArn: "aws-arn-1", ExternalID: "external-id-1"},
+						},
+					},
+				},
+			},
+			getAccountFunc: func() (string, error) {
+				return "aws-account-1", nil
+			},
+			getAccountAliasFunc: func() (string, error) { return "", errors.New("No alias here") },
+			metadataRunFunc: func(_ context.Context, _ string, _ model.DiscoveryJob) ([]*model.TaggedResource, error) {
+				return []*model.TaggedResource{{
+					ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}},
+				}}, nil
+			},
+			cloudwatchRunFunc: func(_ context.Context, _ cloudwatchrunner.Job) ([]*model.CloudwatchData, error) {
+				return []*model.CloudwatchData{
+					{
+						MetricName:          "metric-1",
+						ResourceName:        "resource-1",
+						Namespace:           "aws-namespace",
+						Tags:                []model.Tag{{Key: "tag1", Value: "value1"}},
+						Dimensions:          []model.Dimension{{Name: "dimension1", Value: "value1"}},
+						GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Maximum", Datapoint: aws.Float64(1.0), Timestamp: time.Time{}},
+					},
+				}, nil
+			},
+			expectedResources: []model.TaggedResourceResult{
+				{
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: ""},
+					Data: []*model.TaggedResource{
+						{ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}}},
+					},
+				},
+			},
+			expectedMetrics: []model.CloudwatchMetricResult{
+				{
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: ""},
+					Data: []*model.CloudwatchData{
+						{
+							MetricName:          "metric-1",
+							ResourceName:        "resource-1",
+							Namespace:           "aws-namespace",
+							Tags:                []model.Tag{{Key: "tag1", Value: "value1"}},
+							Dimensions:          []model.Dimension{{Name: "dimension1", Value: "value1"}},
+							GetMetricDataResult: &model.GetMetricDataResult{Statistic: "Maximum", Datapoint: aws.Float64(1.0), Timestamp: time.Time{}},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -319,6 +392,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			getAccountFunc: func() (string, error) {
 				return "aws-account-1", nil
 			},
+			getAccountAliasFunc: func() (string, error) {
+				return "my-aws-account", nil
+			},
 			metadataRunFunc: func(_ context.Context, _ string, _ model.DiscoveryJob) ([]*model.TaggedResource, error) {
 				return nil, errors.New("I failed you")
 			},
@@ -335,7 +411,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedMetrics: []model.CloudwatchMetricResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-2", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-2",
@@ -348,7 +424,14 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "aws-namespace", Region: "us-east-1", RoleARN: "aws-arn-1"}, ErrorType: job.ResourceMetadataErr},
+				{
+					JobContext: job.JobContext{
+						Account:   job.Account{ID: "aws-account-1", Alias: "my-aws-account"},
+						Namespace: "aws-namespace",
+						Region:    "us-east-1",
+						RoleARN:   "aws-arn-1"},
+					ErrorType: job.ResourceMetadataErr,
+				},
 			},
 		},
 		{
@@ -377,6 +460,9 @@ func TestScrapeRunner_Run(t *testing.T) {
 			getAccountFunc: func() (string, error) {
 				return "aws-account-1", nil
 			},
+			getAccountAliasFunc: func() (string, error) {
+				return "my-aws-account", nil
+			},
 			metadataRunFunc: func(_ context.Context, _ string, _ model.DiscoveryJob) ([]*model.TaggedResource, error) {
 				return []*model.TaggedResource{{
 					ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}},
@@ -399,7 +485,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedResources: []model.TaggedResourceResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.TaggedResource{
 						{ARN: "resource-1", Namespace: "aws-namespace", Region: "us-east-1", Tags: []model.Tag{{Key: "tag1", Value: "value1"}}},
 					},
@@ -407,7 +493,7 @@ func TestScrapeRunner_Run(t *testing.T) {
 			},
 			expectedMetrics: []model.CloudwatchMetricResult{
 				{
-					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1"},
+					Context: &model.ScrapeContext{Region: "us-east-1", AccountID: "aws-account-1", AccountAlias: "my-aws-account"},
 					Data: []*model.CloudwatchData{
 						{
 							MetricName:          "metric-1",
@@ -421,16 +507,23 @@ func TestScrapeRunner_Run(t *testing.T) {
 				},
 			},
 			expectedErrs: []job.Error{
-				{JobContext: job.JobContext{AccountID: "aws-account-1", Namespace: "custom-namespace", Region: "us-east-2", RoleARN: "aws-arn-2"}, ErrorType: job.CloudWatchCollectionErr},
+				{
+					JobContext: job.JobContext{
+						Account:   job.Account{ID: "aws-account-1", Alias: "my-aws-account"},
+						Namespace: "custom-namespace",
+						Region:    "us-east-2",
+						RoleARN:   "aws-arn-2"},
+					ErrorType: job.CloudWatchCollectionErr},
 			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			rf := testRunnerFactory{
-				GetAccountFunc:    tc.getAccountFunc,
-				MetadataRunFunc:   tc.metadataRunFunc,
-				CloudwatchRunFunc: tc.cloudwatchRunFunc,
+				GetAccountFunc:      tc.getAccountFunc,
+				GetAccountAliasFunc: tc.getAccountAliasFunc,
+				MetadataRunFunc:     tc.metadataRunFunc,
+				CloudwatchRunFunc:   tc.cloudwatchRunFunc,
 			}
 			sr := job.NewScraper(logging.NewLogger("", true), tc.jobsCfg, &rf)
 			resources, metrics, errs := sr.Scrape(context.Background())
