@@ -171,6 +171,12 @@ func (assoc Associator) AssociateMetricToResource(cwMetric *model.Metric) (*mode
 				return resource, false
 			}
 
+			// Don't check matched resources when setting `includeLinkedAccounts: true`
+			if cwMetric.LinkedAccountId != "" {
+				logger.Debug("Get metrics from linked account, resource always matched", cwMetric.LinkedAccountId)
+				return nil, false
+			}
+
 			// Otherwise, continue iterating across the rest of regex mappings
 			// to attempt to find another one with fewer dimensions.
 			logger.Debug("resource not matched", "signature", signature)
