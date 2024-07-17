@@ -96,6 +96,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/MediaConnect` - AWS Elemental MediaConnect
   * `AWS/MediaConvert` - AWS Elemental MediaConvert
   * `AWS/MediaLive` - AWS Elemental MediaLive
+  * `AWS/MediaPackage - AWS Elemental MediaPackage
   * `AWS/MediaTailor` - AWS Elemental MediaTailor
   * `AWS/MemoryDB` - AWS MemoryDB
   * `AWS/MWAA` - Managed Apache Airflow (Container, queue, and database metrics)
