@@ -381,6 +381,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "ContainerInsights",
+		Alias:     "containerinsights",
+		ResourceFilters: []*string{
+			aws.String("eks:cluster"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":cluster/(?P<ClusterName>[^/]+)$"),
+		},
+	},
+	{
 		Namespace: "AWS/EFS",
 		Alias:     "efs",
 		ResourceFilters: []*string{
