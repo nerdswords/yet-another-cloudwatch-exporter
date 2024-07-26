@@ -108,6 +108,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/PrivateLinkServices` - VPC Endpoint Service
   * `AWS/Prometheus` - Managed Service for Prometheus
   * `AWS/QLDB` - Quantum Ledger Database
+  * `AWS/QuickSight` - QuickSight (Business Intelligence)
   * `AWS/RDS` - Relational Database Service
   * `AWS/Redshift` - Redshift Database
   * `AWS/Route53` - Route53 Health Checks
