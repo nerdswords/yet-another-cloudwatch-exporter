@@ -776,6 +776,14 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/Scheduler",
+		Alias:     "scheduler",
+	},
+	{
+		Namespace: "AWS/ECR",
+		Alias:     "ecr",
+	},
+	{
 		Namespace: "AWS/SecretsManager",
 		Alias:     "secretsmanager",
 	},
