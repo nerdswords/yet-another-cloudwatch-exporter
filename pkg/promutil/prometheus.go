@@ -6,6 +6,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -91,7 +92,7 @@ var replacer = strings.NewReplacer(
 )
 
 type PrometheusMetric struct {
-	Name             *string
+	Name             string
 	Labels           map[string]string
 	Value            float64
 	IncludeTimestamp bool
@@ -99,12 +100,12 @@ type PrometheusMetric struct {
 }
 
 type PrometheusCollector struct {
-	metrics []*PrometheusMetric
+	metrics []prometheus.Metric
 }
 
 func NewPrometheusCollector(metrics []*PrometheusMetric) *PrometheusCollector {
 	return &PrometheusCollector{
-		metrics: metrics,
+		metrics: toConstMetrics(metrics),
 	}
 }
 
@@ -118,24 +119,63 @@ func (p *PrometheusCollector) Describe(_ chan<- *prometheus.Desc) {
 
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	for _, metric := range p.metrics {
-		metrics <- createMetric(metric)
+		metrics <- metric
 	}
 }
 
-func createMetric(metric *PrometheusMetric) prometheus.Metric {
-	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        *metric.Name,
-		Help:        "Help is not implemented yet.",
-		ConstLabels: metric.Labels,
-	})
+func toMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
+	result := make([]prometheus.Metric, 0, len(metrics))
+	for _, metric := range metrics {
+		gauge := prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        metric.Name,
+			Help:        "Help is not implemented yet.",
+			ConstLabels: metric.Labels,
+		})
+		gauge.Set(metric.Value)
 
-	gauge.Set(metric.Value)
+		if !metric.IncludeTimestamp {
+			result = append(result, gauge)
+		} else {
+			result = append(result, prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge))
+		}
+	}
+	return result
+}
 
-	if !metric.IncludeTimestamp {
-		return gauge
+func toConstMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
+	// We keep two fast lookup maps here one for the prometheus.Desc of a metric which can be reused for each metric with
+	// the same name and the expected label key order of a particular metric name.
+	// The prometheus.Desc object is expensive to create and being able to reuse it for all metrics with the same name
+	// results in large performance gain. We use the other map because metrics created using the Desc only provide label
+	// values and they must be provided in the exact same order as registered in the Desc.
+	metricToDesc := map[string]*prometheus.Desc{}
+	metricToExpectedLabelOrder := map[string][]string{}
+
+	result := make([]prometheus.Metric, 0, len(metrics))
+	for _, metric := range metrics {
+		metricName := metric.Name
+		if _, ok := metricToDesc[metricName]; !ok {
+			labelKeys := maps.Keys(metric.Labels)
+			metricToDesc[metricName] = prometheus.NewDesc(metricName, "Help is not implemented yet.", labelKeys, nil)
+			metricToExpectedLabelOrder[metricName] = labelKeys
+		}
+		metricsDesc := metricToDesc[metricName]
+
+		// Create the label values using the label order of the Desc
+		labelValues := make([]string, 0, len(metric.Labels))
+		for _, labelKey := range metricToExpectedLabelOrder[metricName] {
+			labelValues = append(labelValues, metric.Labels[labelKey])
+		}
+
+		promMetric := prometheus.MustNewConstMetric(metricsDesc, prometheus.GaugeValue, metric.Value, labelValues...)
+		if metric.IncludeTimestamp {
+			promMetric = prometheus.NewMetricWithTimestamp(metric.Timestamp, promMetric)
+		}
+
+		result = append(result, promMetric)
 	}
 
-	return prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge)
+	return result
 }
 
 func PromString(text string) string {

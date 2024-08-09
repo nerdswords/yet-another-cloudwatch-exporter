@@ -1,6 +1,8 @@
 package promutil
 
 import (
+	"fmt"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -115,4 +117,65 @@ func TestPromStringTag(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Benchmark_CreateMetrics(b *testing.B) {
+	tests := []struct {
+		uniqueMetrics    int
+		numberOfLabels   int
+		metricsToMigrate int
+	}{
+		{10, 1, 1000},
+		{10, 1, 10000},
+		{10, 1, 100000},
+		{10, 5, 1000},
+		{10, 5, 10000},
+		{10, 5, 100000},
+		{10, 10, 1000},
+		{10, 10, 10000},
+		{10, 10, 100000},
+		{10, 20, 1000},
+		{10, 20, 10000},
+		{10, 20, 100000},
+		{20, 20, 1000},
+		{20, 20, 10000},
+		{20, 20, 100000},
+	}
+
+	for _, tc := range tests {
+		metricsToMigrate := createTestData(tc.uniqueMetrics, tc.numberOfLabels, tc.metricsToMigrate)
+
+		b.Run(fmt.Sprintf("current: unique metrics %d, number of labels %d, metrics to migrate %d", tc.uniqueMetrics, tc.numberOfLabels, tc.metricsToMigrate), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				toMetrics(metricsToMigrate)
+			}
+		})
+
+		b.Run(fmt.Sprintf("new: unique metrics %d, number of labels %d, metrics to migrate %d", tc.uniqueMetrics, tc.numberOfLabels, tc.metricsToMigrate), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				toConstMetrics(metricsToMigrate)
+			}
+		})
+	}
+}
+
+func createTestData(uniqueMetrics int, numberOfLabels int, totalToMigrate int) []*PrometheusMetric {
+	result := make([]*PrometheusMetric, 0, totalToMigrate)
+	for i := 0; i < totalToMigrate; i++ {
+		metricName := fmt.Sprintf("metric_%d", rand.IntN(uniqueMetrics-1))
+		labels := make(map[string]string, numberOfLabels)
+		for j := 0; j < numberOfLabels; j++ {
+			labels[fmt.Sprintf("label_%d", j)] = fmt.Sprintf("label-value-%d", j)
+		}
+		result = append(result, &PrometheusMetric{
+			Name:             metricName,
+			Labels:           labels,
+			Value:            0,
+			IncludeTimestamp: false,
+		})
+	}
+
+	return result
 }
