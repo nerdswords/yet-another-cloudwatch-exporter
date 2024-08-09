@@ -66,7 +66,7 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 
 			observedMetricLabels = recordLabelsForMetric(metricName, promLabels, observedMetricLabels)
 			metrics = append(metrics, &PrometheusMetric{
-				Name:   &metricName,
+				Name:   metricName,
 				Labels: promLabels,
 				Value:  0,
 			})
@@ -116,7 +116,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
 
 				output = append(output, &PrometheusMetric{
-					Name:             &name,
+					Name:             name,
 					Labels:           promLabels,
 					Value:            exportedDatapoint,
 					Timestamp:        ts,
@@ -285,13 +285,13 @@ func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, obse
 	output := make([]*PrometheusMetric, 0, len(metrics))
 
 	for _, metric := range metrics {
-		for observedLabels := range observedMetricLabels[*metric.Name] {
+		for observedLabels := range observedMetricLabels[metric.Name] {
 			if _, ok := metric.Labels[observedLabels]; !ok {
 				metric.Labels[observedLabels] = ""
 			}
 		}
 
-		metricKey := fmt.Sprintf("%s-%d", *metric.Name, prom_model.LabelsToSignature(metric.Labels))
+		metricKey := fmt.Sprintf("%s-%d", metric.Name, prom_model.LabelsToSignature(metric.Labels))
 		if _, exists := metricKeys[metricKey]; !exists {
 			metricKeys[metricKey] = struct{}{}
 			output = append(output, metric)
