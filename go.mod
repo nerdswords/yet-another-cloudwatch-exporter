@@ -5,15 +5,15 @@ go 1.22.0
 require (
 	github.com/aws/aws-sdk-go v1.54.12
 	github.com/aws/aws-sdk-go-v2 v1.30.3
-	github.com/aws/aws-sdk-go-v2/config v1.27.26
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.26
+	github.com/aws/aws-sdk-go-v2/config v1.27.27
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.27
 	github.com/aws/aws-sdk-go-v2/service/amp v1.27.3
-	github.com/aws/aws-sdk-go-v2/service/apigateway v1.25.3
-	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.22.3
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.25.4
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.22.4
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.43.3
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.40.3
 	github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.40.3
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.170.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.175.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.34.3
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.23.3
 	github.com/aws/aws-sdk-go-v2/service/shield v1.27.3
@@ -38,7 +38,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.22.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
