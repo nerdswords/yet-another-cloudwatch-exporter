@@ -978,4 +978,14 @@ var SupportedServices = serviceConfigs{
 			regexp.MustCompile(":rule/aws.partner/(?P<EventBusName>.+)/(?P<RuleName>[^/]+)$"),
 		},
 	},
+	{
+		Namespace: "AWS/VpcLattice",
+		Alias:     "vpc-lattice",
+		ResourceFilters: []*string{
+			aws.String("vpc-lattice:service"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":service/(?P<Service>[^/]+)$"),
+		},
+	},
 }
