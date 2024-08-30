@@ -45,10 +45,10 @@ Only the latest version gets security updates. We won't support older versions.
   * `AmazonMWAA` - Managed Apache Airflow
   * `AWS/ACMPrivateCA` - ACM Private CA
   * `AWS/AmazonMQ` - Managed Message Broker Service
-  * `AWS/AppRunner` - Managed Container Apps Service
   * `AWS/AOSS` - OpenSearch Serverless
   * `AWS/ApiGateway` - ApiGateway (V1 and V2)
   * `AWS/ApplicationELB` - Application Load Balancer
+  * `AWS/AppRunner` - Managed Container Apps Service
   * `AWS/AppStream` - AppStream
   * `AWS/AppSync` - AppSync
   * `AWS/Athena` - Athena
@@ -70,6 +70,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/EBS` - Elastic Block Storage
   * `AWS/EC2` - Elastic Compute Cloud
   * `AWS/EC2Spot` - Elastic Compute Cloud for Spot Instances
+  * `AWS/ECR` - Elastic Container Registry
   * `AWS/ECS` - Elastic Container Service (Service Metrics)
   * `AWS/EFS` - Elastic File System
   * `AWS/ElastiCache` - ElastiCache
@@ -96,7 +97,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/MediaConnect` - AWS Elemental MediaConnect
   * `AWS/MediaConvert` - AWS Elemental MediaConvert
   * `AWS/MediaLive` - AWS Elemental MediaLive
-  * `AWS/MediaPackage - AWS Elemental MediaPackage
+  * `AWS/MediaPackage` - AWS Elemental MediaPackage
   * `AWS/MediaTailor` - AWS Elemental MediaTailor
   * `AWS/MemoryDB` - AWS MemoryDB
   * `AWS/MWAA` - Managed Apache Airflow (Container, queue, and database metrics)
@@ -117,6 +118,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/S3` - Object Storage
   * `AWS/Sagemaker/ModelBuildingPipeline` - Sagemaker Model Building Pipelines
   * `AWS/SageMaker` - Sagemaker invocations
+  * `AWS/Scheduler` - EventBridge Scheduler
   * `AWS/SecretsManager` - Secrets Manager
   * `AWS/SES` - Simple Email Service
   * `AWS/SNS` - Simple Notification Service
@@ -126,14 +128,14 @@ Only the latest version gets security updates. We won't support older versions.
   * `AWS/TransitGateway` - Transit Gateway
   * `AWS/TrustedAdvisor` - Trusted Advisor
   * `AWS/Usage` - Usage of some AWS resources and APIs
+  * `AWS/VpcLattice` - VPC Lattice
   * `AWS/VPN` - VPN connection
   * `AWS/WAFV2` - Web Application Firewall v2
   * `AWS/WorkSpaces` - Workspaces
+  * `ContainerInsights` - EKS ContainerInsights (Dependency on Cloudwatch agent)
   * `CWAgent` - CloudWatch agent
   * `ECS/ContainerInsights` - ECS/ContainerInsights (Fargate metrics)
   * `Glue` - AWS Glue Jobs
-  * `ContainerInsights` - EKS ContainerInsights (Dependency on Cloudwatch agent)
-  * `AWS/VpcLattice` - VPC Lattice
 
 ## Feature flags
 
