@@ -1,4 +1,4 @@
-FROM golang:1.22 as builder
+FROM golang:1.23 as builder
 
 WORKDIR /opt/
 
@@ -13,7 +13,7 @@ ENV CGO_ENABLED=0
 ARG VERSION
 RUN go build -v -ldflags "-X main.version=$VERSION" -o yace ./cmd/yace
 
-FROM alpine:3.20.1
+FROM alpine:3.20.2
 
 EXPOSE 5000
 ENTRYPOINT ["yace"]
