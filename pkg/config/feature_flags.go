@@ -2,10 +2,7 @@ package config
 
 import "context"
 
-var (
-	flagsCtxKey         = struct{}{}
-	defaultFeatureFlags = noFeatureFlags{}
-)
+type flagsCtxKey struct{}
 
 // AwsSdkV2 is a feature flag used to enable the use of aws sdk v2 which is expected to come with performance benefits
 const AwsSdkV2 = "aws-sdk-v2"
@@ -21,15 +18,15 @@ type FeatureFlags interface {
 
 // CtxWithFlags injects a FeatureFlags inside a given context.Context, so that they are easily communicated through layers.
 func CtxWithFlags(ctx context.Context, ctrl FeatureFlags) context.Context {
-	return context.WithValue(ctx, flagsCtxKey, ctrl)
+	return context.WithValue(ctx, flagsCtxKey{}, ctrl)
 }
 
 // FlagsFromCtx retrieves a FeatureFlags from a given context.Context, defaulting to one with all feature flags disabled if none is found.
 func FlagsFromCtx(ctx context.Context) FeatureFlags {
-	if ctrl := ctx.Value(flagsCtxKey); ctrl != nil {
+	if ctrl := ctx.Value(flagsCtxKey{}); ctrl != nil {
 		return ctrl.(FeatureFlags)
 	}
-	return defaultFeatureFlags
+	return noFeatureFlags{}
 }
 
 // noFeatureFlags implements a no-op FeatureFlags

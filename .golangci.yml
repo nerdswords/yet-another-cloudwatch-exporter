@@ -2,17 +2,19 @@ run:
   timeout: 5m
 
 output:
-  format: line-number
+  formats:
+    - format: line-number
+      path: stderr
 
 linters:
   disable-all: true
   enable:
     - asasalint
     - bodyclose
+    - copyloopvar
     - errcheck
     - errorlint
     - exhaustive
-    - exportloopref
     - gofmt
     - gofumpt
     - goimports

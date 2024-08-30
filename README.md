@@ -133,6 +133,7 @@ Only the latest version gets security updates. We won't support older versions.
   * `ECS/ContainerInsights` - ECS/ContainerInsights (Fargate metrics)
   * `Glue` - AWS Glue Jobs
   * `ContainerInsights` - EKS ContainerInsights (Dependency on Cloudwatch agent)
+  * `AWS/VpcLattice` - VPC Lattice
 
 ## Feature flags
 

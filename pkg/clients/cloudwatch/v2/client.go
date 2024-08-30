@@ -178,8 +178,6 @@ func (c client) GetMetricStatistics(ctx context.Context, logger logging.Logger, 
 
 	ptrs := make([]*types.Datapoint, 0, len(resp.Datapoints))
 	for _, datapoint := range resp.Datapoints {
-		// Force a dereference to avoid loop variable pointer issues
-		datapoint := datapoint
 		ptrs = append(ptrs, &datapoint)
 	}
 
@@ -192,7 +190,6 @@ func toModelDatapoints(cwDatapoints []*types.Datapoint) []*model.Datapoint {
 	for _, cwDatapoint := range cwDatapoints {
 		extendedStats := make(map[string]*float64, len(cwDatapoint.ExtendedStatistics))
 		for name, value := range cwDatapoint.ExtendedStatistics {
-			value := value
 			extendedStats[name] = &value
 		}
 		modelDataPoints = append(modelDataPoints, &model.Datapoint{
