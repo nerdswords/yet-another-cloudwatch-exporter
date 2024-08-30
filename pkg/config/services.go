@@ -720,6 +720,10 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/QuickSight",
+		Alias:     "quicksight",
+	},
+	{
 		Namespace: "AWS/RDS",
 		Alias:     "rds",
 		ResourceFilters: []*string{
