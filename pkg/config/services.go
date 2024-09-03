@@ -788,6 +788,10 @@ var SupportedServices = serviceConfigs{
 		Alias:     "ecr",
 	},
 	{
+		Namespace: "AWS/Timestream",
+		Alias:     "timestream",
+	},
+	{
 		Namespace: "AWS/SecretsManager",
 		Alias:     "secretsmanager",
 	},
