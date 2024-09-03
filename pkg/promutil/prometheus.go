@@ -123,25 +123,6 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	}
 }
 
-func toMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
-	result := make([]prometheus.Metric, 0, len(metrics))
-	for _, metric := range metrics {
-		gauge := prometheus.NewGauge(prometheus.GaugeOpts{
-			Name:        metric.Name,
-			Help:        "Help is not implemented yet.",
-			ConstLabels: metric.Labels,
-		})
-		gauge.Set(metric.Value)
-
-		if !metric.IncludeTimestamp {
-			result = append(result, gauge)
-		} else {
-			result = append(result, prometheus.NewMetricWithTimestamp(metric.Timestamp, gauge))
-		}
-	}
-	return result
-}
-
 func toConstMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
 	// We keep two fast lookup maps here one for the prometheus.Desc of a metric which can be reused for each metric with
 	// the same name and the expected label key order of a particular metric name.
@@ -167,8 +148,12 @@ func toConstMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
 			labelValues = append(labelValues, metric.Labels[labelKey])
 		}
 
-		promMetric := prometheus.MustNewConstMetric(metricsDesc, prometheus.GaugeValue, metric.Value, labelValues...)
-		if metric.IncludeTimestamp {
+		promMetric, err := prometheus.NewConstMetric(metricsDesc, prometheus.GaugeValue, metric.Value, labelValues...)
+		if err != nil {
+			// If for whatever reason the metric or metricsDesc is considered invalid this will ensure the error is
+			// reported through the collector
+			promMetric = prometheus.NewInvalidMetric(metricsDesc, err)
+		} else if metric.IncludeTimestamp {
 			promMetric = prometheus.NewMetricWithTimestamp(metric.Timestamp, promMetric)
 		}
 
