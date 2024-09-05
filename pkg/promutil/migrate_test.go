@@ -48,7 +48,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			labelsSnakeCase:      false,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_elasticache_info"),
+					Name: "aws_elasticache_info",
 					Labels: map[string]string{
 						"name":          "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"tag_CustomTag": "tag_Value",
@@ -88,7 +88,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			labelsSnakeCase:      true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_elasticache_info"),
+					Name: "aws_elasticache_info",
 					Labels: map[string]string{
 						"name":           "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"tag_custom_tag": "tag_Value",
@@ -125,7 +125,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			},
 			metrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_ec2_cpuutilization_maximum"),
+					Name: "aws_ec2_cpuutilization_maximum",
 					Labels: map[string]string{
 						"name":                 "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
 						"dimension_InstanceId": "i-abc123",
@@ -142,7 +142,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_ec2_cpuutilization_maximum"),
+					Name: "aws_ec2_cpuutilization_maximum",
 					Labels: map[string]string{
 						"name":                 "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
 						"dimension_InstanceId": "i-abc123",
@@ -150,7 +150,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 					Value: 0,
 				},
 				{
-					Name: aws.String("aws_elasticache_info"),
+					Name: "aws_elasticache_info",
 					Labels: map[string]string{
 						"name":           "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"tag_custom_tag": "tag_Value",
@@ -201,7 +201,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			labelsSnakeCase:      true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_elasticache_info"),
+					Name: "aws_elasticache_info",
 					Labels: map[string]string{
 						"name":                   "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
 						"tag_cache_name":         "cache_instance_1",
@@ -247,7 +247,7 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			labelsSnakeCase:      false,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name: aws.String("aws_sagemaker_trainingjobs_info"),
+					Name: "aws_sagemaker_trainingjobs_info",
 					Labels: map[string]string{
 						"name":          "arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
 						"tag_CustomTag": "tag_Value",
@@ -380,7 +380,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Name:      "aws_elasticache_cpuutilization_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -391,7 +391,7 @@ func TestBuildMetrics(t *testing.T) {
 					},
 				},
 				{
-					Name:      aws.String("aws_elasticache_freeable_memory_average"),
+					Name:      "aws_elasticache_freeable_memory_average",
 					Value:     2,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -402,7 +402,7 @@ func TestBuildMetrics(t *testing.T) {
 					},
 				},
 				{
-					Name:      aws.String("aws_elasticache_network_bytes_in_average"),
+					Name:      "aws_elasticache_network_bytes_in_average",
 					Value:     3,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -413,7 +413,7 @@ func TestBuildMetrics(t *testing.T) {
 					},
 				},
 				{
-					Name:             aws.String("aws_elasticache_network_bytes_out_average"),
+					Name:             "aws_elasticache_network_bytes_out_average",
 					Value:            4,
 					Timestamp:        ts,
 					IncludeTimestamp: true,
@@ -548,7 +548,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Name:      "aws_elasticache_cpuutilization_average",
 					Value:     0,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -560,7 +560,7 @@ func TestBuildMetrics(t *testing.T) {
 					IncludeTimestamp: false,
 				},
 				{
-					Name:      aws.String("aws_elasticache_freeable_memory_average"),
+					Name:      "aws_elasticache_freeable_memory_average",
 					Value:     math.NaN(),
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -572,7 +572,7 @@ func TestBuildMetrics(t *testing.T) {
 					IncludeTimestamp: false,
 				},
 				{
-					Name:      aws.String("aws_elasticache_network_bytes_in_average"),
+					Name:      "aws_elasticache_network_bytes_in_average",
 					Value:     0,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -640,7 +640,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Name:      "aws_elasticache_cpuutilization_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -695,7 +695,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_sagemaker_trainingjobs_cpuutilization_average"),
+					Name:      "aws_sagemaker_trainingjobs_cpuutilization_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -750,7 +750,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_glue_driver_aggregate_bytes_read_average"),
+					Name:      "aws_glue_driver_aggregate_bytes_read_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -805,7 +805,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_glue_aggregate_glue_jobs_bytes_read_average"),
+					Name:      "aws_glue_aggregate_glue_jobs_bytes_read_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -863,7 +863,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Name:      "aws_elasticache_cpuutilization_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -920,7 +920,7 @@ func TestBuildMetrics(t *testing.T) {
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
 				{
-					Name:      aws.String("aws_elasticache_cpuutilization_average"),
+					Name:      "aws_elasticache_cpuutilization_average",
 					Value:     1,
 					Timestamp: ts,
 					Labels: map[string]string{
@@ -1170,17 +1170,17 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "adds missing labels",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 					Value:  1.0,
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label2": "value2"},
 					Value:  2.0,
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{},
 					Value:  3.0,
 				},
@@ -1188,17 +1188,17 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}, "label3": {}}},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1", "label2": "", "label3": ""},
 					Value:  1.0,
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "", "label3": "", "label2": "value2"},
 					Value:  2.0,
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "", "label2": "", "label3": ""},
 					Value:  3.0,
 				},
@@ -1208,18 +1208,18 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "duplicate metric",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
@@ -1228,18 +1228,18 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "duplicate metric, multiple labels",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1", "label2": "value2"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label2": "value2", "label1": "value1"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1", "label2": "value2"},
 				},
 			},
@@ -1248,22 +1248,22 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "metric with different labels",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label2": "value2"},
 				},
 			},
@@ -1272,22 +1272,22 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "two metrics",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
@@ -1296,22 +1296,22 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "two metrics with different labels",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label2": "value2"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label2": "value2"},
 				},
 			},
@@ -1320,38 +1320,38 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			name: "multiple duplicates and non-duplicates",
 			metrics: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label2": "value2"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
 			observedLabels: map[string]model.LabelSet{},
 			output: []*PrometheusMetric{
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label2": "value2"},
 				},
 				{
-					Name:   aws.String("metric2"),
+					Name:   "metric2",
 					Labels: map[string]string{"label1": "value1"},
 				},
 				{
-					Name:   aws.String("metric1"),
+					Name:   "metric1",
 					Labels: map[string]string{"label1": "value1"},
 				},
 			},
