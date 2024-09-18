@@ -1,4 +1,4 @@
 # Maintainers
 
-- Thomas Peitz (@thomaspeitz)
-- Cristian Greco (@cristiangreco)
+- Thomas Peitz (info@thomas-peitz.de / @thomaspeitz)
+- Cristian Greco (cristian.greco@grafana.com / @cristiangreco)
