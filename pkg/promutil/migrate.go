@@ -2,14 +2,13 @@ package promutil
 
 import (
 	"fmt"
-	"maps"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/grafana/regexp"
-	prom_model "github.com/prometheus/common/model"
 
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/logging"
 	"github.com/nerdswords/yet-another-cloudwatch-exporter/pkg/model"
@@ -46,13 +45,16 @@ func BuildMetricName(namespace, metricName, statistic string) string {
 
 func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, labelsSnakeCase bool, logger logging.Logger) ([]*PrometheusMetric, map[string]model.LabelSet) {
 	for _, tagResult := range tagData {
-		contextLabels := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
+		contextLabelKeys, contextLabelValues := contextToLabels(tagResult.Context, labelsSnakeCase, logger)
 		for _, d := range tagResult.Data {
-			metricName := BuildMetricName(d.Namespace, "info", "")
+			size := len(d.Tags) + len(contextLabelKeys) + 1
+			promLabelKeys, promLabelValues := make([]string, 0, size), make([]string, 0, size)
 
-			promLabels := make(map[string]string, len(d.Tags)+len(contextLabels)+1)
-			maps.Copy(promLabels, contextLabels)
-			promLabels["name"] = d.ARN
+			promLabelKeys = append(promLabelKeys, "name")
+			promLabelKeys = append(promLabelKeys, contextLabelKeys...)
+			promLabelValues = append(promLabelValues, d.ARN)
+			promLabelValues = append(promLabelValues, contextLabelValues...)
+
 			for _, tag := range d.Tags {
 				ok, promTag := PromStringTag(tag.Key, labelsSnakeCase)
 				if !ok {
@@ -60,16 +62,13 @@ func BuildNamespaceInfoMetrics(tagData []model.TaggedResourceResult, metrics []*
 					continue
 				}
 
-				labelName := "tag_" + promTag
-				promLabels[labelName] = tag.Value
+				promLabelKeys = append(promLabelKeys, "tag_"+promTag)
+				promLabelValues = append(promLabelValues, tag.Value)
 			}
 
-			observedMetricLabels = recordLabelsForMetric(metricName, promLabels, observedMetricLabels)
-			metrics = append(metrics, &PrometheusMetric{
-				Name:   metricName,
-				Labels: promLabels,
-				Value:  0,
-			})
+			metricName := BuildMetricName(d.Namespace, "info", "")
+			observedMetricLabels = recordLabelsForMetric(metricName, promLabelKeys, observedMetricLabels)
+			metrics = append(metrics, NewPrometheusMetric(metricName, promLabelKeys, promLabelValues, 0))
 		}
 	}
 
@@ -81,7 +80,7 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 	observedMetricLabels := make(map[string]model.LabelSet)
 
 	for _, result := range results {
-		contextLabels := contextToLabels(result.Context, labelsSnakeCase, logger)
+		contextLabelKeys, contextLabelValues := contextToLabels(result.Context, labelsSnakeCase, logger)
 		for _, metric := range result.Data {
 			// This should not be possible but check just in case
 			if metric.GetMetricStatisticsResult == nil && metric.GetMetricDataResult == nil {
@@ -112,17 +111,17 @@ func BuildMetrics(results []model.CloudwatchMetricResult, labelsSnakeCase bool, 
 
 				name := BuildMetricName(metric.Namespace, metric.MetricName, statistic)
 
-				promLabels := createPrometheusLabels(metric, labelsSnakeCase, contextLabels, logger)
-				observedMetricLabels = recordLabelsForMetric(name, promLabels, observedMetricLabels)
+				labelKeys, labelValues := createPrometheusLabels(metric, labelsSnakeCase, contextLabelKeys, contextLabelValues, logger)
+				observedMetricLabels = recordLabelsForMetric(name, labelKeys, observedMetricLabels)
 
-				output = append(output, &PrometheusMetric{
-					Name:             name,
-					Labels:           promLabels,
-					Value:            exportedDatapoint,
-					Timestamp:        ts,
-					IncludeTimestamp: metric.MetricMigrationParams.AddCloudwatchTimestamp,
-				})
-
+				output = append(output, NewPrometheusMetricWithTimestamp(
+					name,
+					labelKeys,
+					labelValues,
+					exportedDatapoint,
+					metric.MetricMigrationParams.AddCloudwatchTimestamp,
+					ts,
+				))
 			}
 		}
 	}
@@ -209,9 +208,12 @@ func sortByTimestamp(datapoints []*model.Datapoint) []*model.Datapoint {
 	return datapoints
 }
 
-func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, contextLabels map[string]string, logger logging.Logger) map[string]string {
-	labels := make(map[string]string, len(cwd.Dimensions)+len(cwd.Tags)+len(contextLabels))
-	labels["name"] = cwd.ResourceName
+func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, contextLabelsKeys []string, contextLabelsValues []string, logger logging.Logger) ([]string, []string) {
+	size := len(cwd.Dimensions) + len(cwd.Tags) + len(contextLabelsKeys) + 1
+	labelKeys, labelValues := make([]string, 0, size), make([]string, 0, size)
+
+	labelKeys = append(labelKeys, "name")
+	labelValues = append(labelValues, cwd.ResourceName)
 
 	// Inject the sfn name back as a label
 	for _, dimension := range cwd.Dimensions {
@@ -220,7 +222,8 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, con
 			logger.Warn("dimension name is an invalid prometheus label name", "dimension", dimension.Name)
 			continue
 		}
-		labels["dimension_"+promTag] = dimension.Value
+		labelKeys = append(labelKeys, "dimension_"+promTag)
+		labelValues = append(labelValues, dimension.Value)
 	}
 
 	for _, tag := range cwd.Tags {
@@ -229,25 +232,31 @@ func createPrometheusLabels(cwd *model.CloudwatchData, labelsSnakeCase bool, con
 			logger.Warn("metric tag name is an invalid prometheus label name", "tag", tag.Key)
 			continue
 		}
-		labels["tag_"+promTag] = tag.Value
+		labelKeys = append(labelKeys, "tag_"+promTag)
+		labelValues = append(labelValues, tag.Value)
 	}
 
-	maps.Copy(labels, contextLabels)
+	labelKeys = append(labelKeys, contextLabelsKeys...)
+	labelValues = append(labelValues, contextLabelsValues...)
 
-	return labels
+	return labelKeys, labelValues
 }
 
-func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) map[string]string {
+func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger logging.Logger) ([]string, []string) {
 	if context == nil {
-		return map[string]string{}
+		return []string{}, []string{}
 	}
 
-	labels := make(map[string]string, 2+len(context.CustomTags))
-	labels["region"] = context.Region
-	labels["account_id"] = context.AccountID
+	size := 3 + len(context.CustomTags)
+	keys, values := make([]string, 0, size), make([]string, 0, size)
+
+	keys = append(keys, "region", "account_id")
+	values = append(values, context.Region, context.AccountID)
+
 	// If there's no account alias, omit adding an extra label in the series, it will work either way query wise
 	if context.AccountAlias != "" {
-		labels["account_alias"] = context.AccountAlias
+		keys = append(keys, "account_alias")
+		values = append(values, context.AccountAlias)
 	}
 
 	for _, label := range context.CustomTags {
@@ -256,19 +265,20 @@ func contextToLabels(context *model.ScrapeContext, labelsSnakeCase bool, logger 
 			logger.Warn("custom tag name is an invalid prometheus label name", "tag", label.Key)
 			continue
 		}
-		labels["custom_tag_"+promTag] = label.Value
+		keys = append(keys, "custom_tag_"+promTag)
+		values = append(values, label.Value)
 	}
 
-	return labels
+	return keys, values
 }
 
 // recordLabelsForMetric adds any missing labels from promLabels in to the LabelSet for the metric name and returns
 // the updated observedMetricLabels
-func recordLabelsForMetric(metricName string, promLabels map[string]string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
+func recordLabelsForMetric(metricName string, labelKeys []string, observedMetricLabels map[string]model.LabelSet) map[string]model.LabelSet {
 	if _, ok := observedMetricLabels[metricName]; !ok {
-		observedMetricLabels[metricName] = make(model.LabelSet, len(promLabels))
+		observedMetricLabels[metricName] = make(model.LabelSet, len(labelKeys))
 	}
-	for label := range promLabels {
+	for _, label := range labelKeys {
 		if _, ok := observedMetricLabels[metricName][label]; !ok {
 			observedMetricLabels[metricName][label] = struct{}{}
 		}
@@ -285,13 +295,11 @@ func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, obse
 	output := make([]*PrometheusMetric, 0, len(metrics))
 
 	for _, metric := range metrics {
-		for observedLabels := range observedMetricLabels[metric.Name] {
-			if _, ok := metric.Labels[observedLabels]; !ok {
-				metric.Labels[observedLabels] = ""
-			}
+		for observedLabels := range observedMetricLabels[metric.Name()] {
+			metric.AddIfMissingLabelPair(observedLabels, "")
 		}
 
-		metricKey := fmt.Sprintf("%s-%d", metric.Name, prom_model.LabelsToSignature(metric.Labels))
+		metricKey := metric.Name() + "-" + strconv.FormatUint(metric.LabelsSignature(), 10)
 		if _, exists := metricKeys[metricKey]; !exists {
 			metricKeys[metricKey] = struct{}{}
 			output = append(output, metric)
