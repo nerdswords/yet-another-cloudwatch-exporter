@@ -95,8 +95,8 @@ var replacer = strings.NewReplacer(
 	"%", "_percent",
 )
 
-// labelPair joins two slices of keys and values
-// and allows simultaneous sorting.
+// labelPair joins two slices of keys and values and allows
+// simultaneous sorting. It implements sort.Interface.
 type labelPair struct {
 	keys []string
 	vals []string
@@ -175,8 +175,10 @@ var separatorByteSlice = []byte{prom_model.SeparatorByte}
 
 // LabelsSignature returns a hash of the labels. It emulates
 // prometheus' LabelsToSignature implementation but works on
-// labelPair instead of map[string]string. Assumes that
-// the labels are sorted.
+// labelPair instead of map[string]string.
+// Assumes that the labels are sorted. Notably, this uses
+// a different hash function than prometheus, but it doesn't
+// matter for the purpose of computing a unique signature.
 func (p *PrometheusMetric) LabelsSignature() uint64 {
 	xxh := xxhash.New()
 	for i, key := range p.labels.keys {
