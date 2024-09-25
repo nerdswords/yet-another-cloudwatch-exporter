@@ -121,6 +121,47 @@ func TestPromStringTag(t *testing.T) {
 	}
 }
 
+func TestPrometheusMetric(t *testing.T) {
+	t.Run("NewPrometheusMetric panics with wrong label size", func(t *testing.T) {
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1"}, []string{}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{}, []string{"label1"}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1", "key2"}, []string{"label1"}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1"}, []string{"label1", "label2"}, 1.0)
+		})
+	})
+
+	t.Run("NewPrometheusMetric sorts labels", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key2", "key1"}, []string{"value2", "value1"}, 1.0)
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1", "key2"}, keys)
+		require.Equal(t, []string{"value1", "value2"}, vals)
+	})
+
+	t.Run("AddIfMissingLabelPair keeps labels sorted", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key2"}, []string{"value2"}, 1.0)
+		metric.AddIfMissingLabelPair("key1", "value1")
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1", "key2"}, keys)
+		require.Equal(t, []string{"value1", "value2"}, vals)
+	})
+
+	t.Run("RemoveDuplicateLabels", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key1", "key1"}, []string{"value1", "value2"}, 1.0)
+		require.Equal(t, 2, metric.LabelsLen())
+		metric.RemoveDuplicateLabels()
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1"}, keys)
+		require.Equal(t, []string{"value1"}, vals)
+	})
+}
+
 func TestNewPrometheusCollector_CanReportMetricsAndErrors(t *testing.T) {
 	metrics := []*PrometheusMetric{
 		NewPrometheusMetric("this*is*not*valid", []string{}, []string{}, 0),

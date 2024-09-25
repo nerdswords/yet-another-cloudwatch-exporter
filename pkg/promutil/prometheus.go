@@ -154,6 +154,10 @@ func (p *PrometheusMetric) Labels() ([]string, []string) {
 	return p.labels.keys, p.labels.vals
 }
 
+func (p *PrometheusMetric) LabelsLen() int {
+	return len(p.labels.keys)
+}
+
 func (p *PrometheusMetric) Value() float64 {
 	return p.value
 }
@@ -197,6 +201,21 @@ func (p *PrometheusMetric) AddIfMissingLabelPair(key, val string) {
 		p.labels.vals = append(p.labels.vals, val)
 		sort.Sort(p.labels)
 	}
+}
+
+func (p *PrometheusMetric) RemoveDuplicateLabels() {
+	seen := map[string]struct{}{}
+	idx := 0
+	for i, key := range p.labels.keys {
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			p.labels.keys[idx] = key
+			p.labels.vals[idx] = p.labels.vals[i]
+			idx++
+		}
+	}
+	p.labels.keys = p.labels.keys[:idx]
+	p.labels.vals = p.labels.vals[:idx]
 }
 
 type PrometheusCollector struct {

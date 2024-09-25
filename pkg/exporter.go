@@ -196,7 +196,7 @@ func UpdateMetrics(
 		return nil
 	}
 	metrics, observedMetricLabels = promutil.BuildNamespaceInfoMetrics(tagsData, metrics, observedMetricLabels, options.labelsSnakeCase, logger)
-	metrics = promutil.EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedMetricLabels)
+	metrics = promutil.EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedMetricLabels, logger)
 
 	registry.MustRegister(promutil.NewPrometheusCollector(metrics))
 	return nil

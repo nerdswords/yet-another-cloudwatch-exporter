@@ -290,13 +290,19 @@ func recordLabelsForMetric(metricName string, labelKeys []string, observedMetric
 // EnsureLabelConsistencyAndRemoveDuplicates ensures that every metric has the same set of labels based on the data
 // in observedMetricLabels and that there are no duplicate metrics.
 // Prometheus requires that all metrics with the same name have the same set of labels and that no duplicates are registered
-func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet) []*PrometheusMetric {
+func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, observedMetricLabels map[string]model.LabelSet, logger logging.Logger) []*PrometheusMetric {
 	metricKeys := make(map[string]struct{}, len(metrics))
 	output := make([]*PrometheusMetric, 0, len(metrics))
 
 	for _, metric := range metrics {
-		for observedLabels := range observedMetricLabels[metric.Name()] {
-			metric.AddIfMissingLabelPair(observedLabels, "")
+		observedLabels := observedMetricLabels[metric.Name()]
+		for label := range observedLabels {
+			metric.AddIfMissingLabelPair(label, "")
+		}
+
+		if len(observedLabels) != metric.LabelsLen() {
+			logger.Warn("metric has duplicate labels", "metric_name", metric.Name(), "observed_labels", len(observedLabels), "labels_len", metric.LabelsLen())
+			metric.RemoveDuplicateLabels()
 		}
 
 		metricKey := metric.Name() + "-" + strconv.FormatUint(metric.LabelsSignature(), 10)

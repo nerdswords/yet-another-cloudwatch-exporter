@@ -1290,12 +1290,22 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 			},
 		},
 		{
+			name: "removes duplicate labels",
+			metrics: []*PrometheusMetric{
+				NewPrometheusMetric("metric1", []string{"label1", "label1", "label2"}, []string{"value1", "value1", "value2"}, 1.0),
+			},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
+			output: []*PrometheusMetric{
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
+			},
+		},
+		{
 			name: "duplicate metric",
 			metrics: []*PrometheusMetric{
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}},
 			output: []*PrometheusMetric{
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
@@ -1306,7 +1316,7 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
 				NewPrometheusMetric("metric1", []string{"label2", "label1"}, []string{"value2", "value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
 				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
 			},
@@ -1317,10 +1327,10 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric1", []string{"label2"}, []string{"value2"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
-				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
-				NewPrometheusMetric("metric1", []string{"label2"}, []string{"value2"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", ""}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"", "value2"}, 1.0),
 			},
 		},
 		{
@@ -1329,7 +1339,7 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label1": {}}},
 			output: []*PrometheusMetric{
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
@@ -1341,7 +1351,7 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label2": {}}},
 			output: []*PrometheusMetric{
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
@@ -1356,10 +1366,10 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
-				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
-				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1", "label2"}, []string{"", "value2"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1", "label2"}, []string{"value1", ""}, 1.0),
 				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
 		},
@@ -1367,7 +1377,7 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := EnsureLabelConsistencyAndRemoveDuplicates(tc.metrics, tc.observedLabels)
+			actual := EnsureLabelConsistencyAndRemoveDuplicates(tc.metrics, tc.observedLabels, logging.NewNopLogger())
 			require.ElementsMatch(t, tc.output, actual)
 		})
 	}
@@ -1381,6 +1391,7 @@ func Benchmark_EnsureLabelConsistencyAndRemoveDuplicates(b *testing.B) {
 		NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 	}
 	observedLabels := map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}, "label3": {}}}
+	logger := logging.NewNopLogger()
 
 	var output []*PrometheusMetric
 
@@ -1388,7 +1399,7 @@ func Benchmark_EnsureLabelConsistencyAndRemoveDuplicates(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		output = EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedLabels)
+		output = EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedLabels, logger)
 	}
 
 	expectedOutput := []*PrometheusMetric{
