@@ -301,8 +301,8 @@ func EnsureLabelConsistencyAndRemoveDuplicates(metrics []*PrometheusMetric, obse
 		}
 
 		if len(observedLabels) != metric.LabelsLen() {
-			logger.Warn("metric has duplicate labels", "metric_name", metric.Name(), "observed_labels", len(observedLabels), "labels_len", metric.LabelsLen())
-			metric.RemoveDuplicateLabels()
+			duplicates := metric.RemoveDuplicateLabels()
+			logger.Warn("metric has duplicate labels", "metric_name", metric.Name(), "observed_labels", len(observedLabels), "labels_len", metric.LabelsLen(), "duplicated_labels", duplicates)
 		}
 
 		metricKey := metric.Name() + "-" + strconv.FormatUint(metric.LabelsSignature(), 10)

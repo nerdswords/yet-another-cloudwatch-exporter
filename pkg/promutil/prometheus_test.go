@@ -153,12 +153,13 @@ func TestPrometheusMetric(t *testing.T) {
 	})
 
 	t.Run("RemoveDuplicateLabels", func(t *testing.T) {
-		metric := NewPrometheusMetric("metric", []string{"key1", "key1"}, []string{"value1", "value2"}, 1.0)
-		require.Equal(t, 2, metric.LabelsLen())
-		metric.RemoveDuplicateLabels()
+		metric := NewPrometheusMetric("metric", []string{"key1", "key2", "key1", "key3"}, []string{"value-key1", "value-key2", "value-dup-key1", "value-key3"}, 1.0)
+		require.Equal(t, 4, metric.LabelsLen())
+		duplicates := metric.RemoveDuplicateLabels()
 		keys, vals := metric.Labels()
-		require.Equal(t, []string{"key1"}, keys)
-		require.Equal(t, []string{"value1"}, vals)
+		require.Equal(t, []string{"key1", "key2", "key3"}, keys)
+		require.Equal(t, []string{"value-key1", "value-key2", "value-key3"}, vals)
+		require.Equal(t, []string{"key1"}, duplicates)
 	})
 }
 
