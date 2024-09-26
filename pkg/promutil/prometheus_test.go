@@ -121,20 +121,52 @@ func TestPromStringTag(t *testing.T) {
 	}
 }
 
+func TestPrometheusMetric(t *testing.T) {
+	t.Run("NewPrometheusMetric panics with wrong label size", func(t *testing.T) {
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1"}, []string{}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{}, []string{"label1"}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1", "key2"}, []string{"label1"}, 1.0)
+		})
+		require.Panics(t, func() {
+			NewPrometheusMetric("metric1", []string{"key1"}, []string{"label1", "label2"}, 1.0)
+		})
+	})
+
+	t.Run("NewPrometheusMetric sorts labels", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key2", "key1"}, []string{"value2", "value1"}, 1.0)
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1", "key2"}, keys)
+		require.Equal(t, []string{"value1", "value2"}, vals)
+	})
+
+	t.Run("AddIfMissingLabelPair keeps labels sorted", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key2"}, []string{"value2"}, 1.0)
+		metric.AddIfMissingLabelPair("key1", "value1")
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1", "key2"}, keys)
+		require.Equal(t, []string{"value1", "value2"}, vals)
+	})
+
+	t.Run("RemoveDuplicateLabels", func(t *testing.T) {
+		metric := NewPrometheusMetric("metric", []string{"key1", "key2", "key1", "key3"}, []string{"value-key1", "value-key2", "value-dup-key1", "value-key3"}, 1.0)
+		require.Equal(t, 4, metric.LabelsLen())
+		duplicates := metric.RemoveDuplicateLabels()
+		keys, vals := metric.Labels()
+		require.Equal(t, []string{"key1", "key2", "key3"}, keys)
+		require.Equal(t, []string{"value-key1", "value-key2", "value-key3"}, vals)
+		require.Equal(t, []string{"key1"}, duplicates)
+	})
+}
+
 func TestNewPrometheusCollector_CanReportMetricsAndErrors(t *testing.T) {
 	metrics := []*PrometheusMetric{
-		{
-			Name:             "this*is*not*valid",
-			Labels:           map[string]string{},
-			Value:            0,
-			IncludeTimestamp: false,
-		},
-		{
-			Name:             "this_is_valid",
-			Labels:           map[string]string{"key": "value1"},
-			Value:            0,
-			IncludeTimestamp: false,
-		},
+		NewPrometheusMetric("this*is*not*valid", []string{}, []string{}, 0),
+		NewPrometheusMetric("this_is_valid", []string{"key"}, []string{"value1"}, 0),
 	}
 	collector := NewPrometheusCollector(metrics)
 	registry := prometheus.NewRegistry()
@@ -153,31 +185,32 @@ func TestNewPrometheusCollector_CanReportMetrics(t *testing.T) {
 	labelSet2 := map[string]string{"key2": "out", "key3": "of", "key1": "order"}
 	labelSet3 := map[string]string{"key2": "out", "key1": "of", "key3": "order"}
 	metrics := []*PrometheusMetric{
-		{
-			Name:             "metric_with_labels",
-			Labels:           labelSet1,
-			Value:            1,
-			IncludeTimestamp: false,
-		},
-		{
-			Name:             "metric_with_labels",
-			Labels:           labelSet2,
-			Value:            2,
-			IncludeTimestamp: false,
-		},
-		{
-			Name:             "metric_with_labels",
-			Labels:           labelSet3,
-			Value:            3,
-			IncludeTimestamp: false,
-		},
-		{
-			Name:             "metric_with_timestamp",
-			Labels:           map[string]string{},
-			Value:            1,
-			IncludeTimestamp: true,
-			Timestamp:        ts,
-		},
+		NewPrometheusMetric(
+			"metric_with_labels",
+			[]string{"key1", "key2", "key3"},
+			[]string{"value", "value", "value"},
+			1,
+		),
+		NewPrometheusMetric(
+			"metric_with_labels",
+			[]string{"key2", "key3", "key1"},
+			[]string{"out", "of", "order"},
+			2,
+		),
+		NewPrometheusMetric(
+			"metric_with_labels",
+			[]string{"key2", "key1", "key3"},
+			[]string{"out", "of", "order"},
+			3,
+		),
+		NewPrometheusMetricWithTimestamp(
+			"metric_with_timestamp",
+			[]string{},
+			[]string{},
+			1,
+			true,
+			ts,
+		),
 	}
 
 	collector := NewPrometheusCollector(metrics)
@@ -230,4 +263,30 @@ func TestNewPrometheusCollector_CanReportMetrics(t *testing.T) {
 	tsMetric := metricWithTs.Metric[0]
 	assert.Equal(t, ts.UnixMilli(), *tsMetric.TimestampMs)
 	assert.Equal(t, 1.0, *tsMetric.Gauge.Value)
+}
+
+func Benchmark_NewPrometheusCollector(b *testing.B) {
+	metrics := []*PrometheusMetric{
+		NewPrometheusMetric("metric1", []string{"key1"}, []string{"value11"}, 1.0),
+		NewPrometheusMetric("metric1", []string{"key1"}, []string{"value12"}, 1.0),
+		NewPrometheusMetric("metric2", []string{"key2"}, []string{"value21"}, 2.0),
+		NewPrometheusMetric("metric2", []string{"key2"}, []string{"value22"}, 2.0),
+		NewPrometheusMetric("metric3", []string{"key3"}, []string{"value31"}, 3.0),
+		NewPrometheusMetric("metric3", []string{"key3"}, []string{"value32"}, 3.0),
+		NewPrometheusMetric("metric4", []string{"key4"}, []string{"value41"}, 4.0),
+		NewPrometheusMetric("metric4", []string{"key4"}, []string{"value42"}, 4.0),
+		NewPrometheusMetric("metric5", []string{"key5"}, []string{"value51"}, 5.0),
+		NewPrometheusMetric("metric5", []string{"key5"}, []string{"value52"}, 5.0),
+	}
+
+	var collector *PrometheusCollector
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		collector = NewPrometheusCollector(metrics)
+	}
+
+	registry := prometheus.NewRegistry()
+	require.NoError(b, registry.Register(collector))
 }

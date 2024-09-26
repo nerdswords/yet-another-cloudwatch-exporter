@@ -1,12 +1,16 @@
 package promutil
 
 import (
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
+	prom_model "github.com/prometheus/common/model"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
-	"golang.org/x/exp/maps"
 )
 
 var (
@@ -91,12 +95,131 @@ var replacer = strings.NewReplacer(
 	"%", "_percent",
 )
 
+// labelPair joins two slices of keys and values and allows
+// simultaneous sorting. It implements sort.Interface.
+type labelPair struct {
+	keys []string
+	vals []string
+}
+
+func (p labelPair) Len() int {
+	return len(p.keys)
+}
+
+func (p labelPair) Swap(i, j int) {
+	p.keys[i], p.keys[j] = p.keys[j], p.keys[i]
+	p.vals[i], p.vals[j] = p.vals[j], p.vals[i]
+}
+
+func (p labelPair) Less(i, j int) bool {
+	return p.keys[i] < p.keys[j]
+}
+
+// PrometheusMetric is a precursor of prometheus.Metric.
+// Labels are kept sorted by key to ensure consistent ordering.
 type PrometheusMetric struct {
-	Name             string
-	Labels           map[string]string
-	Value            float64
-	IncludeTimestamp bool
-	Timestamp        time.Time
+	name             string
+	labels           labelPair
+	value            float64
+	includeTimestamp bool
+	timestamp        time.Time
+}
+
+func NewPrometheusMetric(name string, labelKeys, labelValues []string, value float64) *PrometheusMetric {
+	return NewPrometheusMetricWithTimestamp(name, labelKeys, labelValues, value, false, time.Time{})
+}
+
+func NewPrometheusMetricWithTimestamp(name string, labelKeys, labelValues []string, value float64, includeTimestamp bool, timestamp time.Time) *PrometheusMetric {
+	if len(labelKeys) != len(labelValues) {
+		panic("labelKeys and labelValues have different length")
+	}
+
+	labels := labelPair{labelKeys, labelValues}
+	sort.Sort(labels)
+
+	return &PrometheusMetric{
+		name:             name,
+		labels:           labels,
+		value:            value,
+		includeTimestamp: includeTimestamp,
+		timestamp:        timestamp,
+	}
+}
+
+func (p *PrometheusMetric) Name() string {
+	return p.name
+}
+
+func (p *PrometheusMetric) Labels() ([]string, []string) {
+	return p.labels.keys, p.labels.vals
+}
+
+func (p *PrometheusMetric) LabelsLen() int {
+	return len(p.labels.keys)
+}
+
+func (p *PrometheusMetric) Value() float64 {
+	return p.value
+}
+
+// SetValue should be used only for testing
+func (p *PrometheusMetric) SetValue(v float64) {
+	p.value = v
+}
+
+func (p *PrometheusMetric) IncludeTimestamp() bool {
+	return p.includeTimestamp
+}
+
+func (p *PrometheusMetric) Timestamp() time.Time {
+	return p.timestamp
+}
+
+var separatorByteSlice = []byte{prom_model.SeparatorByte}
+
+// LabelsSignature returns a hash of the labels. It emulates
+// prometheus' LabelsToSignature implementation but works on
+// labelPair instead of map[string]string.
+// Assumes that the labels are sorted. Notably, this uses
+// a different hash function than prometheus, but it doesn't
+// matter for the purpose of computing a unique signature.
+func (p *PrometheusMetric) LabelsSignature() uint64 {
+	xxh := xxhash.New()
+	for i, key := range p.labels.keys {
+		_, _ = xxh.WriteString(key)
+		_, _ = xxh.Write(separatorByteSlice)
+		_, _ = xxh.WriteString(p.labels.vals[i])
+		_, _ = xxh.Write(separatorByteSlice)
+	}
+	return xxh.Sum64()
+}
+
+func (p *PrometheusMetric) AddIfMissingLabelPair(key, val string) {
+	// TODO(cristian): might use binary search here
+	if !slices.Contains(p.labels.keys, key) {
+		p.labels.keys = append(p.labels.keys, key)
+		p.labels.vals = append(p.labels.vals, val)
+		sort.Sort(p.labels)
+	}
+}
+
+func (p *PrometheusMetric) RemoveDuplicateLabels() []string {
+	seen := map[string]struct{}{}
+	duplicates := []string{}
+	idx := 0
+	for i, key := range p.labels.keys {
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			p.labels.keys[idx] = key
+			p.labels.vals[idx] = p.labels.vals[i]
+			idx++
+		} else {
+			duplicates = append(duplicates, key)
+		}
+	}
+	p.labels.keys = p.labels.keys[:idx]
+	p.labels.vals = p.labels.vals[:idx]
+	return duplicates
 }
 
 type PrometheusCollector struct {
@@ -124,37 +247,30 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 }
 
 func toConstMetrics(metrics []*PrometheusMetric) []prometheus.Metric {
-	// We keep two fast lookup maps here one for the prometheus.Desc of a metric which can be reused for each metric with
-	// the same name and the expected label key order of a particular metric name.
+	// Keep a fast lookup map for the prometheus.Desc of a metric which can be reused for each metric with
+	// the same name and the expected label key order of a particular metric name (sorting of keys and values
+	// is guaranteed by the implementation of PrometheusMetric).
 	// The prometheus.Desc object is expensive to create and being able to reuse it for all metrics with the same name
-	// results in large performance gain. We use the other map because metrics created using the Desc only provide label
-	// values and they must be provided in the exact same order as registered in the Desc.
+	// results in large performance gain.
 	metricToDesc := map[string]*prometheus.Desc{}
-	metricToExpectedLabelOrder := map[string][]string{}
 
 	result := make([]prometheus.Metric, 0, len(metrics))
 	for _, metric := range metrics {
-		metricName := metric.Name
+		metricName := metric.Name()
+		labelKeys, labelValues := metric.Labels()
+
 		if _, ok := metricToDesc[metricName]; !ok {
-			labelKeys := maps.Keys(metric.Labels)
 			metricToDesc[metricName] = prometheus.NewDesc(metricName, "Help is not implemented yet.", labelKeys, nil)
-			metricToExpectedLabelOrder[metricName] = labelKeys
 		}
 		metricsDesc := metricToDesc[metricName]
 
-		// Create the label values using the label order of the Desc
-		labelValues := make([]string, 0, len(metric.Labels))
-		for _, labelKey := range metricToExpectedLabelOrder[metricName] {
-			labelValues = append(labelValues, metric.Labels[labelKey])
-		}
-
-		promMetric, err := prometheus.NewConstMetric(metricsDesc, prometheus.GaugeValue, metric.Value, labelValues...)
+		promMetric, err := prometheus.NewConstMetric(metricsDesc, prometheus.GaugeValue, metric.Value(), labelValues...)
 		if err != nil {
 			// If for whatever reason the metric or metricsDesc is considered invalid this will ensure the error is
 			// reported through the collector
 			promMetric = prometheus.NewInvalidMetric(metricsDesc, err)
-		} else if metric.IncludeTimestamp {
-			promMetric = prometheus.NewMetricWithTimestamp(metric.Timestamp, promMetric)
+		} else if metric.IncludeTimestamp() {
+			promMetric = prometheus.NewMetricWithTimestamp(metric.Timestamp(), promMetric)
 		}
 
 		result = append(result, promMetric)

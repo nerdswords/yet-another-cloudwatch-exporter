@@ -1,6 +1,7 @@
 package promutil
 
 import (
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -47,14 +48,12 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      false,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: "aws_elasticache_info",
-					Labels: map[string]string{
-						"name":          "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"tag_CustomTag": "tag_Value",
-					},
-					Value: 0,
-				},
+				NewPrometheusMetric(
+					"aws_elasticache_info",
+					[]string{"name", "tag_CustomTag"},
+					[]string{"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster", "tag_Value"},
+					0,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_info": map[string]struct{}{
@@ -87,14 +86,12 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: "aws_elasticache_info",
-					Labels: map[string]string{
-						"name":           "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"tag_custom_tag": "tag_Value",
-					},
-					Value: 0,
-				},
+				NewPrometheusMetric(
+					"aws_elasticache_info",
+					[]string{"name", "tag_custom_tag"},
+					[]string{"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster", "tag_Value"},
+					0,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_info": map[string]struct{}{
@@ -124,14 +121,18 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 				},
 			},
 			metrics: []*PrometheusMetric{
-				{
-					Name: "aws_ec2_cpuutilization_maximum",
-					Labels: map[string]string{
-						"name":                 "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
-						"dimension_InstanceId": "i-abc123",
+				NewPrometheusMetric(
+					"aws_ec2_cpuutilization_maximum",
+					[]string{
+						"name",
+						"dimension_InstanceId",
 					},
-					Value: 0,
-				},
+					[]string{
+						"arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
+						"i-abc123",
+					},
+					0,
+				),
 			},
 			observedMetricLabels: map[string]model.LabelSet{
 				"aws_ec2_cpuutilization_maximum": map[string]struct{}{
@@ -141,22 +142,30 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: "aws_ec2_cpuutilization_maximum",
-					Labels: map[string]string{
-						"name":                 "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
-						"dimension_InstanceId": "i-abc123",
+				NewPrometheusMetric(
+					"aws_ec2_cpuutilization_maximum",
+					[]string{
+						"name",
+						"dimension_InstanceId",
 					},
-					Value: 0,
-				},
-				{
-					Name: "aws_elasticache_info",
-					Labels: map[string]string{
-						"name":           "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"tag_custom_tag": "tag_Value",
+					[]string{
+						"arn:aws:ec2:us-east-1:123456789012:instance/i-abc123",
+						"i-abc123",
 					},
-					Value: 0,
-				},
+					0,
+				),
+				NewPrometheusMetric(
+					"aws_elasticache_info",
+					[]string{
+						"name",
+						"tag_custom_tag",
+					},
+					[]string{
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"tag_Value",
+					},
+					0,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_ec2_cpuutilization_maximum": map[string]struct{}{
@@ -200,17 +209,24 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: "aws_elasticache_info",
-					Labels: map[string]string{
-						"name":                   "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"tag_cache_name":         "cache_instance_1",
-						"account_id":             "12345",
-						"region":                 "us-east-2",
-						"custom_tag_billable_to": "api",
+				NewPrometheusMetric(
+					"aws_elasticache_info",
+					[]string{
+						"name",
+						"tag_cache_name",
+						"account_id",
+						"region",
+						"custom_tag_billable_to",
 					},
-					Value: 0,
-				},
+					[]string{
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"cache_instance_1",
+						"12345",
+						"us-east-2",
+						"api",
+					},
+					0,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_info": map[string]struct{}{
@@ -246,14 +262,18 @@ func TestBuildNamespaceInfoMetrics(t *testing.T) {
 			observedMetricLabels: map[string]model.LabelSet{},
 			labelsSnakeCase:      false,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name: "aws_sagemaker_trainingjobs_info",
-					Labels: map[string]string{
-						"name":          "arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
-						"tag_CustomTag": "tag_Value",
+				NewPrometheusMetric(
+					"aws_sagemaker_trainingjobs_info",
+					[]string{
+						"name",
+						"tag_CustomTag",
 					},
-					Value: 0,
-				},
+					[]string{
+						"arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
+						"tag_Value",
+					},
+					0,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_sagemaker_trainingjobs_info": map[string]struct{}{
@@ -379,51 +399,78 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_elasticache_cpuutilization_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_cpuutilization_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
 					},
-				},
-				{
-					Name:      "aws_elasticache_freeable_memory_average",
-					Value:     2,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
 					},
-				},
-				{
-					Name:      "aws_elasticache_network_bytes_in_average",
-					Value:     3,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+					1,
+					false,
+					ts,
+				),
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_freeable_memory_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
 					},
-				},
-				{
-					Name:             "aws_elasticache_network_bytes_out_average",
-					Value:            4,
-					Timestamp:        ts,
-					IncludeTimestamp: true,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
 					},
-				},
+					2,
+					false,
+					ts,
+				),
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_network_bytes_in_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
+					},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					3,
+					false,
+					ts,
+				),
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_network_bytes_out_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
+					},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					4,
+					true,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_cpuutilization_average": {
@@ -489,7 +536,6 @@ func TestBuildMetrics(t *testing.T) {
 							AddCloudwatchTimestamp: false,
 						},
 						Namespace: "AWS/ElastiCache",
-
 						Dimensions: []model.Dimension{
 							{
 								Name:  "CacheClusterId",
@@ -547,42 +593,61 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: false,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_elasticache_cpuutilization_average",
-					Value:     0,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_cpuutilization_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
 					},
-					IncludeTimestamp: false,
-				},
-				{
-					Name:      "aws_elasticache_freeable_memory_average",
-					Value:     math.NaN(),
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
 					},
-					IncludeTimestamp: false,
-				},
-				{
-					Name:      "aws_elasticache_network_bytes_in_average",
-					Value:     0,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":               "123456789012",
-						"name":                     "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                   "us-east-1",
-						"dimension_CacheClusterId": "redis-cluster",
+					0,
+					false,
+					ts,
+				),
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_freeable_memory_average",
+
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
 					},
-					IncludeTimestamp: false,
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					math.NaN(),
+					false,
+					ts,
+				),
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_network_bytes_in_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_CacheClusterId",
+					},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					0,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_cpuutilization_average": {
@@ -639,17 +704,24 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_elasticache_cpuutilization_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":                 "123456789012",
-						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                     "us-east-1",
-						"dimension_cache_cluster_id": "redis-cluster",
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_cpuutilization_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_cache_cluster_id",
 					},
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_cpuutilization_average": {
@@ -694,17 +766,24 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_sagemaker_trainingjobs_cpuutilization_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":     "123456789012",
-						"name":           "arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
-						"region":         "us-east-1",
-						"dimension_host": "sagemaker-xgboost",
+				NewPrometheusMetricWithTimestamp(
+					"aws_sagemaker_trainingjobs_cpuutilization_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_host",
 					},
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:sagemaker:us-east-1:123456789012:training-job/sagemaker-xgboost",
+						"us-east-1",
+						"sagemaker-xgboost",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_sagemaker_trainingjobs_cpuutilization_average": {
@@ -749,17 +828,24 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_glue_driver_aggregate_bytes_read_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":         "123456789012",
-						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
-						"region":             "us-east-1",
-						"dimension_job_name": "test-job",
+				NewPrometheusMetricWithTimestamp(
+					"aws_glue_driver_aggregate_bytes_read_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_job_name",
 					},
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"us-east-1",
+						"test-job",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_glue_driver_aggregate_bytes_read_average": {
@@ -804,17 +890,24 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_glue_aggregate_glue_jobs_bytes_read_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":         "123456789012",
-						"name":               "arn:aws:glue:us-east-1:123456789012:job/test-job",
-						"region":             "us-east-1",
-						"dimension_job_name": "test-job",
+				NewPrometheusMetricWithTimestamp(
+					"aws_glue_aggregate_glue_jobs_bytes_read_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_job_name",
 					},
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:glue:us-east-1:123456789012:job/test-job",
+						"us-east-1",
+						"test-job",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_glue_aggregate_glue_jobs_bytes_read_average": {
@@ -862,18 +955,26 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_elasticache_cpuutilization_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":                 "123456789012",
-						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                     "us-east-1",
-						"dimension_cache_cluster_id": "redis-cluster",
-						"custom_tag_billable_to":     "api",
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_cpuutilization_average",
+					[]string{
+						"account_id",
+						"name",
+						"region",
+						"dimension_cache_cluster_id",
+						"custom_tag_billable_to",
 					},
-				},
+					[]string{
+						"123456789012",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+						"api",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_cpuutilization_average": {
@@ -919,18 +1020,26 @@ func TestBuildMetrics(t *testing.T) {
 			}},
 			labelsSnakeCase: true,
 			expectedMetrics: []*PrometheusMetric{
-				{
-					Name:      "aws_elasticache_cpuutilization_average",
-					Value:     1,
-					Timestamp: ts,
-					Labels: map[string]string{
-						"account_id":                 "123456789012",
-						"account_alias":              "billingacct",
-						"name":                       "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
-						"region":                     "us-east-1",
-						"dimension_cache_cluster_id": "redis-cluster",
+				NewPrometheusMetricWithTimestamp(
+					"aws_elasticache_cpuutilization_average",
+					[]string{
+						"account_id",
+						"account_alias",
+						"name",
+						"region",
+						"dimension_cache_cluster_id",
 					},
-				},
+					[]string{
+						"123456789012",
+						"billingacct",
+						"arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+						"us-east-1",
+						"redis-cluster",
+					},
+					1,
+					false,
+					ts,
+				),
 			},
 			expectedLabels: map[string]model.LabelSet{
 				"aws_elasticache_cpuutilization_average": {
@@ -1117,8 +1226,8 @@ func Benchmark_BuildMetrics(b *testing.B) {
 // struct values are NaN because NaN != NaN
 func replaceNaNValues(metrics []*PrometheusMetric) []*PrometheusMetric {
 	for _, metric := range metrics {
-		if math.IsNaN(metric.Value) {
-			metric.Value = 54321.0
+		if math.IsNaN(metric.Value()) {
+			metric.SetValue(54321.0)
 		}
 	}
 	return metrics
@@ -1169,199 +1278,184 @@ func Test_EnsureLabelConsistencyAndRemoveDuplicates(t *testing.T) {
 		{
 			name: "adds missing labels",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-					Value:  1.0,
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label2": "value2"},
-					Value:  2.0,
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{},
-					Value:  3.0,
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label2"}, []string{"value2"}, 2.0),
+				NewPrometheusMetric("metric1", []string{}, []string{}, 3.0),
 			},
 			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}, "label3": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1", "label2": "", "label3": ""},
-					Value:  1.0,
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "", "label3": "", "label2": "value2"},
-					Value:  2.0,
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "", "label2": "", "label3": ""},
-					Value:  3.0,
-				},
+				NewPrometheusMetric("metric1", []string{"label1", "label2", "label3"}, []string{"value1", "", ""}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1", "label3", "label2"}, []string{"", "", "value2"}, 2.0),
+				NewPrometheusMetric("metric1", []string{"label1", "label2", "label3"}, []string{"", "", ""}, 3.0),
+			},
+		},
+		{
+			name: "removes duplicate labels",
+			metrics: []*PrometheusMetric{
+				NewPrometheusMetric("metric1", []string{"label1", "label1", "label2"}, []string{"value1", "value1", "value2"}, 1.0),
+			},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
+			output: []*PrometheusMetric{
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
 			},
 		},
 		{
 			name: "duplicate metric",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
 		},
 		{
 			name: "duplicate metric, multiple labels",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1", "label2": "value2"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label2": "value2", "label1": "value1"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label2", "label1"}, []string{"value2", "value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1", "label2": "value2"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", "value2"}, 1.0),
 			},
 		},
 		{
 			name: "metric with different labels",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label2": "value2"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label2"}, []string{"value2"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label2": "value2"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"value1", ""}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1", "label2"}, []string{"", "value2"}, 1.0),
 			},
 		},
 		{
 			name: "two metrics",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label1": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
 			},
 		},
 		{
 			name: "two metrics with different labels",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label2": "value2"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label2": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label2": "value2"},
-				},
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
 			},
 		},
 		{
 			name: "multiple duplicates and non-duplicates",
 			metrics: []*PrometheusMetric{
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label2": "value2"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric2", []string{"label2"}, []string{"value2"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
-			observedLabels: map[string]model.LabelSet{},
+			observedLabels: map[string]model.LabelSet{"metric1": {"label1": {}}, "metric2": {"label1": {}, "label2": {}}},
 			output: []*PrometheusMetric{
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label2": "value2"},
-				},
-				{
-					Name:   "metric2",
-					Labels: map[string]string{"label1": "value1"},
-				},
-				{
-					Name:   "metric1",
-					Labels: map[string]string{"label1": "value1"},
-				},
+				NewPrometheusMetric("metric2", []string{"label1", "label2"}, []string{"", "value2"}, 1.0),
+				NewPrometheusMetric("metric2", []string{"label1", "label2"}, []string{"value1", ""}, 1.0),
+				NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := EnsureLabelConsistencyAndRemoveDuplicates(tc.metrics, tc.observedLabels)
+			actual := EnsureLabelConsistencyAndRemoveDuplicates(tc.metrics, tc.observedLabels, logging.NewNopLogger())
 			require.ElementsMatch(t, tc.output, actual)
 		})
 	}
+}
+
+func Benchmark_EnsureLabelConsistencyAndRemoveDuplicates(b *testing.B) {
+	metrics := []*PrometheusMetric{
+		NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+		NewPrometheusMetric("metric1", []string{"label2"}, []string{"value2"}, 2.0),
+		NewPrometheusMetric("metric1", []string{}, []string{}, 3.0),
+		NewPrometheusMetric("metric1", []string{"label1"}, []string{"value1"}, 1.0),
+	}
+	observedLabels := map[string]model.LabelSet{"metric1": {"label1": {}, "label2": {}, "label3": {}}}
+	logger := logging.NewNopLogger()
+
+	var output []*PrometheusMetric
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		output = EnsureLabelConsistencyAndRemoveDuplicates(metrics, observedLabels, logger)
+	}
+
+	expectedOutput := []*PrometheusMetric{
+		NewPrometheusMetric("metric1", []string{"label1", "label2", "label3"}, []string{"value1", "", ""}, 1.0),
+		NewPrometheusMetric("metric1", []string{"label1", "label3", "label2"}, []string{"", "", "value2"}, 2.0),
+		NewPrometheusMetric("metric1", []string{"label1", "label2", "label3"}, []string{"", "", ""}, 3.0),
+	}
+	require.Equal(b, expectedOutput, output)
+}
+
+func Benchmark_createPrometheusLabels(b *testing.B) {
+	ts := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	cwd := &model.CloudwatchData{
+		MetricName: "CPUUtilization",
+		MetricMigrationParams: model.MetricMigrationParams{
+			NilToZero:              true,
+			AddCloudwatchTimestamp: false,
+		},
+		Namespace: "AWS/ElastiCache",
+		GetMetricDataResult: &model.GetMetricDataResult{
+			Statistic: "Average",
+			Datapoint: aws.Float64(1),
+			Timestamp: ts,
+		},
+		Dimensions:   []model.Dimension{},
+		ResourceName: "arn:aws:elasticache:us-east-1:123456789012:cluster:redis-cluster",
+		Tags:         []model.Tag{},
+	}
+
+	contextLabelKeys := []string{}
+	contextLabelValues := []string{}
+
+	for i := 0; i < 10000; i++ {
+		contextLabelKeys = append(contextLabelKeys, fmt.Sprintf("context_label_%d", i))
+		contextLabelValues = append(contextLabelValues, fmt.Sprintf("context_value_%d", i))
+
+		cwd.Dimensions = append(cwd.Dimensions, model.Dimension{
+			Name:  fmt.Sprintf("dimension_%d", i),
+			Value: fmt.Sprintf("value_%d", i),
+		})
+
+		cwd.Tags = append(cwd.Tags, model.Tag{
+			Key:   fmt.Sprintf("tag_%d", i),
+			Value: fmt.Sprintf("value_%d", i),
+		})
+	}
+
+	var labelKeys, labelValues []string
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		labelKeys, labelValues = createPrometheusLabels(cwd, false, contextLabelKeys, contextLabelValues, logging.NewNopLogger())
+	}
+
+	require.Equal(b, 30001, len(labelKeys))
+	require.Equal(b, 30001, len(labelValues))
 }
