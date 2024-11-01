@@ -244,6 +244,16 @@ var SupportedServices = serviceConfigs{
 		},
 	},
 	{
+		Namespace: "AWS/DirectoryService",
+		Alias:     "ds",
+		ResourceFilters: []*string{
+			aws.String("ds:directory"),
+		},
+		DimensionRegexps: []*regexp.Regexp{
+			regexp.MustCompile(":directory/(?P<DirectoryId>[^/]+)"),
+		},
+	},
+	{
 		Namespace: "AWS/DMS",
 		Alias:     "dms",
 		ResourceFilters: []*string{
