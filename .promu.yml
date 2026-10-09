@@ -1,6 +1,6 @@
 go:
-    # This must match .circle/config.yml.
-    version: 1.26
+    # This must match .github/workflows/ci.yml.
+    version: 1.27
 repository:
     path: github.com/prometheus-community/yet-another-cloudwatch-exporter
 build:
