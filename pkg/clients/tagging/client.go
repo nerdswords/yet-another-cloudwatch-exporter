@@ -103,6 +103,9 @@ func NewClient(
 
 func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region string) ([]*model.TaggedResource, error) {
 	svc := config.SupportedServices.GetService(job.Namespace)
+	if svc == nil {
+		return nil, fmt.Errorf("unsupported namespace %q", job.Namespace)
+	}
 	var resources []*model.TaggedResource
 	shouldHaveDiscoveredResources := false
 
@@ -144,6 +147,11 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 			}
 
 			for _, resourceTagMapping := range page.ResourceTagMappingList {
+				if resourceTagMapping.ResourceARN == nil {
+					c.logger.Debug("Skipping resource tag mapping without ARN")
+					continue
+				}
+
 				resource := model.TaggedResource{
 					ARN:       *resourceTagMapping.ResourceARN,
 					Namespace: job.Namespace,
@@ -152,7 +160,7 @@ func (c client) GetResources(ctx context.Context, job model.DiscoveryJob, region
 				}
 
 				for _, t := range resourceTagMapping.Tags {
-					resource.Tags = append(resource.Tags, model.Tag{Key: *t.Key, Value: *t.Value})
+					resource.Tags = append(resource.Tags, model.Tag{Key: aws.ToString(t.Key), Value: aws.ToString(t.Value)})
 				}
 
 				if resource.FilterThroughTags(job.SearchTags) {
