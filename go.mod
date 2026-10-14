@@ -33,7 +33,7 @@ require (
 	go.uber.org/atomic v1.12.0
 	go.yaml.in/yaml/v2 v2.4.4
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.24.0
 )
 
 require (
